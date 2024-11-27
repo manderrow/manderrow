@@ -1,10 +1,30 @@
-import { createEffect, createResource, createSignal, For, Show, Suspense } from "solid-js";
+import { createEffect, createResource, createSignal, For, Show } from "solid-js";
 import { invoke } from "@tauri-apps/api/core";
-import { fetch } from "@tauri-apps/plugin-http";
 import "./App.css";
 
+interface Mod {
+  name: string,
+  full_name: string,
+  description?: string,
+  icon?: string,
+  version_number?: string,
+  dependencies: string[],
+  download_url?: string,
+  downloads?: string,
+  date_created: string,
+  website_url?: string,
+  is_active?: string,
+  uuid4: string,
+  file_size?: number,
+}
+
+interface QueryResult {
+  mods: Mod[],
+  count: number,
+}
+
 function App() {
-  async function queryModIndex(query: string): Promise<Object[]> {
+  async function queryModIndex(query: string): Promise<QueryResult> {
     return await invoke('query_mod_index', { query });
   }
 
@@ -32,9 +52,9 @@ function App() {
       <input type="search" placeholder="Search" value={query()} on:input={e => setQuery(e.target.value)} />
 
       <Show when={modIndex() && queriedMods() != null}>
-          <p>Discovered {queriedMods()!.length} mods</p>
-          <For each={queriedMods()!}>
-            {mod => <p>{JSON.stringify(mod)}</p>}
+          <p>Discovered {queriedMods()!.count} mods</p>
+          <For each={queriedMods()!.mods}>
+            {mod => <p>{mod.full_name}</p>}
           </For>
       </Show>
       <Show when={!modIndex() || queriedMods() == null}>
