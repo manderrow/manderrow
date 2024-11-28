@@ -16,15 +16,24 @@ function ModSearch(props: { game: string }) {
     return true;
   });
 
-  const [queriedMods, { refetch: refetchQueriedMods }] = createResource(() => [props.game, modIndex(), query()] as [string, true | undefined, string], ([game, _, query]) => {
+  const [queriedMods, { refetch: refetchQueriedMods }] = createResource(() => [props.game, modIndex.loading, query()] as [string, true | undefined, string], ([game, _, query]) => {
     console.log(`Querying mods for ${game} by ${query}`);
     return queryModIndex(game, query);
   }, { initialValue: { mods: [], count: 0 } });
 
   return <>
-    <input type="search" placeholder="Search" value={query()} on:input={e => setQuery(e.target.value)} />
+    <div class={modListStyles.searchBar}>
+      <input type="search" placeholder="Search" value={query()} on:input={e => setQuery(e.target.value)} />
+      <Show when={queriedMods.loading}>
+        <span>Querying mods...</span>
+      </Show>
+    </div>
 
-    <Show when={modIndex() && queriedMods() != null}>
+    <Show when={modIndex.loading}>
+      <p>Fetching mods...</p>
+    </Show>
+
+    <Show when={queriedMods.latest}>
       <p>Discovered {queriedMods()!.count} mods</p>
       <div class={modListStyles.modList}>
         <For each={queriedMods()!.mods}>
@@ -38,9 +47,6 @@ function ModSearch(props: { game: string }) {
           </div>}
         </For>
       </div>
-    </Show>
-    <Show when={!modIndex() || queriedMods() == null}>
-      <p>Loading...</p>
     </Show>
   </>;
 }
