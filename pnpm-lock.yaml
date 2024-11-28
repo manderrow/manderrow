@@ -8,33 +8,36 @@ importers:
 
   .:
     dependencies:
+      '@solidjs/router':
+        specifier: ^0.15.1
+        version: 0.15.1(solid-js@1.9.3)
       '@tauri-apps/api':
-        specifier: ^2
+        specifier: ^2.1.1
         version: 2.1.1
       '@tauri-apps/plugin-clipboard-manager':
-        specifier: ^2
+        specifier: ^2.0.0
         version: 2.0.0
       '@tauri-apps/plugin-http':
-        specifier: ^2
+        specifier: ^2.0.1
         version: 2.0.1
       '@tauri-apps/plugin-shell':
-        specifier: ^2
+        specifier: ^2.0.1
         version: 2.0.1
       solid-js:
-        specifier: ^1.7.8
+        specifier: ^1.9.3
         version: 1.9.3
     devDependencies:
       '@tauri-apps/cli':
-        specifier: ^2
+        specifier: ^2.1.0
         version: 2.1.0
       typescript:
-        specifier: ^5.2.2
+        specifier: ^5.7.2
         version: 5.7.2
       vite:
-        specifier: ^5.3.1
+        specifier: ^5.4.11
         version: 5.4.11
       vite-plugin-solid:
-        specifier: ^2.8.0
+        specifier: ^2.11.0
         version: 2.11.0(solid-js@1.9.3)(vite@5.4.11)
 
 packages:
@@ -366,6 +369,11 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@solidjs/router@0.15.1':
+    resolution: {integrity: sha512-lb5BRBqQqii/1dQCglx2K68xLkgu7QcrcajWKuuEx6FHTsK/hp5IgVhjy6RzPMLj+SFyrrRi/ldirCFNxtzh0Q==}
+    peerDependencies:
+      solid-js: ^1.8.6
+
   '@tauri-apps/api@2.1.1':
     resolution: {integrity: sha512-fzUfFFKo4lknXGJq8qrCidkUcKcH2UHhfaaCNt4GzgzGaW2iS26uFOg4tS3H4P8D6ZEeUxtiD5z0nwFF0UN30A==}
 
@@ -491,8 +499,8 @@ packages:
       supports-color:
         optional: true
 
-  electron-to-chromium@1.5.65:
-    resolution: {integrity: sha512-PWVzBjghx7/wop6n22vS2MLU8tKGd4Q91aCEGhG/TYmW6PP5OcSXcdnxTe1NNt0T66N8D6jxh4kC8UsdzOGaIw==}
+  electron-to-chromium@1.5.67:
+    resolution: {integrity: sha512-nz88NNBsD7kQSAGGJyp8hS6xSPtWwqNogA0mjtc2nUYeEf3nURK9qpV18TuBdDmEDgVWotS8Wkzf+V52dSQ/LQ==}
 
   entities@4.5.0:
     resolution: {integrity: sha512-V0hjH4dGPh9Ao5p0MoRY6BVqtwCjhz6vI5LT8AJ55H+4g9/4vbHx1I54fS0XuclLhDHArPQCiMjDxjaL8fPxhw==}
@@ -921,6 +929,10 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.27.4':
     optional: true
 
+  '@solidjs/router@0.15.1(solid-js@1.9.3)':
+    dependencies:
+      solid-js: 1.9.3
+
   '@tauri-apps/api@2.1.1': {}
 
   '@tauri-apps/cli-darwin-arm64@2.1.0':
@@ -1019,7 +1031,7 @@ snapshots:
   browserslist@4.24.2:
     dependencies:
       caniuse-lite: 1.0.30001684
-      electron-to-chromium: 1.5.65
+      electron-to-chromium: 1.5.67
       node-releases: 2.0.18
       update-browserslist-db: 1.1.1(browserslist@4.24.2)
 
@@ -1033,7 +1045,7 @@ snapshots:
     dependencies:
       ms: 2.1.3
 
-  electron-to-chromium@1.5.65: {}
+  electron-to-chromium@1.5.67: {}
 
   entities@4.5.0: {}
 
