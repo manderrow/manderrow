@@ -1,64 +1,75 @@
-import { createEffect, createResource, createSignal, For, Show } from "solid-js";
-import { invoke } from "@tauri-apps/api/core";
+import { createEffect, createResource, createSignal, For, Show, Suspense } from "solid-js";
+import { fetchModIndex, getGames, queryModIndex } from "./api";
 import "./App.css";
+import modListStyles from './ModList.module.css';
 
-interface Mod {
-  name: string,
-  full_name: string,
-  description?: string,
-  icon?: string,
-  version_number?: string,
-  dependencies: string[],
-  download_url?: string,
-  downloads?: string,
-  date_created: string,
-  website_url?: string,
-  is_active?: string,
-  uuid4: string,
-  file_size?: number,
-}
 
-interface QueryResult {
-  mods: Mod[],
-  count: number,
+function ModSearch(props: { game: string }) {
+  const [query, setQuery] = createSignal('');
+
+  console.log(`in func game=${props.game}`);
+
+  const [modIndex, { refetch: refetchModIndex }] = createResource(() => props.game, async game => {
+    console.log(`in resource game=${game}`);
+    await fetchModIndex(game);
+    console.log(`fetched mod index`);
+    return true;
+  });
+
+  const [queriedMods, { refetch: refetchQueriedMods }] = createResource(() => [props.game, modIndex(), query()] as [string, true | undefined, string], ([game, _, query]) => {
+    console.log(`Querying mods for ${game} by ${query}`);
+    return queryModIndex(game, query);
+  }, { initialValue: { mods: [], count: 0 } });
+
+  return <>
+    <input type="search" placeholder="Search" value={query()} on:input={e => setQuery(e.target.value)} />
+
+    <Show when={modIndex() && queriedMods() != null}>
+      <p>Discovered {queriedMods()!.count} mods</p>
+      <div class={modListStyles.modList}>
+        <For each={queriedMods()!.mods}>
+          {mod => <div>
+            <div>
+              <p class={modListStyles.name}>{mod.full_name}</p>
+            </div>
+            <div>
+              <p class={modListStyles.downloads}>{mod.versions[0].downloads ?? '0'}</p>
+            </div>
+          </div>}
+        </For>
+      </div>
+    </Show>
+    <Show when={!modIndex() || queriedMods() == null}>
+      <p>Loading...</p>
+    </Show>
+  </>;
 }
 
 function App() {
-  async function queryModIndex(query: string): Promise<QueryResult> {
-    return await invoke('query_mod_index', { query });
-  }
+  const [selectedGame, setSelectedGame] = createSignal<string | null>(null);
 
-  const [query, setQuery] = createSignal('');
-
-  const [queriedMods, { refetch: refetchQueriedMods }] = createResource(() => {
-    return queryModIndex(query());
-  });
-
-  createEffect(() => {
-    query();
-    refetchQueriedMods();
-  });
-
-  const [modIndex, { refetch: refetchModIndex }] = createResource(async () => {
-    await invoke('fetch_mod_index', {})
-    refetchQueriedMods();
-    return true;
+  const [games] = createResource(async () => {
+    const games = await getGames();
+    if (selectedGame() === null) {
+      setSelectedGame(games[0].id);
+    }
+    return games;
   });
 
   return (
     <main class="container">
       <h1>Thunderstore</h1>
 
-      <input type="search" placeholder="Search" value={query()} on:input={e => setQuery(e.target.value)} />
-
-      <Show when={modIndex() && queriedMods() != null}>
-          <p>Discovered {queriedMods()!.count} mods</p>
-          <For each={queriedMods()!.mods}>
-            {mod => <p>{mod.full_name}</p>}
+      <select on:change={e => setSelectedGame(e.target.value)}>
+        <Suspense>
+          <For each={games()}>
+            {game => <option value={game.id} selected={selectedGame() === game.id}>{game.name}</option>}
           </For>
-      </Show>
-      <Show when={!modIndex() || queriedMods() == null}>
-        <p>Loading...</p>
+        </Suspense>
+      </select>
+
+      <Show when={selectedGame() !== null}>
+        <ModSearch game={selectedGame()!} />
       </Show>
     </main>
   );

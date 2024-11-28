@@ -1,0 +1,28 @@
+.modList {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+
+	>div {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		border: 2px solid white;
+		border-radius: 8px;
+		padding: 8px;
+
+		>div {
+			display: flex;
+			flex-direction: column;
+
+			/* right-align the contents of the right column */
+			&:last-child {
+				align-items: end;
+			}
+
+			.name {}
+
+			.downloads {}
+		}
+	}
+}
