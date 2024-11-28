@@ -34,5 +34,5 @@ tokio = "1.41.1"
 
 # provides gzip
 flate2 = "1.0.35"
-rff = "0.3.0"
+rff = { git = "https://github.com/mpfaff/rff.git" }
 uuid = { version = "1.11.0", features = ["serde"] }

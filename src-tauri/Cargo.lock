@@ -3094,8 +3094,7 @@ dependencies = [
 [[package]]
 name = "rff"
 version = "0.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6ce6626007d6253f887f6767a61efc034b45498ecf8d8371c7c25388e8a99d46"
+source = "git+https://github.com/mpfaff/rff.git#3e17fb704e41c76ff9a9a41ffbd4b3daa8017b44"
 dependencies = [
  "clap",
  "libc",
