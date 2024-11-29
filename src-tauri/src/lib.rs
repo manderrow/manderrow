@@ -1,12 +1,19 @@
 use std::{
     borrow::Cow,
+    collections::HashMap,
     io::{Cursor, Read as _},
+    ptr::NonNull,
     sync::{Arc, LazyLock},
 };
 
 use bytes::Bytes;
 use flate2::bufread::GzDecoder;
+use parking_lot::RwLock;
 use serde_with::serde_as;
+use simd_json::{
+    derived::{ValueTryAsArray, ValueTryAsObject, ValueTryAsScalar},
+    prelude::ObjectTrait,
+};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -51,30 +58,31 @@ const GAMES: &[Game] = &[
     },
 ];
 
-static DATABASE: LazyLock<sqlite::ConnectionThreadSafe> = LazyLock::new(|| {
-    unsafe { assert_eq!(sqlite::ffi::sqlite3_auto_extension(Some(std::mem::transmute(sqlite::ffi::sqlite3_spellfix_init as unsafe extern "C" fn(*mut sqlite3_sys::sqlite3, *mut *mut std::ffi::c_char, *const sqlite3_sys::sqlite3_api_routines) -> std::ffi::c_int))), 0, "Could not load extension") };
-    let conn = sqlite::Connection::open_thread_safe(":memory:").unwrap();
-    // unsafe { assert_eq!(sqlite::ffi::sqlite3_enable_load_extension(conn.as_raw(), 1), 0, "Could not enable extension loading") };
-    conn.execute("CREATE VIRTUAL TABLE mods_fts5 USING fts5(full_name)")
-        .unwrap();
-    conn.execute("CREATE VIRTUAL TABLE mods_fts5_v_col USING fts5vocab(mods_fts5, col)")
-        .unwrap();
-    conn.execute("CREATE VIRTUAL TABLE mods_spellfix1 USING spellfix1")
-        .unwrap();
-    conn.execute(
-        "CREATE TABLE mods (
-        game TEXT NOT NULL,
-        name TEXT NOT NULL,
-        full_name TEXT NOT NULL,
-        owner TEXT NOT NULL,
-        data BLOB NOT NULL,
-        fts5_id INTEGER NOT NULL,
-        PRIMARY KEY (game, full_name),
-        FOREIGN KEY (fts5_id) REFERENCES mods_fts5 (rowid)
-    )",
-    )
-    .unwrap();
-    conn
+struct ModIndex {
+    data: NonNull<[u8]>,
+    mods: Vec<Mod<'static>>,
+}
+
+impl ModIndex {
+    pub fn mods(&self) -> &Vec<Mod<'_>> {
+        &self.mods
+    }
+}
+
+unsafe impl Send for ModIndex {}
+unsafe impl Sync for ModIndex {}
+
+impl Drop for ModIndex {
+    fn drop(&mut self) {
+        drop(unsafe { Box::from_raw(self.data.as_ptr()) });
+    }
+}
+
+static MOD_INDEXES: LazyLock<HashMap<&'static str, RwLock<Vec<ModIndex>>>> = LazyLock::new(|| {
+    GAMES
+        .iter()
+        .map(|game| (game.id, RwLock::default()))
+        .collect()
 });
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -82,26 +90,26 @@ static DATABASE: LazyLock<sqlite::ConnectionThreadSafe> = LazyLock::new(|| {
 #[serde_as]
 struct Mod<'a> {
     #[serde(borrow)]
-    name: Cow<'a, str>,
+    name: &'a str,
     #[serde(borrow)]
-    full_name: Cow<'a, str>,
+    full_name: &'a str,
     #[serde(borrow)]
-    owner: Cow<'a, str>,
+    owner: &'a str,
     #[serde(default)]
-    #[serde_as(as = "Option<BorrowCow>")]
-    package_url: Option<Cow<'a, str>>,
-    #[serde_as(as = "Option<BorrowCow>")]
-    donation_link: Option<Cow<'a, str>>,
     #[serde(borrow)]
-    date_created: Cow<'a, str>,
+    package_url: Option<&'a str>,
     #[serde(borrow)]
-    date_updated: Cow<'a, str>,
+    donation_link: Option<&'a str>,
+    #[serde(borrow)]
+    date_created: &'a str,
+    #[serde(borrow)]
+    date_updated: &'a str,
     rating_score: u32,
     is_pinned: bool,
     is_deprecated: bool,
     has_nsfw_content: bool,
     #[serde(borrow)]
-    categories: Vec<Cow<'a, str>>,
+    categories: Vec<&'a str>,
     #[serde(borrow)]
     versions: Vec<ModVersion<'a>>,
     uuid4: Uuid,
@@ -112,33 +120,30 @@ struct Mod<'a> {
 #[serde_as]
 struct ModVersion<'a> {
     #[serde(borrow)]
-    name: Cow<'a, str>,
+    name: &'a str,
     #[serde(borrow)]
-    full_name: Cow<'a, str>,
+    full_name: &'a str,
     #[serde(borrow)]
-    description: Cow<'a, str>,
+    description: &'a str,
     #[serde(borrow)]
-    icon: Cow<'a, str>,
+    icon: &'a str,
     #[serde(borrow)]
-    version_number: Cow<'a, str>,
-    dependencies: Vec<Cow<'a, str>>,
+    version_number: &'a str,
+    dependencies: Vec<&'a str>,
     #[serde(borrow)]
-    download_url: Cow<'a, str>,
+    download_url: &'a str,
     downloads: u64,
     #[serde(borrow)]
-    date_created: Cow<'a, str>,
-    #[serde_as(as = "Option<BorrowCow>")]
-    website_url: Option<Cow<'a, str>>,
+    date_created: &'a str,
+    #[serde(borrow)]
+    website_url: Option<&'a str>,
     is_active: bool,
     uuid4: Uuid,
     file_size: u64,
 }
 
 async fn fetch_gzipped(url: &str) -> Result<GzDecoder<Cursor<Bytes>>, Error> {
-    let bytes = tauri_plugin_http::reqwest::get(url)
-        .await?
-        .bytes()
-        .await?;
+    let bytes = tauri_plugin_http::reqwest::get(url).await?.bytes().await?;
     Ok(GzDecoder::new(Cursor::new(bytes)))
 }
 
@@ -148,8 +153,7 @@ async fn get_games() -> &'static [Game] {
 }
 
 #[tauri::command]
-async fn fetch_mod_index(game: String) -> Result<(), Error> {
-    let game = Arc::new(game);
+async fn fetch_mod_index(game: &str) -> Result<(), Error> {
     let chunk_urls = serde_json::from_reader::<_, Vec<String>>(
         fetch_gzipped(&format!(
             "https://thunderstore.io/c/{game}/api/v1/package-listing-index/"
@@ -157,164 +161,71 @@ async fn fetch_mod_index(game: String) -> Result<(), Error> {
         .await?,
     )?;
 
-    { // clear the index for the game
-        let mut stmt = DATABASE.prepare("DELETE FROM mods WHERE game = :game")?;
-        stmt.bind((":game", &**game))?;
-        while matches!(stmt.next()?, sqlite::State::Row) {}
+    let mod_index = MOD_INDEXES.get(game).ok_or("No such game")?;
 
-        let mut stmt = DATABASE.prepare("DELETE FROM mods_fts5 WHERE rowid IN ( SELECT fts5_id FROM mods WHERE game = :game )")?;
-        stmt.bind((":game", &**game))?;
-        while matches!(stmt.next()?, sqlite::State::Row) {}
-    }
-
-    futures::future::try_join_all(chunk_urls.into_iter().map(|url| async {
-        let game = game.clone();
-            tokio::task::spawn(async move {
-                let mut rdr = fetch_gzipped(&url).await?;
-                tokio::task::block_in_place(|| {
-                    let mut buf = Vec::new();
-                    rdr.read_to_end(&mut buf)?;
-                    use serde::Deserializer as _;
-                    struct Visitor<'a> {
-                        game: &'a str,
-                    }
-                    impl<'a, 'de> serde::de::Visitor<'de> for Visitor<'a> {
-                        type Value = ();
-
-                        fn expecting(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
-                            f.write_str("")
-                        }
-
-                        fn visit_seq<A: serde::de::SeqAccess<'de> >(self, mut access: A) -> Result<Self::Value, A::Error> {
-                            while let Some(m) = access.next_element::<Mod>()? {
-                                let mut stmt = DATABASE.prepare("INSERT INTO mods_fts5 (full_name) VALUES (:full_name) RETURNING rowid").map_err(<A::Error as serde::de::Error>::custom)?;
-                                stmt.bind((":full_name", &*m.full_name)).map_err(<A::Error as serde::de::Error>::custom)?;
-                                stmt.next().map_err(<A::Error as serde::de::Error>::custom)?;
-                                let fts5_id = stmt.read::<i64, _>(0).map_err(<A::Error as serde::de::Error>::custom)?;
-
-                                let mut stmt = DATABASE.prepare("INSERT INTO mods (game, name, full_name, owner, data, fts5_id) VALUES (:game, :name, :full_name, :owner, :data, :fts5_id)").map_err(<A::Error as serde::de::Error>::custom)?;
-                                stmt.bind((":game", self.game)).map_err(<A::Error as serde::de::Error>::custom)?;
-                                stmt.bind((":name", &*m.name)).map_err(<A::Error as serde::de::Error>::custom)?;
-                                stmt.bind((":full_name", &*m.full_name)).map_err(<A::Error as serde::de::Error>::custom)?;
-                                stmt.bind((":owner", &*m.owner)).map_err(<A::Error as serde::de::Error>::custom)?;
-                                stmt.bind((":data", &*serde_json::to_vec(&m).map_err(<A::Error as serde::de::Error>::custom)?)).map_err(<A::Error as serde::de::Error>::custom)?;
-                                stmt.bind((":fts5_id", fts5_id)).map_err(<A::Error as serde::de::Error>::custom)?;
-                                while matches!(stmt.next().map_err(<A::Error as serde::de::Error>::custom)?, sqlite::State::Row) {}
-                            }
-                            Ok(())
-                        }
-                    }
-                    serde_json::Deserializer::from_slice(&buf)
-                    // serde_json::Deserializer::from_reader(rdr)
-                        .deserialize_seq(Visitor {game: &**game})?;
-                    Ok::<_, Error>(())
-                })
+    let new_mod_index = futures::future::try_join_all(chunk_urls.into_iter().map(|url| async {
+        tokio::task::spawn(async move {
+            let mut rdr = fetch_gzipped(&url).await?;
+            tokio::task::block_in_place(|| {
+                let mut buf = Vec::new();
+                rdr.read_to_end(&mut buf)?;
+                let mut index = ModIndex {
+                    data: NonNull::new(Box::into_raw(buf.into_boxed_slice())).unwrap(),
+                    mods: Vec::new(),
+                };
+                index.mods = simd_json::from_slice::<Vec<Mod>>(unsafe { index.data.as_mut() })?;
+                Ok::<_, Error>(index)
             })
-            .await?
-        }))
-        .await?;
+        })
+        .await?
+    }))
+    .await?;
+    *mod_index.write() = new_mod_index;
 
-    {
-        let mut stmt = DATABASE.prepare("INSERT INTO mods_spellfix1(word) SELECT term FROM mods_fts5_v_col WHERE col='*'")?;
-        while matches!(stmt.next()?, sqlite::State::Row) {}
-    }
     Ok(())
 }
 
 #[derive(serde::Serialize)]
-struct QueryResult {
-    mods: Vec<Mod<'static>>,
+struct QueryResult<'a> {
+    mods: Vec<&'a Mod<'a>>,
     count: usize,
 }
 
-fn clone_owned<T: ?Sized + ToOwned>(c: Cow<T>) -> Cow<'static, T> {
-    Cow::Owned(c.into_owned())
-}
-
 #[tauri::command]
-fn query_mod_index(game: &str, query: String) -> Result<QueryResult, Error> {
-    let mut corrected_query = String::new();
+fn query_mod_index(game: &str, query: &str) -> Result<simd_json::OwnedValue, Error> {
+    let mod_index = MOD_INDEXES.get(game).ok_or("No such game")?.read();
 
-    for term in query.split(|c: char| !c.is_ascii_alphanumeric() && u32::from(c) < 128).filter(|term| !term.is_empty()) {
-        let mut stmt = DATABASE.prepare("SELECT word FROM mods_spellfix1 WHERE word MATCH ? and top=1")?;
-        stmt.bind((1, term))?;
-        let corrected_term_slot: String;
-        let corrected_term = if matches!(stmt.next()?, sqlite::State::Row) {
-            corrected_term_slot = stmt.read::<String, _>(0)?;
-            &corrected_term_slot
-        } else {
-            term
-        };
-        if !corrected_query.is_empty() {
-            corrected_query.push(' ');
-        }
-        corrected_query.push_str(corrected_term);
-    }
-
-    println!("Querying mods for {game}: {query:?} / {corrected_query:?}");
-
-    let count = {
-        let mut stmt = DATABASE
-            .prepare(
-                r#"SELECT COUNT(full_name) FROM mods WHERE game = :game AND (:query = "" OR fts5_id in ( SELECT rowid FROM mods_fts5(:query) ))"#,
-            )?;
-        stmt.bind((":game", game))?;
-        stmt.bind((":query", &*corrected_query))?;
-        stmt.next()?;
-        usize::try_from(stmt.read::<i64, _>(0)?)?
-    };
-
-    let mods = {
-        let mut stmt = DATABASE
-            .prepare(
-                r#"SELECT data FROM mods WHERE game = :game AND (:query = "" OR fts5_id in ( SELECT rowid FROM mods_fts5(:query) )) LIMIT 50"#,
-            )?;
-        stmt.bind((":game", game))?;
-        stmt.bind((":query", &*corrected_query))?;
-        stmt.into_iter()
-            .map(|r| {
-                let mut row = r?;
-                let data = row.take(0);
-                let data = Vec::<u8>::try_from(data)?;
-                let m = serde_json::from_slice::<Mod>(&data)?;
-                Ok(Mod::<'static> {
-                    name: clone_owned(m.name),
-                    full_name: clone_owned(m.full_name),
-                    owner: clone_owned(m.owner),
-                    package_url: m.package_url.map(clone_owned),
-                    donation_link: m.donation_link.map(clone_owned),
-                    date_created: clone_owned(m.date_created),
-                    date_updated: clone_owned(m.date_updated),
-                    rating_score: m.rating_score,
-                    is_pinned: m.is_pinned,
-                    is_deprecated: m.is_deprecated,
-                    has_nsfw_content: m.has_nsfw_content,
-                    categories: m.categories.into_iter().map(clone_owned).collect(),
-                    versions: m
-                        .versions
-                        .into_iter()
-                        .map(|v| ModVersion {
-                            name: clone_owned(v.name),
-                            full_name: clone_owned(v.full_name),
-                            description: clone_owned(v.description),
-                            icon: clone_owned(v.icon),
-                            version_number: clone_owned(v.version_number),
-                            dependencies: v.dependencies.into_iter().map(clone_owned).collect(),
-                            download_url: clone_owned(v.download_url),
-                            downloads: v.downloads,
-                            date_created: clone_owned(v.date_created),
-                            website_url: v.website_url.map(clone_owned),
-                            is_active: v.is_active,
-                            uuid4: v.uuid4,
-                            file_size: v.file_size,
-                        })
-                        .collect(),
-                    uuid4: m.uuid4.to_owned(),
-                })
+    let mut buf = mod_index
+        .iter()
+        .flat_map(|mi| {
+            mi.mods().iter().filter_map(|m| {
+                rff::match_and_score(&query, &m.full_name).map(|(_, score)| (m, score))
             })
-            .collect::<Result<Vec<_>, Error>>()?
-    };
-    Ok(QueryResult { mods, count })
+        })
+        .collect::<Vec<_>>();
+    buf.sort_unstable_by(|(m1, score1), (m2, score2)| {
+        score1
+            .total_cmp(score2)
+            .reverse()
+            .then_with(|| match (&*m1.versions, &*m2.versions) {
+                ([ModVersion { downloads: a, .. }, ..], [ModVersion { downloads: b, .. }, ..]) => {
+                    a.cmp(b).reverse()
+                }
+                _ => std::cmp::Ordering::Equal,
+            })
+            .then_with(|| m1.full_name.cmp(&m2.full_name))
+    });
+
+    let count = buf.len();
+
+    buf.truncate(50);
+
+    let buf = buf.into_iter().map(|(m, _)| m).collect::<Vec<_>>();
+
+    Ok(simd_json::serde::to_owned_value(QueryResult {
+        count,
+        mods: buf,
+    })?)
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
