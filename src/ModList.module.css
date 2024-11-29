@@ -6,24 +6,37 @@
 	>div {
 		display: flex;
 		flex-direction: row;
-		justify-content: space-between;
 		border: 2px solid white;
 		border-radius: 8px;
 		padding: 8px;
+		gap: 8px;
 
-		>div {
+		>.icon {
+			aspect-ratio: 1;
+			width: 96px;
+		}
+
+		.split {
 			display: flex;
-			flex-direction: column;
+			flex-direction: row;
+			justify-content: space-between;
+			flex-grow: 1;
 
-			/* right-align the contents of the right column */
-			&:last-child {
-				align-items: end;
+			.left {
+				display: flex;
+				flex-direction: column;
 			}
 
-			.name {}
-
-			.downloads {}
+			.right {
+				display: flex;
+				flex-direction: column;
+				align-items: end;
+			}
 		}
+
+		.name {}
+
+		.downloads {}
 	}
 }
 

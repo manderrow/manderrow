@@ -7,17 +7,12 @@ import modListStyles from './ModList.module.css';
 function ModSearch(props: { game: string }) {
   const [query, setQuery] = createSignal('');
 
-  console.log(`in func game=${props.game}`);
-
-  const [modIndex, { refetch: refetchModIndex }] = createResource(() => props.game, async game => {
-    console.log(`in resource game=${game}`);
-    await fetchModIndex(game);
-    console.log(`fetched mod index`);
+  const [modIndex] = createResource(() => props.game, async game => {
+    await fetchModIndex(game, { refresh: false });
     return true;
   });
 
-  const [queriedMods, { refetch: refetchQueriedMods }] = createResource(() => [props.game, modIndex.loading, query()] as [string, true | undefined, string], ([game, _, query]) => {
-    console.log(`Querying mods for ${game} by ${query}`);
+  const [queriedMods] = createResource(() => [props.game, modIndex.loading, query()] as [string, true | undefined, string], ([game, _, query]) => {
     return queryModIndex(game, query);
   }, { initialValue: { mods: [], count: 0 } });
 
@@ -38,11 +33,14 @@ function ModSearch(props: { game: string }) {
       <div class={modListStyles.modList}>
         <For each={queriedMods()!.mods}>
           {mod => <div>
-            <div>
-              <p class={modListStyles.name}>{mod.full_name}</p>
-            </div>
-            <div>
-              <p class={modListStyles.downloads}>{mod.versions[0].downloads ?? '0'}</p>
+            <img class={modListStyles.icon} src={mod.versions[0].icon} />
+            <div class={modListStyles.split}>
+              <div class={modListStyles.left}>
+                <p class={modListStyles.name}>{mod.full_name}</p>
+              </div>
+              <div class={modListStyles.right}>
+                <p class={modListStyles.downloads}>{mod.versions[0].downloads ?? '0'}</p>
+              </div>
             </div>
           </div>}
         </For>

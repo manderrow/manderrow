@@ -13,8 +13,8 @@ export async function getGames(): Promise<Game[]> {
 	return await wrapInvoke(async () => await invoke('get_games', {}));
 }
 
-export async function fetchModIndex(game: string) {
-	await wrapInvoke(async () => await invoke('fetch_mod_index', { game }));
+export async function fetchModIndex(game: string, options: {refresh: boolean}) {
+	await wrapInvoke(async () => await invoke('fetch_mod_index', { game, ...options }));
 }
 
 export async function queryModIndex(game: string, query: string): Promise<{
