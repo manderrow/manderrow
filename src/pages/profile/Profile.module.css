@@ -1,0 +1,15 @@
+.main,
+.tabs {
+  display: flex;
+}
+
+.sidebar,
+.sidebar__group {
+  display: flex;
+  flex-direction: column;
+}
+
+.tabs__tab a {
+  padding: 0.25em 0.5em;
+  border: 1px solid var(--clr-primary-3);
+}
