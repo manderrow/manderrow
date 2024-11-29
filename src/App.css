@@ -8,6 +8,7 @@
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
 
+  --clr-neutral-0: hsl(214, 28%, 5%);
   --clr-neutral-1: hsl(214, 28%, 15%);
   --clr-neutral-2: hsl(218, 25%, 20%);
   --clr-neutral-3: hsl(210, 23%, 28%);
@@ -62,11 +63,11 @@
 }
 
 html {
-  min-height: 100dvh;
+  height: 100dvh;
 }
 
 body {
-  background-color: var(--clr-neutral-10);
+  background-color: var(--clr-neutral-9);
   color: var(--clr-neutral-1);
   min-height: 100%;
   font-size: 1rem;
@@ -74,11 +75,11 @@ body {
 
 a {
   text-decoration: none;
-  color: var(--clr-primary-4);
+  color: var(--clr-primary-5);
 }
 
 a:hover {
-  color: var(--clr-primary-5);
+  color: var(--clr-primary-6);
 }
 
 a:disabled {
@@ -90,6 +91,7 @@ button,
 select {
   font-size: 1rem;
   color: var(--clr-neutral-1);
+  display: block;
 }
 
 @supports selector(*:focus-visible) {
@@ -115,7 +117,7 @@ input:focus-visible {
 
 button {
   padding: 0.35em 1.5em;
-  --bg-clr: var(--clr-neutral-700);
+  --bg-clr: var(--clr-neutral-8);
   background-color: var(--bg-clr);
   color: var(--clr-neutral-1);
 }
@@ -150,18 +152,26 @@ ul {
   list-style-type: none;
 }
 
+hr {
+  border: none;
+  background-color: var(--clr-neutral-8);
+  height: 1px;
+  margin: 1em 0;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
-    --clr-neutral-10: hsl(214, 28%, 15%);
-    --clr-neutral-9: hsl(218, 25%, 20%);
-    --clr-neutral-8: hsl(210, 23%, 28%);
-    --clr-neutral-7: hsl(210, 18%, 40%);
-    --clr-neutral-6: hsl(210, 11%, 50%);
-    --clr-neutral-5: hsl(212, 20%, 60%);
-    --clr-neutral-4: hsl(212, 25%, 70%);
-    --clr-neutral-3: hsl(211, 30%, 80%);
-    --clr-neutral-2: hsl(211, 32%, 90%);
-    --clr-neutral-1: hsl(100, 50%, 99%);
+    --clr-neutral-10: hsl(214, 28%, 12%);
+    --clr-neutral-9: hsl(218, 25%, 15%);
+    --clr-neutral-8: hsl(210, 23%, 20%);
+    --clr-neutral-7: hsl(210, 18%, 28%);
+    --clr-neutral-6: hsl(210, 11%, 35%);
+    --clr-neutral-5: hsl(212, 20%, 50%);
+    --clr-neutral-4: hsl(212, 25%, 60%);
+    --clr-neutral-3: hsl(211, 30%, 70%);
+    --clr-neutral-2: hsl(211, 32%, 80%);
+    --clr-neutral-1: hsl(211, 50%, 95%);
+    --clr-neutral-0: hsl(100, 50%, 99%);
   }
 }
 

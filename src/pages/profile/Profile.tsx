@@ -25,9 +25,12 @@ export default function Profile() {
   return (
     <main class={styles.main}>
       <aside class={styles.sidebar}>
-        <nav>
+        <nav class={styles.sidebar__nav}>
+          <A href="/">
+            <button class={styles.sidebar__btn}>Back</button>
+          </A>
+
           <h1>{params.gameId}</h1>
-          <button>Back</button>
         </nav>
         <hr />
         <section class={styles.sidebar__group}>
@@ -36,35 +39,42 @@ export default function Profile() {
         </section>
         <hr />
         <section class={styles.sidebar__group}>
+          <h3>Profiles</h3>
           <form action="#">
-            <h3>Profiles</h3>
             <input type="text" name="profile-search" id="profile-search" placeholder="Search" maxLength={100} />
           </form>
           <ol class={styles.sidebar__profilesList}>
             <li class={styles.profileList__item}>
               <A href="../base">Base</A>
-            </li>
-            <li class={styles.profileList__item}>
-              <A href="../cheats">Cheats</A>
+              <div class={styles.profileItem__options}>
+                <button>1</button>
+                <button>2</button>
+                <button>3</button>
+              </div>
             </li>
           </ol>
         </section>
+        <section class={styles.sidebar__group}>
+          <h3>Other</h3>
+        </section>
       </aside>
 
-      <div>
-        <h2>{params.profileId}</h2>
+      <div class={styles.content}>
+        <h2 class={styles.profileTitle}>{params.profileId}</h2>
         <ul class={styles.tabs}>
           <li class={styles.tabs__tab}>
-            <A href="?tab=mod-list">Installed</A>
+            <A href="?">Installed</A>
           </li>
           <li class={styles.tabs__tab}>
             <A href="?tab=mod-search">Online</A>
           </li>
         </ul>
-        <Switch>
-          <Match when={currentTab() === "mod-list"} children={<ModList />} />
-          <Match when={currentTab() === "mod-search"} children={<ModSearch />} />
-        </Switch>
+        <div class={styles.content__substance}>
+          <Switch>
+            <Match when={currentTab() === "mod-list"} children={<ModList />} />
+            <Match when={currentTab() === "mod-search"} children={<ModSearch />} />
+          </Switch>
+        </div>
       </div>
     </main>
   );

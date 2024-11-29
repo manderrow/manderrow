@@ -1,6 +1,27 @@
 .main,
-.tabs {
+.tabs,
+.navbar,
+.sidebar__nav {
   display: flex;
+}
+
+.sidebar {
+  padding: 1em;
+  height: 100dvh;
+  min-width: 18rem;
+  width: 20%;
+  max-width: 28rem;
+  resize: horizontal;
+  overflow: auto;
+  border-right: 1px solid var(--clr-neutral-8);
+}
+
+.sidebar__nav {
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sidebar__btn {
 }
 
 .sidebar,
@@ -9,7 +30,72 @@
   flex-direction: column;
 }
 
+.sidebar__group:last-child {
+  margin-top: auto;
+}
+
+.sidebar__profilesList {
+  list-style-type: none;
+  padding-top: 0.5em;
+  margin: 0 -1em;
+}
+
+.profileList__item {
+  position: relative;
+}
+
+.profileItem__options {
+  position: absolute;
+  right: 0.25em;
+  top: 0;
+  bottom: 0;
+  visibility: hidden;
+  display: flex;
+  align-items: center;
+  gap: 0.1em;
+  pointer-events: none;
+}
+
+.profileList__item:hover .profileItem__options,
+.profileList__item:focus-within .profileItem__options {
+  visibility: visible;
+  pointer-events: all;
+}
+
+.profileList__item a {
+  display: block;
+  padding: 0.35em 1em;
+}
+
+.profileList__item:hover a,
+.profileList__item:focus-within a {
+  background-color: var(--clr-neutral-8);
+}
+
+.profileList__item button {
+  border: none;
+  padding: 0.2em 0.25em;
+}
+
+.profileList__item button:hover {
+  background-color: var(--clr-neutral-7);
+}
+
+.content {
+  padding: 1em;
+  flex-grow: 1;
+}
+
+.content__substance {
+  padding: 1em 0;
+}
+
+.profileTitle {
+  text-align: center;
+}
+
 .tabs__tab a {
   padding: 0.25em 0.5em;
   border: 1px solid var(--clr-primary-3);
+  display: block;
 }
