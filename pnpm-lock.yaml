@@ -8,6 +8,12 @@ importers:
 
   .:
     dependencies:
+      '@fortawesome/free-regular-svg-icons':
+        specifier: ^6.7.1
+        version: 6.7.1
+      '@fortawesome/free-solid-svg-icons':
+        specifier: ^6.7.1
+        version: 6.7.1
       '@solidjs/router':
         specifier: ^0.15.1
         version: 0.15.1(solid-js@1.9.3)
@@ -23,6 +29,9 @@ importers:
       '@tauri-apps/plugin-shell':
         specifier: ^2.0.1
         version: 2.0.1
+      solid-fa:
+        specifier: ^0.2.0
+        version: 0.2.0(solid-js@1.9.3)
       solid-js:
         specifier: ^1.9.3
         version: 1.9.3
@@ -260,6 +269,18 @@ packages:
     engines: {node: '>=12'}
     cpu: [x64]
     os: [win32]
+
+  '@fortawesome/fontawesome-common-types@6.7.1':
+    resolution: {integrity: sha512-gbDz3TwRrIPT3i0cDfujhshnXO9z03IT1UKRIVi/VEjpNHtSBIP2o5XSm+e816FzzCFEzAxPw09Z13n20PaQJQ==}
+    engines: {node: '>=6'}
+
+  '@fortawesome/free-regular-svg-icons@6.7.1':
+    resolution: {integrity: sha512-e13cp+bAx716RZOTQ59DhqikAgETA9u1qTBHO3e3jMQQ+4H/N1NC1ZVeFYt1V0m+Th68BrEL1/X6XplISutbXg==}
+    engines: {node: '>=6'}
+
+  '@fortawesome/free-solid-svg-icons@6.7.1':
+    resolution: {integrity: sha512-BTKc0b0mgjWZ2UDKVgmwaE0qt0cZs6ITcDgjrti5f/ki7aF5zs+N91V6hitGo3TItCFtnKg6cUVGdTmBFICFRg==}
+    engines: {node: '>=6'}
 
   '@jridgewell/gen-mapping@0.3.5':
     resolution: {integrity: sha512-IzL8ZoEDIBRWEzlCcRhOaCupYyN5gdIK+Q6fbFdPDg6HqX6jpkItn7DFIpW9LQzXG6Df9sA7+OKnq0qlz/GaQg==}
@@ -595,6 +616,11 @@ packages:
     resolution: {integrity: sha512-rqEO6FZk8mv7Hyv4UCj3FD3b6Waqft605TLfsCe/BiaylRpyyMC0b+uA5TJKawX3KzMrdi3wsLbCaLplrQmBvQ==}
     engines: {node: '>=10'}
 
+  solid-fa@0.2.0:
+    resolution: {integrity: sha512-Mi8aOKZ+GJ2VgchwlV3SVrQPwpcDh1kuXdMCbQ0AlxBI9W36FaxTMOUrZenU6Ua/p04EcRfHLT4AfOx7xJSF3Q==}
+    peerDependencies:
+      solid-js: ^1.0.0
+
   solid-js@1.9.3:
     resolution: {integrity: sha512-5ba3taPoZGt9GY3YlsCB24kCg0Lv/rie/HTD4kG6h4daZZz7+yK02xn8Vx8dLYBc9i6Ps5JwAbEiqjmKaLB3Ag==}
 
@@ -857,6 +883,16 @@ snapshots:
 
   '@esbuild/win32-x64@0.21.5':
     optional: true
+
+  '@fortawesome/fontawesome-common-types@6.7.1': {}
+
+  '@fortawesome/free-regular-svg-icons@6.7.1':
+    dependencies:
+      '@fortawesome/fontawesome-common-types': 6.7.1
+
+  '@fortawesome/free-solid-svg-icons@6.7.1':
+    dependencies:
+      '@fortawesome/fontawesome-common-types': 6.7.1
 
   '@jridgewell/gen-mapping@0.3.5':
     dependencies:
@@ -1151,6 +1187,10 @@ snapshots:
       seroval: 1.1.1
 
   seroval@1.1.1: {}
+
+  solid-fa@0.2.0(solid-js@1.9.3):
+    dependencies:
+      solid-js: 1.9.3
 
   solid-js@1.9.3:
     dependencies:
