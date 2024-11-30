@@ -60,7 +60,7 @@ static GAMES_BY_ID: LazyLock<HashMap<&'static str, &'static Game>> =
 static MOD_INDEXES: LazyLock<HashMap<&'static str, RwLock<Vec<ModIndex>>>> = LazyLock::new(|| {
     GAMES
         .iter()
-        .map(|game| (&*game.id, RwLock::default()))
+        .map(|game| (&*game.thunderstore_url, RwLock::default()))
         .collect()
 });
 
@@ -115,7 +115,7 @@ async fn get_games() -> &'static [Game] {
 #[tauri::command]
 async fn fetch_mod_index(game: &str, refresh: bool) -> Result<(), Error> {
     let game = *GAMES_BY_ID.get(game).ok_or("No such game")?;
-    let mod_index = MOD_INDEXES.get(&*game.id).unwrap();
+    let mod_index = MOD_INDEXES.get(&*game.thunderstore_url).unwrap();
 
     if refresh || mod_index.read().is_empty() {
         let chunk_urls = serde_json::from_reader::<_, Vec<String>>(fetch_gzipped(&game.thunderstore_url).await?)?;
@@ -153,7 +153,8 @@ struct QueryResult<'a> {
 
 #[tauri::command]
 fn query_mod_index(game: &str, query: &str) -> Result<simd_json::OwnedValue, Error> {
-    let mod_index = MOD_INDEXES.get(game).ok_or("No such game")?.read();
+    let game = *GAMES_BY_ID.get(game).ok_or("No such game")?;
+    let mod_index = MOD_INDEXES.get(&*game.thunderstore_url).unwrap().read();
 
     let mut buf = mod_index
         .iter()
