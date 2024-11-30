@@ -99,8 +99,8 @@ export default function Profile() {
         </ul>
         <div class={styles.content__substance}>
           <Switch>
-            <Match when={currentTab() === "mod-list"} children={<ModList />} />
-            <Match when={currentTab() === "mod-search"} children={<ModSearch />} />
+            <Match when={currentTab() === "mod-list"} children={<ModList mods={[]} />} />
+            <Match when={currentTab() === "mod-search"} children={<ModSearch game={params.gameId} />} />
           </Switch>
         </div>
       </div>

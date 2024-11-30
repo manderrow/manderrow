@@ -2,11 +2,11 @@ import { Route, Router } from "@solidjs/router";
 
 import "./App.css";
 
+import Error from "./pages/error/Error";
 import GameSelect from "./pages/game_select/GameSelect";
 import Profile from "./pages/profile/Profile";
-import Error from "./pages/error/Error";
 
-function App() {
+export default function App() {
   return (
     <Router>
       <Route path="/" component={GameSelect} />
@@ -15,5 +15,3 @@ function App() {
     </Router>
   );
 }
-
-export default App;

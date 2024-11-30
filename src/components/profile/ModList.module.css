@@ -1,0 +1,54 @@
+.modList {
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+
+	>div {
+		display: flex;
+		flex-direction: row;
+		border: 2px solid white;
+		border-radius: 8px;
+		padding: 8px;
+		gap: 8px;
+	}
+}
+
+.icon {
+	aspect-ratio: 1;
+	width: 96px;
+}
+
+.split {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	flex-grow: 1;
+
+	.left {
+		display: flex;
+		flex-direction: column;
+	}
+
+	.right {
+		display: flex;
+		flex-direction: column;
+		align-items: end;
+	}
+}
+
+.name {}
+
+.downloads {}
+
+.categories {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 8px;
+
+	>div {
+		border-radius: 100vmax;
+		padding: 4px 12px;
+		background-color: #111111;
+	}
+}

@@ -1,62 +1,35 @@
-import { createEffect, createResource, createSignal, For, Show } from "solid-js";
-import { invoke } from "@tauri-apps/api/core";
+import { createResource, createSignal, Show } from "solid-js";
+import { fetchModIndex, queryModIndex } from "../../api";
+import ModList from "./ModList";
+import styles from './ModSearch.module.css';
 
-interface Mod {
-  name: string;
-  full_name: string;
-  description?: string;
-  icon?: string;
-  version_number?: string;
-  dependencies: string[];
-  download_url?: string;
-  downloads?: string;
-  date_created: string;
-  website_url?: string;
-  is_active?: string;
-  uuid4: string;
-  file_size?: number;
-}
+export default function ModSearch(props: { game: string }) {
+  const [query, setQuery] = createSignal('');
 
-interface QueryResult {
-  mods: Mod[];
-  count: number;
-}
-
-async function queryModIndex(query: string): Promise<QueryResult> {
-  return await invoke("query_mod_index", { query });
-}
-
-export default function ModSearch() {
-  const [query, setQuery] = createSignal("");
-
-  const [queriedMods, { refetch: refetchQueriedMods }] = createResource(() => {
-    return queryModIndex(query());
-  });
-
-  createEffect(() => {
-    query();
-    refetchQueriedMods();
-  });
-
-  const [modIndex, { refetch: refetchModIndex }] = createResource(async () => {
-    await invoke("fetch_mod_index", {});
-    refetchQueriedMods();
+  const [modIndex] = createResource(() => props.game, async game => {
+    await fetchModIndex(game, { refresh: false });
     return true;
   });
 
-  return (
-    <main class="container">
-      <h1>Thunderstore</h1>
+  const [queriedMods] = createResource(() => [props.game, modIndex.loading, query()] as [string, true | undefined, string], ([game, _, query]) => {
+    return queryModIndex(game, query);
+  }, { initialValue: { mods: [], count: 0 } });
 
-      <input type="search" placeholder="Search" value={query()} on:input={(e) => setQuery(e.target.value)} />
+  return <>
+    <div class={styles.searchBar}>
+      <input type="search" placeholder="Search" value={query()} on:input={e => setQuery(e.target.value)} />
+      <Show when={queriedMods.loading}>
+        <span>Querying mods...</span>
+      </Show>
+    </div>
 
-      <Show when={modIndex() && queriedMods() != null}>
-        <p>Discovered {queriedMods()!.count} mods</p>
-        <For each={queriedMods()!.mods}>{(mod) => <p>{mod.full_name}</p>}</For>
-      </Show>
-      <Show when={!modIndex() || queriedMods() == null}>
-        <p>Loading...</p>
-      </Show>
-    </main>
-  );
+    <Show when={modIndex.loading}>
+      <p>Fetching mods...</p>
+    </Show>
+
+    <Show when={queriedMods.latest}>
+      <p>Discovered {queriedMods()!.count} mods</p>
+      <ModList mods={queriedMods()!.mods} />
+    </Show>
+  </>;
 }
