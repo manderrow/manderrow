@@ -67,7 +67,7 @@
 		"displayMode": 0,
 		"instanceType": "Server",
 		"packageLoader": "BepInEx",
-		"id": "RiskOfRain2"
+		"id": "RiskOfRain2DedicatedServer"
 	},
 	{
 		"displayName": "Dyson Sphere Program",
@@ -143,7 +143,7 @@
 		"displayMode": 0,
 		"instanceType": "Server",
 		"packageLoader": "BepInEx",
-		"id": "Valheim"
+		"id": "ValheimDedicatedServer"
 	},
 	{
 		"displayName": "GTFO",
