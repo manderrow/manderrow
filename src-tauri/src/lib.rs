@@ -1,20 +1,17 @@
 use std::{
-    borrow::Cow,
     collections::HashMap,
     io::{Cursor, Read as _},
     ptr::NonNull,
-    sync::{Arc, LazyLock},
+    sync::LazyLock,
 };
 
 use bytes::Bytes;
 use flate2::bufread::GzDecoder;
+use games::Game;
 use parking_lot::RwLock;
-use serde_with::serde_as;
-use simd_json::{
-    derived::{ValueTryAsArray, ValueTryAsObject, ValueTryAsScalar},
-    prelude::ObjectTrait,
-};
 use uuid::Uuid;
+
+pub mod games;
 
 #[derive(Debug, Clone, serde::Serialize)]
 struct Error {
@@ -33,30 +30,6 @@ impl<T: std::fmt::Display> From<T> for Error {
         }
     }
 }
-
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-struct Game {
-    /// Unique internal id for the game.
-    id: &'static str,
-    /// Display name of the game.
-    name: &'static str,
-    /// Id of the Thunderstore mod index for the game. May not be unique.
-    thunderstore_id: &'static str,
-    // TODO: other fields (icon, steam id, etc.)
-}
-
-const GAMES: &[Game] = &[
-    Game {
-        id: "riskofrain2",
-        name: "Risk of Rain 2",
-        thunderstore_id: "riskofrain2",
-    },
-    Game {
-        id: "lethal-company",
-        name: "Lethal Company",
-        thunderstore_id: "lethal-company",
-    },
-];
 
 struct ModIndex {
     data: NonNull<[u8]>,
@@ -78,10 +51,16 @@ impl Drop for ModIndex {
     }
 }
 
+static GAMES: LazyLock<Vec<Game>> =
+    LazyLock::new(|| serde_json::from_str(include_str!("games.json")).unwrap());
+
+static GAMES_BY_ID: LazyLock<HashMap<&'static str, &'static Game>> =
+    LazyLock::new(|| GAMES.iter().map(|g| (&*g.id, g)).collect());
+
 static MOD_INDEXES: LazyLock<HashMap<&'static str, RwLock<Vec<ModIndex>>>> = LazyLock::new(|| {
     GAMES
         .iter()
-        .map(|game| (game.id, RwLock::default()))
+        .map(|game| (&*game.id, RwLock::default()))
         .collect()
 });
 
@@ -130,38 +109,36 @@ async fn fetch_gzipped(url: &str) -> Result<GzDecoder<Cursor<Bytes>>, Error> {
 
 #[tauri::command]
 async fn get_games() -> &'static [Game] {
-    GAMES
+    &*GAMES
 }
 
 #[tauri::command]
 async fn fetch_mod_index(game: &str, refresh: bool) -> Result<(), Error> {
-    let mod_index = MOD_INDEXES.get(game).ok_or("No such game")?;
+    let game = *GAMES_BY_ID.get(game).ok_or("No such game")?;
+    let mod_index = MOD_INDEXES.get(&*game.id).unwrap();
 
     if refresh || mod_index.read().is_empty() {
-        let chunk_urls = serde_json::from_reader::<_, Vec<String>>(
-            fetch_gzipped(&format!(
-                "https://thunderstore.io/c/{game}/api/v1/package-listing-index/"
-            ))
-            .await?,
-        )?;
+        let chunk_urls = serde_json::from_reader::<_, Vec<String>>(fetch_gzipped(&game.thunderstore_url).await?)?;
 
-        let new_mod_index = futures::future::try_join_all(chunk_urls.into_iter().map(|url| async {
-            tokio::task::spawn(async move {
-                let mut rdr = fetch_gzipped(&url).await?;
-                tokio::task::block_in_place(|| {
-                    let mut buf = Vec::new();
-                    rdr.read_to_end(&mut buf)?;
-                    let mut index = ModIndex {
-                        data: NonNull::new(Box::into_raw(buf.into_boxed_slice())).unwrap(),
-                        mods: Vec::new(),
-                    };
-                    index.mods = simd_json::from_slice::<Vec<Mod>>(unsafe { index.data.as_mut() })?;
-                    Ok::<_, Error>(index)
+        let new_mod_index =
+            futures::future::try_join_all(chunk_urls.into_iter().map(|url| async {
+                tokio::task::spawn(async move {
+                    let mut rdr = fetch_gzipped(&url).await?;
+                    tokio::task::block_in_place(|| {
+                        let mut buf = Vec::new();
+                        rdr.read_to_end(&mut buf)?;
+                        let mut index = ModIndex {
+                            data: NonNull::new(Box::into_raw(buf.into_boxed_slice())).unwrap(),
+                            mods: Vec::new(),
+                        };
+                        index.mods =
+                            simd_json::from_slice::<Vec<Mod>>(unsafe { index.data.as_mut() })?;
+                        Ok::<_, Error>(index)
+                    })
                 })
-            })
-            .await?
-        }))
-        .await?;
+                .await?
+            }))
+            .await?;
         *mod_index.write() = new_mod_index;
     }
 

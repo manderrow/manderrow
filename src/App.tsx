@@ -3,6 +3,7 @@ import { fetchModIndex, getGames, queryModIndex } from "./api";
 import "./App.css";
 import modListStyles from './ModList.module.css';
 
+const [games] = createResource(getGames);
 
 function ModSearch(props: { game: string }) {
   const [query, setQuery] = createSignal('');
@@ -52,12 +53,12 @@ function ModSearch(props: { game: string }) {
 function App() {
   const [selectedGame, setSelectedGame] = createSignal<string | null>(null);
 
-  const [games] = createResource(async () => {
-    const games = await getGames();
-    if (selectedGame() === null) {
-      setSelectedGame(games[0].id);
+  createEffect(() => {
+    if (games.latest !== undefined) {
+      if (selectedGame() === null) {
+        setSelectedGame(games.latest[0].id);
+      }
     }
-    return games;
   });
 
   return (
