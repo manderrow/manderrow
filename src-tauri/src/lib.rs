@@ -118,7 +118,9 @@ async fn fetch_mod_index(game: &str, refresh: bool) -> Result<(), Error> {
     let mod_index = MOD_INDEXES.get(&*game.thunderstore_url).unwrap();
 
     if refresh || mod_index.read().is_empty() {
-        let chunk_urls = serde_json::from_reader::<_, Vec<String>>(fetch_gzipped(&game.thunderstore_url).await?)?;
+        let chunk_urls = serde_json::from_reader::<_, Vec<String>>(
+            fetch_gzipped(&game.thunderstore_url).await?,
+        )?;
 
         let new_mod_index =
             futures::future::try_join_all(chunk_urls.into_iter().map(|url| async {
