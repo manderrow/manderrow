@@ -37,6 +37,19 @@
 		.name {}
 
 		.downloads {}
+
+		.categories {
+			display: flex;
+			flex-direction: row;
+			flex-wrap: wrap;
+			gap: 8px;
+
+			>div {
+				border-radius: 100vmax;
+				padding: 4px 12px;
+				background-color: #111111;
+			}
+		}
 	}
 }
 

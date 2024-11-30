@@ -38,6 +38,11 @@ function ModSearch(props: { game: string }) {
             <div class={modListStyles.split}>
               <div class={modListStyles.left}>
                 <p class={modListStyles.name}>{mod.full_name}</p>
+                <div class={modListStyles.categories}>
+                  <For each={mod.categories}>
+                    {category => <div>{category}</div>}
+                  </For>
+                </div>
               </div>
               <div class={modListStyles.right}>
                 <p class={modListStyles.downloads}>{mod.versions[0].downloads ?? '0'}</p>
