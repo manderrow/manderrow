@@ -1,17 +1,19 @@
+pub mod games;
+mod mod_index;
+pub mod mods;
+
 use std::{
     collections::HashMap,
     io::{Cursor, Read as _},
-    ptr::NonNull,
     sync::LazyLock,
 };
 
 use bytes::Bytes;
 use flate2::bufread::GzDecoder;
 use games::Game;
+use mod_index::ModIndex;
+use mods::{Mod, ModVersion};
 use parking_lot::RwLock;
-use uuid::Uuid;
-
-pub mod games;
 
 #[derive(Debug, Clone, serde::Serialize)]
 struct Error {
@@ -31,26 +33,6 @@ impl<T: std::fmt::Display> From<T> for Error {
     }
 }
 
-struct ModIndex {
-    data: NonNull<[u8]>,
-    mods: Vec<Mod<'static>>,
-}
-
-impl ModIndex {
-    pub fn mods(&self) -> &Vec<Mod<'_>> {
-        &self.mods
-    }
-}
-
-unsafe impl Send for ModIndex {}
-unsafe impl Sync for ModIndex {}
-
-impl Drop for ModIndex {
-    fn drop(&mut self) {
-        drop(unsafe { Box::from_raw(self.data.as_ptr()) });
-    }
-}
-
 static GAMES: LazyLock<Vec<Game>> =
     LazyLock::new(|| serde_json::from_str(include_str!("games.json")).unwrap());
 
@@ -63,44 +45,6 @@ static MOD_INDEXES: LazyLock<HashMap<&'static str, RwLock<Vec<ModIndex>>>> = Laz
         .map(|game| (&*game.thunderstore_url, RwLock::default()))
         .collect()
 });
-
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-#[serde(deny_unknown_fields)]
-struct Mod<'a> {
-    name: &'a str,
-    full_name: &'a str,
-    owner: &'a str,
-    #[serde(default)]
-    package_url: Option<&'a str>,
-    donation_link: Option<&'a str>,
-    date_created: &'a str,
-    date_updated: &'a str,
-    rating_score: u32,
-    is_pinned: bool,
-    is_deprecated: bool,
-    has_nsfw_content: bool,
-    categories: Vec<&'a str>,
-    versions: Vec<ModVersion<'a>>,
-    uuid4: Uuid,
-}
-
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-#[serde(deny_unknown_fields)]
-struct ModVersion<'a> {
-    name: &'a str,
-    full_name: &'a str,
-    description: &'a str,
-    icon: &'a str,
-    version_number: &'a str,
-    dependencies: Vec<&'a str>,
-    download_url: &'a str,
-    downloads: u64,
-    date_created: &'a str,
-    website_url: Option<&'a str>,
-    is_active: bool,
-    uuid4: Uuid,
-    file_size: u64,
-}
 
 async fn fetch_gzipped(url: &str) -> Result<GzDecoder<Cursor<Bytes>>, Error> {
     let bytes = tauri_plugin_http::reqwest::get(url).await?.bytes().await?;
@@ -129,12 +73,9 @@ async fn fetch_mod_index(game: &str, refresh: bool) -> Result<(), Error> {
                     tokio::task::block_in_place(|| {
                         let mut buf = Vec::new();
                         rdr.read_to_end(&mut buf)?;
-                        let mut index = ModIndex {
-                            data: NonNull::new(Box::into_raw(buf.into_boxed_slice())).unwrap(),
-                            mods: Vec::new(),
-                        };
-                        index.mods =
-                            simd_json::from_slice::<Vec<Mod>>(unsafe { index.data.as_mut() })?;
+                        let index = ModIndex::new(buf.into_boxed_slice(), |data| {
+                            simd_json::from_slice::<Vec<Mod>>(data)
+                        })?;
                         Ok::<_, Error>(index)
                     })
                 })
@@ -176,7 +117,8 @@ fn query_mod_index(game: &str, query: &str) -> Result<simd_json::OwnedValue, Err
                 }
                 _ => std::cmp::Ordering::Equal,
             })
-            .then_with(|| m1.full_name.cmp(&m2.full_name))
+            .then_with(|| m1.name.cmp(&m2.name))
+            .then_with(|| m1.owner.cmp(&m2.owner))
     });
 
     let count = buf.len();
