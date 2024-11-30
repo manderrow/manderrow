@@ -1,9 +1,14 @@
+import { For, Match, Switch } from "solid-js";
 import { A, useParams, useSearchParams } from "@solidjs/router";
+import { faTrashCan, faCirclePlay as faCirclePlayOutline } from "@fortawesome/free-regular-svg-icons";
+import { faChevronLeft, faCirclePlay, faFileImport, faThumbTack } from "@fortawesome/free-solid-svg-icons";
+import Fa from "solid-fa";
+
 import ModSearch from "../../components/profile/ModSearch";
+import ModList from "../../components/profile/ModList";
 
 import styles from "./Profile.module.css";
-import { Match, Switch } from "solid-js";
-import ModList from "../../components/profile/ModList";
+import sidebarStyles from "./SidebarProfiles.module.css";
 
 interface ProfileParams {
   [key: string]: string;
@@ -14,6 +19,25 @@ interface ProfileParams {
 interface ProfileQueryParams {
   [key: string]: string | string[];
   tab: string;
+}
+
+function SidebarProfileItem({ gameId, profileId, profileName }: { gameId: string; profileId: string; profileName: string }) {
+  return (
+    <li class={sidebarStyles.profileList__item}>
+      <A href={`/profile/${gameId}/${profileId}`}>{profileName}</A>
+      <div class={sidebarStyles.profileItem__options}>
+        <button>
+          <Fa icon={faFileImport} />
+        </button>
+        <button>
+          <Fa icon={faThumbTack} rotate={90} />
+        </button>
+        <button>
+          <Fa icon={faTrashCan} />
+        </button>
+      </div>
+    </li>
+  );
 }
 
 export default function Profile() {
@@ -27,31 +51,36 @@ export default function Profile() {
       <aside class={styles.sidebar}>
         <nav class={styles.sidebar__nav}>
           <A href="/">
-            <button class={styles.sidebar__btn}>Back</button>
+            <button class={styles.sidebar__btn}>
+              <Fa icon={faChevronLeft} />
+            </button>
           </A>
 
           <h1>{params.gameId}</h1>
         </nav>
-        <hr />
         <section class={styles.sidebar__group}>
-          <button>Start modded</button>
-          <button>Start vanilla</button>
+          <h2 class={styles.profileTitle}>{params.profileId}</h2>
+          <button>
+            <Fa icon={faCirclePlay} /> Start modded
+          </button>
+          <button>
+            <Fa icon={faCirclePlayOutline} /> Start vanilla
+          </button>
         </section>
-        <hr />
         <section class={styles.sidebar__group}>
           <h3>Profiles</h3>
-          <form action="#">
+          <form action="#" class={sidebarStyles.sidebar__profilesSearch}>
             <input type="text" name="profile-search" id="profile-search" placeholder="Search" maxLength={100} />
           </form>
-          <ol class={styles.sidebar__profilesList}>
-            <li class={styles.profileList__item}>
-              <A href="../base">Base</A>
-              <div class={styles.profileItem__options}>
-                <button>1</button>
-                <button>2</button>
-                <button>3</button>
-              </div>
-            </li>
+          <ol class={sidebarStyles.sidebar__profilesList}>
+            <For
+              each={[
+                { id: "a", name: "Test profile" },
+                { id: "b", name: "Another profile" },
+              ]}
+            >
+              {(profile) => <SidebarProfileItem gameId={params.gameId} profileId={profile.id} profileName={profile.name} />}
+            </For>
           </ol>
         </section>
         <section class={styles.sidebar__group}>
@@ -60,7 +89,6 @@ export default function Profile() {
       </aside>
 
       <div class={styles.content}>
-        <h2 class={styles.profileTitle}>{params.profileId}</h2>
         <ul class={styles.tabs}>
           <li class={styles.tabs__tab}>
             <A href="?">Installed</A>
