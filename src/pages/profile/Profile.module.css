@@ -60,6 +60,8 @@
 .content {
   padding: 1em;
   flex-grow: 1;
+  height: 100dvh;
+  overflow-y: scroll;
 }
 
 .content__substance {
