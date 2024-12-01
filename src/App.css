@@ -31,6 +31,17 @@
   --clr-primary-8: hsl(var(--clr-primary-hs), 80%);
   --clr-primary-9: hsl(var(--clr-primary-hs), 90%);
 
+  --clr-accent-hs: 309, 63%;
+  --clr-accent-1: hsl(var(--clr-accent-hs), 10%);
+  --clr-accent-2: hsl(var(--clr-accent-hs), 20%);
+  --clr-accent-3: hsl(var(--clr-accent-hs), 30%);
+  --clr-accent-4: hsl(var(--clr-accent-hs), 40%);
+  --clr-accent-5: hsl(var(--clr-accent-hs), 48%);
+  --clr-accent-6: hsl(var(--clr-accent-hs), 60%);
+  --clr-accent-7: hsl(var(--clr-accent-hs), 75%);
+  --clr-accent-8: hsl(var(--clr-accent-hs), 80%);
+  --clr-accent-9: hsl(var(--clr-accent-hs), 90%);
+
   --clr-danger-hs: 1, 85%;
   --clr-danger-1: hsl(var(--clr-danger-hs), 10%);
   --clr-danger-2: hsl(var(--clr-danger-hs), 20%);
@@ -111,7 +122,8 @@ input {
   padding: 0.35em 0.5em;
 }
 
-input:focus-visible {
+input:focus-visible,
+select:focus-visible {
   outline: none;
 }
 
