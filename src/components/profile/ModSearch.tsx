@@ -1,8 +1,10 @@
-import { createResource, createSignal, createUniqueId, Show } from "solid-js";
+import { createResource, createSignal, createUniqueId, ResourceFetcherInfo, Show } from "solid-js";
 import { fetchModIndex, queryModIndex, SortColumn, SortOption } from "../../api";
 import { SortableList } from "../SortableList";
 import ModList from "./ModList";
 import styles from './ModSearch.module.css';
+import { faRefresh } from "@fortawesome/free-solid-svg-icons";
+import Fa from "solid-fa";
 
 export default function ModSearch(props: { game: string }) {
   const [query, setQuery] = createSignal('');
@@ -16,8 +18,8 @@ export default function ModSearch(props: { game: string }) {
 
   const [progress, setProgress] = createSignal([0, 0]);
 
-  const [modIndex] = createResource(() => props.game, async game => {
-    await fetchModIndex(game, { refresh: false }, event => {
+  const [modIndex, {refetch: refetchModIndex}] = createResource(() => props.game, async (game, info: ResourceFetcherInfo<boolean, never>) => {
+    await fetchModIndex(game, { refresh: info.refetching }, event => {
       setProgress([event.completed, event.total])
     });
     return true;
@@ -65,8 +67,11 @@ export default function ModSearch(props: { game: string }) {
     </Show>
 
     <Show when={queriedMods.latest} fallback={<p>Querying mods...</p>}>
-      <p>Discovered {queriedMods()!.count} mods</p>
-      <ModList mods={queriedMods()!.mods} />
+      <div class={styles.discoveredLine}>
+        Discovered {queriedMods()!.count} mods
+        <button class={styles.refreshButton} on:click={() => refetchModIndex()}><Fa icon={faRefresh} /></button>
+        </div>
+      <ModList mods={queriedMods()!.mods.map(mod => ({ mod }))} />
     </Show>
   </div>;
 }

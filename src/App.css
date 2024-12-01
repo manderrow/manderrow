@@ -82,6 +82,8 @@ body {
   color: var(--clr-neutral-1);
   min-height: 100%;
   font-size: 1rem;
+  display: flex;
+  flex-direction: column;
 }
 
 a {
@@ -191,4 +193,10 @@ hr {
   :root {
     font-size: 12px;
   }
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
 }

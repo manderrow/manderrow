@@ -3,68 +3,131 @@ p {
 	padding: 0;
 }
 
+.modListAndView {
+	position: relative;
+	height: 100%;
+	flex-grow: 1;
+	overflow: hidden;
+
+	>.inner {
+		position: absolute;
+		width: 100%;
+		height: 100%;
+
+		display: grid;
+		grid-auto-columns: 1fr;
+		grid-auto-flow: column;
+		gap: 8px;
+		overflow: hidden;
+	}
+}
+
 .modList {
 	display: flex;
 	flex-direction: column;
 	gap: 8px;
+	overflow: auto;
 
-	>div {
+	>button {
 		display: flex;
 		flex-direction: row;
 		border: 2px solid white;
 		border-radius: 8px;
 		padding: 8px;
 		gap: 8px;
-	}
-}
+		appearance: none;
+		text-align: left;
+		transition: background 0.1s ease-in-out, border-color 0.1s ease-in-out;
 
-.icon {
-	aspect-ratio: 1;
-	width: 96px;
-}
+		&:hover {
+			background: #11111144;
+		}
 
-.split {
-	display: flex;
-	flex-direction: row;
-	justify-content: space-between;
-	flex-grow: 1;
-
-	.left, .right {
-		gap: 4px;
+		&.selected {
+			border-color: var(--clr-primary-7);
+		}
 	}
 
-	.left {
+	.icon {
+		aspect-ratio: 1;
+		width: 96px;
+	}
+
+	.split {
 		display: flex;
-		flex-direction: column;
+		flex-direction: row;
+		justify-content: space-between;
+		flex-grow: 1;
+
+		.left,
+		.right {
+			gap: 4px;
+		}
+
+		.left {
+			display: flex;
+			flex-direction: column;
+		}
+
+		.right {
+			display: flex;
+			flex-direction: column;
+			align-items: end;
+		}
 	}
 
-	.right {
+	.name {}
+
+	.version {
+		color: rgb(200, 200, 200);
+	}
+
+	.owner {
+		font-size: 0.9em;
+	}
+
+	.label {}
+
+	.downloads {}
+
+	.categories {
 		display: flex;
-		flex-direction: column;
-		align-items: end;
+		flex-direction: row;
+		flex-wrap: wrap;
+		gap: 8px;
+
+		>div {
+			border-radius: 100vmax;
+			padding: 4px 12px;
+			background-color: #111111;
+		}
 	}
 }
 
-.name {}
-
-.owner {
-	font-size: 0.9em;
-}
-
-.label {
-}
-
-.downloads {}
-
-.categories {
+.modView {
 	display: flex;
-	flex-direction: row;
-	flex-wrap: wrap;
+	flex-direction: column;
 	gap: 8px;
+	overflow: auto;
 
-	>div {
-		border-radius: 100vmax;
-		padding: 4px 12px;
-		background-color: #111111;
+	h2,
+	h3 {
+		display: inline-block;
 	}
+
+	.versions {
+		list-style: none;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+
+		>li {
+			display: flex;
+			flex-direction: column;
+		}
+	}
+}
+
+.name {
+	font-weight: bold;
 }

@@ -58,9 +58,14 @@ export interface ModVersion {
   dependencies: string[];
   download_url: string;
   downloads: number;
-  date_updated: string;
+  date_created: string;
   website_url?: string;
   is_active: boolean;
   uuid4: string;
   file_size: number;
+}
+
+export interface ModAndVersion {
+  mod: Mod,
+  version?: string,
 }
