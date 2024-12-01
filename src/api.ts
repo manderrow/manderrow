@@ -33,9 +33,9 @@ export interface SortOption {
 	descending: boolean,
 }
 
-export async function queryModIndex(game: string, query: string, sort: SortOption[]): Promise<{
+export async function queryModIndex(game: string, query: string, sort: SortOption[], options: { skip?: number, limit?: number }): Promise<{
 	mods: Mod[],
 	count: number,
 }> {
-	return await wrapInvoke(async () => await invoke('query_mod_index', { game, query, sort }));
+	return await wrapInvoke(async () => await invoke('query_mod_index', { game, query, sort, ...options }));
 }

@@ -231,17 +231,20 @@ pub struct SortOption {
     descending: bool,
 }
 
-#[derive(serde::Serialize)]
-pub struct QueryResult<'a> {
-    mods: Vec<&'a Mod<'a>>,
-    count: usize,
-}
+// #[derive(serde::Serialize)]
+// pub struct QueryResult<'a> {
+//     mods: Vec<&'a Mod<'a>>,
+//     count: usize,
+// }
 
+// TODO: use register_asynchronous_uri_scheme_protocol to stream the json back without buffering
 #[tauri::command]
 pub async fn query_mod_index(
     game: &str,
     query: &str,
     sort: Vec<SortOption>,
+    skip: Option<usize>,
+    limit: Option<usize>,
 ) -> Result<simd_json::OwnedValue, Error> {
     let game = *GAMES_BY_ID.get(game).ok_or("No such game")?;
     let mod_index = MOD_INDEXES
@@ -292,12 +295,25 @@ pub async fn query_mod_index(
 
     let count = buf.len();
 
-    buf.truncate(50);
+    fn map_to_json<'a>(
+        it: impl IntoIterator<Item = (&'a Mod<'a>, f64)>,
+    ) -> Result<Vec<simd_json::OwnedValue>, simd_json::Error> {
+        it.into_iter()
+            .map(|(m, _)| simd_json::serde::to_owned_value(m))
+            .collect::<Result<Vec<_>, simd_json::Error>>()
+    }
 
-    let buf = buf.into_iter().map(|(m, _)| m).collect::<Vec<_>>();
-
-    Ok(simd_json::serde::to_owned_value(QueryResult {
-        count,
-        mods: buf,
-    })?)
+    let mut map = simd_json::owned::Object::with_capacity(2);
+    map.insert_nocheck("count".to_owned(), simd_json::OwnedValue::from(count));
+    let buf = match (skip, limit) {
+        (Some(skip), Some(limit)) => map_to_json(buf.into_iter().skip(skip).take(limit)),
+        (None, Some(limit)) => map_to_json(buf.into_iter().take(limit)),
+        (Some(skip), None) => map_to_json(buf.into_iter().skip(skip)),
+        (None, None) => map_to_json(buf),
+    }?;
+    map.insert_nocheck(
+        "mods".to_owned(),
+        simd_json::OwnedValue::Array(Box::new(buf)),
+    );
+    Ok(simd_json::OwnedValue::Object(Box::new(map)))
 }

@@ -1,7 +1,8 @@
-import { createSignal, For, Show } from 'solid-js';
+import { createSignal, For, Setter, Show, Signal } from 'solid-js';
 import { ModAndVersion } from '../../types';
 import styles from './ModList.module.css';
 import { Temporal } from '@js-temporal/polyfill';
+import { createInfiniteScroll } from '@solid-primitives/pagination';
 
 const MONTHS = [
   "January",
@@ -18,38 +19,53 @@ const MONTHS = [
   "December",
 ];
 
-export default function ModList(props: { mods: ModAndVersion[] }) {
+export type Fetcher = (page: number) => Promise<ModAndVersion[]>;
+
+function ModListLeft({ mods, selectedMod: [selectedMod, setSelectedMod] }: { mods: Fetcher, selectedMod: Signal<ModAndVersion | undefined> }) {
+  const [paginatedMods, infiniteScrollLoader, { end }] = createInfiniteScroll(mods);
+
+  return <ol class={styles.modList}>
+    <For each={paginatedMods()}>
+      {mod => <li classList={{ [styles.selected]: selectedMod() === mod }}>
+        <button on:click={() => setSelectedMod(selectedMod() === mod ? undefined : mod)}>
+          <img class={styles.icon} src={mod.mod.versions[0].icon} />
+          <div class={styles.split}>
+            <div class={styles.left}>
+              <div>
+                <span class={styles.name}>{mod.mod.name}</span> <span class={styles.version}>v
+                  <Show when={mod.version} fallback={mod.mod.versions[0].version_number}>
+                    {version => version()}
+                  </Show>
+                </span>
+              </div>
+              <div class={styles.owner}><span class={styles.label}>@</span><span class={styles.value}>{mod.mod.owner}</span></div>
+              <div class={styles.categories}>
+                <For each={mod.mod.categories}>
+                  {category => <div>{category}</div>}
+                </For>
+              </div>
+            </div>
+            <div class={styles.right}>
+              <p class={styles.downloads}><span class={styles.label}>Downloads: </span><span class={styles.value}>{mod.mod.versions[0].downloads ?? '0'}</span></p>
+            </div>
+          </div>
+        </button>
+      </li>}
+    </For>
+    <Show when={!end()}>
+      <li use:infiniteScrollLoader>Loading...</li>
+    </Show>
+  </ol>;
+}
+
+export default function ModList(props: { mods: Fetcher }) {
   const [selectedMod, setSelectedMod] = createSignal<ModAndVersion>();
 
   return <div class={styles.modListAndView}>
     <div class={styles.inner}>
-      <div class={styles.modList}>
-        <For each={props.mods}>
-          {mod => <button classList={{ [styles.selected]: selectedMod() === mod }} on:click={() => setSelectedMod(selectedMod() === mod ? undefined : mod)}>
-            <img class={styles.icon} src={mod.mod.versions[0].icon} />
-            <div class={styles.split}>
-              <div class={styles.left}>
-                <div>
-                  <span class={styles.name}>{mod.mod.name}</span> <span class={styles.version}>v
-                    <Show when={mod.version} fallback={mod.mod.versions[0].version_number}>
-                      {version => version()}
-                    </Show>
-                  </span>
-                </div>
-                <div class={styles.owner}><span class={styles.label}>@</span><span class={styles.value}>{mod.mod.owner}</span></div>
-                <div class={styles.categories}>
-                  <For each={mod.mod.categories}>
-                    {category => <div>{category}</div>}
-                  </For>
-                </div>
-              </div>
-              <div class={styles.right}>
-                <p class={styles.downloads}><span class={styles.label}>Downloads: </span><span class={styles.value}>{mod.mod.versions[0].downloads ?? '0'}</span></p>
-              </div>
-            </div>
-          </button>}
-        </For>
-      </div>
+      <Show when={props.mods} keyed>
+        {mods => <ModListLeft mods={mods} selectedMod={[selectedMod, setSelectedMod]} />}
+      </Show>
       <Show when={selectedMod()}>
         {mod => <div class={styles.modView}>
           <h2 class={styles.name}>{mod().mod.name}</h2>

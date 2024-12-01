@@ -25,10 +25,11 @@ export default function ModSearch(props: { game: string }) {
     return true;
   });
 
-  const [queriedMods] = createResource(() => [props.game, modIndex.loading, query(), sort()] as [string, true | undefined, string, SortOption[]], ([game, _, query, sort]) => {
+  const [queriedMods] = createResource(() => [props.game, modIndex.loading, query(), sort()] as [string, true | undefined, string, SortOption[]], async ([game, _, query, sort]) => {
     console.log(`Querying ${JSON.stringify(sort)}`);
-    return queryModIndex(game, query, sort);
-  }, { initialValue: { mods: [], count: 0 } });
+    const { count } = await queryModIndex(game, query, sort, {limit: 0});
+    return { count, mods: async (page: number) => (await queryModIndex(game, query, sort, { skip: page * 50, limit: 50 })).mods.map(mod => ({ mod })) };
+  }, { initialValue: { mods: async (_: number) => [], count: 0 } });
 
   const searchOptionsId = createUniqueId();
 
@@ -71,7 +72,7 @@ export default function ModSearch(props: { game: string }) {
         Discovered {queriedMods()!.count} mods
         <button class={styles.refreshButton} on:click={() => refetchModIndex()}><Fa icon={faRefresh} /></button>
         </div>
-      <ModList mods={queriedMods()!.mods.map(mod => ({ mod }))} />
+      <ModList mods={queriedMods()!.mods} />
     </Show>
   </div>;
 }
