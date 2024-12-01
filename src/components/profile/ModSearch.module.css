@@ -1,8 +1,73 @@
+.modSearch {
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+}
+
 .searchBar {
 	display: flex;
 	flex-direction: row;
 
+	padding: 8px;
+	gap: 8px;
+	align-items: center;
+
 	>input {
 		flex-grow: 1;
 	}
+}
+
+.searchForm {
+	display: flex;
+	flex-direction: column;
+}
+
+.searchOptionsToggle {
+	display: none;
+
+	&:checked+.searchOptions {
+		/* ensure compatibility with older webviews */
+		height: auto;
+		height: calc-size(auto);
+	}
+}
+
+.searchOptions {
+	height: 0;
+	transition: height 0.3s ease-in-out;
+	overflow: hidden;
+
+	>.inner {
+		display: flex;
+		flex-direction: column;
+		padding: 8px;
+	}
+}
+
+.sortOptions {
+	display: flex;
+	flex-direction: column;
+
+	.sortOption {
+		display: flex;
+		flex-direction: row;
+		gap: 8px;
+		align-items: center;
+		padding: 8px;
+
+		>select {
+			appearance: none;
+			background: none;
+			border: none;
+			border-radius: 0;
+		}
+	}
+}
+
+.descendingToggle {
+	>input {
+		display: none;
+	}
+
+	>label {}
 }

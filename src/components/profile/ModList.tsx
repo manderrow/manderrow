@@ -9,7 +9,8 @@ export default function ModList(props: { mods: Mod[] }) {
         <img class={styles.icon} src={mod.versions[0].icon} />
         <div class={styles.split}>
           <div class={styles.left}>
-            <p class={styles.name}>{mod.full_name}</p>
+            <p class={styles.name}>{mod.name}</p>
+            <p class={styles.owner}><span class={styles.label}>@</span><span class={styles.value}>{mod.owner}</span></p>
             <div class={styles.categories}>
               <For each={mod.categories}>
                 {category => <div>{category}</div>}

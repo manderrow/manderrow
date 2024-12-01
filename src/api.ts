@@ -13,13 +13,25 @@ export async function getGames(): Promise<Game[]> {
 	return await wrapInvoke(async () => await invoke('get_games', {}));
 }
 
-export async function fetchModIndex(game: string, options: {refresh: boolean}) {
+export async function fetchModIndex(game: string, options: { refresh: boolean }) {
 	await wrapInvoke(async () => await invoke('fetch_mod_index', { game, ...options }));
 }
 
-export async function queryModIndex(game: string, query: string): Promise<{
+export enum SortColumn {
+	Relevance = "Relevance",
+	Downloads = "Downloads",
+	Name = "Name",
+	Owner = "Owner",
+}
+
+export interface SortOption {
+	column: SortColumn,
+	descending: boolean,
+}
+
+export async function queryModIndex(game: string, query: string, sort: SortOption[]): Promise<{
 	mods: Mod[],
 	count: number,
 }> {
-	return await wrapInvoke(async () => await invoke('query_mod_index', { game, query }));
+	return await wrapInvoke(async () => await invoke('query_mod_index', { game, query, sort }));
 }

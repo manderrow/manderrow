@@ -1,3 +1,5 @@
+#![deny(unused_must_use)]
+
 pub mod games;
 mod mod_index;
 pub mod mods;
@@ -88,6 +90,20 @@ async fn fetch_mod_index(game: &str, refresh: bool) -> Result<(), Error> {
     Ok(())
 }
 
+#[derive(Clone, Copy, serde::Deserialize)]
+enum SortColumn {
+    Relevance,
+    Name,
+    Owner,
+    Downloads,
+}
+
+#[derive(Clone, Copy, serde::Deserialize)]
+struct SortOption {
+    column: SortColumn,
+    descending: bool,
+}
+
 #[derive(serde::Serialize)]
 struct QueryResult<'a> {
     mods: Vec<&'a Mod<'a>>,
@@ -95,7 +111,11 @@ struct QueryResult<'a> {
 }
 
 #[tauri::command]
-fn query_mod_index(game: &str, query: &str) -> Result<simd_json::OwnedValue, Error> {
+fn query_mod_index(
+    game: &str,
+    query: &str,
+    sort: Vec<SortOption>,
+) -> Result<simd_json::OwnedValue, Error> {
     let game = *GAMES_BY_ID.get(game).ok_or("No such game")?;
     let mod_index = MOD_INDEXES.get(&*game.thunderstore_url).unwrap().read();
 
@@ -103,22 +123,37 @@ fn query_mod_index(game: &str, query: &str) -> Result<simd_json::OwnedValue, Err
         .iter()
         .flat_map(|mi| {
             mi.mods().iter().filter_map(|m| {
-                rff::match_and_score(&query, &m.full_name).map(|(_, score)| (m, score))
+                if query.is_empty() {
+                    Some((m, 0.0))
+                } else {
+                    rff::match_and_score(&query, &m.full_name).map(|(_, score)| (m, score))
+                }
             })
         })
         .collect::<Vec<_>>();
     buf.sort_unstable_by(|(m1, score1), (m2, score2)| {
-        score1
-            .total_cmp(score2)
-            .reverse()
-            .then_with(|| match (&*m1.versions, &*m2.versions) {
-                ([ModVersion { downloads: a, .. }, ..], [ModVersion { downloads: b, .. }, ..]) => {
-                    a.cmp(b).reverse()
-                }
-                _ => std::cmp::Ordering::Equal,
-            })
-            .then_with(|| m1.name.cmp(&m2.name))
-            .then_with(|| m1.owner.cmp(&m2.owner))
+        let mut ordering = std::cmp::Ordering::Equal;
+        for &SortOption { column, descending } in &sort {
+            ordering = match column {
+                SortColumn::Relevance => score1.total_cmp(score2),
+                SortColumn::Name => m1.name.cmp(&m2.name),
+                SortColumn::Owner => m1.owner.cmp(&m2.owner),
+                SortColumn::Downloads => match (&*m1.versions, &*m2.versions) {
+                    (
+                        [ModVersion { downloads: a, .. }, ..],
+                        [ModVersion { downloads: b, .. }, ..],
+                    ) => a.cmp(b),
+                    _ => std::cmp::Ordering::Equal,
+                },
+            };
+            if descending {
+                ordering = ordering.reverse();
+            }
+            if ordering.is_ne() {
+                break;
+            }
+        }
+        ordering
     });
 
     let count = buf.len();
