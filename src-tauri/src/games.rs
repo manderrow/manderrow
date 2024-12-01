@@ -1,3 +1,11 @@
+use std::{collections::HashMap, sync::LazyLock};
+
+pub static GAMES: LazyLock<Vec<Game>> =
+    LazyLock::new(|| serde_json::from_str(include_str!("games.json")).unwrap());
+
+pub static GAMES_BY_ID: LazyLock<HashMap<&'static str, &'static Game>> =
+    LazyLock::new(|| GAMES.iter().map(|g| (&*g.id, g)).collect());
+
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Game {

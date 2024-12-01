@@ -1,21 +1,9 @@
 #![deny(unused_must_use)]
 
+mod commands;
 pub mod games;
 mod mod_index;
 pub mod mods;
-
-use std::{
-    collections::HashMap,
-    io::{Cursor, Read as _},
-    sync::LazyLock,
-};
-
-use bytes::Bytes;
-use flate2::bufread::GzDecoder;
-use games::Game;
-use mod_index::ModIndex;
-use mods::{Mod, ModVersion};
-use parking_lot::RwLock;
 
 #[derive(Debug, Clone, serde::Serialize)]
 struct Error {
@@ -35,139 +23,6 @@ impl<T: std::fmt::Display> From<T> for Error {
     }
 }
 
-static GAMES: LazyLock<Vec<Game>> =
-    LazyLock::new(|| serde_json::from_str(include_str!("games.json")).unwrap());
-
-static GAMES_BY_ID: LazyLock<HashMap<&'static str, &'static Game>> =
-    LazyLock::new(|| GAMES.iter().map(|g| (&*g.id, g)).collect());
-
-static MOD_INDEXES: LazyLock<HashMap<&'static str, RwLock<Vec<ModIndex>>>> = LazyLock::new(|| {
-    GAMES
-        .iter()
-        .map(|game| (&*game.thunderstore_url, RwLock::default()))
-        .collect()
-});
-
-async fn fetch_gzipped(url: &str) -> Result<GzDecoder<Cursor<Bytes>>, Error> {
-    let bytes = tauri_plugin_http::reqwest::get(url).await?.bytes().await?;
-    Ok(GzDecoder::new(Cursor::new(bytes)))
-}
-
-#[tauri::command]
-async fn get_games() -> &'static [Game] {
-    &*GAMES
-}
-
-#[tauri::command]
-async fn fetch_mod_index(game: &str, refresh: bool) -> Result<(), Error> {
-    let game = *GAMES_BY_ID.get(game).ok_or("No such game")?;
-    let mod_index = MOD_INDEXES.get(&*game.thunderstore_url).unwrap();
-
-    if refresh || mod_index.read().is_empty() {
-        let chunk_urls = serde_json::from_reader::<_, Vec<String>>(
-            fetch_gzipped(&game.thunderstore_url).await?,
-        )?;
-
-        let new_mod_index =
-            futures::future::try_join_all(chunk_urls.into_iter().map(|url| async {
-                tokio::task::spawn(async move {
-                    let mut rdr = fetch_gzipped(&url).await?;
-                    tokio::task::block_in_place(|| {
-                        let mut buf = Vec::new();
-                        rdr.read_to_end(&mut buf)?;
-                        let index = ModIndex::new(buf.into_boxed_slice(), |data| {
-                            simd_json::from_slice::<Vec<Mod>>(data)
-                        })?;
-                        Ok::<_, Error>(index)
-                    })
-                })
-                .await?
-            }))
-            .await?;
-        *mod_index.write() = new_mod_index;
-    }
-
-    Ok(())
-}
-
-#[derive(Clone, Copy, serde::Deserialize)]
-enum SortColumn {
-    Relevance,
-    Name,
-    Owner,
-    Downloads,
-}
-
-#[derive(Clone, Copy, serde::Deserialize)]
-struct SortOption {
-    column: SortColumn,
-    descending: bool,
-}
-
-#[derive(serde::Serialize)]
-struct QueryResult<'a> {
-    mods: Vec<&'a Mod<'a>>,
-    count: usize,
-}
-
-#[tauri::command]
-fn query_mod_index(
-    game: &str,
-    query: &str,
-    sort: Vec<SortOption>,
-) -> Result<simd_json::OwnedValue, Error> {
-    let game = *GAMES_BY_ID.get(game).ok_or("No such game")?;
-    let mod_index = MOD_INDEXES.get(&*game.thunderstore_url).unwrap().read();
-
-    let mut buf = mod_index
-        .iter()
-        .flat_map(|mi| {
-            mi.mods().iter().filter_map(|m| {
-                if query.is_empty() {
-                    Some((m, 0.0))
-                } else {
-                    rff::match_and_score(&query, &m.full_name).map(|(_, score)| (m, score))
-                }
-            })
-        })
-        .collect::<Vec<_>>();
-    buf.sort_unstable_by(|(m1, score1), (m2, score2)| {
-        let mut ordering = std::cmp::Ordering::Equal;
-        for &SortOption { column, descending } in &sort {
-            ordering = match column {
-                SortColumn::Relevance => score1.total_cmp(score2),
-                SortColumn::Name => m1.name.cmp(&m2.name),
-                SortColumn::Owner => m1.owner.cmp(&m2.owner),
-                SortColumn::Downloads => match (&*m1.versions, &*m2.versions) {
-                    (
-                        [ModVersion { downloads: a, .. }, ..],
-                        [ModVersion { downloads: b, .. }, ..],
-                    ) => a.cmp(b),
-                    _ => std::cmp::Ordering::Equal,
-                },
-            };
-            if descending {
-                ordering = ordering.reverse();
-            }
-            if ordering.is_ne() {
-                break;
-            }
-        }
-        ordering
-    });
-
-    let count = buf.len();
-
-    buf.truncate(50);
-
-    let buf = buf.into_iter().map(|(m, _)| m).collect::<Vec<_>>();
-
-    Ok(simd_json::serde::to_owned_value(QueryResult {
-        count,
-        mods: buf,
-    })?)
-}
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -175,9 +30,9 @@ pub fn run() {
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
-            get_games,
-            fetch_mod_index,
-            query_mod_index
+            commands::games::get_games,
+            commands::mod_index::fetch_mod_index,
+            commands::mod_index::query_mod_index
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
