@@ -2,12 +2,12 @@ use std::ptr::NonNull;
 
 use crate::mods::Mod;
 
-pub struct ModIndex {
+pub struct MemoryModIndex {
     data: NonNull<[u8]>,
     mods: Vec<Mod<'static>>,
 }
 
-impl ModIndex {
+impl MemoryModIndex {
     pub fn new<F, E>(data: Box<[u8]>, mods_constructor: F) -> Result<Self, E>
     where
         F: for<'a> FnOnce(&'a mut [u8]) -> Result<Vec<Mod<'a>>, E>,
@@ -20,16 +20,16 @@ impl ModIndex {
     }
 }
 
-impl ModIndex {
+impl MemoryModIndex {
     pub fn mods(&self) -> &Vec<Mod<'_>> {
         &self.mods
     }
 }
 
-unsafe impl Send for ModIndex {}
-unsafe impl Sync for ModIndex {}
+unsafe impl Send for MemoryModIndex {}
+unsafe impl Sync for MemoryModIndex {}
 
-impl Drop for ModIndex {
+impl Drop for MemoryModIndex {
     fn drop(&mut self) {
         drop(unsafe { Box::from_raw(self.data.as_ptr()) });
     }

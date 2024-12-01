@@ -2,7 +2,6 @@
 
 mod commands;
 pub mod games;
-mod mod_index;
 pub mod mods;
 
 #[derive(Debug, Clone, serde::Serialize)]

@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { Channel, invoke } from "@tauri-apps/api/core";
 import { Game, Mod } from "./types";
 
 async function wrapInvoke<T>(f: () => Promise<T>): Promise<T> {
@@ -13,8 +13,12 @@ export async function getGames(): Promise<Game[]> {
 	return await wrapInvoke(async () => await invoke('get_games', {}));
 }
 
-export async function fetchModIndex(game: string, options: { refresh: boolean }) {
-	await wrapInvoke(async () => await invoke('fetch_mod_index', { game, ...options }));
+export type FetchEvent = { type: 'Progress', completed: number, total: number };
+
+export async function fetchModIndex(game: string, options: { refresh: boolean }, onEvent: (event: FetchEvent) => void) {
+	const channel = new Channel<FetchEvent>();
+	channel.onmessage = onEvent;
+	await wrapInvoke(async () => await invoke('fetch_mod_index', { game, ...options, onEvent: channel }));
 }
 
 export enum SortColumn {

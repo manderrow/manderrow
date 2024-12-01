@@ -30,6 +30,8 @@ simd-json = "0.14.3"
 
 # general
 bytes = "1.8.0"
+drop-guard = { git = "https://git.pfaff.dev/michael/drop-guard.rs.git", version = "0.2.0", features = ["tokio1-task"] }
+event-listener = "5.3.1"
 futures = "0.3.31"
 parking_lot = "0.12.3"
 rff = { git = "https://github.com/mpfaff/rff.git" }

@@ -14,8 +14,12 @@ export default function ModSearch(props: { game: string }) {
     { column: SortColumn.Owner, descending: false },
   ]);
 
+  const [progress, setProgress] = createSignal([0, 0]);
+
   const [modIndex] = createResource(() => props.game, async game => {
-    await fetchModIndex(game, { refresh: false });
+    await fetchModIndex(game, { refresh: false }, event => {
+      setProgress([event.completed, event.total])
+    });
     return true;
   });
 
@@ -54,7 +58,10 @@ export default function ModSearch(props: { game: string }) {
     </div>
 
     <Show when={modIndex.loading}>
-      <p>Fetching mods...</p>
+      <div class={styles.progressLine}>
+        <p>Fetching mods</p>
+        <progress value={progress()[1] === 0 ? 0 : progress()[0] / progress()[1]} />
+      </div>
     </Show>
 
     <Show when={queriedMods.latest} fallback={<p>Querying mods...</p>}>
