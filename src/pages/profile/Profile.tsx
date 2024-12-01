@@ -11,8 +11,8 @@ import styles from "./Profile.module.css";
 import sidebarStyles from "./SidebarProfiles.module.css";
 
 interface ProfileParams {
-  [key: string]: string;
-  profileId: string;
+  [key: string]: string | undefined;
+  profileId?: string;
   gameId: string;
 }
 
@@ -21,26 +21,8 @@ interface ProfileQueryParams {
   tab: string;
 }
 
-function SidebarProfileItem({ gameId, profileId, profileName }: { gameId: string; profileId: string; profileName: string }) {
-  return (
-    <li class={sidebarStyles.profileList__item}>
-      <A href={`/profile/${gameId}/${profileId}`}>{profileName}</A>
-      <div class={sidebarStyles.profileItem__options}>
-        <button>
-          <Fa icon={faFileImport} />
-        </button>
-        <button>
-          <Fa icon={faThumbTack} rotate={90} />
-        </button>
-        <button>
-          <Fa icon={faTrashCan} />
-        </button>
-      </div>
-    </li>
-  );
-}
-
 export default function Profile() {
+  // @ts-expect-error params.profileId is an optional param, it can be undefined
   const params = useParams<ProfileParams>();
   const [searchParams] = useSearchParams<ProfileQueryParams>();
 
@@ -79,7 +61,7 @@ export default function Profile() {
                 { id: "b", name: "Another profile" },
               ]}
             >
-              {(profile) => <SidebarProfileItem gameId={params.gameId} profileId={profile.id} profileName={profile.name} />}
+              {(profile) => <SidebarProfileComponent gameId={params.gameId} profileId={profile.id} profileName={profile.name} />}
             </For>
           </ol>
         </section>
@@ -105,5 +87,24 @@ export default function Profile() {
         </div>
       </div>
     </main>
+  );
+}
+
+function SidebarProfileComponent({ gameId, profileId, profileName }: { gameId: string; profileId: string; profileName: string }) {
+  return (
+    <li class={sidebarStyles.profileList__item}>
+      <A href={`/profile/${gameId}/${profileId}`}>{profileName}</A>
+      <div class={sidebarStyles.profileItem__options}>
+        <button>
+          <Fa icon={faFileImport} />
+        </button>
+        <button>
+          <Fa icon={faThumbTack} rotate={90} />
+        </button>
+        <button>
+          <Fa icon={faTrashCan} />
+        </button>
+      </div>
+    </li>
   );
 }

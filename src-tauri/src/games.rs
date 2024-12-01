@@ -34,7 +34,7 @@ pub struct Game {
     #[serde(alias = "displayMode")]
     pub display_mode: usize,
     #[serde(alias = "instanceType")]
-    pub instance_type: String,
+    pub instance_type: InstanceType,
     #[serde(alias = "packageLoader")]
     pub package_loader: PackageLoader,
 }
@@ -79,4 +79,10 @@ pub enum PackageLoader {
     Lovely,
     ReturnOfModding,
     GDWeave,
+}
+
+#[derive(Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
+pub enum InstanceType {
+    Game,
+    Server,
 }
