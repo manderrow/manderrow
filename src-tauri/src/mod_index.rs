@@ -1,6 +1,6 @@
 use std::ptr::NonNull;
 
-use crate::{mods::Mod, Error};
+use crate::mods::Mod;
 
 pub struct ModIndex {
     data: NonNull<[u8]>,
