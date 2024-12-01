@@ -8,16 +8,16 @@ pub struct ModIndex {
 }
 
 impl ModIndex {
-	pub fn new<F, E>(data: Box<[u8]>, mods_constructor: F) -> Result<Self, E>
-	where
-		F: for<'a> FnOnce(&'a mut [u8]) -> Result<Vec<Mod<'a>>, E>,
-	{
-		let mut data = NonNull::new(Box::into_raw(data)).unwrap();
-		Ok(Self {
-			data,
-			mods: mods_constructor(unsafe { data.as_mut() })?,
-		})
-	}
+    pub fn new<F, E>(data: Box<[u8]>, mods_constructor: F) -> Result<Self, E>
+    where
+        F: for<'a> FnOnce(&'a mut [u8]) -> Result<Vec<Mod<'a>>, E>,
+    {
+        let mut data = NonNull::new(Box::into_raw(data)).unwrap();
+        Ok(Self {
+            data,
+            mods: mods_constructor(unsafe { data.as_mut() })?,
+        })
+    }
 }
 
 impl ModIndex {
