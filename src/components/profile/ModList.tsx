@@ -17,7 +17,7 @@ export default function ModList(props: { mods: Mod[] }) {
             </div>
           </div>
           <div class={styles.right}>
-            <p class={styles.downloads}>{mod.versions[0].downloads ?? '0'}</p>
+            <p class={styles.downloads}>Downloads: {mod.versions[0].downloads ?? '0'}</p>
           </div>
         </div>
       </div>}
