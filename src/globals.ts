@@ -9,4 +9,4 @@ export const [gamesResource] = createResource<[Game[], Map<string, Game>], unkno
   return [games, byId];
 });
 export const games = () => gamesResource.latest![0];
-export const gamesById = () => gamesResource.latest![0];
+export const gamesById = () => gamesResource.latest![1];
