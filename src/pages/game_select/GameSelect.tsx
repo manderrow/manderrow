@@ -3,6 +3,8 @@ import { games } from "../../globals";
 
 import { A } from "@solidjs/router";
 import { Game } from "../../types";
+
+import gameListStyle from "./GameList.module.css";
 import styles from "./GameSelect.module.css";
 
 export default function GameSelect() {
@@ -34,7 +36,11 @@ export default function GameSelect() {
           />
         </form>
         <ol
-          classList={{ [styles.gameList]: true, [styles.gameList__gameCard]: displayType() === "card", [styles.gameList__gameItem]: displayType() === "list" }}
+          classList={{
+            [gameListStyle.gameList]: true,
+            [gameListStyle.gameList__gameCard]: displayType() === "card",
+            [gameListStyle.gameList__gameItem]: displayType() === "list",
+          }}
         >
           <Suspense>
             <For each={games()}>{(game) => <GameComponent game={game} />}</For>
@@ -49,11 +55,11 @@ function GameComponent(props: { game: Game }) {
   const url = `/img/game_covers/${props.game.game_image}`;
 
   return (
-    <li class={styles.gameList__game} style={`--img-src: url(${url})`}>
+    <li class={gameListStyle.gameList__game} style={`--img-src: url(${url})`}>
       <img src={url} alt={`Background image of ${props.game.name}`} />
-      <div class={styles.game__content}>
-        <p class={styles.game__title}>{props.game.name}</p>
-        <div class={styles.game__actions}>
+      <div class={gameListStyle.game__content}>
+        <p class={gameListStyle.game__title}>{props.game.name}</p>
+        <div class={gameListStyle.game__actions}>
           <A href={`/profile/${props.game.id}/`} tabIndex="-1">
             <button>Select</button>
           </A>
