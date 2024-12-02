@@ -1,17 +1,9 @@
-import { createEffect, createSignal, For, Show, Suspense } from "solid-js";
-import { games } from "../../globals";
+import { createSignal, For, Show, Suspense } from "solid-js";
 import ModSearch from "../../components/profile/ModSearch";
+import { games } from "../../globals";
 
 export default function GameSelect() {
-  const [selectedGame, setSelectedGame] = createSignal<string | null>(null);
-
-  createEffect(() => {
-    if (games.latest !== undefined) {
-      if (selectedGame() === null) {
-        setSelectedGame(games.latest[0].id);
-      }
-    }
-  });
+  const [selectedGame, setSelectedGame] = createSignal<string | undefined>(games()[0]?.id);
 
   return (
     <main>
