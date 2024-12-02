@@ -1,4 +1,4 @@
-import { For, Match, Switch } from "solid-js";
+import { createMemo, For, Match, Switch } from "solid-js";
 import { A, useParams, useSearchParams } from "@solidjs/router";
 import { faTrashCan, faCirclePlay as faCirclePlayOutline } from "@fortawesome/free-regular-svg-icons";
 import { faChevronLeft, faCirclePlay, faFileImport, faThumbTack } from "@fortawesome/free-solid-svg-icons";
@@ -9,6 +9,7 @@ import ModList from "../../components/profile/ModList";
 
 import styles from "./Profile.module.css";
 import sidebarStyles from "./SidebarProfiles.module.css";
+import { gamesById } from "../../globals";
 
 interface ProfileParams {
   [key: string]: string | undefined;
@@ -27,6 +28,7 @@ export default function Profile() {
   const [searchParams] = useSearchParams<ProfileQueryParams>();
 
   const currentTab = () => searchParams.tab ?? "mod-list";
+  const gameInfo = gamesById().get(params.gameId)!; // TODO, handle undefined case
 
   return (
     <main class={styles.main}>
@@ -38,7 +40,7 @@ export default function Profile() {
             </button>
           </A>
 
-          <h1>{params.gameId}</h1>
+          <h1>{gameInfo.name}</h1>
         </nav>
         <section class={styles.sidebar__group}>
           <h2 class={styles.profileTitle}>{params.profileId}</h2>
@@ -79,12 +81,11 @@ export default function Profile() {
             <A href="?tab=mod-search">Online</A>
           </li>
         </ul>
-        <div class={styles.content__substance}>
-          <Switch>
-            <Match when={currentTab() === "mod-list"} children={<ModList mods={[]} />} />
-            <Match when={currentTab() === "mod-search"} children={<ModSearch game={params.gameId} />} />
-          </Switch>
-        </div>
+
+        <Switch>
+          <Match when={currentTab() === "mod-list"} children={<ModList mods={async () => []} />} />
+          <Match when={currentTab() === "mod-search"} children={<ModSearch game={params.gameId} />} />
+        </Switch>
       </div>
     </main>
   );

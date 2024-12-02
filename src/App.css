@@ -1,8 +1,22 @@
-:root {
-  font-family: Inter, Avenir, Helvetica, Arial, sans-serif;
-  font-size: 16px;
+@font-face {
+  font-family: "Inter";
+  src: url("/font/Inter-Variable.ttf") format("truetype");
+  font-display: swap;
+  font-style: normal;
+}
 
-  font-synthesis: none;
+@font-face {
+  font-family: "Inter";
+  src: url("/font/Inter-Italic-Variable.ttf") format("truetype");
+  font-display: swap;
+  font-style: italic;
+}
+
+:root {
+  --font: "Inter", Avenir, Helvetica, Arial, sans-serif;
+
+  font-family: var(--font);
+  font-size: 16px;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -82,8 +96,6 @@ body {
   color: var(--clr-neutral-1);
   min-height: 100%;
   font-size: 1rem;
-  display: flex;
-  flex-direction: column;
 }
 
 a {
@@ -193,10 +205,4 @@ hr {
   :root {
     font-size: 12px;
   }
-}
-
-main {
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
 }

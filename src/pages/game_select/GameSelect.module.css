@@ -1,0 +1,236 @@
+.header,
+.main {
+  padding: 1em;
+}
+
+.header {
+  padding: 5em 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  gap: 0.75em;
+  text-shadow: 0 0 1.5rem rgba(0, 0, 0, 0.4);
+  text-align: center;
+}
+
+.header h1 {
+  font-size: 4rem;
+  font-weight: 650;
+  background-image: linear-gradient(180deg, var(--clr-warn-9) 20%, var(--clr-warn-5));
+  color: transparent;
+  background-clip: text;
+  /* text-transform: uppercase; */
+  position: relative;
+}
+
+.header p {
+  color: var(--clr-neutral-2);
+  font-size: 1.25rem;
+  font-weight: 300;
+}
+
+.header h1::before,
+.header h1::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 2px;
+  width: 20%;
+  pointer-events: none;
+}
+.header h1::before {
+  background-image: linear-gradient(-90deg, var(--clr-neutral-5), transparent);
+  transform: translateX(-100%);
+  left: -0.5em;
+}
+.header h1::after {
+  background-image: linear-gradient(90deg, var(--clr-neutral-5), transparent);
+  transform: translateX(100%);
+  right: -0.5em;
+}
+
+.gradientBlobs {
+  position: absolute;
+  pointer-events: none;
+  overflow: hidden;
+  inset: 0;
+  z-index: -1;
+}
+
+.gradientBlob {
+  position: absolute;
+  width: 200vh;
+  height: 200vh;
+  overflow: visible;
+  transform-origin: top left;
+}
+
+.gradientBlob[data-blob-1] {
+  background-image: radial-gradient(circle at center, hsl(var(--clr-primary-hs), 40%, 0.7), transparent 50%);
+  top: 0%;
+  left: 50%;
+  transform: translate(-50%, -55%);
+  /* animation: hollow-purple-blue 9s ease-out infinite; */
+}
+
+.gradientBlob[data-blob-2] {
+  background-image: radial-gradient(circle at center, hsl(var(--clr-accent-hs), 40%, 0.1), transparent 60%);
+  top: 0%;
+  width: 250vh;
+  height: 250vh;
+  transform: translate(-30%, -10%);
+  /* animation: hollow-purple-red 9s ease-out infinite; */
+}
+
+.gradientBlob[data-blob-3] {
+  background-image: radial-gradient(circle at center, hsl(var(--clr-warn-hs), 40%, 0.12), transparent 60%);
+  top: 10%;
+  right: 0;
+  width: 250vh;
+  height: 250vh;
+  transform: translate(30%, 0%);
+}
+
+/* @keyframes hollow-purple-blue {
+  0% {
+    transform: translate(0%, 0%) rotate(720deg);
+  }
+
+  90% {
+    transform: translate(-50%, 50%) rotate(0deg);
+  }
+
+  100% {
+    transform: scale(8) translate(0%, 0%);
+    transform-origin: center;
+  }
+}
+
+@keyframes hollow-purple-red {
+  0% {
+    transform: translate(-100%, 100%) rotate(-720deg);
+  }
+
+  90% {
+    transform: translate(-50%, 50%) rotate(0deg);
+  }
+
+  100% {
+    transform: scale(8) translate(0%, 0%);
+    transform-origin: center;
+  }
+} */
+
+.gameSearch {
+  padding: 1em 0;
+  display: flex;
+}
+
+.gameList {
+  list-style-type: none;
+  display: flex;
+  width: 100%;
+  max-width: 1250px;
+  margin: 0 auto;
+}
+
+.gameList__gameCard.gameList {
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1em;
+}
+
+.gameList__gameItem.gameList {
+  flex-direction: column;
+}
+
+.gameList__gameCard .gameList__game {
+  width: 15%;
+  max-width: 18rem;
+  min-width: 14rem;
+  aspect-ratio: 3 / 4;
+  position: relative;
+  z-index: 1;
+  --padding: 3px;
+  padding: var(--padding);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.gameList__gameCard .gameList__game::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: var(--img-src);
+  background-size: cover;
+  z-index: -1;
+  filter: blur(4px) brightness(1.5);
+  transition: filter 0.7s ease;
+}
+
+.gameList__gameCard img {
+  width: calc(100% - var(--padding) * 2);
+  height: calc(100% - var(--padding) * 2);
+  object-fit: cover;
+  position: absolute;
+  border-radius: inherit;
+  z-index: -1;
+}
+
+.gameList__gameCard .game__content {
+  visibility: hidden;
+  height: 100%;
+  padding: 0.5em;
+  border-radius: inherit;
+  opacity: 0;
+  transition: backdrop-filter 0.2s ease, opacity 0.3s ease;
+}
+
+.gameList__gameCard .game__title {
+  width: 100%;
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1;
+  margin-bottom: 1em;
+}
+
+.gameList__gameCard .gameList__game:hover .game__content,
+.gameList__gameCard .gameList__game:focus-within .game__content {
+  visibility: visible;
+  opacity: 1;
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
+}
+
+.gameList__gameCard .gameList__game:hover::before,
+.gameList__gameCard .gameList__game:focus-within::before {
+  filter: blur(12px) brightness(2);
+  transition: filter 0.2s ease;
+}
+
+.game__actions {
+  margin: 0 auto;
+}
+
+.game__actions button {
+  display: block;
+  margin: 0 auto;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(1em);
+  border-radius: 100vmax;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+}
+
+.gameList__gameItem .game__actions,
+.gameList__gameItem img {
+  display: none;
+}
+
+.gameList__gameItem .gameList__game {
+  border-bottom: 1px solid var(--clr-neutral-8);
+  padding: 0.5em 0;
+}
