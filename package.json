@@ -1,8 +1,12 @@
 {
   "name": "d2modman",
   "version": "0.1.0",
-  "description": "",
+  "description": "A mod manager for Thunderstore games",
   "type": "module",
+  "contributors": [
+    "Jack Huang",
+    "Micheal Pfaff"
+  ],
   "scripts": {
     "start": "vite",
     "dev": "vite",
@@ -32,3 +36,4 @@
     "vite-plugin-solid": "^2.11.0"
   }
 }
+
