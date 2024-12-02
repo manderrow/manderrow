@@ -96,7 +96,7 @@ body {
   color: var(--clr-neutral-1);
   min-height: 100%;
   font-size: 1rem;
-  overscroll-behavior-y: none;
+  overscroll-behavior: none;
 }
 
 a {
