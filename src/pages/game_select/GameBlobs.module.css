@@ -1,0 +1,50 @@
+.gradientBlobs {
+  position: absolute;
+  pointer-events: none;
+  overflow: hidden;
+  inset: 0;
+  z-index: -1;
+}
+
+.gradientBlob {
+  position: absolute;
+  width: 100vmax;
+  height: 100vmax;
+  overflow: visible;
+  transform-origin: top left;
+}
+
+.gradientBlob[data-blob-1] {
+  background-image: radial-gradient(circle at center, hsl(var(--clr-primary-hs), 40%, 0.7), transparent 50%);
+  top: 0%;
+  left: 50%;
+  transform: translate(-50%, -55%);
+  /* animation: hollow-purple-blue 9s ease-out infinite; */
+}
+
+.gradientBlob[data-blob-2] {
+  background-image: radial-gradient(circle at center, hsl(var(--clr-accent-hs), 40%, 0.3), transparent 60%);
+  top: 0%;
+  width: 120vmax;
+  height: 120vmax;
+  transform: translate(-30%, -10%);
+  /* animation: hollow-purple-red 9s ease-out infinite; */
+}
+
+.gradientBlob[data-blob-3] {
+  background-image: radial-gradient(circle at center, hsl(var(--clr-accent-hs), 40%, 0.45), transparent 60%);
+  top: 10%;
+  right: -60%;
+  width: 200vmax;
+  height: 200vmax;
+  transform: translate(20%, -40%);
+}
+
+.gradientBlob[data-blob-4] {
+  background-image: radial-gradient(circle at center, hsl(var(--clr-primary-hs), 40%, 0.4), transparent 50%);
+  top: 20%;
+  left: 10%;
+  width: 120vmax;
+  height: 120vmax;
+  transform: translate(-50%, -55%);
+}

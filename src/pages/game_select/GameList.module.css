@@ -41,8 +41,9 @@
   background-image: var(--img-src);
   background-size: cover;
   z-index: -1;
-  filter: blur(4px) brightness(1.5);
+  filter: blur(4px) brightness(1.9);
   transition: filter 0.7s ease;
+  opacity: 0.75;
 }
 
 .gameList__gameCard img {
@@ -55,12 +56,13 @@
 }
 
 .gameList__gameCard .game__content {
-  visibility: hidden;
   height: 100%;
   padding: 0.5em;
   border-radius: inherit;
   opacity: 0;
   transition: backdrop-filter 0.2s ease, opacity 0.3s ease;
+  display: flex;
+  flex-direction: column;
 }
 
 .gameList__gameCard .game__title {
@@ -73,9 +75,8 @@
 
 .gameList__gameCard .gameList__game:hover .game__content,
 .gameList__gameCard .gameList__game:focus-within .game__content {
-  visibility: visible;
   opacity: 1;
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(4px);
 }
 
@@ -85,12 +86,26 @@
   transition: filter 0.2s ease;
 }
 
+.game__favoriteBtn {
+  position: absolute;
+  top: var(--padding);
+  right: var(--padding);
+  padding: 0;
+  font-size: 1.5rem;
+  border-radius: 50%;
+  background-color: transparent;
+  border: none;
+}
+
 .game__actions {
-  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-block: auto;
+  gap: 0.5em;
 }
 
 .game__actions button {
-  display: block;
   margin: 0 auto;
   border: 2px solid rgba(255, 255, 255, 0.3);
   background-color: rgba(255, 255, 255, 0.2);

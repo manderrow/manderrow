@@ -1,9 +1,12 @@
-import { createSignal, For, Suspense } from "solid-js";
-import { games } from "../../globals";
-
+import { faStar } from "@fortawesome/free-regular-svg-icons";
 import { A } from "@solidjs/router";
+import Fa from "solid-fa";
+import { createSignal, For, Suspense } from "solid-js";
+
+import { games } from "../../globals";
 import { Game } from "../../types";
 
+import blobStyles from "./GameBlobs.module.css";
 import gameListStyle from "./GameList.module.css";
 import styles from "./GameSelect.module.css";
 
@@ -15,10 +18,11 @@ export default function GameSelect() {
     <>
       <style>body {"{ position: relative; z-index: 1; }"}</style>
 
-      <div class={styles.gradientBlobs} aria-hidden="true">
-        <div class={styles.gradientBlob} data-blob-1></div>
-        <div class={styles.gradientBlob} data-blob-2></div>
-        <div class={styles.gradientBlob} data-blob-3></div>
+      <div class={blobStyles.gradientBlobs} aria-hidden="true">
+        <div class={blobStyles.gradientBlob} data-blob-1></div>
+        <div class={blobStyles.gradientBlob} data-blob-2></div>
+        <div class={blobStyles.gradientBlob} data-blob-3></div>
+        <div class={blobStyles.gradientBlob} data-blob-4></div>
       </div>
       <header class={styles.header}>
         <h1>Game Selection</h1>
@@ -63,7 +67,13 @@ function GameComponent(props: { game: Game }) {
           <A href={`/profile/${props.game.id}/`} tabIndex="-1">
             <button>Select</button>
           </A>
+          <A href={`/profile/${props.game.id}/`} tabIndex="-1">
+            <button>Set Default</button>
+          </A>
         </div>
+        <button class={gameListStyle.game__favoriteBtn}>
+          <Fa icon={faStar} />
+        </button>
       </div>
     </li>
   );
