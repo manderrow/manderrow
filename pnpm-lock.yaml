@@ -17,6 +17,9 @@ importers:
       '@js-temporal/polyfill':
         specifier: ^0.4.4
         version: 0.4.4
+      '@solid-primitives/i18n':
+        specifier: ^2.1.1
+        version: 2.1.1(solid-js@1.9.3)
       '@solid-primitives/pagination':
         specifier: ^0.3.0
         version: 0.3.0(solid-js@1.9.3)
@@ -408,6 +411,11 @@ packages:
     resolution: {integrity: sha512-Bvno2/aZT6usSa7lRDL2+hMjVAGjuqaymF1ApZm31JXzniR/hvr14jpU+/z4X6Gt5BPlzosscyJZGUvguXIqeQ==}
     cpu: [x64]
     os: [win32]
+
+  '@solid-primitives/i18n@2.1.1':
+    resolution: {integrity: sha512-1p9B8hveu+gzFRWfXcRtdzzEdr7gw3c8uLXm+2bU33JHgiI8kYJsWvG128sE6vU1ZtYGPrGq980Jd6hxYupyZQ==}
+    peerDependencies:
+      solid-js: ^1.6.12
 
   '@solid-primitives/pagination@0.3.0':
     resolution: {integrity: sha512-B9R2tVAEwGyXGF/533b46d7fXHU//eHUOt4CxwESwV3RhtP0wYScrV882i2eHGQuryZfQH2jbubvjMQyQbTMgA==}
@@ -1022,6 +1030,10 @@ snapshots:
 
   '@rollup/rollup-win32-x64-msvc@4.28.0':
     optional: true
+
+  '@solid-primitives/i18n@2.1.1(solid-js@1.9.3)':
+    dependencies:
+      solid-js: 1.9.3
 
   '@solid-primitives/pagination@0.3.0(solid-js@1.9.3)':
     dependencies:
