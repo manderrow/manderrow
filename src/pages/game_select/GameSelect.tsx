@@ -47,7 +47,7 @@ export default function GameSelect() {
           }}
         >
           <Suspense>
-            <For each={games()}>{(game) => <GameComponent game={game} />}</For>
+            <For each={games().filter(game => game.name.toLowerCase().includes(search().toLowerCase()))}>{(game) => <GameComponent game={game} />}</For>
           </Suspense>
         </ol>
       </main>
