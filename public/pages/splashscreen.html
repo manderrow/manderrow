@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>d2modman loading</title>
+
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#000000" />
+    <link rel="icon" type="image/svg+xml" href="/src/assets/logo.svg" />
+
+    <link rel="stylesheet" href="/src/App.css" />
+
+    <style>
+      html {
+        height: 100%;
+      }
+
+      body {
+        background-image: radial-gradient(circle at top left, hsl(var(--clr-neutral-200)) 0%, hsl(var(--clr-neutral-200)) 30%, hsl(var(--clr-neutral-100)) 70%);
+        height: 100%;
+        user-select: none;
+        -webkit-user-select: none;
+        overflow: hidden;
+      }
+
+      .splashscreen {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding: 0.5em;
+        text-align: center;
+        text-shadow: 0 0 1.25rem rgba(0, 0, 0, 0.5);
+        overflow: hidden;
+      }
+
+      .splashscreen__title {
+        font-size: 2.5rem;
+        margin-bottom: 0.15em;
+      }
+
+      .splashscreen__text {
+        color: hsl(var(--clr-neutral-700));
+      }
+
+      .splashscreen__loader {
+        margin-top: 1.75em;
+      }
+
+      .splashscreen__loader-img {
+        background-color: hsl(var(--clr-neutral-900));
+        -webkit-mask: url("/images/loading.svg") no-repeat center;
+        mask: url("/images/loading.svg") no-repeat center;
+        width: 4rem;
+        height: 4rem;
+      }
+
+      .splashscreen__logo-image {
+        position: absolute;
+        z-index: -1;
+        filter: blur(2px);
+        height: 125%;
+        transform: translate(30%, 5%);
+        mask-image: linear-gradient(100deg, transparent 0%, rgba(0, 0, 0, 0.03) 45%, rgba(0, 0, 0, 0.1));
+        aspect-ratio: 1 / 1;
+        right: 0;
+        pointer-events: none;
+      }
+    </style>
+
+    <script>
+      window.addEventListener("load", () => {
+        window.__TAURI_INTERNALS__.invoke("plugin:window|show", { label: "splashscreen" });
+      });
+    </script>
+  </head>
+
+  <body>
+    <noscript>You need to enable JavaScript to run this app.</noscript>
+
+    <div class="splashscreen">
+      <h1 class="splashscreen__title">d2modman</h1>
+      <p class="splashscreen__text">Loading</p>
+      <div class="splashscreen__loader">
+        <div role="img" class="splashscreen__loader-img" aria-label="Loading animation"></div>
+      </div>
+      <!-- <img src="/images/logo512.png" alt="Logo" class="splashscreen__logo-image" /> -->
+    </div>
+  </body>
+</html>

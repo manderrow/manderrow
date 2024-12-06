@@ -12,9 +12,24 @@
   "app": {
     "windows": [
       {
+        "title": "d2modman launching",
+        "label": "splashscreen",
+        "decorations": false,
+        "url": "/pages/splashscreen.html",
+        "visible": false,
+        "center": true,
+        "resizable": false,
+        "transparent": true,
+        "skipTaskbar": true,
+        "width": 500,
+        "height": 320
+      },
+      {
         "title": "d2modman",
+        "label": "main",
         "width": 1000,
         "height": 700,
+        "visible": false,
         "center": true
       }
     ],
