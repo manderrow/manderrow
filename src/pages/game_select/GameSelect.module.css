@@ -1,3 +1,8 @@
+.body {
+  background-color: hsl(214, 28%, 5%);
+  position: relative;
+}
+
 .header,
 .main {
   padding: 1em;

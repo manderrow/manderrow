@@ -2,7 +2,7 @@
   list-style-type: none;
   display: flex;
   width: 100%;
-  max-width: 1250px;
+  max-width: 1200px;
   margin: 0 auto;
 }
 
@@ -10,6 +10,10 @@
   justify-content: center;
   flex-wrap: wrap;
   gap: 1em;
+}
+
+.gameList__gameCard.gameList.searching {
+  justify-content: flex-start;
 }
 
 .gameList__gameItem.gameList {
@@ -114,6 +118,14 @@
   text-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
 }
 
+.gameList__gameItem .game__content {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-size: 1.15rem;
+  font-weight: 350;
+}
+
 .gameList__gameItem .game__actions,
 .gameList__gameItem img {
   display: none;
@@ -121,5 +133,11 @@
 
 .gameList__gameItem .gameList__game {
   border-bottom: 1px solid var(--clr-neutral-8);
-  padding: 0.5em 0;
+  padding: 0.75em 0;
+}
+
+.gameList__gameItem .game__favoriteBtn {
+  position: static;
+  order: -1;
+  font-size: 1.25rem;
 }

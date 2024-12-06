@@ -1,7 +1,7 @@
 import { faStar } from "@fortawesome/free-regular-svg-icons";
 import { A } from "@solidjs/router";
 import Fa from "solid-fa";
-import { createSignal, For, Suspense } from "solid-js";
+import { createSignal, For, onCleanup, onMount } from "solid-js";
 
 import { games } from "../../globals";
 import { Game } from "../../types";
@@ -14,10 +14,16 @@ export default function GameSelect() {
   const [displayType, setDisplayType] = createSignal<"card" | "list">("card");
   const [search, setSearch] = createSignal("");
 
+  onMount(() => {
+    document.body.classList.add(styles.body);
+  });
+
+  onCleanup(() => {
+    document.body.classList.remove(styles.body);
+  });
+
   return (
     <>
-      <style>body {"{ position: relative; z-index: 1; }"}</style>
-
       <div class={blobStyles.gradientBlobs} aria-hidden="true">
         <div class={blobStyles.gradientBlob} data-blob-1></div>
         <div class={blobStyles.gradientBlob} data-blob-2></div>
@@ -42,13 +48,12 @@ export default function GameSelect() {
         <ol
           classList={{
             [gameListStyle.gameList]: true,
+            [gameListStyle.searching]: search().length > 0,
             [gameListStyle.gameList__gameCard]: displayType() === "card",
             [gameListStyle.gameList__gameItem]: displayType() === "list",
           }}
         >
-          <Suspense>
-            <For each={games().filter(game => game.name.toLowerCase().includes(search().toLowerCase()))}>{(game) => <GameComponent game={game} />}</For>
-          </Suspense>
+          <For each={games().filter((game) => game.name.toLowerCase().includes(search().toLowerCase()))}>{(game) => <GameComponent game={game} />}</For>
         </ol>
       </main>
     </>
