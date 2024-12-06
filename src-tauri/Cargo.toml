@@ -20,7 +20,7 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = [] }
 tauri-plugin-clipboard-manager = "2"
-tauri-plugin-http = "2"
+tauri-plugin-http = "2.0.3"
 tauri-plugin-shell = "2"
 
 serde = { version = "1", features = ["derive"] }
@@ -35,7 +35,7 @@ event-listener = "5.3.1"
 futures = "0.3.31"
 parking_lot = "0.12.3"
 rff = { git = "https://github.com/mpfaff/rff.git" }
-tokio = "1.41.1"
+tokio = "1.42.0"
 uuid = { version = "1.11.0", features = ["serde"] }
 
 # provides gzip
