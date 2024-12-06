@@ -77,6 +77,17 @@
   --clr-warn-7: hsl(var(--clr-warn-hs), 70%);
   --clr-warn-8: hsl(var(--clr-warn-hs), 80%);
   --clr-warn-9: hsl(var(--clr-warn-hs), 90%);
+
+  --clr-ok-hs: 146, 100%;
+  --clr-ok-1: hsl(var(--clr-ok-hs), 10%);
+  --clr-ok-2: hsl(var(--clr-ok-hs), 20%);
+  --clr-ok-3: hsl(var(--clr-ok-hs), 30%);
+  --clr-ok-4: hsl(var(--clr-ok-hs), 40%);
+  --clr-ok-5: hsl(var(--clr-ok-hs), 50%);
+  --clr-ok-6: hsl(var(--clr-ok-hs), 59%);
+  --clr-ok-7: hsl(var(--clr-ok-hs), 70%);
+  --clr-ok-8: hsl(var(--clr-ok-hs), 80%);
+  --clr-ok-9: hsl(var(--clr-ok-hs), 90%);
 }
 
 *,
@@ -188,7 +199,7 @@ hr {
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --clr-neutral-10: hsl(214, 28%, 12%);
+    --clr-neutral-10: hsl(214, 28%, 5%);
     --clr-neutral-9: hsl(218, 25%, 15%);
     --clr-neutral-8: hsl(210, 23%, 20%);
     --clr-neutral-7: hsl(210, 18%, 28%);
