@@ -89,9 +89,9 @@ function ModListLeft({ mods, selectedMod: [selectedMod, setSelectedMod] }: { mod
                       <span class={styles.label}>@</span>
                       <span class={styles.value}>{mod.mod.owner}</span>
                     </div>
-                    <div class={styles.categories}>
-                      <For each={mod.mod.categories}>{(category) => <div>{category}</div>}</For>
-                    </div>
+                    <ul class={styles.categories}>
+                      <For each={mod.mod.categories}>{(category) => <li>{category}</li>}</For>
+                    </ul>
                   </div>
                   <div class={styles.right}>
                     <p class={styles.downloads}>
