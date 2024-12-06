@@ -18,7 +18,6 @@
   "dependencies": {
     "@fortawesome/free-regular-svg-icons": "^6.7.1",
     "@fortawesome/free-solid-svg-icons": "^6.7.1",
-    "@js-temporal/polyfill": "^0.4.4",
     "@solid-primitives/i18n": "^2.1.1",
     "@solid-primitives/pagination": "^0.3.0",
     "@solidjs/router": "^0.15.1",
