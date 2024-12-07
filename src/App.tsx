@@ -20,7 +20,11 @@ export default function App() {
 
   onMount(() => {
     // Note: This method is better than awaiting document.fonts.ready, despite requiring more code
-    document.fonts.addEventListener("loadingdone", onLoaded);
+    if (document.fonts.status === "loaded") {
+      onLoaded();
+    } else {
+      document.fonts.addEventListener("loadingdone", onLoaded);
+    }
   });
 
   createEffect(async () => {
