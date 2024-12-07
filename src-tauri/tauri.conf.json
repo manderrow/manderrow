@@ -30,12 +30,14 @@
         "width": 1000,
         "height": 700,
         "visible": false,
+        "transparent": true,
         "center": true
       }
     ],
     "security": {
       "csp": "default-src 'self'; img-src 'self' gcdn.thunderstore.io"
-    }
+    },
+	"macOSPrivateApi": true
   },
   "bundle": {
     "active": true,

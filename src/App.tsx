@@ -2,7 +2,7 @@ import { Route, Router } from "@solidjs/router";
 
 import "./App.css";
 
-import { ErrorBoundary, Show, createEffect, createSignal, onCleanup, onMount } from "solid-js";
+import { ErrorBoundary, Show, createEffect, createRenderEffect, createSignal, onCleanup, onMount } from "solid-js";
 
 import { gamesResource } from "./globals";
 
@@ -14,29 +14,17 @@ import { invoke } from "@tauri-apps/api/core";
 export default function App() {
   const [loaded, setLoaded] = createSignal(false);
 
-  function onLoaded() {
+  onMount(async () => {
+    // 64px taken from the title on game select screen
+    await document.fonts.load('64px Inter');
     setLoaded(true);
-  }
-
-  onMount(() => {
-    // Note: This method is better than awaiting document.fonts.ready, despite requiring more code
-    if (document.fonts.status === "loaded") {
-      onLoaded();
-    } else {
-      document.fonts.addEventListener("loadingdone", onLoaded);
-    }
   });
 
   createEffect(async () => {
     if (gamesResource.latest != null && loaded()) {
       // App ready, close splashscreen and show main window
       await invoke("close_splashscreen");
-      document.fonts.removeEventListener("loadingdone", onLoaded);
     }
-  });
-
-  onCleanup(() => {
-    document.fonts.removeEventListener("loadingdone", onLoaded);
   });
 
   return (
