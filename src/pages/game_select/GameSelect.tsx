@@ -7,7 +7,7 @@ import { games } from "../../globals";
 import { Game } from "../../types";
 
 import blobStyles from "./GameBlobs.module.css";
-import gameListStyle from "./GameList.module.css";
+import gameListStyles from "./GameList.module.css";
 import styles from "./GameSelect.module.css";
 
 export default function GameSelect() {
@@ -42,18 +42,28 @@ export default function GameSelect() {
             id="search-game"
             placeholder="Search for a game"
             value={search()}
+            maxlength="100"
             on:input={(e) => setSearch(e.target.value)}
           />
         </form>
         <ol
           classList={{
-            [gameListStyle.gameList]: true,
-            [gameListStyle.searching]: search().length > 0,
-            [gameListStyle.gameList__gameCard]: displayType() === "card",
-            [gameListStyle.gameList__gameItem]: displayType() === "list",
+            [gameListStyles.gameList]: true,
+            [gameListStyles.searching]: search().length > 0,
+            [gameListStyles.gameList__gameCard]: displayType() === "card",
+            [gameListStyles.gameList__gameItem]: displayType() === "list",
           }}
         >
-          <For each={games().filter((game) => game.name.toLowerCase().includes(search().toLowerCase()))}>{(game) => <GameComponent game={game} />}</For>
+          <For
+            each={games().filter((game) => game.name.toLowerCase().includes(search().toLowerCase()))}
+            fallback={
+              <li class={gameListStyles.gameList__empty}>
+                <p>No games matched the search</p>
+              </li>
+            }
+          >
+            {(game) => <GameComponent game={game} />}
+          </For>
         </ol>
       </main>
     </>
@@ -64,19 +74,19 @@ function GameComponent(props: { game: Game }) {
   const url = `/img/game_covers/${props.game.game_image}`;
 
   return (
-    <li class={gameListStyle.gameList__game} style={`--img-src: url(${url})`}>
+    <li class={gameListStyles.gameList__game} style={`--img-src: url(${url})`}>
       <img src={url} alt={`Background image of ${props.game.name}`} />
-      <div class={gameListStyle.game__content}>
-        <p class={gameListStyle.game__title}>{props.game.name}</p>
-        <div class={gameListStyle.game__actions}>
+      <div class={gameListStyles.game__content}>
+        <p class={gameListStyles.game__title}>{props.game.name}</p>
+        <div class={gameListStyles.game__actions}>
           <A href={`/profile/${props.game.id}/`} tabIndex="-1">
-            <button>Select</button>
+            <button data-select>Select</button>
           </A>
           <A href={`/profile/${props.game.id}/`} tabIndex="-1">
-            <button>Set Default</button>
+            <button data-default>Set Default</button>
           </A>
         </div>
-        <button class={gameListStyle.game__favoriteBtn}>
+        <button class={gameListStyles.game__favoriteBtn} title="Favorite this game">
           <Fa icon={faStar} />
         </button>
       </div>

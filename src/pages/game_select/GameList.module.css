@@ -2,7 +2,7 @@
   list-style-type: none;
   display: flex;
   width: 100%;
-  max-width: 1200px;
+  max-width: calc(5 * 14rem + 6rem);
   margin: 0 auto;
 }
 
@@ -10,6 +10,14 @@
   justify-content: center;
   flex-wrap: wrap;
   gap: 1em;
+  padding-inline: 1em;
+}
+
+.gameList__empty {
+  flex-grow: 1;
+  text-align: center;
+  font-weight: 500;
+  margin: 0.5em 0;
 }
 
 .gameList__gameCard.gameList.searching {
@@ -21,9 +29,7 @@
 }
 
 .gameList__gameCard .gameList__game {
-  width: 15%;
-  max-width: 18rem;
-  min-width: 14rem;
+  width: 14rem;
   aspect-ratio: 3 / 4;
   position: relative;
   z-index: 1;
@@ -31,10 +37,6 @@
   padding: var(--padding);
   border-radius: 4px;
   overflow: hidden;
-}
-
-.gameList__gameCard .gameList__game:hover {
-  box-shadow: inset 0 0 32px 12px var(--clr-primary-4);
 }
 
 .gameList__gameCard .gameList__game::before {
@@ -46,8 +48,15 @@
   background-size: cover;
   z-index: -1;
   filter: blur(4px) brightness(1.9);
-  transition: filter 0.7s ease;
+  transition: filter 0.7s ease, opacity 0.5s ease;
   opacity: 0.75;
+}
+
+.gameList__gameCard .gameList__game:hover::before,
+.gameList__gameCard .gameList__game:focus-within::before {
+  filter: blur(4px) brightness(2);
+  opacity: 0.9;
+  transition: filter 0.2s ease;
 }
 
 .gameList__gameCard img {
@@ -61,44 +70,43 @@
 
 .gameList__gameCard .game__content {
   height: 100%;
-  padding: 0.5em;
+  padding: 0.75em;
   border-radius: inherit;
   opacity: 0;
   transition: backdrop-filter 0.2s ease, opacity 0.3s ease;
   display: flex;
   flex-direction: column;
-}
-
-.gameList__gameCard .game__title {
-  width: 100%;
-  font-weight: 700;
-  font-size: 1rem;
-  line-height: 1;
-  margin-bottom: 1em;
+  text-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
 }
 
 .gameList__gameCard .gameList__game:hover .game__content,
 .gameList__gameCard .gameList__game:focus-within .game__content {
   opacity: 1;
-  background-color: rgba(0, 0, 0, 0.15);
+  background-color: rgba(0, 0, 0, 0.25);
   backdrop-filter: blur(4px);
 }
 
-.gameList__gameCard .gameList__game:hover::before,
-.gameList__gameCard .gameList__game:focus-within::before {
-  filter: blur(12px) brightness(2);
-  transition: filter 0.2s ease;
+.gameList__gameCard .game__title {
+  width: 100%;
+  font-weight: 550;
+  font-size: 1.25rem;
+  line-height: 1.1;
+  margin-bottom: 1em;
+  padding-right: 1.75rem;
 }
 
 .game__favoriteBtn {
   position: absolute;
   top: var(--padding);
   right: var(--padding);
+  margin-top: 0.25em;
+  margin-right: 0.25em;
   padding: 0;
   font-size: 1.5rem;
   border-radius: 50%;
   background-color: transparent;
   border: none;
+  color: var(--clr-neutral-2);
 }
 
 .game__actions {
@@ -111,12 +119,33 @@
 
 .game__actions button {
   margin: 0 auto;
-  border: 2px solid rgba(255, 255, 255, 0.3);
-  background-color: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(1em);
   border-radius: 100vmax;
   text-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
 }
+
+.game__actions button[data-select] {
+  background-color: rgb(245, 245, 245);
+  color: black;
+  font-weight: 600;
+  text-shadow: none;
+  border: none;
+
+  &:hover {
+    background-color: rgb(215, 215, 215);
+  }
+}
+
+.game__actions button[data-default] {
+  backdrop-filter: blur(8px);
+  border: 2px solid rgba(225, 225, 225, 0.3);
+  background-color: rgba(225, 225, 225, 0.2);
+}
+
+.game__actions button[data-default]:hover {
+  background-color: rgba(225, 225, 225, 0.3);
+}
+
+/* --- Game list item style code --- */
 
 .gameList__gameItem .game__content {
   display: flex;

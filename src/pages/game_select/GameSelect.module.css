@@ -1,11 +1,16 @@
 .body {
   background-color: hsl(214, 28%, 5%);
   position: relative;
+  overflow-y: scroll;
 }
 
 .header,
 .main {
   padding: 1em;
+}
+
+.main {
+  padding-bottom: 2em;
 }
 
 .header {
@@ -87,6 +92,29 @@
 } */
 
 .gameSearch {
-  padding: 1em 0;
+  padding: 0.5em 0;
+  margin-bottom: 0.5em;
+  margin-inline: -1em;
   display: flex;
+  justify-content: center;
+  position: sticky;
+  position: -webkit-sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.gameSearch input {
+  border-radius: 4px;
+  padding: 0.5em 0.75em;
+  width: 100%;
+  max-width: 30rem;
+  font-size: 1.1rem;
+  background-color: rgba(69, 69, 69, 0.3);
+  border-color: rgba(225, 225, 225, 0.2);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.gameSearch input::placeholder {
+  color: rgb(196, 196, 196);
 }
