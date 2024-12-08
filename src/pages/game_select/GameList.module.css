@@ -84,12 +84,13 @@
   opacity: 1;
   background-color: rgba(0, 0, 0, 0.25);
   backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .gameList__gameCard .game__title {
   width: 100%;
-  font-weight: 550;
-  font-size: 1.25rem;
+  font-weight: 850;
+  font-size: 1.15rem;
   line-height: 1.1;
   margin-bottom: 1em;
   padding-right: 1.75rem;
@@ -137,6 +138,7 @@
 
 .game__actions button[data-default] {
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   border: 2px solid rgba(225, 225, 225, 0.3);
   background-color: rgba(225, 225, 225, 0.2);
 }
