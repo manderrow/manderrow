@@ -76,7 +76,7 @@
   flex-direction: column;
   text-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
 
-  :global([data-webview='webkit']) & {
+  :global([data-webview="safari"]) & {
     transition: backdrop-filter 0.2s ease, background-color 0.3s ease;
 
     > * {
@@ -85,7 +85,7 @@
     }
   }
 
-  :global([data-webview]:not([data-webview='webkit'])) & {
+  :global([data-webview]:not([data-webview="safari"])) & {
     opacity: 0;
     transition: backdrop-filter 0.2s ease, opacity 0.3s ease;
   }
@@ -93,7 +93,7 @@
 
 .gameList__gameCard .gameList__game:hover .game__content,
 .gameList__gameCard .gameList__game:focus-within .game__content {
-  :global([data-webview]:not([data-webview='webkit'])) & {
+  :global([data-webview]:not([data-webview="safari"])) & {
     opacity: 1;
   }
   background-color: rgba(0, 0, 0, 0.25);
@@ -103,7 +103,7 @@
 
 .gameList__gameCard .gameList__game:hover .game__content > *,
 .gameList__gameCard .gameList__game:focus-within .game__content > * {
-  :global([data-webview='webkit']) & {
+  :global([data-webview="safari"]) & {
     opacity: 1;
   }
 }
