@@ -1,4 +1,5 @@
 import { Route, Router } from "@solidjs/router";
+import { platform } from "@tauri-apps/plugin-os";
 
 import "./App.css";
 
@@ -25,6 +26,15 @@ export default function App() {
       // App ready, close splashscreen and show main window
       await invoke("close_splashscreen");
     }
+  });
+
+  onMount(async () => {
+    const platformName = await platform();
+    document.body.dataset.webview = platformName === 'macos' || platformName === 'ios' ? 'webkit' : 'unknown';
+  });
+
+  onCleanup(() => {
+    document.body.dataset.webview = undefined;
   });
 
   return (
