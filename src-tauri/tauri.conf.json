@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "d2modman",
+  "productName": "manderrow",
   "version": "0.1.0",
-  "identifier": "io.github.jack-the-pro101.d2modman",
+  "identifier": "io.github.jack-the-pro101.manderrow",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "d2modman launching",
+        "title": "Manderrow launching",
         "label": "splashscreen",
         "decorations": false,
         "url": "/pages/splashscreen.html",
@@ -25,7 +25,7 @@
         "height": 320
       },
       {
-        "title": "d2modman",
+        "title": "Manderrow",
         "label": "main",
         "width": 1000,
         "height": 700,
@@ -37,7 +37,7 @@
     "security": {
       "csp": "default-src 'self'; img-src 'self' gcdn.thunderstore.io"
     },
-	"macOSPrivateApi": true
+    "macOSPrivateApi": true
   },
   "bundle": {
     "active": true,

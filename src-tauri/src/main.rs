@@ -3,5 +3,5 @@
 #![deny(unused_must_use)]
 
 fn main() {
-    d2modman_lib::run()
+    manderrow_lib::run()
 }
