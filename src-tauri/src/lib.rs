@@ -3,6 +3,7 @@
 mod commands;
 pub mod games;
 pub mod mods;
+pub mod window_state;
 
 #[derive(Debug, Clone, serde::Serialize)]
 struct Error {
@@ -28,6 +29,7 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_shell::init())
+        .plugin(window_state::init())
         .invoke_handler(tauri::generate_handler![
             commands::close_splashscreen::close_splashscreen,
             commands::games::get_games,
