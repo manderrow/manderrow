@@ -24,6 +24,7 @@
     "@tauri-apps/api": "^2.1.1",
     "@tauri-apps/plugin-clipboard-manager": "^2.0.1",
     "@tauri-apps/plugin-http": "^2.0.1",
+    "@tauri-apps/plugin-log": "^2.0.1",
     "@tauri-apps/plugin-os": "^2.0.0",
     "@tauri-apps/plugin-shell": "^2.0.1",
     "@thisbeyond/solid-dnd": "^0.7.5",
@@ -33,7 +34,7 @@
   "devDependencies": {
     "@tauri-apps/cli": "^2.1.0",
     "typescript": "^5.7.2",
-    "vite": "^6.0.2",
+    "vite": "^6.0.3",
     "vite-plugin-solid": "^2.11.0"
   }
 }

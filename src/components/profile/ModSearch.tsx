@@ -32,7 +32,6 @@ export default function ModSearch(props: { game: string }) {
   const [queriedMods] = createResource(
     () => [props.game, modIndex.loading, query(), sort()] as [string, true | undefined, string, SortOption[]],
     async ([game, _, query, sort]) => {
-      console.log(`Querying ${JSON.stringify(sort)}`);
       const { count } = await queryModIndex(game, query, sort, { limit: 0 });
       return { count, mods: async (page: number) => (await queryModIndex(game, query, sort, { skip: page * 50, limit: 50 })).mods.map((mod) => ({ mod })) };
     },

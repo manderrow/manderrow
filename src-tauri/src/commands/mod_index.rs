@@ -11,6 +11,7 @@ use bytes::{Buf as _, Bytes};
 use drop_guard::ext::tokio1::JoinHandleExt;
 use flate2::bufread::GzDecoder;
 use futures::StreamExt as _;
+use log::debug;
 use tauri::ipc::Channel;
 use tokio::sync::{Mutex, RwLock};
 
@@ -156,7 +157,7 @@ pub async fn fetch_mod_index(
             .map(|data| data.is_empty())
             .unwrap_or(true)
     {
-        println!("Fetching mods");
+        debug!("Fetching mods");
 
         let _guard = tokio::task::spawn(async move {
             loop {
@@ -209,10 +210,13 @@ pub async fn fetch_mod_index(
                                 ),
                                 rkyv_intern::Interner::<String>::default(),
                             );
-                            rkyv::api::serialize_using::<_, rkyv::rancor::Error>(&mods, &mut serializer)?;
+                            rkyv::api::serialize_using::<_, rkyv::rancor::Error>(
+                                &mods,
+                                &mut serializer,
+                            )?;
                             Ok::<_, rkyv::rancor::Error>(serializer.into_serializer().into_writer())
                         })?;
-                        println!(
+                        debug!(
                             "{} bytes of JSON -> {} bytes in memory",
                             buf.len(),
                             mods.len()
@@ -229,7 +233,7 @@ pub async fn fetch_mod_index(
             .await?;
         *mod_index.data.write().await = new_mod_index;
 
-        println!("Finished fetching mods");
+        debug!("Finished fetching mods");
     }
 
     Ok(())
@@ -272,7 +276,7 @@ pub async fn query_mod_index(
         .read()
         .await;
 
-    println!("Querying mods");
+    debug!("Querying mods");
 
     let mut buf = mod_index
         .iter()
