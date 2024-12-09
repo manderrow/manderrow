@@ -4,12 +4,15 @@
   display: flex;
 }
 
+.main {
+  height: 100dvh;
+}
+
 .sidebar {
   padding: 1em;
-  height: 100dvh;
   min-width: 18rem;
-  width: 18%;
-  max-width: 24rem;
+  width: 22rem;
+  max-width: 26rem;
   resize: horizontal;
   overflow: auto;
   border-right: 1px solid var(--clr-neutral-8);
@@ -19,11 +22,14 @@
   display: grid;
   grid-template-columns: 1fr 10fr 1fr;
   align-items: center;
+  gap: 1em;
 }
 
 .sidebar__nav h1 {
   width: 100%;
   text-align: center;
+  font-weight: 500;
+  color: var(--clr-neutral-2);
 }
 
 .sidebar__btn {
@@ -53,17 +59,18 @@
 
 .tabs__tab a {
   padding: 0.25em 0.5em;
-  border: 1px solid var(--clr-primary-3);
+  border: 1px solid var(--clr-primary-4);
   display: block;
+}
+
+.tab__active.tabs__tab a {
+  background-color: var(--clr-primary-4);
+  color: white;
 }
 
 .content {
   padding: 1em 0 0 1em;
-  flex-grow: 1;
+  width: 100%;
   display: flex;
   flex-direction: column;
-}
-
-.profileTitle {
-  text-align: center;
 }

@@ -34,7 +34,7 @@ export default function Profile() {
     <main class={styles.main}>
       <aside class={styles.sidebar}>
         <nav class={styles.sidebar__nav}>
-          <A href="/">
+          <A href="/" tabIndex="-1">
             <button class={styles.sidebar__btn}>
               <Fa icon={faChevronLeft} />
             </button>
@@ -43,7 +43,6 @@ export default function Profile() {
           <h1>{gameInfo.name}</h1>
         </nav>
         <section class={styles.sidebar__group}>
-          <h2 class={styles.profileTitle}>{params.profileId}</h2>
           <button>
             <Fa icon={faCirclePlay} /> Start modded
           </button>
@@ -75,10 +74,10 @@ export default function Profile() {
       <div class={styles.content}>
         <Show when={params.profileId !== undefined} fallback={<p>Select a profile from the sidebar</p>}>
           <ul class={styles.tabs}>
-            <li class={styles.tabs__tab}>
-              <A href="?">Installed</A>
+            <li classList={{ [styles.tabs__tab]: true, [styles.tab__active]: currentTab() === "mod-list" }}>
+              <A href="">Installed</A>
             </li>
-            <li class={styles.tabs__tab}>
+            <li classList={{ [styles.tabs__tab]: true, [styles.tab__active]: currentTab() === "mod-search" }}>
               <A href="?tab=mod-search">Online</A>
             </li>
           </ul>
@@ -98,13 +97,13 @@ function SidebarProfileComponent({ gameId, profileId, profileName }: { gameId: s
     <li class={sidebarStyles.profileList__item}>
       <A href={`/profile/${gameId}/${profileId}`}>{profileName}</A>
       <div class={sidebarStyles.profileItem__options}>
-        <button>
+        <button data-import title="Import onto">
           <Fa icon={faFileImport} />
         </button>
-        <button>
+        <button data-pin title="Pin">
           <Fa icon={faThumbTack} rotate={90} />
         </button>
-        <button>
+        <button data-delete title="Delete">
           <Fa icon={faTrashCan} />
         </button>
       </div>
