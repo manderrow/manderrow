@@ -16,7 +16,7 @@ use tokio::sync::{Mutex, RwLock};
 
 use crate::{
     games::{GAMES, GAMES_BY_ID},
-    mods::{Mod, ModVersion},
+    mods::{ArchivedMod, ArchivedModVersion, Mod, ModRef, ModVersionRef},
     Error,
 };
 
@@ -199,8 +199,10 @@ pub async fn fetch_mod_index(
                     let mut rdr = fetch_gzipped(&url).await?;
                     tokio::task::block_in_place(move || {
                         rdr.read_to_end(&mut buf)?;
-                        let index = MemoryModIndex::new(buf.into_boxed_slice(), |data| {
-                            simd_json::from_slice::<Vec<Mod>>(data)
+                        let mods = simd_json::from_slice::<Vec<Mod>>(&mut buf)?;
+                        let mods = rkyv::to_bytes::<rkyv::rancor::Error>(&mods)?;
+                        let index = MemoryModIndex::new(mods, |data| {
+                            rkyv::access::<_, rkyv::rancor::Error>(data)
                         })?;
                         mod_index.inc_progress();
                         Ok::<_, Error>(index)
@@ -277,8 +279,8 @@ pub async fn query_mod_index(
                 SortColumn::Owner => m1.owner.cmp(&m2.owner),
                 SortColumn::Downloads => match (&*m1.versions, &*m2.versions) {
                     (
-                        [ModVersion { downloads: a, .. }, ..],
-                        [ModVersion { downloads: b, .. }, ..],
+                        [ArchivedModVersion { downloads: a, .. }, ..],
+                        [ArchivedModVersion { downloads: b, .. }, ..],
                     ) => a.cmp(b),
                     _ => std::cmp::Ordering::Equal,
                 },
@@ -296,10 +298,45 @@ pub async fn query_mod_index(
     let count = buf.len();
 
     fn map_to_json<'a>(
-        it: impl IntoIterator<Item = (&'a Mod<'a>, f64)>,
+        it: impl IntoIterator<Item = (&'a ArchivedMod, f64)>,
     ) -> Result<Vec<simd_json::OwnedValue>, simd_json::Error> {
         it.into_iter()
-            .map(|(m, _)| simd_json::serde::to_owned_value(m))
+            .map(|(m, _)| {
+                simd_json::serde::to_owned_value(ModRef {
+                    name: &m.name,
+                    full_name: &m.full_name,
+                    owner: &m.owner,
+                    package_url: m.package_url.as_deref(),
+                    donation_link: m.donation_link.as_deref(),
+                    date_created: &m.date_created,
+                    date_updated: &m.date_updated,
+                    rating_score: m.rating_score.into(),
+                    is_pinned: m.is_pinned,
+                    is_deprecated: m.is_deprecated,
+                    has_nsfw_content: m.has_nsfw_content,
+                    categories: m.categories.iter().map(|s| s.as_str()).collect(),
+                    versions: m
+                        .versions
+                        .iter()
+                        .map(|v| ModVersionRef {
+                            name: &v.name,
+                            full_name: &v.full_name,
+                            description: &v.description,
+                            icon: &v.icon,
+                            version_number: &v.version_number,
+                            dependencies: v.dependencies.iter().map(|s| s.as_str()).collect(),
+                            download_url: &v.download_url,
+                            downloads: v.downloads.into(),
+                            date_created: &v.date_created,
+                            website_url: v.website_url.as_deref(),
+                            is_active: v.is_active.into(),
+                            uuid4: v.uuid4,
+                            file_size: v.file_size.into(),
+                        })
+                        .collect(),
+                    uuid4: m.uuid4,
+                })
+            })
             .collect::<Result<Vec<_>, simd_json::Error>>()
     }
 

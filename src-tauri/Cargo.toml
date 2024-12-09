@@ -30,6 +30,7 @@ serde_with = "3.11.0"
 simd-json = "0.14.3"
 
 bincode = "2.0.0-rc.3"
+rkyv = { version = "0.8.9", features = ["uuid-1"] }
 
 # general
 bytes = "1.8.0"
