@@ -45,3 +45,4 @@ uuid = { version = "1.11.0", features = ["serde"] }
 
 # provides gzip
 flate2 = "1.0.35"
+rkyv_intern = { git = "https://github.com/rkyv/rkyv_intern", version = "0.1.0" }

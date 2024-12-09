@@ -1,3 +1,4 @@
+use rkyv_intern::Intern;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
@@ -31,18 +32,22 @@ pub struct ModRef<'a> {
 )]
 #[rkyv(derive(Debug))]
 pub struct Mod {
+    #[rkyv(with = Intern)]
     pub name: String,
     pub full_name: String,
+    #[rkyv(with = Intern)]
     pub owner: String,
     pub package_url: Option<String>,
     pub donation_link: Option<String>,
+    #[rkyv(with = Intern)]
     pub date_created: String,
+    #[rkyv(with = Intern)]
     pub date_updated: String,
     pub rating_score: u32,
     pub is_pinned: bool,
     pub is_deprecated: bool,
     pub has_nsfw_content: bool,
-    pub categories: Vec<String>,
+    pub categories: Vec<InternedString>,
     pub versions: Vec<ModVersion>,
     pub uuid4: Uuid,
 }
@@ -76,12 +81,16 @@ pub struct ModVersionRef<'a> {
 )]
 #[rkyv(derive(Debug))]
 pub struct ModVersion {
+    #[rkyv(with = Intern)]
     pub name: String,
     pub full_name: String,
+    #[rkyv(with = Intern)]
     pub description: String,
+    #[rkyv(with = Intern)]
     pub icon: String,
+    #[rkyv(with = Intern)]
     pub version_number: String,
-    pub dependencies: Vec<String>,
+    pub dependencies: Vec<InternedString>,
     pub download_url: String,
     pub downloads: u64,
     pub date_created: String,
@@ -90,3 +99,16 @@ pub struct ModVersion {
     pub uuid4: Uuid,
     pub file_size: u64,
 }
+
+#[derive(
+    Debug,
+    Clone,
+    rkyv::Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    serde::Deserialize,
+    serde::Serialize,
+)]
+#[rkyv(derive(Debug))]
+#[serde(transparent)]
+pub struct InternedString(#[rkyv(with = Intern)] pub String);

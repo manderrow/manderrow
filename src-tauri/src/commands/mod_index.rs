@@ -200,7 +200,23 @@ pub async fn fetch_mod_index(
                     tokio::task::block_in_place(move || {
                         rdr.read_to_end(&mut buf)?;
                         let mods = simd_json::from_slice::<Vec<Mod>>(&mut buf)?;
-                        let mods = rkyv::to_bytes::<rkyv::rancor::Error>(&mods)?;
+                        let mods = rkyv::util::with_arena(|arena| {
+                            let mut serializer = rkyv_intern::InterningAdapter::new(
+                                rkyv::ser::Serializer::new(
+                                    rkyv::util::AlignedVec::<16>::new(),
+                                    arena.acquire(),
+                                    rkyv::ser::sharing::Share::new(),
+                                ),
+                                rkyv_intern::Interner::<String>::default(),
+                            );
+                            rkyv::api::serialize_using::<_, rkyv::rancor::Error>(&mods, &mut serializer)?;
+                            Ok::<_, rkyv::rancor::Error>(serializer.into_serializer().into_writer())
+                        })?;
+                        println!(
+                            "{} bytes of JSON -> {} bytes in memory",
+                            buf.len(),
+                            mods.len()
+                        );
                         let index = MemoryModIndex::new(mods, |data| {
                             rkyv::access::<_, rkyv::rancor::Error>(data)
                         })?;
@@ -314,7 +330,7 @@ pub async fn query_mod_index(
                     is_pinned: m.is_pinned,
                     is_deprecated: m.is_deprecated,
                     has_nsfw_content: m.has_nsfw_content,
-                    categories: m.categories.iter().map(|s| s.as_str()).collect(),
+                    categories: m.categories.iter().map(|s| s.0.as_str()).collect(),
                     versions: m
                         .versions
                         .iter()
@@ -324,7 +340,7 @@ pub async fn query_mod_index(
                             description: &v.description,
                             icon: &v.icon,
                             version_number: &v.version_number,
-                            dependencies: v.dependencies.iter().map(|s| s.as_str()).collect(),
+                            dependencies: v.dependencies.iter().map(|s| s.0.as_str()).collect(),
                             download_url: &v.download_url,
                             downloads: v.downloads.into(),
                             date_created: &v.date_created,
