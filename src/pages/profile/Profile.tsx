@@ -1,4 +1,4 @@
-import { createMemo, For, Match, Switch } from "solid-js";
+import { createMemo, For, Match, Show, Switch } from "solid-js";
 import { A, useParams, useSearchParams } from "@solidjs/router";
 import { faTrashCan, faCirclePlay as faCirclePlayOutline } from "@fortawesome/free-regular-svg-icons";
 import { faChevronLeft, faCirclePlay, faFileImport, faThumbTack } from "@fortawesome/free-solid-svg-icons";
@@ -73,19 +73,21 @@ export default function Profile() {
       </aside>
 
       <div class={styles.content}>
-        <ul class={styles.tabs}>
-          <li class={styles.tabs__tab}>
-            <A href="?">Installed</A>
-          </li>
-          <li class={styles.tabs__tab}>
-            <A href="?tab=mod-search">Online</A>
-          </li>
-        </ul>
+        <Show when={params.profileId !== undefined} fallback={<p>Select a profile from the sidebar</p>}>
+          <ul class={styles.tabs}>
+            <li class={styles.tabs__tab}>
+              <A href="?">Installed</A>
+            </li>
+            <li class={styles.tabs__tab}>
+              <A href="?tab=mod-search">Online</A>
+            </li>
+          </ul>
 
-        <Switch>
-          <Match when={currentTab() === "mod-list"} children={<ModList mods={async () => []} />} />
-          <Match when={currentTab() === "mod-search"} children={<ModSearch game={params.gameId} />} />
-        </Switch>
+          <Switch>
+            <Match when={currentTab() === "mod-list"} children={<ModList mods={async () => []} />} />
+            <Match when={currentTab() === "mod-search"} children={<ModSearch game={params.gameId} />} />
+          </Switch>
+        </Show>
       </div>
     </main>
   );
