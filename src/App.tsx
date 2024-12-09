@@ -3,16 +3,19 @@ import "./App.css";
 import { Route, Router } from "@solidjs/router";
 import { invoke } from "@tauri-apps/api/core";
 import { platform } from "@tauri-apps/plugin-os";
-import { ErrorBoundary, Show, createEffect, createSignal, onCleanup, onMount } from "solid-js";
+import { ErrorBoundary, Resource, Show, createEffect, createSignal, onCleanup, onMount } from "solid-js";
 
-import { gamesResource } from "./globals";
+import { gamesPopularityResource, gamesResource } from "./globals";
 
 import ErrorPage from "./pages/error/Error";
 import GameSelect from "./pages/game_select/GameSelect";
 import Profile from "./pages/profile/Profile";
 
+const resources: Resource<any>[] = [gamesResource, gamesPopularityResource];
+
 export default function App() {
   const [loaded, setLoaded] = createSignal(false);
+  const [ready, setReady] = createSignal(false);
 
   onMount(async () => {
     // 64px taken from the title on game select screen
@@ -20,25 +23,29 @@ export default function App() {
     setLoaded(true);
   });
 
+  createEffect(() => {
+    if (resources.every((resource) => resource.latest != null)) setReady(true);
+  });
+
   createEffect(async () => {
-    if (gamesResource.latest != null && loaded()) {
+    if (ready() && loaded()) {
       // App ready, close splashscreen and show main window
       await invoke("close_splashscreen");
     }
   });
 
   onMount(async () => {
-    const platformName = await platform();
-    document.body.dataset.webview = platformName === "macos" || platformName === "ios" ? "safari" : "unknown";
+    const platformName = platform();
+    document.body.dataset.webview = platformName === "macos" || platformName === "ios" ? "safari" : platformName;
   });
 
   onCleanup(() => {
-    document.body.dataset.webview = undefined;
+    delete document.body.dataset.webview;
   });
 
   return (
     <ErrorBoundary fallback={ErrorPage}>
-      <Show when={gamesResource.latest != null}>
+      <Show when={ready()}>
         <Router>
           <Route path="/" component={GameSelect} />
           <Route path="/profile/:gameId/:profileId?" component={Profile} />

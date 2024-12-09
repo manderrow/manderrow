@@ -103,16 +103,26 @@
   z-index: 2;
 }
 
+.gameSearch input,
+.gameSearch select,
+.gameSearch button {
+  background-color: rgba(69, 69, 69, 0.3);
+  border-color: rgba(225, 225, 225, 0.2);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.gameSearch select {
+  background-color: rgba(69, 69, 69, 0.5);
+  padding: 0.5em;
+}
+
 .gameSearch input {
   border-radius: 4px;
   padding: 0.5em 0.75em;
   width: 100%;
   max-width: 30rem;
   font-size: 1.1rem;
-  background-color: rgba(69, 69, 69, 0.3);
-  border-color: rgba(225, 225, 225, 0.2);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
 }
 
 .gameSearch input::placeholder {

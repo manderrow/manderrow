@@ -1,6 +1,7 @@
 #![deny(unused_must_use)]
 
 mod commands;
+pub mod game_reviews;
 pub mod games;
 pub mod mods;
 pub mod window_state;
@@ -40,6 +41,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::close_splashscreen::close_splashscreen,
             commands::games::get_games,
+            commands::games::get_games_popularity,
             commands::mod_index::fetch_mod_index,
             commands::mod_index::query_mod_index,
         ])

@@ -24,14 +24,14 @@
 
   --clr-neutral-0: hsl(214, 28%, 5%);
   --clr-neutral-1: hsl(214, 28%, 15%);
-  --clr-neutral-2: hsl(218, 25%, 20%);
-  --clr-neutral-3: hsl(210, 23%, 28%);
-  --clr-neutral-4: hsl(210, 18%, 40%);
-  --clr-neutral-5: hsl(210, 11%, 50%);
-  --clr-neutral-6: hsl(212, 20%, 60%);
-  --clr-neutral-7: hsl(212, 25%, 70%);
-  --clr-neutral-8: hsl(211, 30%, 80%);
-  --clr-neutral-9: hsl(211, 32%, 90%);
+  --clr-neutral-2: hsl(218, 20%, 20%);
+  --clr-neutral-3: hsl(210, 15%, 28%);
+  --clr-neutral-4: hsl(210, 10%, 40%);
+  --clr-neutral-5: hsl(210, 12%, 50%);
+  --clr-neutral-6: hsl(212, 15%, 60%);
+  --clr-neutral-7: hsl(212, 18%, 70%);
+  --clr-neutral-8: hsl(211, 20%, 80%);
+  --clr-neutral-9: hsl(211, 30%, 90%);
   --clr-neutral-10: hsl(100, 50%, 99%);
 
   --clr-primary-hs: 209, 85%;
@@ -129,6 +129,7 @@ select {
   font-size: 1rem;
   color: var(--clr-neutral-1);
   display: block;
+  font-family: var(--font);
 }
 
 @supports selector(*:focus-visible) {
@@ -199,10 +200,10 @@ hr {
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --clr-neutral-10: hsl(214, 28%, 5%);
+    --clr-neutral-10: hsl(214, 40%, 5%);
     --clr-neutral-9: hsl(218, 25%, 15%);
-    --clr-neutral-8: hsl(210, 23%, 20%);
-    --clr-neutral-7: hsl(210, 18%, 28%);
+    --clr-neutral-8: hsl(210, 22%, 20%);
+    --clr-neutral-7: hsl(210, 15%, 28%);
     --clr-neutral-6: hsl(210, 11%, 35%);
     --clr-neutral-5: hsl(212, 20%, 50%);
     --clr-neutral-4: hsl(212, 25%, 60%);
