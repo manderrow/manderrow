@@ -1,0 +1,28 @@
+{
+  "global": {
+    "list_sort_type": {
+      "alphabetical": "Alphabetical",
+      "popularity": "Popularity"
+    }
+  },
+
+  "game_select": {
+    "title": "Game Selection",
+    "subtitle": "Select the game you are managing mods for",
+    "search": {
+      "input_placeholder": "Search for a game",
+      "display_type_btn": "Change to {{ type }} layout",
+      "card_display_type": "card",
+      "list_display_type": "list"
+    },
+
+    "no_games_msg": "No games matched the search",
+
+    "bg_img_alt": "Background image of {{ gameName }}",
+    "select_btn": "Select",
+    "default_btn": "Set Default",
+    "fav_btn": "Favorite this game"
+  },
+
+  "profile": {}
+}
