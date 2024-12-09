@@ -297,12 +297,9 @@ pub async fn query_mod_index(
                 SortColumn::Relevance => score1.total_cmp(score2),
                 SortColumn::Name => m1.name.cmp(&m2.name),
                 SortColumn::Owner => m1.owner.cmp(&m2.owner),
-                SortColumn::Downloads => match (&*m1.versions, &*m2.versions) {
-                    (
-                        [ArchivedModVersion { downloads: a, .. }, ..],
-                        [ArchivedModVersion { downloads: b, .. }, ..],
-                    ) => a.cmp(b),
-                    _ => std::cmp::Ordering::Equal,
+                SortColumn::Downloads => {
+                    let sum_downloads = |m: &ArchivedMod| m.versions.iter().map(|v| u64::from(v.downloads)).sum::<u64>();
+                    sum_downloads(m1).cmp(&sum_downloads(m2))
                 },
             };
             if descending {

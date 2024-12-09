@@ -96,7 +96,7 @@ function ModListLeft({ mods, selectedMod: [selectedMod, setSelectedMod] }: { mod
                   <div class={styles.right}>
                     <p class={styles.downloads}>
                       <span class={styles.label}>Downloads: </span>
-                      <span class={styles.value}>{numberFormatter.format(mod.mod.versions[0].downloads)}</span>
+                      <span class={styles.value}>{numberFormatter.format(mod.mod.versions.map(v => v.downloads).reduce((acc, x) => acc + x))}</span>
                     </p>
                   </div>
                 </div>
