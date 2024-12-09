@@ -1,0 +1,28 @@
+{
+  "global": {
+    "list_sort_type": {
+      "alphabetical": "Alfabético",
+      "popularity": "Popularidad"
+    }
+  },
+
+  "game_select": {
+    "title": "Selección de juegos",
+    "subtitle": "Selecciona un juego para gestionar los modificaciones",
+    "search": {
+      "input_placeholder": "Buscar un juego",
+      "display_type_btn": "Cambiar a vista de {{ type }}",
+      "card_display_type": "tarjeta",
+      "list_display_type": "lista"
+    },
+
+    "no_games_msg": "No se encontró ningún juego",
+
+    "bg_img_alt": "Imagen de fondo de {{ gameName }}",
+    "select_btn": "Seleccionar",
+    "default_btn": "Hacerlo el predeterminado",
+    "fav_btn": "Agregar a favoritos"
+  },
+
+  "profile": {}
+}
