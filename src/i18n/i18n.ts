@@ -3,8 +3,12 @@ import { BaseDict } from "@solid-primitives/i18n";
 import { createResource, createSignal } from "solid-js";
 
 import en_ca from "./locales/en-CA.json"; // en_ca has the base keys
+import { getPreferredLocales } from "../api";
 
 const rawLocales = ["en-CA", "en-US"] as const; // fully translated locales
+
+const DEFAULT_LOCALE = rawLocales[0];
+
 export type Locale = (typeof rawLocales)[number];
 
 export type RawDictionary = typeof en_ca;
@@ -20,9 +24,16 @@ export async function fetchDictionary(locale: Locale) {
   return flattenDict(dict);
 }
 
-export const [locale, setLocale] = createSignal<Locale>("en-CA");
+export const [locale, setLocale] = createSignal<Locale>(DEFAULT_LOCALE);
 export const [dict] = createResource(locale, fetchDictionary, { initialValue: flattenDict(en_ca) });
 export const t = i18n.translator(dict, i18n.resolveTemplate);
+
+(async () => {
+  const preferredLocale = (await getPreferredLocales()).find(locale => (rawLocales as readonly string[]).includes(locale));
+  if (preferredLocale !== undefined) {
+    setLocale(preferredLocale as Locale);
+  }
+})()
 
 // Workaround for Typescript static analysis bug
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never;

@@ -1363,6 +1363,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "get-locale"
+version = "0.1.0"
+source = "git+https://git.pfaff.dev/michael/get-locale.rs#4d393c963fab814029c80221b4e720ddef8b6a24"
+dependencies = [
+ "core-foundation 0.10.0",
+ "core-foundation-sys",
+ "windows",
+ "windows-sys 0.59.0",
+]
+
+[[package]]
 name = "gethostname"
 version = "0.4.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2251,6 +2262,7 @@ dependencies = [
  "event-listener",
  "flate2",
  "futures",
+ "get-locale",
  "log",
  "parking_lot",
  "rff",

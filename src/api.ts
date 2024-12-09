@@ -48,3 +48,7 @@ export async function queryModIndex(
 }> {
   return await wrapInvoke(async () => await invoke("query_mod_index", { game, query, sort, ...options }));
 }
+
+export async function getPreferredLocales(): Promise<string[]> {
+  return await wrapInvoke(async () => await invoke("get_preferred_locales"))
+}

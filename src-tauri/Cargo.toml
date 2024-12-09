@@ -40,6 +40,7 @@ dirs = "5.0.1"
 drop-guard = { git = "https://git.pfaff.dev/michael/drop-guard.rs.git", version = "0.2.0", features = ["tokio1-task"] }
 event-listener = "5.3.1"
 futures = "0.3.31"
+get-locale = { git = "https://git.pfaff.dev/michael/get-locale.rs", version = "0.1.0" }
 log = "0.4.22"
 parking_lot = "0.12.3"
 rff = { git = "https://github.com/mpfaff/rff.git" }

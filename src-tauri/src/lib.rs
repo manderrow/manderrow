@@ -42,6 +42,7 @@ pub fn run() {
             commands::close_splashscreen::close_splashscreen,
             commands::games::get_games,
             commands::games::get_games_popularity,
+            commands::i18n::get_preferred_locales,
             commands::mod_index::fetch_mod_index,
             commands::mod_index::query_mod_index,
         ])
