@@ -1,11 +1,24 @@
 import { Channel, invoke } from "@tauri-apps/api/core";
 import { Game, Mod } from "./types";
 
+class InvokeError extends Error {
+  readonly backtrace: string;
+
+  constructor(message: string, backtrace: string) {
+    super(message);
+    this.backtrace = backtrace;
+  }
+
+  get [Symbol.toStringTag]() {
+    return `InvokeError: ${this.message}\nBacktrace:\n${this.backtrace}`;
+  }
+}
+
 async function wrapInvoke<T>(f: () => Promise<T>): Promise<T> {
   try {
     return await f();
   } catch (e: any) {
-    throw new Error(`${e.message}\nBacktrace:\n${e.backtrace}`);
+    throw new InvokeError(e.message, e.backtrace);
   }
 }
 

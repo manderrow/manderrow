@@ -3,13 +3,14 @@ import "./App.css";
 import { Route, Router } from "@solidjs/router";
 import { invoke } from "@tauri-apps/api/core";
 import { platform } from "@tauri-apps/plugin-os";
-import { ErrorBoundary, Resource, Show, createEffect, createSignal, onCleanup, onMount } from "solid-js";
+import { Resource, Show, createEffect, createSignal, onCleanup, onMount } from "solid-js";
 
 import { gamesPopularityResource, gamesResource } from "./globals";
 
 import ErrorPage from "./pages/error/Error";
 import GameSelect from "./pages/game_select/GameSelect";
 import Profile from "./pages/profile/Profile";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const resources: Resource<any>[] = [gamesResource, gamesPopularityResource];
 
@@ -44,7 +45,7 @@ export default function App() {
   });
 
   return (
-    <ErrorBoundary fallback={ErrorPage}>
+    <ErrorBoundary>
       <Show when={ready()}>
         <Router>
           <Route path="/" component={GameSelect} />
