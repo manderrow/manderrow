@@ -43,7 +43,11 @@ export default function ModSearch(props: { game: string }) {
     () => [props.game, query(), sort(), loadStatus.loading] as [string, string, SortOption[], true | undefined],
     async ([game, query, sort]) => {
       const { count } = await queryModIndex(game, query, sort, { limit: 0 });
-      return { count, mods: async (page: number) => (await queryModIndex(game, query, sort, { skip: page * MODS_PER_PAGE, limit: MODS_PER_PAGE })).mods };
+      return {
+        count,
+        mods: async (page: number) =>
+          (await queryModIndex(game, query, sort, { skip: page * MODS_PER_PAGE, limit: MODS_PER_PAGE })).mods.map((mod) => ({ mod })),
+      };
     },
     { initialValue: { mods: async (_: number) => [], count: 0 } }
   );
