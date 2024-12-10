@@ -59,4 +59,4 @@ debug-assertions = true
 opt-level = 2
 
 [profile.dev.build-override]
-opt-level = 0
+opt-level = 2
