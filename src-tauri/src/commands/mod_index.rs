@@ -60,7 +60,9 @@ static MOD_INDEXES: LazyLock<HashMap<&'static str, ModIndex>> = LazyLock::new(||
 });
 
 async fn fetch_gzipped(url: &str) -> Result<GzDecoder<StreamReadable>, Error> {
-    let resp = tauri_plugin_http::reqwest::get(url).await?;
+    let resp = tauri_plugin_http::reqwest::get(url)
+        .await?
+        .error_for_status()?;
     let (tx, rx) = tokio::sync::mpsc::channel(1);
     tokio::task::spawn(async move {
         let mut stream = pin!(resp.bytes_stream());
