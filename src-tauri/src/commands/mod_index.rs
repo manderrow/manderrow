@@ -17,7 +17,7 @@ use tokio::sync::{Mutex, RwLock};
 
 use crate::{
     games::{GAMES, GAMES_BY_ID},
-    mods::{ArchivedMod, ArchivedModVersion, Mod, ModRef, ModVersionRef},
+    mods::{ArchivedMod, Mod, ModRef, ModVersionRef},
     Error,
 };
 
@@ -298,9 +298,14 @@ pub async fn query_mod_index(
                 SortColumn::Name => m1.name.cmp(&m2.name),
                 SortColumn::Owner => m1.owner.cmp(&m2.owner),
                 SortColumn::Downloads => {
-                    let sum_downloads = |m: &ArchivedMod| m.versions.iter().map(|v| u64::from(v.downloads)).sum::<u64>();
+                    let sum_downloads = |m: &ArchivedMod| {
+                        m.versions
+                            .iter()
+                            .map(|v| u64::from(v.downloads))
+                            .sum::<u64>()
+                    };
                     sum_downloads(m1).cmp(&sum_downloads(m2))
-                },
+                }
             };
             if descending {
                 ordering = ordering.reverse();

@@ -28,13 +28,24 @@ impl<T: std::fmt::Display> From<T> for Error {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let level_filter = std::env::var("RUST_LOG").map(|s| s.parse::<log::LevelFilter>().expect("Invalid logging configuration")).unwrap_or(log::LevelFilter::Info);
+    let level_filter = std::env::var("RUST_LOG")
+        .map(|s| {
+            s.parse::<log::LevelFilter>()
+                .expect("Invalid logging configuration")
+        })
+        .unwrap_or(log::LevelFilter::Info);
     tauri::Builder::default()
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_http::init())
-        .plugin(tauri_plugin_log::Builder::new()
-            .filter(move |metadata| metadata.level() <= level_filter && (metadata.level() < log::Level::Trace || (cfg!(debug_assertions) && metadata.target() == "manderrow")))
-            .build())
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .filter(move |metadata| {
+                    metadata.level() <= level_filter
+                        && (metadata.level() < log::Level::Trace
+                            || (cfg!(debug_assertions) && metadata.target() == "manderrow"))
+                })
+                .build(),
+        )
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(window_state::init())
