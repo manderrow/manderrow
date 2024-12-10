@@ -1,111 +1,112 @@
 .modSearch {
-	display: flex;
-	flex-direction: column;
-	flex-grow: 1;
-	gap: 16px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  gap: 0.5em;
 }
 
 .searchBar {
-	display: flex;
-	flex-direction: row;
+  display: flex;
+  flex-direction: row;
 
-	padding: 8px;
-	gap: 8px;
-	align-items: center;
+  padding: 8px;
+  gap: 8px;
+  align-items: center;
 
-	>input {
-		flex-grow: 1;
-	}
+  > input {
+    flex-grow: 1;
+  }
 }
 
 .searchForm {
-	display: flex;
-	flex-direction: column;
+  display: flex;
+  flex-direction: column;
 }
 
 .searchOptionsToggle {
-	display: none;
+  display: none;
 
-	&:checked+.searchOptions {
-		/* ensure compatibility with older webviews */
-		height: auto;
-		height: calc-size(auto);
-	}
+  &:checked + .searchOptions {
+    /* ensure compatibility with older webviews */
+    height: auto;
+    height: calc-size(auto);
+  }
 }
 
 .searchOptions {
-	height: 0;
-	transition: height 0.3s ease-in-out;
-	overflow: hidden;
+  height: 0;
+  transition: height 0.3s ease-in-out;
+  overflow: hidden;
 
-	>.inner {
-		display: flex;
-		flex-direction: column;
-		padding: 8px;
-	}
+  > .inner {
+    display: flex;
+    flex-direction: column;
+    padding: 8px;
+  }
 }
 
 .sortOptions {
-	display: flex;
-	flex-direction: column;
+  display: flex;
+  flex-direction: column;
 
-	.sortOption {
-		display: flex;
-		flex-direction: row;
-		gap: 8px;
-		align-items: center;
-		padding: 8px;
+  .sortOption {
+    display: flex;
+    flex-direction: row;
+    gap: 8px;
+    align-items: center;
+    padding: 8px;
 
-		>select {
-			appearance: none;
-			background: none;
-			border: none;
-			border-radius: 0;
-		}
-	}
+    > select {
+      appearance: none;
+      background: none;
+      border: none;
+      border-radius: 0;
+    }
+  }
 }
 
 .descendingToggle {
-	>input {
-		display: none;
-	}
+  > input {
+    display: none;
+  }
 
-	>label {}
+  > label {
+  }
 }
 
 .progressLine {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	gap: 8px;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
 }
 
 .discoveredLine {
-	display: flex;
-	align-items: center;
-	gap: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .refreshButton {
-	appearance: none;
-	border: none;
-	background: none;
+  appearance: none;
+  border: none;
+  background: none;
 
-	border-radius: 50%;
-	aspect-ratio: 1;
-	width: auto;
-	min-width: 0;
-	height: auto;
-	min-height: 0;
-	margin: 0;
-	padding: 8px;
-	display: inline-block;
+  border-radius: 50%;
+  aspect-ratio: 1;
+  width: auto;
+  min-width: 0;
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  padding: 8px;
+  display: inline-block;
 
-	display: inline-flex;
-	justify-content: center;
-	align-items: center;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
 
-	&:hover {
-		background-color: var(--clr-primary-3)
-	}
+  &:hover {
+    background-color: var(--clr-primary-3);
+  }
 }

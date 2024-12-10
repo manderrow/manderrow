@@ -6,6 +6,18 @@ import styles from "./ModSearch.module.css";
 import { faRefresh } from "@fortawesome/free-solid-svg-icons";
 import Fa from "solid-fa";
 import { numberFormatter } from "../../utils";
+import { createStore } from "solid-js/store";
+
+interface ProgressData {
+  completed: number;
+  total: number;
+}
+interface InitialProgress {
+  completed: null;
+  total: null;
+}
+
+const MODS_PER_PAGE = 50;
 
 export default function ModSearch(props: { game: string }) {
   const [query, setQuery] = createSignal("");
@@ -17,23 +29,21 @@ export default function ModSearch(props: { game: string }) {
     { column: SortColumn.Owner, descending: false },
   ]);
 
-  const [progress, setProgress] = createSignal([0, 0]);
+  const [progress, setProgress] = createStore<InitialProgress | ProgressData>({ completed: null, total: null });
 
-  const [modIndex, { refetch: refetchModIndex }] = createResource(
+  const [loadStatus, { refetch: refetchModIndex }] = createResource(
     () => props.game,
     async (game, info: ResourceFetcherInfo<boolean, never>) => {
-      await fetchModIndex(game, { refresh: info.refetching }, (event) => {
-        setProgress([event.completed, event.total]);
-      });
+      await fetchModIndex(game, { refresh: info.refetching }, setProgress);
       return true;
     }
   );
 
   const [queriedMods] = createResource(
-    () => [props.game, modIndex.loading, query(), sort()] as [string, true | undefined, string, SortOption[]],
-    async ([game, _, query, sort]) => {
+    () => [props.game, query(), sort(), loadStatus.loading] as [string, string, SortOption[], true | undefined],
+    async ([game, query, sort]) => {
       const { count } = await queryModIndex(game, query, sort, { limit: 0 });
-      return { count, mods: async (page: number) => (await queryModIndex(game, query, sort, { skip: page * 50, limit: 50 })).mods.map((mod) => ({ mod })) };
+      return { count, mods: async (page: number) => (await queryModIndex(game, query, sort, { skip: page * MODS_PER_PAGE, limit: MODS_PER_PAGE })).mods };
     },
     { initialValue: { mods: async (_: number) => [], count: 0 } }
   );
@@ -75,10 +85,10 @@ export default function ModSearch(props: { game: string }) {
         </div>
       </div>
 
-      <Show when={modIndex.loading}>
+      <Show when={loadStatus.loading}>
         <div class={styles.progressLine}>
           <p>Fetching mods</p>
-          <progress value={progress()[1] === 0 ? 0 : progress()[0] / progress()[1]} />
+          <progress value={progress.total == null ? 0 : progress.completed / progress.total} />
         </div>
       </Show>
 
