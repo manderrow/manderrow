@@ -6,6 +6,7 @@
 
 #![cfg(not(any(target_os = "android", target_os = "ios")))]
 
+use log::error;
 use tauri::{
     plugin::{Builder as PluginBuilder, TauriPlugin},
     Manager, Monitor, PhysicalPosition, PhysicalSize, RunEvent, Runtime, Window, WindowEvent,
@@ -219,12 +220,15 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
     PluginBuilder::new("window-state")
         .setup(|app, _api| {
             let cache = std::fs::File::open(&*PATH)
-                .map_err(Error::from)
+                .inspect_err(|e| {
+                    if e.kind() == std::io::ErrorKind::NotFound {
+                        error!("Unable to read window state: {e}");
+                    }
+                })
+                .map_err(|_| ())
                 .and_then(|rdr| {
-                    Ok(bincode::decode_from_reader(
-                        std::io::BufReader::new(rdr),
-                        BINCODE_CONFIG,
-                    )?)
+                    bincode::decode_from_reader(std::io::BufReader::new(rdr), BINCODE_CONFIG)
+                        .map_err(|_| ())
                 })
                 .unwrap_or_default();
             app.manage(WindowStateCache(Arc::new(Mutex::new(cache))));
