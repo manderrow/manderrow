@@ -1,10 +1,11 @@
 #![deny(unused_must_use)]
 
 mod commands;
-pub mod game_reviews;
-pub mod games;
-pub mod mods;
-pub mod window_state;
+mod game_reviews;
+mod games;
+mod mods;
+mod window_state;
+mod paths;
 
 use log::error;
 
@@ -56,6 +57,9 @@ pub fn run() {
             commands::i18n::get_preferred_locales,
             commands::mod_index::fetch_mod_index,
             commands::mod_index::query_mod_index,
+            commands::profiles::create_profile,
+            commands::profiles::delete_profile,
+            commands::profiles::get_profiles,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

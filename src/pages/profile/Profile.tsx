@@ -1,7 +1,7 @@
-import { createMemo, For, Match, Show, Switch } from "solid-js";
-import { A, useParams, useSearchParams } from "@solidjs/router";
+import { createResource, createSignal, createUniqueId, For, Match, onMount, Show, Switch } from "solid-js";
+import { A, useNavigate, useParams, useSearchParams } from "@solidjs/router";
 import { faTrashCan, faCirclePlay as faCirclePlayOutline } from "@fortawesome/free-regular-svg-icons";
-import { faChevronLeft, faCirclePlay, faFileImport, faThumbTack } from "@fortawesome/free-solid-svg-icons";
+import { faChevronLeft, faCirclePlay, faFileImport, faPlus, faThumbTack } from "@fortawesome/free-solid-svg-icons";
 import Fa from "solid-fa";
 
 import ModSearch from "../../components/profile/ModSearch";
@@ -10,6 +10,10 @@ import ModList from "../../components/profile/ModList";
 import styles from "./Profile.module.css";
 import sidebarStyles from "./SidebarProfiles.module.css";
 import { gamesById } from "../../globals";
+import { createProfile, deleteProfile, getProfiles, ProfileWithId } from "../../api";
+import { Portal } from "solid-js/web";
+import { Refetcher } from "../../types";
+import Dialog from "../../components/Dialog";
 
 interface ProfileParams {
   [key: string]: string | undefined;
@@ -29,6 +33,14 @@ export default function Profile() {
 
   const currentTab = () => searchParams.tab ?? "mod-list";
   const gameInfo = gamesById().get(params.gameId)!; // TODO, handle undefined case
+
+  const [profiles, { refetch: refetchProfiles }] = createResource(async () => {
+    const profiles = await getProfiles(params.gameId);
+    profiles.sort((a, b) => a.name.localeCompare(b.name));
+    return profiles;
+  }, { initialValue: [] });
+
+  const [activeProfileMods, { refetch: refetchActiveProfileMods }] = createResource(() => [], { initialValue: [] })
 
   return (
     <main class={styles.main}>
@@ -51,18 +63,18 @@ export default function Profile() {
           </button>
         </section>
         <section class={styles.sidebar__group}>
-          <h3>Profiles</h3>
-          <form action="#" class={sidebarStyles.sidebar__profilesSearch}>
+          <h3 class={styles.sidebar__profilesTitle}>
+            Profiles
+            <A class={styles.sidebar__profilesAddBtn} href={`/profile/${params.gameId}`}>
+              <Fa icon={faPlus} />
+            </A>
+          </h3>
+          <form on:submit={e => e.preventDefault()} class={sidebarStyles.sidebar__profilesSearch}>
             <input type="text" name="profile-search" id="profile-search" placeholder="Search" maxLength={100} />
           </form>
           <ol class={sidebarStyles.sidebar__profilesList}>
-            <For
-              each={[
-                { id: "a", name: "Test profile" },
-                { id: "b", name: "Another profile" },
-              ]}
-            >
-              {(profile) => <SidebarProfileComponent gameId={params.gameId} profileId={profile.id} profileName={profile.name} />}
+            <For each={profiles()}>
+              {(profile) => <SidebarProfileComponent gameId={params.gameId} profileId={profile.id} profileName={profile.name} refetchProfiles={refetchProfiles} selected={profile.id === params.profileId} />}
             </For>
           </ol>
         </section>
@@ -72,7 +84,7 @@ export default function Profile() {
       </aside>
 
       <div class={styles.content}>
-        <Show when={params.profileId !== undefined} fallback={<p>Select a profile from the sidebar</p>}>
+        <Show when={params.profileId !== undefined} fallback={<NoSelectedProfileContent gameId={params.gameId} profiles={profiles} refetchProfiles={refetchProfiles} />}>
           <ul class={styles.tabs}>
             <li classList={{ [styles.tabs__tab]: true, [styles.tab__active]: currentTab() === "mod-list" }}>
               <A href="">Installed</A>
@@ -83,8 +95,14 @@ export default function Profile() {
           </ul>
 
           <Switch>
-            <Match when={currentTab() === "mod-list"} children={<ModList mods={async () => []} />} />
-            <Match when={currentTab() === "mod-search"} children={<ModSearch game={params.gameId} />} />
+            <Match when={currentTab() === "mod-list"}>
+              <Show when={activeProfileMods.latest.length !== 0} fallback={<p>Looks like you haven't installed any mods yet.</p>}>
+                <ModList mods={async () => []} />
+              </Show>
+            </Match>
+            <Match when={currentTab() === "mod-search"}>
+              <ModSearch game={params.gameId} />
+            </Match>
           </Switch>
         </Show>
       </div>
@@ -92,10 +110,46 @@ export default function Profile() {
   );
 }
 
-function SidebarProfileComponent({ gameId, profileId, profileName }: { gameId: string; profileId: string; profileName: string }) {
+function NoSelectedProfileContent(props: { gameId: string, profiles: () => ProfileWithId[], refetchProfiles: Refetcher<ProfileWithId[]> }) {
+  const [name, setName] = createSignal('');
+
+  const navigator = useNavigate();
+
+  async function submit(e: SubmitEvent) {
+    e.preventDefault();
+
+    const id = await createProfile(props.gameId, name());
+    await props.refetchProfiles();
+    navigator(`/profile/${props.gameId}/${id}`, { replace: true });
+  }
+
+  const nameId = createUniqueId();
+
+  let inputRef: HTMLInputElement;
+
+  onMount(() => {
+    inputRef.focus();
+  });
+
+  return <>
+    <p>{props.profiles().length !== 0 ? 'Select a profile from the sidebar or create a new one' : 'Create a new profile'}</p>
+    <form on:submit={submit}>
+      <label for={nameId}>Name</label>
+      <input id={nameId} value={name()} on:input={e => setName(e.target.value)} ref={inputRef} />
+      <button type="submit">Create</button>
+    </form>
+  </>;
+}
+
+function SidebarProfileComponent(props: { gameId: string; profileId: string; profileName: string, refetchProfiles: Refetcher<ProfileWithId[]>, selected: boolean }) {
+  const [confirmingDeletion, setConfirmingDeletion] = createSignal(false);
+  const [deleting, setDeleting] = createSignal(false);
+
+  const navigator = useNavigate();
+
   return (
     <li class={sidebarStyles.profileList__item}>
-      <A href={`/profile/${gameId}/${profileId}`}>{profileName}</A>
+      <A href={`/profile/${props.gameId}/${props.profileId}`}>{props.profileName}</A>
       <div class={sidebarStyles.profileItem__options}>
         <button data-import title="Import onto">
           <Fa icon={faFileImport} />
@@ -103,10 +157,30 @@ function SidebarProfileComponent({ gameId, profileId, profileName }: { gameId: s
         <button data-pin title="Pin">
           <Fa icon={faThumbTack} rotate={90} />
         </button>
-        <button data-delete title="Delete">
+        <button data-delete title="Delete" on:click={() => setConfirmingDeletion(true)}>
           <Fa icon={faTrashCan} />
         </button>
       </div>
+
+      <Show when={confirmingDeletion()}>
+        <Dialog>
+          <p>You are about to delete the profile <strong>{props.profileId}</strong>.</p>
+          <button disabled={deleting()} on:click={async () => {
+            setDeleting(true);
+            if (props.selected) {
+              navigator(`/profile/${props.gameId}`, { replace: true });
+            }
+            try {
+              await deleteProfile(props.gameId, props.profileId);
+            } finally {
+              setConfirmingDeletion(false);
+              setDeleting(false);
+              await props.refetchProfiles();
+            }
+          }}>Delete</button>
+          <button disabled={deleting()} on:click={() => setConfirmingDeletion(false)}>Cancel</button>
+        </Dialog>
+      </Show>
     </li>
   );
 }

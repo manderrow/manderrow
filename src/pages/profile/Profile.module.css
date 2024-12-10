@@ -36,6 +36,20 @@
   padding-inline: 0.5em;
 }
 
+.sidebar__profilesTitle {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+
+.sidebar__profilesAddBtn {
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  color: inherit;
+}
+
 .sidebar,
 .sidebar__group {
   display: flex;

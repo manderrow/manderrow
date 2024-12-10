@@ -20,13 +20,13 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use crate::paths::DATA_LOCAL_DIR;
 use crate::Error;
 
 /// Default filename used to store window state.
 ///
 /// If using a custom filename, you should probably use [`AppHandleExt::filename`] instead.
-static PATH: LazyLock<PathBuf> =
-    LazyLock::new(|| dirs::data_local_dir().unwrap().join("window-state.bin"));
+static PATH: LazyLock<PathBuf> = LazyLock::new(|| DATA_LOCAL_DIR.join("window-state.bin"));
 
 const BINCODE_CONFIG: bincode::config::Configuration = bincode::config::standard();
 

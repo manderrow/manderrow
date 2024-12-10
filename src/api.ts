@@ -1,7 +1,14 @@
 import { Channel, invoke } from "@tauri-apps/api/core";
 import { Game, Mod } from "./types";
 
-class InvokeError extends Error {
+/**
+ * An error thrown from native code.
+ */
+class NativeError extends Error {
+  /**
+   * A native stack trace. Inspecting this can help to determine where in
+   * native code the error originated from.
+   */
   readonly backtrace: string;
 
   constructor(message: string, backtrace: string) {
@@ -10,7 +17,7 @@ class InvokeError extends Error {
   }
 
   get [Symbol.toStringTag]() {
-    return `InvokeError: ${this.message}\nBacktrace:\n${this.backtrace}`;
+    return `NativeError: ${this.message}\nBacktrace:\n${this.backtrace}`;
   }
 }
 
@@ -18,7 +25,10 @@ async function wrapInvoke<T>(f: () => Promise<T>): Promise<T> {
   try {
     return await f();
   } catch (e: any) {
-    throw new InvokeError(e.message, e.backtrace);
+    if (e.message !== undefined) {
+      throw new NativeError(e.message, e.backtrace);
+    }
+    throw new Error(e.toString());
   }
 }
 
@@ -64,4 +74,24 @@ export async function queryModIndex(
 
 export async function getPreferredLocales(): Promise<string[]> {
   return await wrapInvoke(async () => await invoke("get_preferred_locales"))
+}
+
+export interface Profile {
+  name: string,
+}
+
+export interface ProfileWithId extends Profile {
+  id: string,
+}
+
+export async function getProfiles(game: string): Promise<ProfileWithId[]> {
+  return await wrapInvoke(async () => await invoke("get_profiles", { game }));
+}
+
+export async function createProfile(game: string, name: string): Promise<string> {
+  return await wrapInvoke(async () => await invoke("create_profile", { game, name }));
+}
+
+export async function deleteProfile(game: string, id: string): Promise<void> {
+  return await wrapInvoke(async () => await invoke("delete_profile", { game, id }));
 }

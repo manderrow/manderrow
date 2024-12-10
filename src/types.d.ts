@@ -1,3 +1,5 @@
+export type Refetcher<T, R = unknown> = (info?: R) => T | Promise<T> | undefined | null;
+
 export interface Game {
   id: string;
   name: string;
