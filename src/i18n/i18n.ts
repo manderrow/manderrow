@@ -29,11 +29,29 @@ export const [dict] = createResource(locale, fetchDictionary, { initialValue: fl
 export const t = i18n.translator(dict, i18n.resolveTemplate);
 
 (async () => {
-  const preferredLocale = (await getPreferredLocales()).find(locale => (rawLocales as readonly string[]).includes(locale));
-  if (preferredLocale !== undefined) {
-    setLocale(preferredLocale as Locale);
+  let finalLocale: Locale | undefined;
+
+  const preferredLocales = await getPreferredLocales();
+
+  for (const preferredLocale of preferredLocales) {
+    const lang = preferredLocale.slice(0, 2);
+    let found = false;
+
+    for (const locale of rawLocales) {
+      if (locale.startsWith(lang)) {
+        finalLocale = locale;
+        if (locale === preferredLocale) {
+          found = true;
+          break;
+        }
+      }
+    }
+
+    if (found) break;
   }
-})()
+
+  if (finalLocale !== undefined) setLocale(finalLocale);
+})();
 
 // Workaround for Typescript static analysis bug
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never;
