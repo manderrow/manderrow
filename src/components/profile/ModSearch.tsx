@@ -1,6 +1,6 @@
 import { createResource, createSignal, createUniqueId, ResourceFetcherInfo, Show } from "solid-js";
 import { fetchModIndex, queryModIndex, SortColumn, SortOption } from "../../api";
-import { SortableList } from "../SortableList";
+import { SortableList } from "../global/SortableList";
 import ModList from "./ModList";
 import styles from "./ModSearch.module.css";
 import { faRefresh } from "@fortawesome/free-solid-svg-icons";

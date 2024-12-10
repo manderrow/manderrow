@@ -10,7 +10,7 @@ import { gamesPopularityResource, gamesResource } from "./globals";
 import ErrorPage from "./pages/error/Error";
 import GameSelect from "./pages/game_select/GameSelect";
 import Profile from "./pages/profile/Profile";
-import ErrorBoundary from "./components/ErrorBoundary";
+import ErrorBoundary from "./components/global/ErrorBoundary";
 
 const resources: Resource<any>[] = [gamesResource, gamesPopularityResource];
 
