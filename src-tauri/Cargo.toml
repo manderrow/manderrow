@@ -49,3 +49,14 @@ uuid = { version = "1.11.0", features = ["serde"] }
 
 # provides gzip
 flate2 = "1.0.35"
+
+[profile.dev]
+lto = false
+opt-level = 0
+debug-assertions = true
+
+[profile.dev.package."*"]
+opt-level = 2
+
+[profile.dev.build-override]
+opt-level = 0
