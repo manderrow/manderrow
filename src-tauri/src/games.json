@@ -1,2970 +1,2011 @@
 [
-	{
-		"displayName": "Risk of Rain 2",
-		"steamFolderName": "Risk of Rain 2",
-		"settingsIdentifier": "RiskOfRain2",
-		"exeName": [
-			"Risk of Rain 2.exe"
-		],
-		"dataFolderName": "Risk of Rain 2_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/riskofrain2/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "632360"
-			},
-			{
-				"_storePlatform": "Epic Games Store",
-				"_storeIdentifier": "4b3dcc5723454a47a9112d8fe8fd5f5c"
-			}
-		],
-		"gameImage": "RiskOfRain2.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "RiskOfRain2"
-	},
-	{
-		"displayName": "Thunderstore Dev",
-		"steamFolderName": "Risk of Rain 2",
-		"settingsIdentifier": "ThunderstoreBeta",
-		"exeName": [
-			"Risk of Rain 2.exe"
-		],
-		"dataFolderName": "Risk of Rain 2_Data",
-		"thunderstoreUrl": "https://thunderstore.dev/c/riskofrain2/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "632360"
-			}
-		],
-		"gameImage": "ThunderstoreBeta.jpg",
-		"displayMode": 1,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "ThunderstoreDev"
-	},
-	{
-		"displayName": "Risk of Rain 2 Dedicated Server",
-		"steamFolderName": "Risk of Rain 2 Dedicated Server",
-		"settingsIdentifier": "RiskOfRain2Server",
-		"exeName": [
-			"Risk of Rain 2.exe"
-		],
-		"dataFolderName": "Risk of Rain 2_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/riskofrain2/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1180760"
-			}
-		],
-		"gameImage": "RiskOfRain2.jpg",
-		"displayMode": 0,
-		"instanceType": "Server",
-		"packageLoader": "BepInEx",
-		"id": "RiskOfRain2DedicatedServer"
-	},
-	{
-		"displayName": "Dyson Sphere Program",
-		"steamFolderName": "Dyson Sphere Program",
-		"settingsIdentifier": "DysonSphereProgram",
-		"exeName": [
-			"DSPGAME.exe"
-		],
-		"dataFolderName": "DSPGAME_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/dyson-sphere-program/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1366540"
-			},
-			{
-				"_storePlatform": "Xbox Game Pass",
-				"_storeIdentifier": "GameraGame.DysonSphereProgram"
-			}
-		],
-		"gameImage": "DysonSphereProgram.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "DysonSphereProgram"
-	},
-	{
-		"displayName": "Valheim",
-		"steamFolderName": "Valheim",
-		"settingsIdentifier": "Valheim",
-		"exeName": [
-			"valheim.exe",
-			"valheim.x86_64"
-		],
-		"dataFolderName": "valheim_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/valheim/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "892970"
-			},
-			{
-				"_storePlatform": "Xbox Game Pass",
-				"_storeIdentifier": "CoffeeStainStudios.Valheim"
-			}
-		],
-		"gameImage": "Valheim.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Valheim"
-	},
-	{
-		"displayName": "Valheim Dedicated Server",
-		"steamFolderName": "Valheim dedicated server",
-		"settingsIdentifier": "ValheimServer",
-		"exeName": [
-			"valheim_server.exe",
-			"valheim_server.x86_64"
-		],
-		"dataFolderName": "valheim_server_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/valheim/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "896660"
-			}
-		],
-		"gameImage": "Valheim.jpg",
-		"displayMode": 0,
-		"instanceType": "Server",
-		"packageLoader": "BepInEx",
-		"id": "ValheimDedicatedServer"
-	},
-	{
-		"displayName": "GTFO",
-		"steamFolderName": "GTFO",
-		"settingsIdentifier": "GTFO",
-		"exeName": [
-			"GTFO.exe"
-		],
-		"dataFolderName": "GTFO_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/gtfo/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "493520"
-			}
-		],
-		"gameImage": "GTFO.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "GTFO"
-	},
-	{
-		"displayName": "Outward",
-		"steamFolderName": "Outward",
-		"settingsIdentifier": "Outward",
-		"exeName": [
-			"Outward.exe"
-		],
-		"dataFolderName": "Outward_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/outward/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "794260"
-			},
-			{
-				"_storePlatform": "Epic Games Store",
-				"_storeIdentifier": "Viola"
-			},
-			{
-				"_storePlatform": "Other"
-			}
-		],
-		"gameImage": "Outward.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Outward"
-	},
-	{
-		"displayName": "Outward Definitive",
-		"steamFolderName": "Outward/Outward_Defed",
-		"settingsIdentifier": "OutwardDe",
-		"exeName": [
-			"Outward Definitive Edition.exe"
-		],
-		"dataFolderName": "Outward Definitive Edition_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/outward/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1758860"
-			},
-			{
-				"_storePlatform": "Epic Games Store",
-				"_storeIdentifier": "f07a51af8ac845ea96f792fb485e04a3"
-			},
-			{
-				"_storePlatform": "Other"
-			}
-		],
-		"gameImage": "OutwardDe.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "OutwardDe"
-	},
-	{
-		"displayName": "TaleSpire",
-		"steamFolderName": "TaleSpire",
-		"settingsIdentifier": "TaleSpire",
-		"exeName": [
-			"TaleSpire.exe"
-		],
-		"dataFolderName": "TaleSpire_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/talespire/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "720620"
-			}
-		],
-		"gameImage": "TaleSpire.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "TaleSpire"
-	},
-	{
-		"displayName": "H3VR",
-		"steamFolderName": "H3VR",
-		"settingsIdentifier": "H3VR",
-		"exeName": [
-			"h3vr.exe"
-		],
-		"dataFolderName": "h3vr_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/h3vr/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "450540"
-			}
-		],
-		"gameImage": "H3VR.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "H3VR"
-	},
-	{
-		"displayName": "ROUNDS",
-		"steamFolderName": "ROUNDS",
-		"settingsIdentifier": "ROUNDS",
-		"exeName": [
-			"Rounds.exe"
-		],
-		"dataFolderName": "Rounds_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/rounds/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1557740"
-			}
-		],
-		"gameImage": "ROUNDS.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "ROUNDS"
-	},
-	{
-		"displayName": "Mechanica",
-		"steamFolderName": "Mechanica",
-		"settingsIdentifier": "Mechanica",
-		"exeName": [
-			"Mechanica.exe"
-		],
-		"dataFolderName": "Mechanica_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/mechanica/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1226990"
-			}
-		],
-		"gameImage": "Mechanica.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Mechanica"
-	},
-	{
-		"displayName": "Muck",
-		"steamFolderName": "Muck",
-		"settingsIdentifier": "Muck",
-		"exeName": [
-			"Muck.exe",
-			"Muck.x86_64"
-		],
-		"dataFolderName": "Muck_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/muck/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1625450"
-			}
-		],
-		"gameImage": "Muck.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Muck"
-	},
-	{
-		"displayName": "BONEWORKS",
-		"steamFolderName": "BONEWORKS\\BONEWORKS",
-		"settingsIdentifier": "BONEWORKS",
-		"exeName": [
-			"BONEWORKS.exe",
-			"Boneworks_Oculus_Windows64.exe"
-		],
-		"dataFolderName": "BONEWORKS_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/boneworks/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "823500"
-			},
-			{
-				"_storePlatform": "Oculus Store"
-			}
-		],
-		"gameImage": "BONEWORKS.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "MelonLoader",
-		"id": "BONEWORKS"
-	},
-	{
-		"displayName": "Lethal League Blaze",
-		"steamFolderName": "LLBlaze",
-		"settingsIdentifier": "LethalLeagueBlaze",
-		"exeName": [
-			"LLBlaze.exe",
-			"LLBlaze.x86_64",
-			"LLBlaze.x86",
-			"LLBlaze.app"
-		],
-		"dataFolderName": "LLBlaze_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/lethal-league-blaze/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "553310"
-			}
-		],
-		"gameImage": "LethalLeagueBlaze.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "LethalLeagueBlaze"
-	},
-	{
-		"displayName": "Timberborn",
-		"steamFolderName": "Timberborn",
-		"settingsIdentifier": "Timberborn",
-		"exeName": [
-			"Timberborn.exe"
-		],
-		"dataFolderName": "Timberborn_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/timberborn/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1062090"
-			},
-			{
-				"_storePlatform": "Epic Games Store",
-				"_storeIdentifier": "972a4ca2631e43b4ba7bc3b7586ad8c4"
-			},
-			{
-				"_storePlatform": "Other"
-			}
-		],
-		"gameImage": "Timberborn.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Timberborn"
-	},
-	{
-		"displayName": "TABS",
-		"steamFolderName": "Totally Accurate Battle Simulator",
-		"settingsIdentifier": "TotallyAccurateBattleSimulator",
-		"exeName": [
-			"TotallyAccurateBattleSimulator.exe"
-		],
-		"dataFolderName": "TotallyAccurateBattleSimulator_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/totally-accurate-battle-simulator/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "508440"
-			},
-			{
-				"_storePlatform": "Epic Games Store",
-				"_storeIdentifier": "Driftfish"
-			},
-			{
-				"_storePlatform": "Xbox Game Pass",
-				"_storeIdentifier": "LandfallGames.TotallyAccurateBattleSimulator"
-			}
-		],
-		"gameImage": "TotallyAccurateBattleSimulator.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "TABS"
-	},
-	{
-		"displayName": "Nickelodeon All‑Star Brawl",
-		"steamFolderName": "Nickelodeon All-Star Brawl",
-		"settingsIdentifier": "NASB",
-		"exeName": [
-			"Nickelodeon All-Star Brawl.exe"
-		],
-		"dataFolderName": "Nickelodeon All-Star Brawl_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/nasb/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1414850"
-			}
-		],
-		"gameImage": "NASB.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "NASB"
-	},
-	{
-		"displayName": "Inscryption",
-		"steamFolderName": "Inscryption",
-		"settingsIdentifier": "Inscryption",
-		"exeName": [
-			"Inscryption.exe"
-		],
-		"dataFolderName": "Inscryption_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/inscryption/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1092790"
-			},
-			{
-				"_storePlatform": "Other"
-			}
-		],
-		"gameImage": "Inscryption.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Inscryption"
-	},
-	{
-		"displayName": "Starsand",
-		"steamFolderName": "Starsand",
-		"settingsIdentifier": "Starsand",
-		"exeName": [
-			"Starsand.exe"
-		],
-		"dataFolderName": "Starsand_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/starsand/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1380220"
-			},
-			{
-				"_storePlatform": "Epic Games Store",
-				"_storeIdentifier": "a774278c0813447c96a76b053cbf73ff"
-			}
-		],
-		"gameImage": "Starsand.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Starsand"
-	},
-	{
-		"displayName": "Cats are Liquid - A Better Place",
-		"steamFolderName": "Cats are Liquid - A Better Place",
-		"settingsIdentifier": "CatsAreLiquidABP",
-		"exeName": [
-			"CaL-ABP-Windows.exe",
-			"CaL-ABP-Linux.x86_64",
-			"CaL-ABP-macOS.app"
-		],
-		"dataFolderName": "CaL-ABP-Windows_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/cats-are-liquid/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1188080"
-			},
-			{
-				"_storePlatform": "Other"
-			}
-		],
-		"gameImage": "CatsAreLiquidABP.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "CatsAreLiquidABP"
-	},
-	{
-		"displayName": "Potion Craft",
-		"steamFolderName": "Potion Craft",
-		"settingsIdentifier": "PotionCraft",
-		"exeName": [
-			"Potion Craft.exe"
-		],
-		"dataFolderName": "Potion Craft_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/potion-craft/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1210320"
-			}
-		],
-		"gameImage": "PotionCraft.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "PotionCraft"
-	},
-	{
-		"displayName": "Nearly Dead",
-		"steamFolderName": "Nearly Dead",
-		"settingsIdentifier": "NearlyDead",
-		"exeName": [
-			"Nearly Dead.exe"
-		],
-		"dataFolderName": "Nearly Dead_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/nearly-dead/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1268900"
-			}
-		],
-		"gameImage": "NearlyDead.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "NearlyDead"
-	},
-	{
-		"displayName": "AGAINST",
-		"steamFolderName": "AGAINST_steam",
-		"settingsIdentifier": "AGAINST",
-		"exeName": [
-			"AGAINST.exe"
-		],
-		"dataFolderName": "AGAINST_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/against/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1584840"
-			}
-		],
-		"gameImage": "AGAINST.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "AGAINST"
-	},
-	{
-		"displayName": "Rogue Tower",
-		"steamFolderName": "Rogue Tower",
-		"settingsIdentifier": "RogueTower",
-		"exeName": [
-			"Rogue Tower.exe"
-		],
-		"dataFolderName": "Rogue Tower_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/rogue-tower/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1843760"
-			}
-		],
-		"gameImage": "RogueTower.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "RogueTower"
-	},
-	{
-		"displayName": "House of the Dying Sun",
-		"steamFolderName": "DyingSun",
-		"settingsIdentifier": "HOTDS",
-		"exeName": [
-			"dyingsun.exe"
-		],
-		"dataFolderName": "dyingsun_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/hotds/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "283160"
-			}
-		],
-		"gameImage": "HOTDS.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "HOTDS"
-	},
-	{
-		"displayName": "For The King",
-		"steamFolderName": "For The King",
-		"settingsIdentifier": "ForTheKing",
-		"exeName": [
-			"FTK.exe"
-		],
-		"dataFolderName": "FTK_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/for-the-king/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "527230"
-			},
-			{
-				"_storePlatform": "Epic Games Store",
-				"_storeIdentifier": "Discus"
-			}
-		],
-		"gameImage": "ForTheKing.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "ForTheKing"
-	},
-	{
-		"displayName": "Subnautica",
-		"steamFolderName": "Subnautica",
-		"settingsIdentifier": "Subnautica",
-		"exeName": [
-			"Subnautica.exe"
-		],
-		"dataFolderName": "Subnautica_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/subnautica/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "264710"
-			},
-			{
-				"_storePlatform": "Epic Games Store",
-				"_storeIdentifier": "Jaguar"
-			},
-			{
-				"_storePlatform": "Xbox Game Pass",
-				"_storeIdentifier": "UnknownWorldsEntertainmen.GAMEPREVIEWSubnautica"
-			}
-		],
-		"gameImage": "Subnautica.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Subnautica"
-	},
-	{
-		"displayName": "Subnautica: Below Zero",
-		"steamFolderName": "SubnauticaZero",
-		"settingsIdentifier": "SubnauticaBZ",
-		"exeName": [
-			"SubnauticaZero.exe"
-		],
-		"dataFolderName": "SubnauticaZero_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/subnautica-below-zero/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "848450"
-			},
-			{
-				"_storePlatform": "Xbox Game Pass",
-				"_storeIdentifier": "UnknownWorldsEntertainmen.SubnauticaBelowZero"
-			}
-		],
-		"gameImage": "SubnauticaBelowZero.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "SubnauticaBZ"
-	},
-	{
-		"displayName": "Core Keeper",
-		"steamFolderName": "Core Keeper",
-		"settingsIdentifier": "CoreKeeper",
-		"exeName": [
-			"CoreKeeper.exe"
-		],
-		"dataFolderName": "CoreKeeper_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/core-keeper/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1621690"
-			}
-		],
-		"gameImage": "CoreKeeper.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "CoreKeeper"
-	},
-	{
-		"displayName": "Titanfall 2",
-		"steamFolderName": "Titanfall2",
-		"settingsIdentifier": "Titanfall2",
-		"exeName": [
-			"NorthstarLauncher.exe",
-			"Titanfall2.exe"
-		],
-		"dataFolderName": "",
-		"thunderstoreUrl": "https://thunderstore.io/c/northstar/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "SteamDirect",
-				"_storeIdentifier": "1237970"
-			},
-			{
-				"_storePlatform": "Origin / EA Desktop",
-				"_storeIdentifier": ""
-			}
-		],
-		"gameImage": "Titanfall2.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "NorthStar",
-		"id": "Titanfall2"
-	},
-	{
-		"displayName": "Peglin",
-		"steamFolderName": "Peglin",
-		"settingsIdentifier": "Peglin",
-		"exeName": [
-			"Peglin.exe"
-		],
-		"dataFolderName": "Peglin_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/peglin/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1296610"
-			},
-			{
-				"_storePlatform": "Other"
-			}
-		],
-		"gameImage": "Peglin.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Peglin"
-	},
-	{
-		"displayName": "V Rising",
-		"steamFolderName": "VRising",
-		"settingsIdentifier": "VRising",
-		"exeName": [
-			"VRising.exe"
-		],
-		"dataFolderName": "VRising_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/v-rising/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1604030"
-			}
-		],
-		"gameImage": "VRising.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "VRising"
-	},
-	{
-		"displayName": "Hard Bullet",
-		"steamFolderName": "Hard Bullet",
-		"settingsIdentifier": "HardBullet",
-		"exeName": [
-			"Hard Bullet.exe"
-		],
-		"dataFolderName": "Hard Bullet_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/hard-bullet/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1294760"
-			}
-		],
-		"gameImage": "HardBullet.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "MelonLoader",
-		"id": "HardBullet"
-	},
-	{
-		"displayName": "20 Minutes Till Dawn",
-		"steamFolderName": "20MinuteTillDawn",
-		"settingsIdentifier": "20MinutesTillDawn",
-		"exeName": [
-			"MinutesTillDawn.exe"
-		],
-		"dataFolderName": "MinutesTillDawn_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/20-minutes-till-dawn/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1966900"
-			},
-			{
-				"_storePlatform": "Epic Games Store",
-				"_storeIdentifier": "4656facc740742a39e265b026e13d075"
-			}
-		],
-		"gameImage": "20MinutesTillDawn.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "20MinutesTillDawn"
-	},
-	{
-		"displayName": "Green Hell VR",
-		"steamFolderName": "Green Hell VR",
-		"settingsIdentifier": "GreenHellVR",
-		"exeName": [
-			"GHVR.exe"
-		],
-		"dataFolderName": "GHVR_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/green-hell-vr/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1782330"
-			},
-			{
-				"_storePlatform": "Oculus Store"
-			}
-		],
-		"gameImage": "GreenHellVR.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "GreenHellVR"
-	},
-	{
-		"displayName": "VTOL VR",
-		"steamFolderName": "VTOL VR",
-		"settingsIdentifier": "VTOL_VR",
-		"exeName": [
-			"VTOLVR.exe"
-		],
-		"dataFolderName": "VTOLVR_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/vtol-vr/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "667970"
-			}
-		],
-		"gameImage": "VtolVR.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "VTOL_VR"
-	},
-	{
-		"displayName": "Backpack Hero",
-		"steamFolderName": "Backpack Hero",
-		"settingsIdentifier": "BackpackHero",
-		"exeName": [
-			"Backpack Hero.exe",
-			"linux.x86_64"
-		],
-		"dataFolderName": "Backpack Hero_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/backpack-hero/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1970580"
-			}
-		],
-		"gameImage": "BackpackHero.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "MelonLoader",
-		"id": "BackpackHero"
-	},
-	{
-		"displayName": "Stacklands",
-		"steamFolderName": "Stacklands",
-		"settingsIdentifier": "Stacklands",
-		"exeName": [
-			"Stacklands.exe"
-		],
-		"dataFolderName": "Stacklands_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/stacklands/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1948280"
-			}
-		],
-		"gameImage": "Stacklands.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Stacklands"
-	},
-	{
-		"displayName": "Enter the Gungeon",
-		"steamFolderName": "Enter the Gungeon",
-		"settingsIdentifier": "EnterTheGungeon",
-		"exeName": [
-			"EtG.exe"
-		],
-		"dataFolderName": "EtG_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/enter-the-gungeon/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "311690"
-			},
-			{
-				"_storePlatform": "Epic Games Store",
-				"_storeIdentifier": "Garlic"
-			},
-			{
-				"_storePlatform": "Other"
-			}
-		],
-		"gameImage": "EnterTheGungeon.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "ETG"
-	},
-	{
-		"displayName": "Ravenfield",
-		"steamFolderName": "Ravenfield",
-		"settingsIdentifier": "Ravenfield",
-		"exeName": [
-			"ravenfield.exe"
-		],
-		"dataFolderName": "ravenfield_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/ravenfield/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "636480"
-			}
-		],
-		"gameImage": "Ravenfield.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Ravenfield"
-	},
-	{
-		"displayName": "Aloft",
-		"steamFolderName": "Aloft Demo",
-		"settingsIdentifier": "Aloft",
-		"exeName": [
-			"Aloft.exe"
-		],
-		"dataFolderName": "Aloft_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/aloft/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "2051980"
-			}
-		],
-		"gameImage": "Aloft.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Aloft"
-	},
-	{
-		"displayName": "Cult of the Lamb",
-		"steamFolderName": "Cult of the Lamb",
-		"settingsIdentifier": "COTL",
-		"exeName": [
-			"Cult Of The Lamb.exe"
-		],
-		"dataFolderName": "Cult Of The Lamb_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/cult-of-the-lamb/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1313140"
-			},
-			{
-				"_storePlatform": "Other"
-			}
-		],
-		"gameImage": "Cotl.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "COTL"
-	},
-	{
-		"displayName": "Chrono Ark",
-		"steamFolderName": "Chrono Ark\\x64\\Master",
-		"settingsIdentifier": "ChronoArk",
-		"exeName": [
-			"ChronoArk.exe"
-		],
-		"dataFolderName": "ChronoArk_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/chrono-ark/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1188930"
-			}
-		],
-		"gameImage": "ChronoArk.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "ChronoArk"
-	},
-	{
-		"displayName": "BONELAB",
-		"steamFolderName": "BONELAB",
-		"settingsIdentifier": "BONELAB",
-		"exeName": [
-			"BONELAB_Steam_Windows64.exe",
-			"BONELAB_Oculus_Windows64.exe"
-		],
-		"dataFolderName": "BONELAB_Steam_Windows64",
-		"thunderstoreUrl": "https://thunderstore.io/c/bonelab/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1592190"
-			},
-			{
-				"_storePlatform": "Oculus Store"
-			}
-		],
-		"gameImage": "BONELAB.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "MelonLoader",
-		"id": "BONELAB"
-	},
-	{
-		"displayName": "Trombone Champ",
-		"steamFolderName": "TromboneChamp",
-		"settingsIdentifier": "TromboneChamp",
-		"exeName": [
-			"TromboneChamp.exe"
-		],
-		"dataFolderName": "TromboneChamp_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/trombone-champ/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1059990"
-			}
-		],
-		"gameImage": "TromboneChamp.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "TromboneChamp"
-	},
-	{
-		"displayName": "Rogue : Genesia",
-		"steamFolderName": "Rogue Genesia",
-		"settingsIdentifier": "RogueGenesia",
-		"exeName": [
-			"Rogue Genesia.exe"
-		],
-		"dataFolderName": "Rogue Genesia_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/rogue-genesia/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "2067920"
-			}
-		],
-		"gameImage": "RogueGenesia.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "RogueGenesia"
-	},
-	{
-		"displayName": "Across the Obelisk",
-		"steamFolderName": "Across the Obelisk",
-		"settingsIdentifier": "AcrossTheObelisk",
-		"exeName": [
-			"AcrossTheObelisk.exe"
-		],
-		"dataFolderName": "AcrossTheObelisk_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/across-the-obelisk/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1385380"
-			}
-		],
-		"gameImage": "AcrossTheObelisk.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "AcrossTheObelisk"
-	},
-	{
-		"displayName": "ULTRAKILL",
-		"steamFolderName": "ULTRAKILL",
-		"settingsIdentifier": "ULTRAKILL",
-		"exeName": [
-			"ULTRAKILL.exe"
-		],
-		"dataFolderName": "ULTRAKILL_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/ultrakill/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1229490"
-			}
-		],
-		"gameImage": "ULTRAKILL.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "ULTRAKILL"
-	},
-	{
-		"displayName": "Ultimate Chicken Horse",
-		"steamFolderName": "Ultimate Chicken Horse",
-		"settingsIdentifier": "UltimateChickenHorse",
-		"exeName": [
-			"UltimateChickenHorse.exe"
-		],
-		"dataFolderName": "UltimateChickenHorse_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/ultimate-chicken-horse/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "386940"
-			}
-		],
-		"gameImage": "ultimate-chicken-horse.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "UltimateChickenHorse"
-	},
-	{
-		"displayName": "Atrio: The Dark Wild",
-		"steamFolderName": "Atrio The Dark Wild",
-		"settingsIdentifier": "AtrioTheDarkWild",
-		"exeName": [
-			"Atrio.exe"
-		],
-		"dataFolderName": "Atrio_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/atrio-the-dark-wild/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1125390"
-			}
-		],
-		"gameImage": "atrio-the-dark-wild.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "AtrioTheDarkWild"
-	},
-	{
-		"displayName": "Brotato",
-		"steamFolderName": "Brotato",
-		"settingsIdentifier": "Brotato",
-		"exeName": [
-			"Brotato.exe"
-		],
-		"dataFolderName": "",
-		"thunderstoreUrl": "https://thunderstore.io/c/brotato/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1942280"
-			}
-		],
-		"gameImage": "brotato.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "GodotML",
-		"id": "Brotato"
-	},
-	{
-		"displayName": "Ancient Dungeon VR",
-		"steamFolderName": "Ancient Dungeon VR",
-		"settingsIdentifier": "AncientDungeonVR",
-		"exeName": [
-			"Ancient_Dungeon.exe"
-		],
-		"dataFolderName": "Ancient_Dungeon_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/ancient-dungeon-vr/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1125240"
-			},
-			{
-				"_storePlatform": "Oculus Store"
-			}
-		],
-		"gameImage": "ancient-dungeon-vr.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "AncientDungeonVR",
-		"id": "AncientDungeonVR"
-	},
-	{
-		"displayName": "RUMBLE",
-		"steamFolderName": "RUMBLE",
-		"settingsIdentifier": "RUMBLE",
-		"exeName": [
-			"RUMBLE.exe"
-		],
-		"dataFolderName": "RUMBLE_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/rumble/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "890550"
-			}
-		],
-		"gameImage": "RUMBLE.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "MelonLoader",
-		"id": "RUMBLE"
-	},
-	{
-		"displayName": "Dome Keeper",
-		"steamFolderName": "Dome Keeper",
-		"settingsIdentifier": "DomeKeeper",
-		"exeName": [
-			"domekeeper.exe"
-		],
-		"dataFolderName": "",
-		"thunderstoreUrl": "https://thunderstore.io/c/dome-keeper/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1637320"
-			}
-		],
-		"gameImage": "dome-keeper.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "GodotML",
-		"id": "DomeKeeper"
-	},
-	{
-		"displayName": "Skul: The Hero Slayer",
-		"steamFolderName": "Skul",
-		"settingsIdentifier": "SkulTheHeroSlayer",
-		"exeName": [
-			"Skul.exe"
-		],
-		"dataFolderName": "Skul_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/skul-the-hero-slayer/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1147560"
-			}
-		],
-		"gameImage": "skul-the-hero-slayer.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "SkulTheHeroSlayer"
-	},
-	{
-		"displayName": "Sons Of The Forest",
-		"steamFolderName": "Sons Of The Forest",
-		"settingsIdentifier": "SonsOfTheForest",
-		"exeName": [
-			"SonsOfTheForest.exe"
-		],
-		"dataFolderName": "SonsOfTheForest_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/sons-of-the-forest/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1326470"
-			}
-		],
-		"gameImage": "sons-of-the-forest.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "SonsOfTheForest"
-	},
-	{
-		"displayName": "The Ouroboros King",
-		"steamFolderName": "The Ouroboros King",
-		"settingsIdentifier": "TheOuroborosKing",
-		"exeName": [
-			"The Ouroboros King.exe"
-		],
-		"dataFolderName": "The Ouroboros King_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/the-ouroboros-king/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "2096510"
-			}
-		],
-		"gameImage": "the-ouroboros-king.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "TheOuroborosKing"
-	},
-	{
-		"displayName": "Wrestling Empire",
-		"steamFolderName": "Wrestling Empire",
-		"settingsIdentifier": "WrestlingEmpire",
-		"exeName": [
-			"Wrestling Empire.exe"
-		],
-		"dataFolderName": "Wrestling Empire_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/wrestling-empire/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1620340"
-			}
-		],
-		"gameImage": "wrestling-empire.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "WrestlingEmpire"
-	},
-	{
-		"displayName": "Receiver 2",
-		"steamFolderName": "Receiver 2",
-		"settingsIdentifier": "Receiver2",
-		"exeName": [
-			"Receiver2.exe"
-		],
-		"dataFolderName": "Receiver2_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/receiver-2/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1129310"
-			}
-		],
-		"gameImage": "receiver-2.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Receiver2"
-	},
-	{
-		"displayName": "The Planet Crafter",
-		"steamFolderName": "The Planet Crafter",
-		"settingsIdentifier": "ThePlanetCrafter",
-		"exeName": [
-			"Planet Crafter.exe"
-		],
-		"dataFolderName": "ThePlanetCrafter_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/the-planet-crafter/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1284190"
-			}
-		],
-		"gameImage": "the-planet-crafter.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "ThePlanetCrafter"
-	},
-	{
-		"displayName": "Patch Quest",
-		"steamFolderName": "Patch Quest",
-		"settingsIdentifier": "PatchQuest",
-		"exeName": [
-			"Patch Quest.exe"
-		],
-		"dataFolderName": "PatchQuest_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/patch-quest/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1347970"
-			}
-		],
-		"gameImage": "patch-quest.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "MelonLoader",
-		"id": "PatchQuest"
-	},
-	{
-		"displayName": "Shadows Over Loathing",
-		"steamFolderName": "Shadows Over Loathing\\Shadows Over Loathing",
-		"settingsIdentifier": "ShadowsOverLoathing",
-		"exeName": [
-			"Shadows Over Loathing.exe"
-		],
-		"dataFolderName": "ShadowsOverLoathing_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/shadows-over-loathing/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1939160"
-			}
-		],
-		"gameImage": "shadows-over-loathing.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "ShadowsOverLoathing"
-	},
-	{
-		"displayName": "West of Loathing",
-		"steamFolderName": "West of Loathing",
-		"settingsIdentifier": "WestofLoathing",
-		"exeName": [
-			"West of Loathing.exe"
-		],
-		"dataFolderName": "WestofLoathing_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/west-of-loathing/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "597220"
-			}
-		],
-		"gameImage": "west-of-loathing.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "WestofLoathing"
-	},
-	{
-		"displayName": "Sun Haven",
-		"steamFolderName": "Sun Haven",
-		"settingsIdentifier": "SunHaven",
-		"exeName": [
-			"Sun Haven.exe"
-		],
-		"dataFolderName": "SunHaven_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/sun-haven/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1432860"
-			}
-		],
-		"gameImage": "sun-haven.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "SunHaven"
-	},
-	{
-		"displayName": "Wildfrost",
-		"steamFolderName": "Wildfrost",
-		"settingsIdentifier": "Wildfrost",
-		"exeName": [
-			"Wildfrost.exe"
-		],
-		"dataFolderName": "Wildfrost_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/wildfrost/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1811990"
-			}
-		],
-		"gameImage": "wildfrost.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Wildfrost"
-	},
-	{
-		"displayName": "Shadows of Doubt",
-		"steamFolderName": "Shadows of Doubt",
-		"settingsIdentifier": "ShadowsofDoubt",
-		"exeName": [
-			"Shadows of Doubt.exe"
-		],
-		"dataFolderName": "ShadowsofDoubt_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/shadows-of-doubt/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "986130"
-			}
-		],
-		"gameImage": "shadows-of-doubt.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "ShadowsofDoubt"
-	},
-	{
-		"displayName": "Garfield Kart - Furious Racing",
-		"steamFolderName": "Garfield Kart - Furious Racing",
-		"settingsIdentifier": "GarfieldKartFuriousRacing",
-		"exeName": [
-			"Garfield Kart Furious Racing.exe"
-		],
-		"dataFolderName": "GarfieldKartFuriousRacing_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/garfield-kart-furious-racing/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1085510"
-			}
-		],
-		"gameImage": "garfield-kart-furious-racing.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "GarfieldKartFuriousRacing"
-	},
-	{
-		"displayName": "Techtonica",
-		"steamFolderName": "Techtonica",
-		"settingsIdentifier": "Techtonica",
-		"exeName": [
-			"Techtonica.exe"
-		],
-		"dataFolderName": "Techtonica_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/techtonica/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1457320"
-			}
-		],
-		"gameImage": "techtonica.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Techtonica"
-	},
-	{
-		"displayName": "Thronefall",
-		"steamFolderName": "Thronefall",
-		"settingsIdentifier": "Thronefall",
-		"exeName": [
-			"Thronefall.exe"
-		],
-		"dataFolderName": "Thronefall_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/thronefall/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "2239150"
-			}
-		],
-		"gameImage": "thronefall.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Thronefall"
-	},
-	{
-		"displayName": "We Love Katamari REROLL+ Royal Reverie",
-		"steamFolderName": "WLKRR",
-		"settingsIdentifier": "WeLoveKatamariRerollRoyalReverie",
-		"exeName": [
-			"WLKRR.exe"
-		],
-		"dataFolderName": "WeLoveKatamariRerollRoyalReverie_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/we-love-katamari-reroll-royal-reverie/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1730700"
-			}
-		],
-		"gameImage": "WLKRR.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "WeLoveKatamariRerollRoyalReverie"
-	},
-	{
-		"displayName": "Wizard of Legend",
-		"steamFolderName": "Wizard of Legend",
-		"settingsIdentifier": "WizardOfLegend",
-		"exeName": [
-			"WizardOfLegend.exe"
-		],
-		"dataFolderName": "WizardOfLegend_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/wizard-of-legend/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "445980"
-			}
-		],
-		"gameImage": "WizardOfLegend.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "WizardOfLegend"
-	},
-	{
-		"displayName": "Bomb Rush Cyberfunk",
-		"steamFolderName": "BombRushCyberfunk",
-		"settingsIdentifier": "BombRushCyberfunk",
-		"exeName": [
-			"Bomb Rush Cyberfunk.exe"
-		],
-		"dataFolderName": "Bomb Rush Cyberfunk_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/bomb-rush-cyberfunk/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1353230"
-			},
-			{
-				"_storePlatform": "Xbox Game Pass",
-				"_storeIdentifier": "TeamReptile.BombRushCyberfunk"
-			}
-		],
-		"gameImage": "BombRushCyberfunk.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "BombRushCyberfunk"
-	},
-	{
-		"displayName": "TouhouLostBranchOfLegend",
-		"steamFolderName": "LBoL",
-		"settingsIdentifier": "TouhouLostBranchOfLegend",
-		"exeName": [
-			"LBoL.exe"
-		],
-		"dataFolderName": "LBoL_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/touhou-lost-branch-of-legend/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1140150"
-			}
-		],
-		"gameImage": "TouhouLostBranchOfLegend.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "TouhouLostBranchOfLegend"
-	},
-	{
-		"displayName": "Wizard With A Gun",
-		"steamFolderName": "Wizard With A Gun",
-		"settingsIdentifier": "WizardWithAGun",
-		"exeName": [
-			"wizardwithagun.exe"
-		],
-		"dataFolderName": "wizardwithagun_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/wizard-with-a-gun/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1150530"
-			}
-		],
-		"gameImage": "WizardWithAGun.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "WizardWithAGun"
-	},
-	{
-		"displayName": "Sunkenland",
-		"steamFolderName": "Sunkenland",
-		"settingsIdentifier": "Sunkenland",
-		"exeName": [
-			"Sunkenland.exe"
-		],
-		"dataFolderName": "Sunkenland_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/sunkenland/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "2080690"
-			}
-		],
-		"gameImage": "Sunkenland.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Sunkenland"
-	},
-	{
-		"displayName": "Atomicrops",
-		"steamFolderName": "Atomicrops",
-		"settingsIdentifier": "Atomicrops",
-		"exeName": [
-			"Atomicrops.exe"
-		],
-		"dataFolderName": "Atomicrops_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/atomicrops/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "757320"
-			}
-		],
-		"gameImage": "Atomicrops.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Atomicrops"
-	},
-	{
-		"displayName": "Erenshor",
-		"steamFolderName": "Erenshor",
-		"settingsIdentifier": "Erenshor",
-		"exeName": [
-			"Erenshor.exe"
-		],
-		"dataFolderName": "Erenshor_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/erenshor/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "2382520"
-			}
-		],
-		"gameImage": "Erenshor.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Erenshor"
-	},
-	{
-		"displayName": "Last Train Outta' Wormtown",
-		"steamFolderName": "Last Train Outta' Wormtown",
-		"settingsIdentifier": "LastTrainOuttaWormtown",
-		"exeName": [
-			"Last Train Out Of WormTown.exe"
-		],
-		"dataFolderName": "Last Train Out Of WormTown_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/last-train-outta-wormtown/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "2318480"
-			}
-		],
-		"gameImage": "LastTrainOuttaWormtown.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "LastTrainOuttaWormtown"
-	},
-	{
-		"displayName": "DREDGE",
-		"steamFolderName": "DREDGE",
-		"settingsIdentifier": "Dredge",
-		"exeName": [
-			"DREDGE.exe"
-		],
-		"dataFolderName": "DREDGE_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/dredge/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1562430"
-			}
-		],
-		"gameImage": "Dredge.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Dredge"
-	},
-	{
-		"displayName": "Cities: Skylines II",
-		"steamFolderName": "Cities Skylines II",
-		"settingsIdentifier": "CitiesSkylines2",
-		"exeName": [
-			"Cities2.exe"
-		],
-		"dataFolderName": "CitiesSkylines2_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/cities-skylines-ii/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "949230"
-			},
-			{
-				"_storePlatform": "Xbox Game Pass",
-				"_storeIdentifier": "ParadoxInteractive.CitiesSkylinesII-PCEdition"
-			}
-		],
-		"gameImage": "CitiesSkylines2.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "CitiesSkylines2"
-	},
-	{
-		"displayName": "Lethal Company",
-		"steamFolderName": "Lethal Company",
-		"settingsIdentifier": "LethalCompany",
-		"exeName": [
-			"Lethal Company.exe"
-		],
-		"dataFolderName": "Lethal Company_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/lethal-company/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1966720"
-			}
-		],
-		"gameImage": "LethalCompany.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "LethalCompany"
-	},
-	{
-		"displayName": "Meeple Station",
-		"steamFolderName": "Meeple Station",
-		"settingsIdentifier": "MeepleStation",
-		"exeName": [
-			"Meeple Station.exe"
-		],
-		"dataFolderName": "MeepleStation_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/meeple-station/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "900010"
-			}
-		],
-		"gameImage": "MeepleStation.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "MeepleStation"
-	},
-	{
-		"displayName": "Void Crew",
-		"steamFolderName": "Void Crew",
-		"settingsIdentifier": "VoidCrew",
-		"exeName": [
-			"Void Crew.exe"
-		],
-		"dataFolderName": "VoidCrew_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/void-crew/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1063420"
-			}
-		],
-		"gameImage": "VoidCrew.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "VoidCrew"
-	},
-	{
-		"displayName": "Sailwind",
-		"steamFolderName": "Sailwind",
-		"settingsIdentifier": "Sailwind",
-		"exeName": [
-			"Sailwind.exe"
-		],
-		"dataFolderName": "Sailwind_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/sailwind/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1764530"
-			}
-		],
-		"gameImage": "Sailwind.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Sailwind"
-	},
-	{
-		"displayName": "Voices of the Void",
-		"steamFolderName": "",
-		"settingsIdentifier": "VotV",
-		"exeName": [
-			"VotV.exe"
-		],
-		"dataFolderName": "VotV",
-		"thunderstoreUrl": "https://thunderstore.io/c/voices-of-the-void/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Other"
-			}
-		],
-		"gameImage": "VotV.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "ShimLoader",
-		"id": "VotV"
-	},
-	{
-		"displayName": "Palworld",
-		"steamFolderName": "Palworld",
-		"settingsIdentifier": "Palworld",
-		"exeName": [
-			"Palworld.exe"
-		],
-		"dataFolderName": "Pal",
-		"thunderstoreUrl": "https://thunderstore.io/c/palworld/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1623730"
-			}
-		],
-		"gameImage": "Palworld.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "ShimLoader",
-		"id": "Palworld"
-	},
-	{
-		"displayName": "Plasma",
-		"steamFolderName": "Plasma",
-		"settingsIdentifier": "Plasma",
-		"exeName": [
-			"Plasma.exe"
-		],
-		"dataFolderName": "Plasma_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/plasma/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1409160"
-			}
-		],
-		"gameImage": "Plasma.jpg",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Plasma"
-	},
-	{
-		"displayName": "Content Warning",
-		"steamFolderName": "Content Warning",
-		"settingsIdentifier": "ContentWarning",
-		"exeName": [
-			"Content Warning.exe"
-		],
-		"dataFolderName": "Content Warning_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/content-warning/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "2881650"
-			}
-		],
-		"gameImage": "ContentWarning.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "ContentWarning"
-	},
-	{
-		"displayName": "Balatro",
-		"steamFolderName": "Balatro",
-		"settingsIdentifier": "Balatro",
-		"exeName": [
-			"Balatro.exe"
-		],
-		"dataFolderName": "Balatro_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/balatro/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "2379780"
-			}
-		],
-		"gameImage": "Balatro.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "Lovely",
-		"id": "Balatro"
-	},
-	{
-		"displayName": "Bopl Battle",
-		"steamFolderName": "Bopl Battle",
-		"settingsIdentifier": "BoplBattle",
-		"exeName": [
-			"BoplBattle.exe"
-		],
-		"dataFolderName": "BoplBattle_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/bopl-battle/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1686940"
-			}
-		],
-		"gameImage": "BoplBattle.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "BoplBattle"
-	},
-	{
-		"displayName": "Vertigo 2",
-		"steamFolderName": "Vertigo 2",
-		"settingsIdentifier": "Vertigo2",
-		"exeName": [
-			"vertigo2.exe"
-		],
-		"dataFolderName": "vertigo2_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/vertigo-2/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "843390"
-			}
-		],
-		"gameImage": "Vertigo2.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Vertigo2"
-	},
-	{
-		"displayName": "Against the Storm",
-		"steamFolderName": "Against the Storm",
-		"settingsIdentifier": "AgainstTheStorm",
-		"exeName": [
-			"Against the Storm.exe"
-		],
-		"dataFolderName": "Against the Storm_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/against-the-storm/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1336490"
-			}
-		],
-		"gameImage": "AgainstTheStorm.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "AgainstTheStorm"
-	},
-	{
-		"displayName": "Lycans",
-		"steamFolderName": "Lycans",
-		"settingsIdentifier": "Lycans",
-		"exeName": [
-			"Lycans.exe"
-		],
-		"dataFolderName": "Lycans_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/lycans/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "2596100"
-			}
-		],
-		"gameImage": "Lycans.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Lycans"
-	},
-	{
-		"displayName": "Castle Story",
-		"steamFolderName": "Castle Story",
-		"settingsIdentifier": "CastleStory",
-		"exeName": [
-			"Castle Story.exe"
-		],
-		"dataFolderName": "Castle Story_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/castle-story/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "SteamDirect",
-				"_storeIdentifier": "227860"
-			}
-		],
-		"gameImage": "CastleStory.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "CastleStory"
-	},
-	{
-		"displayName": "Panicore",
-		"steamFolderName": "Panicore",
-		"settingsIdentifier": "Panicore",
-		"exeName": [
-			"Panicore.exe"
-		],
-		"dataFolderName": "Panicore",
-		"thunderstoreUrl": "https://thunderstore.io/c/panicore/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "2695940"
-			}
-		],
-		"gameImage": "Panicore.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "ShimLoader",
-		"id": "Panicore"
-	},
-	{
-		"displayName": "Risk of Rain Returns",
-		"steamFolderName": "Risk of Rain Returns",
-		"settingsIdentifier": "RiskofRainReturns",
-		"exeName": [
-			"Risk of Rain Returns.exe"
-		],
-		"dataFolderName": "",
-		"thunderstoreUrl": "https://thunderstore.io/c/risk-of-rain-returns/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1337520"
-			}
-		],
-		"gameImage": "RiskOfRainReturns.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "ReturnOfModding",
-		"id": "RiskofRainReturns"
-	},
-	{
-		"displayName": "Magicraft",
-		"steamFolderName": "Magicraft",
-		"settingsIdentifier": "Magicraft",
-		"exeName": [
-			"Magicraft.exe"
-		],
-		"dataFolderName": "Magicraft_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/magicraft/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "2103140"
-			}
-		],
-		"gameImage": "Magicraft.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Magicraft"
-	},
-	{
-		"displayName": "Another Crab's Treasure",
-		"steamFolderName": "AnotherCrabsTreasure",
-		"settingsIdentifier": "AnotherCrabsTreasure",
-		"exeName": [
-			"AnotherCrabsTreasure.exe"
-		],
-		"dataFolderName": "AnotherCrabsTreasure_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/another-crabs-treasure/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1887840"
-			}
-		],
-		"gameImage": "AnotherCrabsTreasure.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "AnotherCrabsTreasure"
-	},
-	{
-		"displayName": "Gladio Mori",
-		"steamFolderName": "Gladio Mori",
-		"settingsIdentifier": "GladioMori",
-		"exeName": [
-			"Gladio Mori.exe"
-		],
-		"dataFolderName": "Gladio Mori_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/gladio-mori/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "2689120"
-			}
-		],
-		"gameImage": "GladioMori.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "GladioMori"
-	},
-	{
-		"displayName": "Slipstream: Rogue Space",
-		"steamFolderName": "Slipstream Rogue Space",
-		"settingsIdentifier": "SlipstreamRogueSpace",
-		"exeName": [
-			"Slipstream_Win.exe"
-		],
-		"dataFolderName": "Slipstream_Win_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/slipstream-rogue-space/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "2765860"
-			}
-		],
-		"gameImage": "SlipstreamRogueSpace.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "SlipstreamRogueSpace"
-	},
-	{
-		"displayName": "Back to the Dawn",
-		"steamFolderName": "MetalHeadGames",
-		"settingsIdentifier": "BacktotheDawn",
-		"exeName": [
-			"Back To The Dawn.exe"
-		],
-		"dataFolderName": "Back To The Dawn_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/back-to-the-dawn/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1735700"
-			}
-		],
-		"gameImage": "BackToTheDawn.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "BacktotheDawn"
-	},
-	{
-		"displayName": "Below the Stone",
-		"steamFolderName": "Below The Stone",
-		"settingsIdentifier": "BelowTheStone",
-		"exeName": [
-			"Below The Stone.exe"
-		],
-		"dataFolderName": "Below The Stone_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/below-the-stone/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1170230"
-			}
-		],
-		"gameImage": "BelowTheStone.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "BelowTheStone"
-	},
-	{
-		"displayName": "Gloomwood",
-		"steamFolderName": "Gloomwood",
-		"settingsIdentifier": "Gloomwood",
-		"exeName": [
-			"Gloomwood.exe"
-		],
-		"dataFolderName": "Gloomwood_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/gloomwood/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1150760"
-			}
-		],
-		"gameImage": "Gloomwood.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Gloomwood"
-	},
-	{
-		"displayName": "Among Us",
-		"steamFolderName": "Among Us",
-		"settingsIdentifier": "AmongUs",
-		"exeName": [
-			"Among Us.exe"
-		],
-		"dataFolderName": "Among Us_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/among-us/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "945360"
-			},
-			{
-				"_storePlatform": "Epic Games Store",
-				"_storeIdentifier": "among-us"
-			},
-			{
-				"_storePlatform": "Xbox Game Pass",
-				"_storeIdentifier": "Innersloth.AmongUs"
-			},
-			{
-				"_storePlatform": "Other"
-			}
-		],
-		"gameImage": "AmongUs.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "AmongUs"
-	},
-	{
-		"displayName": "Betrayal Beach",
-		"steamFolderName": "Betrayal Beach",
-		"settingsIdentifier": "BetrayalBeach",
-		"exeName": [
-			"Betrayal Beach.exe"
-		],
-		"dataFolderName": "Betrayal Beach_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/betrayal-beach/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "2643810"
-			}
-		],
-		"gameImage": "BetrayalBeach.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "BetrayalBeach"
-	},
-	{
-		"displayName": "Arcus Chroma",
-		"steamFolderName": "Arcus Chroma",
-		"settingsIdentifier": "ArcusChroma",
-		"exeName": [
-			"Arcus Chroma.exe"
-		],
-		"dataFolderName": "Arcus Chroma_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/arcus-chroma/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1447350"
-			}
-		],
-		"gameImage": "ArcusChroma.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "ArcusChroma"
-	},
-	{
-		"displayName": "Deep Rock Galactic: Survivor",
-		"steamFolderName": "Deep Rock Survivor",
-		"settingsIdentifier": "DeepRockGalacticSurvivor",
-		"exeName": [
-			"DRG Survivor.exe"
-		],
-		"dataFolderName": "DRG Survivor_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/deep-rock-galactic-survivor/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "2321470"
-			}
-		],
-		"gameImage": "DeepRockGalacticSurvivor.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "DeepRockGalacticSurvivor"
-	},
-	{
-		"displayName": "Ale & Tale Tavern",
-		"steamFolderName": "Ale & Tale Tavern",
-		"settingsIdentifier": "AleAndTaleTavern",
-		"exeName": [
-			"Ale and Tale Tavern.exe"
-		],
-		"dataFolderName": "Ale and Tale Tavern_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/ale-and-tale-tavern/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "2683150"
-			}
-		],
-		"gameImage": "AleAndTaleTavern.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "AleAndTaleTavern"
-	},
-	{
-		"displayName": "Screw Drivers",
-		"steamFolderName": "Screw Drivers",
-		"settingsIdentifier": "ScrewDrivers",
-		"exeName": [
-			"Screw Drivers.exe"
-		],
-		"dataFolderName": "Screw Drivers_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/screw-drivers/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1279510"
-			}
-		],
-		"gameImage": "ScrewDrivers.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "ScrewDrivers"
-	},
-	{
-		"displayName": "Nine Sols",
-		"steamFolderName": "Nine Sols",
-		"settingsIdentifier": "NineSols",
-		"exeName": [
-			"NineSols.exe"
-		],
-		"dataFolderName": "Nine Sols_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/nine-sols/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1809540"
-			}
-		],
-		"gameImage": "NineSols.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "NineSols"
-	},
-	{
-		"displayName": "Goodbye Volcano High",
-		"steamFolderName": "Goodbye Volcano High",
-		"settingsIdentifier": "GoodbyeVolcanoHigh",
-		"exeName": [
-			"Goodbye Volcano High.exe"
-		],
-		"dataFolderName": "Goodbye Volcano High_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/goodbye-volcano-high/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1310330"
-			}
-		],
-		"gameImage": "GoodbyeVolcanoHigh.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "GoodbyeVolcanoHigh"
-	},
-	{
-		"displayName": "Supermarket Together",
-		"steamFolderName": "Supermarket Together",
-		"settingsIdentifier": "SupermarketTogether",
-		"exeName": [
-			"Supermarket Together.exe"
-		],
-		"dataFolderName": "Supermarket Together_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/supermarket-together/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "2709570"
-			}
-		],
-		"gameImage": "SupermarketTogether.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "SupermarketTogether"
-	},
-	{
-		"displayName": "Hades II",
-		"steamFolderName": "Hades II\\Ship",
-		"settingsIdentifier": "HadesII",
-		"exeName": [
-			"Hades2.exe"
-		],
-		"dataFolderName": "",
-		"thunderstoreUrl": "https://thunderstore.io/c/hades-ii/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1145350"
-			}
-		],
-		"gameImage": "Hades2.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "ReturnOfModding",
-		"id": "HadesII"
-	},
-	{
-		"displayName": "Shapez 2",
-		"steamFolderName": "shapez 2",
-		"settingsIdentifier": "Shapez2",
-		"exeName": [
-			"shapez 2.exe"
-		],
-		"dataFolderName": "shapez 2_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/shapez-2/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "2162800"
-			}
-		],
-		"gameImage": "Shapez2.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Shapez2"
-	},
-	{
-		"displayName": "Paquerette Down the Bunburrows",
-		"steamFolderName": "Paquerette Down the Bunburrows",
-		"settingsIdentifier": "PaqueretteDownTheBunburrows",
-		"exeName": [
-			"Paquerette Down the Bunburrows.exe"
-		],
-		"dataFolderName": "Paquerette Down the Bunburrows_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/paquerette-down-the-bunburrows/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "1628610"
-			}
-		],
-		"gameImage": "PaqueretteDownTheBunburrows.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "PaqueretteDownTheBunburrows"
-	},
-	{
-		"displayName": "Hard Time III",
-		"steamFolderName": "Hard Time III",
-		"settingsIdentifier": "HardTime3",
-		"exeName": [
-			"Hard Time III.exe"
-		],
-		"dataFolderName": "Hard Time III_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/hard-time-3/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "3009850"
-			}
-		],
-		"gameImage": "HardTime3.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "HardTime3"
-	},
-	{
-		"displayName": "Tank Team",
-		"steamFolderName": "Tank Team",
-		"settingsIdentifier": "TankTeam",
-		"exeName": [
-			"Tank Team.exe"
-		],
-		"dataFolderName": "Tank Team_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/tank-team/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "2587450"
-			}
-		],
-		"gameImage": "TankTeam.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "TankTeam"
-	},
-	{
-		"displayName": "Distance",
-		"steamFolderName": "Distance",
-		"settingsIdentifier": "Distance",
-		"exeName": [
-			"Distance.exe"
-		],
-		"dataFolderName": "Distance_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/distance/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "233610"
-			}
-		],
-		"gameImage": "Distance.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Distance"
-	},
-	{
-		"displayName": "Five Nights at Freddy's: Into the Pit",
-		"steamFolderName": "Five Nights at Freddy's Into the Pit",
-		"settingsIdentifier": "FiveNightsAtFreddysIntoThePit",
-		"exeName": [
-			"Five Nights at Freddy's Into the Pit.exe"
-		],
-		"dataFolderName": "Five Nights at Freddy's Into the Pit_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/five-nights-at-freddys-into-the-pit/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "2638370"
-			}
-		],
-		"gameImage": "FiveNightsAtFreddysIntoThePit.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "FiveNightsAtFreddysIntoThePit"
-	},
-	{
-		"displayName": "GoreBox",
-		"steamFolderName": "GoreBox",
-		"settingsIdentifier": "GoreBox",
-		"exeName": [
-			"GoreBox.exe"
-		],
-		"dataFolderName": "GoreBox_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/gorebox/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "2027330"
-			}
-		],
-		"gameImage": "GoreBox.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "GoreBox"
-	},
-	{
-		"displayName": "TCG Card Shop Simulator",
-		"steamFolderName": "TCG Card Shop Simulator",
-		"settingsIdentifier": "TCG Card Shop Simulator",
-		"exeName": [
-			"Card Shop Simulator.exe"
-		],
-		"dataFolderName": "Card Shop Simulator_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/tcg-card-shop-simulator/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "3070070"
-			}
-		],
-		"gameImage": "TCGCardShopSimulator.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "TCGCardShopSimulator"
-	},
-	{
-		"displayName": "Old Market Simulator",
-		"steamFolderName": "Old Market Simulator",
-		"settingsIdentifier": "Old Market Simulator",
-		"exeName": [
-			"Old Market Simulator.exe"
-		],
-		"dataFolderName": "Old Market Simulator_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/old-market-simulator/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "2878420"
-			}
-		],
-		"gameImage": "OldMarketSimulator.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "OldMarketSimulator"
-	},
-	{
-		"displayName": "Subterranauts",
-		"steamFolderName": "Subterranauts",
-		"settingsIdentifier": "Subterranauts",
-		"exeName": [
-			"Subterranauts.exe"
-		],
-		"dataFolderName": "Subterranauts_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/subterranauts/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "3075800"
-			}
-		],
-		"gameImage": "Subterranauts.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "Subterranauts"
-	},
-	{
-		"displayName": "SULFUR",
-		"steamFolderName": "Sulfur",
-		"settingsIdentifier": "SULFUR",
-		"exeName": [
-			"Sulfur.exe"
-		],
-		"dataFolderName": "Sulfur_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/sulfur/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "2124120"
-			}
-		],
-		"gameImage": "SULFUR.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "SULFUR"
-	},
-	{
-		"displayName": "WEBFISHING",
-		"steamFolderName": "WEBFISHING",
-		"settingsIdentifier": "WEBFISHING",
-		"exeName": [
-			"webfishing.exe"
-		],
-		"dataFolderName": "",
-		"thunderstoreUrl": "https://thunderstore.io/c/webfishing/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "3146520"
-			}
-		],
-		"gameImage": "WEBFISHING.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "GDWeave",
-		"id": "WEBFISHING"
-	},
-	{
-		"displayName": "STRAFTAT",
-		"steamFolderName": "STRAFTAT",
-		"settingsIdentifier": "STRAFTAT",
-		"exeName": [
-			"STRAFTAT.exe"
-		],
-		"dataFolderName": "STRAFTAT_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/straftat/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "2386720"
-			}
-		],
-		"gameImage": "STRAFTAT.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "STRAFTAT"
-	},
-	{
-		"displayName": "ATLYSS",
-		"steamFolderName": "ATLYSS",
-		"settingsIdentifier": "ATLYSS",
-		"exeName": [
-			"ATLYSS.exe"
-		],
-		"dataFolderName": "ATLYSS_Data",
-		"thunderstoreUrl": "https://thunderstore.io/c/atlyss/api/v1/package-listing-index/",
-		"exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
-		"storePlatformMetadata": [
-			{
-				"_storePlatform": "Steam",
-				"_storeIdentifier": "2768430"
-			}
-		],
-		"gameImage": "ATLYSS.png",
-		"displayMode": 0,
-		"instanceType": "Game",
-		"packageLoader": "BepInEx",
-		"id": "ATLYSS"
-	}
+  {
+    "displayName": "Risk of Rain 2",
+    "steamFolderName": "Risk of Rain 2",
+    "settingsIdentifier": "RiskOfRain2",
+    "exeName": ["Risk of Rain 2.exe"],
+    "dataFolderName": "Risk of Rain 2_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/riskofrain2/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [
+      { "_storePlatform": "Steam", "_storeIdentifier": "632360" },
+      { "_storePlatform": "Epic Games Store", "_storeIdentifier": "4b3dcc5723454a47a9112d8fe8fd5f5c" }
+    ],
+    "gameImage": "RiskOfRain2.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "RiskOfRain2"
+  },
+  {
+    "displayName": "Thunderstore Dev",
+    "steamFolderName": "Risk of Rain 2",
+    "settingsIdentifier": "ThunderstoreBeta",
+    "exeName": ["Risk of Rain 2.exe"],
+    "dataFolderName": "Risk of Rain 2_Data",
+    "thunderstoreUrl": "https://thunderstore.dev/c/riskofrain2/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "632360" }],
+    "gameImage": "ThunderstoreBeta.jpg",
+    "displayMode": 1,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "ThunderstoreDev"
+  },
+  {
+    "displayName": "Risk of Rain 2 Dedicated Server",
+    "steamFolderName": "Risk of Rain 2 Dedicated Server",
+    "settingsIdentifier": "RiskOfRain2Server",
+    "exeName": ["Risk of Rain 2.exe"],
+    "dataFolderName": "Risk of Rain 2_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/riskofrain2/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1180760" }],
+    "gameImage": "RiskOfRain2.jpg",
+    "displayMode": 0,
+    "instanceType": "Server",
+    "packageLoader": "BepInEx",
+    "id": "RiskOfRain2"
+  },
+  {
+    "displayName": "Dyson Sphere Program",
+    "steamFolderName": "Dyson Sphere Program",
+    "settingsIdentifier": "DysonSphereProgram",
+    "exeName": ["DSPGAME.exe"],
+    "dataFolderName": "DSPGAME_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/dyson-sphere-program/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [
+      { "_storePlatform": "Steam", "_storeIdentifier": "1366540" },
+      { "_storePlatform": "Xbox Game Pass", "_storeIdentifier": "GameraGame.DysonSphereProgram" }
+    ],
+    "gameImage": "DysonSphereProgram.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "DysonSphereProgram"
+  },
+  {
+    "displayName": "Valheim",
+    "steamFolderName": "Valheim",
+    "settingsIdentifier": "Valheim",
+    "exeName": ["valheim.exe", "valheim.x86_64"],
+    "dataFolderName": "valheim_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/valheim/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [
+      { "_storePlatform": "Steam", "_storeIdentifier": "892970" },
+      { "_storePlatform": "Xbox Game Pass", "_storeIdentifier": "CoffeeStainStudios.Valheim" }
+    ],
+    "gameImage": "Valheim.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Valheim"
+  },
+  {
+    "displayName": "Valheim Dedicated Server",
+    "steamFolderName": "Valheim dedicated server",
+    "settingsIdentifier": "ValheimServer",
+    "exeName": ["valheim_server.exe", "valheim_server.x86_64"],
+    "dataFolderName": "valheim_server_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/valheim/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "896660" }],
+    "gameImage": "Valheim.jpg",
+    "displayMode": 0,
+    "instanceType": "Server",
+    "packageLoader": "BepInEx",
+    "id": "Valheim"
+  },
+  {
+    "displayName": "GTFO",
+    "steamFolderName": "GTFO",
+    "settingsIdentifier": "GTFO",
+    "exeName": ["GTFO.exe"],
+    "dataFolderName": "GTFO_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/gtfo/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "493520" }],
+    "gameImage": "GTFO.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "GTFO"
+  },
+  {
+    "displayName": "Outward",
+    "steamFolderName": "Outward",
+    "settingsIdentifier": "Outward",
+    "exeName": ["Outward.exe"],
+    "dataFolderName": "Outward_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/outward/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [
+      { "_storePlatform": "Steam", "_storeIdentifier": "794260" },
+      { "_storePlatform": "Epic Games Store", "_storeIdentifier": "Viola" },
+      { "_storePlatform": "Other" }
+    ],
+    "gameImage": "Outward.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Outward"
+  },
+  {
+    "displayName": "Outward Definitive",
+    "steamFolderName": "Outward/Outward_Defed",
+    "settingsIdentifier": "OutwardDe",
+    "exeName": ["Outward Definitive Edition.exe"],
+    "dataFolderName": "Outward Definitive Edition_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/outward/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [
+      { "_storePlatform": "Steam", "_storeIdentifier": "1758860" },
+      { "_storePlatform": "Epic Games Store", "_storeIdentifier": "f07a51af8ac845ea96f792fb485e04a3" },
+      { "_storePlatform": "Other" }
+    ],
+    "gameImage": "OutwardDe.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "OutwardDe"
+  },
+  {
+    "displayName": "TaleSpire",
+    "steamFolderName": "TaleSpire",
+    "settingsIdentifier": "TaleSpire",
+    "exeName": ["TaleSpire.exe"],
+    "dataFolderName": "TaleSpire_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/talespire/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "720620" }],
+    "gameImage": "TaleSpire.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "TaleSpire"
+  },
+  {
+    "displayName": "H3VR",
+    "steamFolderName": "H3VR",
+    "settingsIdentifier": "H3VR",
+    "exeName": ["h3vr.exe"],
+    "dataFolderName": "h3vr_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/h3vr/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "450540" }],
+    "gameImage": "H3VR.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "H3VR"
+  },
+  {
+    "displayName": "ROUNDS",
+    "steamFolderName": "ROUNDS",
+    "settingsIdentifier": "ROUNDS",
+    "exeName": ["Rounds.exe"],
+    "dataFolderName": "Rounds_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/rounds/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1557740" }],
+    "gameImage": "ROUNDS.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "ROUNDS"
+  },
+  {
+    "displayName": "Mechanica",
+    "steamFolderName": "Mechanica",
+    "settingsIdentifier": "Mechanica",
+    "exeName": ["Mechanica.exe"],
+    "dataFolderName": "Mechanica_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/mechanica/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1226990" }],
+    "gameImage": "Mechanica.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Mechanica"
+  },
+  {
+    "displayName": "Muck",
+    "steamFolderName": "Muck",
+    "settingsIdentifier": "Muck",
+    "exeName": ["Muck.exe", "Muck.x86_64"],
+    "dataFolderName": "Muck_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/muck/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1625450" }],
+    "gameImage": "Muck.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Muck"
+  },
+  {
+    "displayName": "BONEWORKS",
+    "steamFolderName": "BONEWORKS\\BONEWORKS",
+    "settingsIdentifier": "BONEWORKS",
+    "exeName": ["BONEWORKS.exe", "Boneworks_Oculus_Windows64.exe"],
+    "dataFolderName": "BONEWORKS_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/boneworks/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "823500" }, { "_storePlatform": "Oculus Store" }],
+    "gameImage": "BONEWORKS.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "MelonLoader",
+    "id": "BONEWORKS"
+  },
+  {
+    "displayName": "Lethal League Blaze",
+    "steamFolderName": "LLBlaze",
+    "settingsIdentifier": "LethalLeagueBlaze",
+    "exeName": ["LLBlaze.exe", "LLBlaze.x86_64", "LLBlaze.x86", "LLBlaze.app"],
+    "dataFolderName": "LLBlaze_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/lethal-league-blaze/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "553310" }],
+    "gameImage": "LethalLeagueBlaze.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "LethalLeagueBlaze"
+  },
+  {
+    "displayName": "Timberborn",
+    "steamFolderName": "Timberborn",
+    "settingsIdentifier": "Timberborn",
+    "exeName": ["Timberborn.exe"],
+    "dataFolderName": "Timberborn_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/timberborn/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [
+      { "_storePlatform": "Steam", "_storeIdentifier": "1062090" },
+      { "_storePlatform": "Epic Games Store", "_storeIdentifier": "972a4ca2631e43b4ba7bc3b7586ad8c4" },
+      { "_storePlatform": "Other" }
+    ],
+    "gameImage": "Timberborn.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Timberborn"
+  },
+  {
+    "displayName": "TABS",
+    "steamFolderName": "Totally Accurate Battle Simulator",
+    "settingsIdentifier": "TotallyAccurateBattleSimulator",
+    "exeName": ["TotallyAccurateBattleSimulator.exe"],
+    "dataFolderName": "TotallyAccurateBattleSimulator_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/totally-accurate-battle-simulator/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [
+      { "_storePlatform": "Steam", "_storeIdentifier": "508440" },
+      { "_storePlatform": "Epic Games Store", "_storeIdentifier": "Driftfish" },
+      { "_storePlatform": "Xbox Game Pass", "_storeIdentifier": "LandfallGames.TotallyAccurateBattleSimulator" }
+    ],
+    "gameImage": "TotallyAccurateBattleSimulator.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "TABS"
+  },
+  {
+    "displayName": "Nickelodeon All‑Star Brawl",
+    "steamFolderName": "Nickelodeon All-Star Brawl",
+    "settingsIdentifier": "NASB",
+    "exeName": ["Nickelodeon All-Star Brawl.exe"],
+    "dataFolderName": "Nickelodeon All-Star Brawl_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/nasb/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1414850" }],
+    "gameImage": "NASB.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "NASB"
+  },
+  {
+    "displayName": "Inscryption",
+    "steamFolderName": "Inscryption",
+    "settingsIdentifier": "Inscryption",
+    "exeName": ["Inscryption.exe"],
+    "dataFolderName": "Inscryption_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/inscryption/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1092790" }, { "_storePlatform": "Other" }],
+    "gameImage": "Inscryption.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Inscryption"
+  },
+  {
+    "displayName": "Starsand",
+    "steamFolderName": "Starsand",
+    "settingsIdentifier": "Starsand",
+    "exeName": ["Starsand.exe"],
+    "dataFolderName": "Starsand_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/starsand/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [
+      { "_storePlatform": "Steam", "_storeIdentifier": "1380220" },
+      { "_storePlatform": "Epic Games Store", "_storeIdentifier": "a774278c0813447c96a76b053cbf73ff" }
+    ],
+    "gameImage": "Starsand.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Starsand"
+  },
+  {
+    "displayName": "Cats are Liquid - A Better Place",
+    "steamFolderName": "Cats are Liquid - A Better Place",
+    "settingsIdentifier": "CatsAreLiquidABP",
+    "exeName": ["CaL-ABP-Windows.exe", "CaL-ABP-Linux.x86_64", "CaL-ABP-macOS.app"],
+    "dataFolderName": "CaL-ABP-Windows_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/cats-are-liquid/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1188080" }, { "_storePlatform": "Other" }],
+    "gameImage": "CatsAreLiquidABP.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "CatsAreLiquidABP"
+  },
+  {
+    "displayName": "Potion Craft",
+    "steamFolderName": "Potion Craft",
+    "settingsIdentifier": "PotionCraft",
+    "exeName": ["Potion Craft.exe"],
+    "dataFolderName": "Potion Craft_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/potion-craft/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1210320" }],
+    "gameImage": "PotionCraft.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "PotionCraft"
+  },
+  {
+    "displayName": "Nearly Dead",
+    "steamFolderName": "Nearly Dead",
+    "settingsIdentifier": "NearlyDead",
+    "exeName": ["Nearly Dead.exe"],
+    "dataFolderName": "Nearly Dead_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/nearly-dead/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1268900" }],
+    "gameImage": "NearlyDead.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "NearlyDead"
+  },
+  {
+    "displayName": "AGAINST",
+    "steamFolderName": "AGAINST_steam",
+    "settingsIdentifier": "AGAINST",
+    "exeName": ["AGAINST.exe"],
+    "dataFolderName": "AGAINST_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/against/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1584840" }],
+    "gameImage": "AGAINST.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "AGAINST"
+  },
+  {
+    "displayName": "Rogue Tower",
+    "steamFolderName": "Rogue Tower",
+    "settingsIdentifier": "RogueTower",
+    "exeName": ["Rogue Tower.exe"],
+    "dataFolderName": "Rogue Tower_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/rogue-tower/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1843760" }],
+    "gameImage": "RogueTower.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "RogueTower"
+  },
+  {
+    "displayName": "House of the Dying Sun",
+    "steamFolderName": "DyingSun",
+    "settingsIdentifier": "HOTDS",
+    "exeName": ["dyingsun.exe"],
+    "dataFolderName": "dyingsun_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/hotds/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "283160" }],
+    "gameImage": "HOTDS.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "HOTDS"
+  },
+  {
+    "displayName": "For The King",
+    "steamFolderName": "For The King",
+    "settingsIdentifier": "ForTheKing",
+    "exeName": ["FTK.exe"],
+    "dataFolderName": "FTK_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/for-the-king/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [
+      { "_storePlatform": "Steam", "_storeIdentifier": "527230" },
+      { "_storePlatform": "Epic Games Store", "_storeIdentifier": "Discus" }
+    ],
+    "gameImage": "ForTheKing.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "ForTheKing"
+  },
+  {
+    "displayName": "Subnautica",
+    "steamFolderName": "Subnautica",
+    "settingsIdentifier": "Subnautica",
+    "exeName": ["Subnautica.exe"],
+    "dataFolderName": "Subnautica_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/subnautica/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [
+      { "_storePlatform": "Steam", "_storeIdentifier": "264710" },
+      { "_storePlatform": "Epic Games Store", "_storeIdentifier": "Jaguar" },
+      { "_storePlatform": "Xbox Game Pass", "_storeIdentifier": "UnknownWorldsEntertainmen.GAMEPREVIEWSubnautica" }
+    ],
+    "gameImage": "Subnautica.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Subnautica"
+  },
+  {
+    "displayName": "Subnautica: Below Zero",
+    "steamFolderName": "SubnauticaZero",
+    "settingsIdentifier": "SubnauticaBZ",
+    "exeName": ["SubnauticaZero.exe"],
+    "dataFolderName": "SubnauticaZero_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/subnautica-below-zero/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [
+      { "_storePlatform": "Steam", "_storeIdentifier": "848450" },
+      { "_storePlatform": "Xbox Game Pass", "_storeIdentifier": "UnknownWorldsEntertainmen.SubnauticaBelowZero" }
+    ],
+    "gameImage": "SubnauticaBelowZero.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "SubnauticaBZ"
+  },
+  {
+    "displayName": "Core Keeper",
+    "steamFolderName": "Core Keeper",
+    "settingsIdentifier": "CoreKeeper",
+    "exeName": ["CoreKeeper.exe"],
+    "dataFolderName": "CoreKeeper_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/core-keeper/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1621690" }],
+    "gameImage": "CoreKeeper.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "CoreKeeper"
+  },
+  {
+    "displayName": "Titanfall 2",
+    "steamFolderName": "Titanfall2",
+    "settingsIdentifier": "Titanfall2",
+    "exeName": ["NorthstarLauncher.exe", "Titanfall2.exe"],
+    "dataFolderName": "",
+    "thunderstoreUrl": "https://thunderstore.io/c/northstar/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [
+      { "_storePlatform": "SteamDirect", "_storeIdentifier": "1237970" },
+      { "_storePlatform": "Origin / EA Desktop", "_storeIdentifier": "" }
+    ],
+    "gameImage": "Titanfall2.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "NorthStar",
+    "id": "Titanfall2"
+  },
+  {
+    "displayName": "Peglin",
+    "steamFolderName": "Peglin",
+    "settingsIdentifier": "Peglin",
+    "exeName": ["Peglin.exe"],
+    "dataFolderName": "Peglin_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/peglin/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1296610" }, { "_storePlatform": "Other" }],
+    "gameImage": "Peglin.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Peglin"
+  },
+  {
+    "displayName": "V Rising",
+    "steamFolderName": "VRising",
+    "settingsIdentifier": "VRising",
+    "exeName": ["VRising.exe"],
+    "dataFolderName": "VRising_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/v-rising/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1604030" }],
+    "gameImage": "VRising.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "VRising"
+  },
+  {
+    "displayName": "Hard Bullet",
+    "steamFolderName": "Hard Bullet",
+    "settingsIdentifier": "HardBullet",
+    "exeName": ["Hard Bullet.exe"],
+    "dataFolderName": "Hard Bullet_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/hard-bullet/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1294760" }],
+    "gameImage": "HardBullet.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "MelonLoader",
+    "id": "HardBullet"
+  },
+  {
+    "displayName": "20 Minutes Till Dawn",
+    "steamFolderName": "20MinuteTillDawn",
+    "settingsIdentifier": "20MinutesTillDawn",
+    "exeName": ["MinutesTillDawn.exe"],
+    "dataFolderName": "MinutesTillDawn_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/20-minutes-till-dawn/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [
+      { "_storePlatform": "Steam", "_storeIdentifier": "1966900" },
+      { "_storePlatform": "Epic Games Store", "_storeIdentifier": "4656facc740742a39e265b026e13d075" }
+    ],
+    "gameImage": "20MinutesTillDawn.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "20MinutesTillDawn"
+  },
+  {
+    "displayName": "Green Hell VR",
+    "steamFolderName": "Green Hell VR",
+    "settingsIdentifier": "GreenHellVR",
+    "exeName": ["GHVR.exe"],
+    "dataFolderName": "GHVR_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/green-hell-vr/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1782330" }, { "_storePlatform": "Oculus Store" }],
+    "gameImage": "GreenHellVR.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "GreenHellVR"
+  },
+  {
+    "displayName": "VTOL VR",
+    "steamFolderName": "VTOL VR",
+    "settingsIdentifier": "VTOL_VR",
+    "exeName": ["VTOLVR.exe"],
+    "dataFolderName": "VTOLVR_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/vtol-vr/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "667970" }],
+    "gameImage": "VtolVR.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "VTOL_VR"
+  },
+  {
+    "displayName": "Backpack Hero",
+    "steamFolderName": "Backpack Hero",
+    "settingsIdentifier": "BackpackHero",
+    "exeName": ["Backpack Hero.exe", "linux.x86_64"],
+    "dataFolderName": "Backpack Hero_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/backpack-hero/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1970580" }],
+    "gameImage": "BackpackHero.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "MelonLoader",
+    "id": "BackpackHero"
+  },
+  {
+    "displayName": "Stacklands",
+    "steamFolderName": "Stacklands",
+    "settingsIdentifier": "Stacklands",
+    "exeName": ["Stacklands.exe"],
+    "dataFolderName": "Stacklands_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/stacklands/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1948280" }],
+    "gameImage": "Stacklands.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Stacklands"
+  },
+  {
+    "displayName": "Enter the Gungeon",
+    "steamFolderName": "Enter the Gungeon",
+    "settingsIdentifier": "EnterTheGungeon",
+    "exeName": ["EtG.exe"],
+    "dataFolderName": "EtG_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/enter-the-gungeon/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [
+      { "_storePlatform": "Steam", "_storeIdentifier": "311690" },
+      { "_storePlatform": "Epic Games Store", "_storeIdentifier": "Garlic" },
+      { "_storePlatform": "Other" }
+    ],
+    "gameImage": "EnterTheGungeon.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "ETG"
+  },
+  {
+    "displayName": "Ravenfield",
+    "steamFolderName": "Ravenfield",
+    "settingsIdentifier": "Ravenfield",
+    "exeName": ["ravenfield.exe"],
+    "dataFolderName": "ravenfield_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/ravenfield/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "636480" }],
+    "gameImage": "Ravenfield.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Ravenfield"
+  },
+  {
+    "displayName": "Aloft",
+    "steamFolderName": "Aloft Demo",
+    "settingsIdentifier": "Aloft",
+    "exeName": ["Aloft.exe"],
+    "dataFolderName": "Aloft_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/aloft/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "2051980" }],
+    "gameImage": "Aloft.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Aloft"
+  },
+  {
+    "displayName": "Cult of the Lamb",
+    "steamFolderName": "Cult of the Lamb",
+    "settingsIdentifier": "COTL",
+    "exeName": ["Cult Of The Lamb.exe"],
+    "dataFolderName": "Cult Of The Lamb_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/cult-of-the-lamb/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1313140" }, { "_storePlatform": "Other" }],
+    "gameImage": "Cotl.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "COTL"
+  },
+  {
+    "displayName": "Chrono Ark",
+    "steamFolderName": "Chrono Ark\\x64\\Master",
+    "settingsIdentifier": "ChronoArk",
+    "exeName": ["ChronoArk.exe"],
+    "dataFolderName": "ChronoArk_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/chrono-ark/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1188930" }],
+    "gameImage": "ChronoArk.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "ChronoArk"
+  },
+  {
+    "displayName": "BONELAB",
+    "steamFolderName": "BONELAB",
+    "settingsIdentifier": "BONELAB",
+    "exeName": ["BONELAB_Steam_Windows64.exe", "BONELAB_Oculus_Windows64.exe"],
+    "dataFolderName": "BONELAB_Steam_Windows64",
+    "thunderstoreUrl": "https://thunderstore.io/c/bonelab/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1592190" }, { "_storePlatform": "Oculus Store" }],
+    "gameImage": "BONELAB.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "MelonLoader",
+    "id": "BONELAB"
+  },
+  {
+    "displayName": "Trombone Champ",
+    "steamFolderName": "TromboneChamp",
+    "settingsIdentifier": "TromboneChamp",
+    "exeName": ["TromboneChamp.exe"],
+    "dataFolderName": "TromboneChamp_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/trombone-champ/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1059990" }],
+    "gameImage": "TromboneChamp.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "TromboneChamp"
+  },
+  {
+    "displayName": "Rogue : Genesia",
+    "steamFolderName": "Rogue Genesia",
+    "settingsIdentifier": "RogueGenesia",
+    "exeName": ["Rogue Genesia.exe"],
+    "dataFolderName": "Rogue Genesia_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/rogue-genesia/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "2067920" }],
+    "gameImage": "RogueGenesia.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "RogueGenesia"
+  },
+  {
+    "displayName": "Across the Obelisk",
+    "steamFolderName": "Across the Obelisk",
+    "settingsIdentifier": "AcrossTheObelisk",
+    "exeName": ["AcrossTheObelisk.exe"],
+    "dataFolderName": "AcrossTheObelisk_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/across-the-obelisk/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1385380" }],
+    "gameImage": "AcrossTheObelisk.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "AcrossTheObelisk"
+  },
+  {
+    "displayName": "ULTRAKILL",
+    "steamFolderName": "ULTRAKILL",
+    "settingsIdentifier": "ULTRAKILL",
+    "exeName": ["ULTRAKILL.exe"],
+    "dataFolderName": "ULTRAKILL_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/ultrakill/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1229490" }],
+    "gameImage": "ULTRAKILL.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "ULTRAKILL"
+  },
+  {
+    "displayName": "Ultimate Chicken Horse",
+    "steamFolderName": "Ultimate Chicken Horse",
+    "settingsIdentifier": "UltimateChickenHorse",
+    "exeName": ["UltimateChickenHorse.exe"],
+    "dataFolderName": "UltimateChickenHorse_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/ultimate-chicken-horse/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "386940" }],
+    "gameImage": "ultimate-chicken-horse.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "UltimateChickenHorse"
+  },
+  {
+    "displayName": "Atrio: The Dark Wild",
+    "steamFolderName": "Atrio The Dark Wild",
+    "settingsIdentifier": "AtrioTheDarkWild",
+    "exeName": ["Atrio.exe"],
+    "dataFolderName": "Atrio_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/atrio-the-dark-wild/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1125390" }],
+    "gameImage": "atrio-the-dark-wild.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "AtrioTheDarkWild"
+  },
+  {
+    "displayName": "Brotato",
+    "steamFolderName": "Brotato",
+    "settingsIdentifier": "Brotato",
+    "exeName": ["Brotato.exe"],
+    "dataFolderName": "",
+    "thunderstoreUrl": "https://thunderstore.io/c/brotato/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1942280" }],
+    "gameImage": "brotato.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "GodotML",
+    "id": "Brotato"
+  },
+  {
+    "displayName": "Ancient Dungeon VR",
+    "steamFolderName": "Ancient Dungeon VR",
+    "settingsIdentifier": "AncientDungeonVR",
+    "exeName": ["Ancient_Dungeon.exe"],
+    "dataFolderName": "Ancient_Dungeon_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/ancient-dungeon-vr/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1125240" }, { "_storePlatform": "Oculus Store" }],
+    "gameImage": "ancient-dungeon-vr.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "AncientDungeonVR",
+    "id": "AncientDungeonVR"
+  },
+  {
+    "displayName": "RUMBLE",
+    "steamFolderName": "RUMBLE",
+    "settingsIdentifier": "RUMBLE",
+    "exeName": ["RUMBLE.exe"],
+    "dataFolderName": "RUMBLE_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/rumble/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "890550" }],
+    "gameImage": "RUMBLE.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "MelonLoader",
+    "id": "RUMBLE"
+  },
+  {
+    "displayName": "Dome Keeper",
+    "steamFolderName": "Dome Keeper",
+    "settingsIdentifier": "DomeKeeper",
+    "exeName": ["domekeeper.exe"],
+    "dataFolderName": "",
+    "thunderstoreUrl": "https://thunderstore.io/c/dome-keeper/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1637320" }],
+    "gameImage": "dome-keeper.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "GodotML",
+    "id": "DomeKeeper"
+  },
+  {
+    "displayName": "Skul: The Hero Slayer",
+    "steamFolderName": "Skul",
+    "settingsIdentifier": "SkulTheHeroSlayer",
+    "exeName": ["Skul.exe"],
+    "dataFolderName": "Skul_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/skul-the-hero-slayer/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1147560" }],
+    "gameImage": "skul-the-hero-slayer.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "SkulTheHeroSlayer"
+  },
+  {
+    "displayName": "Sons Of The Forest",
+    "steamFolderName": "Sons Of The Forest",
+    "settingsIdentifier": "SonsOfTheForest",
+    "exeName": ["SonsOfTheForest.exe"],
+    "dataFolderName": "SonsOfTheForest_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/sons-of-the-forest/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1326470" }],
+    "gameImage": "sons-of-the-forest.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "SonsOfTheForest"
+  },
+  {
+    "displayName": "The Ouroboros King",
+    "steamFolderName": "The Ouroboros King",
+    "settingsIdentifier": "TheOuroborosKing",
+    "exeName": ["The Ouroboros King.exe"],
+    "dataFolderName": "The Ouroboros King_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/the-ouroboros-king/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "2096510" }],
+    "gameImage": "the-ouroboros-king.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "TheOuroborosKing"
+  },
+  {
+    "displayName": "Wrestling Empire",
+    "steamFolderName": "Wrestling Empire",
+    "settingsIdentifier": "WrestlingEmpire",
+    "exeName": ["Wrestling Empire.exe"],
+    "dataFolderName": "Wrestling Empire_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/wrestling-empire/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1620340" }],
+    "gameImage": "wrestling-empire.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "WrestlingEmpire"
+  },
+  {
+    "displayName": "Receiver 2",
+    "steamFolderName": "Receiver 2",
+    "settingsIdentifier": "Receiver2",
+    "exeName": ["Receiver2.exe"],
+    "dataFolderName": "Receiver2_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/receiver-2/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1129310" }],
+    "gameImage": "receiver-2.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Receiver2"
+  },
+  {
+    "displayName": "The Planet Crafter",
+    "steamFolderName": "The Planet Crafter",
+    "settingsIdentifier": "ThePlanetCrafter",
+    "exeName": ["Planet Crafter.exe"],
+    "dataFolderName": "ThePlanetCrafter_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/the-planet-crafter/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1284190" }],
+    "gameImage": "the-planet-crafter.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "ThePlanetCrafter"
+  },
+  {
+    "displayName": "Patch Quest",
+    "steamFolderName": "Patch Quest",
+    "settingsIdentifier": "PatchQuest",
+    "exeName": ["Patch Quest.exe"],
+    "dataFolderName": "PatchQuest_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/patch-quest/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1347970" }],
+    "gameImage": "patch-quest.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "MelonLoader",
+    "id": "PatchQuest"
+  },
+  {
+    "displayName": "Shadows Over Loathing",
+    "steamFolderName": "Shadows Over Loathing\\Shadows Over Loathing",
+    "settingsIdentifier": "ShadowsOverLoathing",
+    "exeName": ["Shadows Over Loathing.exe"],
+    "dataFolderName": "ShadowsOverLoathing_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/shadows-over-loathing/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1939160" }],
+    "gameImage": "shadows-over-loathing.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "ShadowsOverLoathing"
+  },
+  {
+    "displayName": "West of Loathing",
+    "steamFolderName": "West of Loathing",
+    "settingsIdentifier": "WestofLoathing",
+    "exeName": ["West of Loathing.exe"],
+    "dataFolderName": "WestofLoathing_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/west-of-loathing/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "597220" }],
+    "gameImage": "west-of-loathing.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "WestofLoathing"
+  },
+  {
+    "displayName": "Sun Haven",
+    "steamFolderName": "Sun Haven",
+    "settingsIdentifier": "SunHaven",
+    "exeName": ["Sun Haven.exe"],
+    "dataFolderName": "SunHaven_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/sun-haven/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1432860" }],
+    "gameImage": "sun-haven.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "SunHaven"
+  },
+  {
+    "displayName": "Wildfrost",
+    "steamFolderName": "Wildfrost",
+    "settingsIdentifier": "Wildfrost",
+    "exeName": ["Wildfrost.exe"],
+    "dataFolderName": "Wildfrost_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/wildfrost/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1811990" }],
+    "gameImage": "wildfrost.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Wildfrost"
+  },
+  {
+    "displayName": "Shadows of Doubt",
+    "steamFolderName": "Shadows of Doubt",
+    "settingsIdentifier": "ShadowsofDoubt",
+    "exeName": ["Shadows of Doubt.exe"],
+    "dataFolderName": "ShadowsofDoubt_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/shadows-of-doubt/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "986130" }],
+    "gameImage": "shadows-of-doubt.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "ShadowsofDoubt"
+  },
+  {
+    "displayName": "Garfield Kart - Furious Racing",
+    "steamFolderName": "Garfield Kart - Furious Racing",
+    "settingsIdentifier": "GarfieldKartFuriousRacing",
+    "exeName": ["Garfield Kart Furious Racing.exe"],
+    "dataFolderName": "GarfieldKartFuriousRacing_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/garfield-kart-furious-racing/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1085510" }],
+    "gameImage": "garfield-kart-furious-racing.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "GarfieldKartFuriousRacing"
+  },
+  {
+    "displayName": "Techtonica",
+    "steamFolderName": "Techtonica",
+    "settingsIdentifier": "Techtonica",
+    "exeName": ["Techtonica.exe"],
+    "dataFolderName": "Techtonica_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/techtonica/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1457320" }],
+    "gameImage": "techtonica.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Techtonica"
+  },
+  {
+    "displayName": "Thronefall",
+    "steamFolderName": "Thronefall",
+    "settingsIdentifier": "Thronefall",
+    "exeName": ["Thronefall.exe"],
+    "dataFolderName": "Thronefall_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/thronefall/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "2239150" }],
+    "gameImage": "thronefall.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Thronefall"
+  },
+  {
+    "displayName": "We Love Katamari REROLL+ Royal Reverie",
+    "steamFolderName": "WLKRR",
+    "settingsIdentifier": "WeLoveKatamariRerollRoyalReverie",
+    "exeName": ["WLKRR.exe"],
+    "dataFolderName": "WeLoveKatamariRerollRoyalReverie_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/we-love-katamari-reroll-royal-reverie/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1730700" }],
+    "gameImage": "WLKRR.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "WeLoveKatamariRerollRoyalReverie"
+  },
+  {
+    "displayName": "Wizard of Legend",
+    "steamFolderName": "Wizard of Legend",
+    "settingsIdentifier": "WizardOfLegend",
+    "exeName": ["WizardOfLegend.exe"],
+    "dataFolderName": "WizardOfLegend_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/wizard-of-legend/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "445980" }],
+    "gameImage": "WizardOfLegend.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "WizardOfLegend"
+  },
+  {
+    "displayName": "Bomb Rush Cyberfunk",
+    "steamFolderName": "BombRushCyberfunk",
+    "settingsIdentifier": "BombRushCyberfunk",
+    "exeName": ["Bomb Rush Cyberfunk.exe"],
+    "dataFolderName": "Bomb Rush Cyberfunk_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/bomb-rush-cyberfunk/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [
+      { "_storePlatform": "Steam", "_storeIdentifier": "1353230" },
+      { "_storePlatform": "Xbox Game Pass", "_storeIdentifier": "TeamReptile.BombRushCyberfunk" }
+    ],
+    "gameImage": "BombRushCyberfunk.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "BombRushCyberfunk"
+  },
+  {
+    "displayName": "TouhouLostBranchOfLegend",
+    "steamFolderName": "LBoL",
+    "settingsIdentifier": "TouhouLostBranchOfLegend",
+    "exeName": ["LBoL.exe"],
+    "dataFolderName": "LBoL_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/touhou-lost-branch-of-legend/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1140150" }],
+    "gameImage": "TouhouLostBranchOfLegend.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "TouhouLostBranchOfLegend"
+  },
+  {
+    "displayName": "Wizard With A Gun",
+    "steamFolderName": "Wizard With A Gun",
+    "settingsIdentifier": "WizardWithAGun",
+    "exeName": ["wizardwithagun.exe"],
+    "dataFolderName": "wizardwithagun_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/wizard-with-a-gun/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1150530" }],
+    "gameImage": "WizardWithAGun.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "WizardWithAGun"
+  },
+  {
+    "displayName": "Sunkenland",
+    "steamFolderName": "Sunkenland",
+    "settingsIdentifier": "Sunkenland",
+    "exeName": ["Sunkenland.exe"],
+    "dataFolderName": "Sunkenland_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/sunkenland/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "2080690" }],
+    "gameImage": "Sunkenland.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Sunkenland"
+  },
+  {
+    "displayName": "Atomicrops",
+    "steamFolderName": "Atomicrops",
+    "settingsIdentifier": "Atomicrops",
+    "exeName": ["Atomicrops.exe"],
+    "dataFolderName": "Atomicrops_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/atomicrops/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "757320" }],
+    "gameImage": "Atomicrops.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Atomicrops"
+  },
+  {
+    "displayName": "Erenshor",
+    "steamFolderName": "Erenshor",
+    "settingsIdentifier": "Erenshor",
+    "exeName": ["Erenshor.exe"],
+    "dataFolderName": "Erenshor_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/erenshor/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "2382520" }],
+    "gameImage": "Erenshor.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Erenshor"
+  },
+  {
+    "displayName": "Last Train Outta' Wormtown",
+    "steamFolderName": "Last Train Outta' Wormtown",
+    "settingsIdentifier": "LastTrainOuttaWormtown",
+    "exeName": ["Last Train Out Of WormTown.exe"],
+    "dataFolderName": "Last Train Out Of WormTown_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/last-train-outta-wormtown/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "2318480" }],
+    "gameImage": "LastTrainOuttaWormtown.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "LastTrainOuttaWormtown"
+  },
+  {
+    "displayName": "DREDGE",
+    "steamFolderName": "DREDGE",
+    "settingsIdentifier": "Dredge",
+    "exeName": ["DREDGE.exe"],
+    "dataFolderName": "DREDGE_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/dredge/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1562430" }],
+    "gameImage": "Dredge.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Dredge"
+  },
+  {
+    "displayName": "Cities: Skylines II",
+    "steamFolderName": "Cities Skylines II",
+    "settingsIdentifier": "CitiesSkylines2",
+    "exeName": ["Cities2.exe"],
+    "dataFolderName": "CitiesSkylines2_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/cities-skylines-ii/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [
+      { "_storePlatform": "Steam", "_storeIdentifier": "949230" },
+      { "_storePlatform": "Xbox Game Pass", "_storeIdentifier": "ParadoxInteractive.CitiesSkylinesII-PCEdition" }
+    ],
+    "gameImage": "CitiesSkylines2.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "CitiesSkylines2"
+  },
+  {
+    "displayName": "Lethal Company",
+    "steamFolderName": "Lethal Company",
+    "settingsIdentifier": "LethalCompany",
+    "exeName": ["Lethal Company.exe"],
+    "dataFolderName": "Lethal Company_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/lethal-company/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1966720" }],
+    "gameImage": "LethalCompany.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "LethalCompany"
+  },
+  {
+    "displayName": "Meeple Station",
+    "steamFolderName": "Meeple Station",
+    "settingsIdentifier": "MeepleStation",
+    "exeName": ["Meeple Station.exe"],
+    "dataFolderName": "MeepleStation_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/meeple-station/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "900010" }],
+    "gameImage": "MeepleStation.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "MeepleStation"
+  },
+  {
+    "displayName": "Void Crew",
+    "steamFolderName": "Void Crew",
+    "settingsIdentifier": "VoidCrew",
+    "exeName": ["Void Crew.exe"],
+    "dataFolderName": "VoidCrew_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/void-crew/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1063420" }],
+    "gameImage": "VoidCrew.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "VoidCrew"
+  },
+  {
+    "displayName": "Sailwind",
+    "steamFolderName": "Sailwind",
+    "settingsIdentifier": "Sailwind",
+    "exeName": ["Sailwind.exe"],
+    "dataFolderName": "Sailwind_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/sailwind/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1764530" }],
+    "gameImage": "Sailwind.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Sailwind"
+  },
+  {
+    "displayName": "Voices of the Void",
+    "steamFolderName": "",
+    "settingsIdentifier": "VotV",
+    "exeName": ["VotV.exe"],
+    "dataFolderName": "VotV",
+    "thunderstoreUrl": "https://thunderstore.io/c/voices-of-the-void/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Other" }],
+    "gameImage": "VotV.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "ShimLoader",
+    "id": "VotV"
+  },
+  {
+    "displayName": "Palworld",
+    "steamFolderName": "Palworld",
+    "settingsIdentifier": "Palworld",
+    "exeName": ["Palworld.exe"],
+    "dataFolderName": "Pal",
+    "thunderstoreUrl": "https://thunderstore.io/c/palworld/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1623730" }],
+    "gameImage": "Palworld.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "ShimLoader",
+    "id": "Palworld"
+  },
+  {
+    "displayName": "Plasma",
+    "steamFolderName": "Plasma",
+    "settingsIdentifier": "Plasma",
+    "exeName": ["Plasma.exe"],
+    "dataFolderName": "Plasma_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/plasma/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1409160" }],
+    "gameImage": "Plasma.jpg",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Plasma"
+  },
+  {
+    "displayName": "Content Warning",
+    "steamFolderName": "Content Warning",
+    "settingsIdentifier": "ContentWarning",
+    "exeName": ["Content Warning.exe"],
+    "dataFolderName": "Content Warning_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/content-warning/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "2881650" }],
+    "gameImage": "ContentWarning.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "ContentWarning"
+  },
+  {
+    "displayName": "Balatro",
+    "steamFolderName": "Balatro",
+    "settingsIdentifier": "Balatro",
+    "exeName": ["Balatro.exe"],
+    "dataFolderName": "Balatro_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/balatro/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "2379780" }],
+    "gameImage": "Balatro.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "Lovely",
+    "id": "Balatro"
+  },
+  {
+    "displayName": "Bopl Battle",
+    "steamFolderName": "Bopl Battle",
+    "settingsIdentifier": "BoplBattle",
+    "exeName": ["BoplBattle.exe"],
+    "dataFolderName": "BoplBattle_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/bopl-battle/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1686940" }],
+    "gameImage": "BoplBattle.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "BoplBattle"
+  },
+  {
+    "displayName": "Vertigo 2",
+    "steamFolderName": "Vertigo 2",
+    "settingsIdentifier": "Vertigo2",
+    "exeName": ["vertigo2.exe"],
+    "dataFolderName": "vertigo2_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/vertigo-2/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "843390" }],
+    "gameImage": "Vertigo2.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Vertigo2"
+  },
+  {
+    "displayName": "Against the Storm",
+    "steamFolderName": "Against the Storm",
+    "settingsIdentifier": "AgainstTheStorm",
+    "exeName": ["Against the Storm.exe"],
+    "dataFolderName": "Against the Storm_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/against-the-storm/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1336490" }],
+    "gameImage": "AgainstTheStorm.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "AgainstTheStorm"
+  },
+  {
+    "displayName": "Lycans",
+    "steamFolderName": "Lycans",
+    "settingsIdentifier": "Lycans",
+    "exeName": ["Lycans.exe"],
+    "dataFolderName": "Lycans_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/lycans/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "2596100" }],
+    "gameImage": "Lycans.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Lycans"
+  },
+  {
+    "displayName": "Castle Story",
+    "steamFolderName": "Castle Story",
+    "settingsIdentifier": "CastleStory",
+    "exeName": ["Castle Story.exe"],
+    "dataFolderName": "Castle Story_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/castle-story/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "SteamDirect", "_storeIdentifier": "227860" }],
+    "gameImage": "CastleStory.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "CastleStory"
+  },
+  {
+    "displayName": "Panicore",
+    "steamFolderName": "Panicore",
+    "settingsIdentifier": "Panicore",
+    "exeName": ["Panicore.exe"],
+    "dataFolderName": "Panicore",
+    "thunderstoreUrl": "https://thunderstore.io/c/panicore/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "2695940" }],
+    "gameImage": "Panicore.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "ShimLoader",
+    "id": "Panicore"
+  },
+  {
+    "displayName": "Risk of Rain Returns",
+    "steamFolderName": "Risk of Rain Returns",
+    "settingsIdentifier": "RiskofRainReturns",
+    "exeName": ["Risk of Rain Returns.exe"],
+    "dataFolderName": "",
+    "thunderstoreUrl": "https://thunderstore.io/c/risk-of-rain-returns/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1337520" }],
+    "gameImage": "RiskOfRainReturns.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "ReturnOfModding",
+    "id": "RiskofRainReturns"
+  },
+  {
+    "displayName": "Magicraft",
+    "steamFolderName": "Magicraft",
+    "settingsIdentifier": "Magicraft",
+    "exeName": ["Magicraft.exe"],
+    "dataFolderName": "Magicraft_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/magicraft/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "2103140" }],
+    "gameImage": "Magicraft.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Magicraft"
+  },
+  {
+    "displayName": "Another Crab's Treasure",
+    "steamFolderName": "AnotherCrabsTreasure",
+    "settingsIdentifier": "AnotherCrabsTreasure",
+    "exeName": ["AnotherCrabsTreasure.exe"],
+    "dataFolderName": "AnotherCrabsTreasure_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/another-crabs-treasure/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1887840" }],
+    "gameImage": "AnotherCrabsTreasure.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "AnotherCrabsTreasure"
+  },
+  {
+    "displayName": "Gladio Mori",
+    "steamFolderName": "Gladio Mori",
+    "settingsIdentifier": "GladioMori",
+    "exeName": ["Gladio Mori.exe"],
+    "dataFolderName": "Gladio Mori_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/gladio-mori/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "2689120" }],
+    "gameImage": "GladioMori.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "GladioMori"
+  },
+  {
+    "displayName": "Slipstream: Rogue Space",
+    "steamFolderName": "Slipstream Rogue Space",
+    "settingsIdentifier": "SlipstreamRogueSpace",
+    "exeName": ["Slipstream_Win.exe"],
+    "dataFolderName": "Slipstream_Win_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/slipstream-rogue-space/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "2765860" }],
+    "gameImage": "SlipstreamRogueSpace.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "SlipstreamRogueSpace"
+  },
+  {
+    "displayName": "Back to the Dawn",
+    "steamFolderName": "MetalHeadGames",
+    "settingsIdentifier": "BacktotheDawn",
+    "exeName": ["Back To The Dawn.exe"],
+    "dataFolderName": "Back To The Dawn_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/back-to-the-dawn/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1735700" }],
+    "gameImage": "BackToTheDawn.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "BacktotheDawn"
+  },
+  {
+    "displayName": "Below the Stone",
+    "steamFolderName": "Below The Stone",
+    "settingsIdentifier": "BelowTheStone",
+    "exeName": ["Below The Stone.exe"],
+    "dataFolderName": "Below The Stone_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/below-the-stone/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1170230" }],
+    "gameImage": "BelowTheStone.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "BelowTheStone"
+  },
+  {
+    "displayName": "Gloomwood",
+    "steamFolderName": "Gloomwood",
+    "settingsIdentifier": "Gloomwood",
+    "exeName": ["Gloomwood.exe"],
+    "dataFolderName": "Gloomwood_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/gloomwood/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1150760" }],
+    "gameImage": "Gloomwood.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Gloomwood"
+  },
+  {
+    "displayName": "Among Us",
+    "steamFolderName": "Among Us",
+    "settingsIdentifier": "AmongUs",
+    "exeName": ["Among Us.exe"],
+    "dataFolderName": "Among Us_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/among-us/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [
+      { "_storePlatform": "Steam", "_storeIdentifier": "945360" },
+      { "_storePlatform": "Epic Games Store", "_storeIdentifier": "among-us" },
+      { "_storePlatform": "Xbox Game Pass", "_storeIdentifier": "Innersloth.AmongUs" },
+      { "_storePlatform": "Other" }
+    ],
+    "gameImage": "AmongUs.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "AmongUs"
+  },
+  {
+    "displayName": "Betrayal Beach",
+    "steamFolderName": "Betrayal Beach",
+    "settingsIdentifier": "BetrayalBeach",
+    "exeName": ["Betrayal Beach.exe"],
+    "dataFolderName": "Betrayal Beach_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/betrayal-beach/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "2643810" }],
+    "gameImage": "BetrayalBeach.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "BetrayalBeach"
+  },
+  {
+    "displayName": "Arcus Chroma",
+    "steamFolderName": "Arcus Chroma",
+    "settingsIdentifier": "ArcusChroma",
+    "exeName": ["Arcus Chroma.exe"],
+    "dataFolderName": "Arcus Chroma_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/arcus-chroma/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1447350" }],
+    "gameImage": "ArcusChroma.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "ArcusChroma"
+  },
+  {
+    "displayName": "Deep Rock Galactic: Survivor",
+    "steamFolderName": "Deep Rock Survivor",
+    "settingsIdentifier": "DeepRockGalacticSurvivor",
+    "exeName": ["DRG Survivor.exe"],
+    "dataFolderName": "DRG Survivor_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/deep-rock-galactic-survivor/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "2321470" }],
+    "gameImage": "DeepRockGalacticSurvivor.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "DeepRockGalacticSurvivor"
+  },
+  {
+    "displayName": "Ale & Tale Tavern",
+    "steamFolderName": "Ale & Tale Tavern",
+    "settingsIdentifier": "AleAndTaleTavern",
+    "exeName": ["Ale and Tale Tavern.exe"],
+    "dataFolderName": "Ale and Tale Tavern_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/ale-and-tale-tavern/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "2683150" }],
+    "gameImage": "AleAndTaleTavern.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "AleAndTaleTavern"
+  },
+  {
+    "displayName": "Screw Drivers",
+    "steamFolderName": "Screw Drivers",
+    "settingsIdentifier": "ScrewDrivers",
+    "exeName": ["Screw Drivers.exe"],
+    "dataFolderName": "Screw Drivers_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/screw-drivers/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1279510" }],
+    "gameImage": "ScrewDrivers.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "ScrewDrivers"
+  },
+  {
+    "displayName": "Nine Sols",
+    "steamFolderName": "Nine Sols",
+    "settingsIdentifier": "NineSols",
+    "exeName": ["NineSols.exe"],
+    "dataFolderName": "Nine Sols_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/nine-sols/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1809540" }],
+    "gameImage": "NineSols.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "NineSols"
+  },
+  {
+    "displayName": "Goodbye Volcano High",
+    "steamFolderName": "Goodbye Volcano High",
+    "settingsIdentifier": "GoodbyeVolcanoHigh",
+    "exeName": ["Goodbye Volcano High.exe"],
+    "dataFolderName": "Goodbye Volcano High_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/goodbye-volcano-high/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1310330" }],
+    "gameImage": "GoodbyeVolcanoHigh.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "GoodbyeVolcanoHigh"
+  },
+  {
+    "displayName": "Supermarket Together",
+    "steamFolderName": "Supermarket Together",
+    "settingsIdentifier": "SupermarketTogether",
+    "exeName": ["Supermarket Together.exe"],
+    "dataFolderName": "Supermarket Together_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/supermarket-together/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "2709570" }],
+    "gameImage": "SupermarketTogether.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "SupermarketTogether"
+  },
+  {
+    "displayName": "Hades II",
+    "steamFolderName": "Hades II\\Ship",
+    "settingsIdentifier": "HadesII",
+    "exeName": ["Hades2.exe"],
+    "dataFolderName": "",
+    "thunderstoreUrl": "https://thunderstore.io/c/hades-ii/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1145350" }],
+    "gameImage": "Hades2.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "ReturnOfModding",
+    "id": "HadesII"
+  },
+  {
+    "displayName": "Shapez 2",
+    "steamFolderName": "shapez 2",
+    "settingsIdentifier": "Shapez2",
+    "exeName": ["shapez 2.exe"],
+    "dataFolderName": "shapez 2_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/shapez-2/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "2162800" }],
+    "gameImage": "Shapez2.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Shapez2"
+  },
+  {
+    "displayName": "Paquerette Down the Bunburrows",
+    "steamFolderName": "Paquerette Down the Bunburrows",
+    "settingsIdentifier": "PaqueretteDownTheBunburrows",
+    "exeName": ["Paquerette Down the Bunburrows.exe"],
+    "dataFolderName": "Paquerette Down the Bunburrows_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/paquerette-down-the-bunburrows/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "1628610" }],
+    "gameImage": "PaqueretteDownTheBunburrows.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "PaqueretteDownTheBunburrows"
+  },
+  {
+    "displayName": "Hard Time III",
+    "steamFolderName": "Hard Time III",
+    "settingsIdentifier": "HardTime3",
+    "exeName": ["Hard Time III.exe"],
+    "dataFolderName": "Hard Time III_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/hard-time-3/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "3009850" }],
+    "gameImage": "HardTime3.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "HardTime3"
+  },
+  {
+    "displayName": "Tank Team",
+    "steamFolderName": "Tank Team",
+    "settingsIdentifier": "TankTeam",
+    "exeName": ["Tank Team.exe"],
+    "dataFolderName": "Tank Team_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/tank-team/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "2587450" }],
+    "gameImage": "TankTeam.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "TankTeam"
+  },
+  {
+    "displayName": "Distance",
+    "steamFolderName": "Distance",
+    "settingsIdentifier": "Distance",
+    "exeName": ["Distance.exe"],
+    "dataFolderName": "Distance_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/distance/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "233610" }],
+    "gameImage": "Distance.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Distance"
+  },
+  {
+    "displayName": "Five Nights at Freddy's: Into the Pit",
+    "steamFolderName": "Five Nights at Freddy's Into the Pit",
+    "settingsIdentifier": "FiveNightsAtFreddysIntoThePit",
+    "exeName": ["Five Nights at Freddy's Into the Pit.exe"],
+    "dataFolderName": "Five Nights at Freddy's Into the Pit_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/five-nights-at-freddys-into-the-pit/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "2638370" }],
+    "gameImage": "FiveNightsAtFreddysIntoThePit.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "FiveNightsAtFreddysIntoThePit"
+  },
+  {
+    "displayName": "GoreBox",
+    "steamFolderName": "GoreBox",
+    "settingsIdentifier": "GoreBox",
+    "exeName": ["GoreBox.exe"],
+    "dataFolderName": "GoreBox_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/gorebox/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "2027330" }],
+    "gameImage": "GoreBox.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "GoreBox"
+  },
+  {
+    "displayName": "TCG Card Shop Simulator",
+    "steamFolderName": "TCG Card Shop Simulator",
+    "settingsIdentifier": "TCG Card Shop Simulator",
+    "exeName": ["Card Shop Simulator.exe"],
+    "dataFolderName": "Card Shop Simulator_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/tcg-card-shop-simulator/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "3070070" }],
+    "gameImage": "TCGCardShopSimulator.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "TCGCardShopSimulator"
+  },
+  {
+    "displayName": "Old Market Simulator",
+    "steamFolderName": "Old Market Simulator",
+    "settingsIdentifier": "Old Market Simulator",
+    "exeName": ["Old Market Simulator.exe"],
+    "dataFolderName": "Old Market Simulator_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/old-market-simulator/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "2878420" }],
+    "gameImage": "OldMarketSimulator.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "OldMarketSimulator"
+  },
+  {
+    "displayName": "Subterranauts",
+    "steamFolderName": "Subterranauts",
+    "settingsIdentifier": "Subterranauts",
+    "exeName": ["Subterranauts.exe"],
+    "dataFolderName": "Subterranauts_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/subterranauts/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "3075800" }],
+    "gameImage": "Subterranauts.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "Subterranauts"
+  },
+  {
+    "displayName": "SULFUR",
+    "steamFolderName": "Sulfur",
+    "settingsIdentifier": "SULFUR",
+    "exeName": ["Sulfur.exe"],
+    "dataFolderName": "Sulfur_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/sulfur/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "2124120" }],
+    "gameImage": "SULFUR.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "SULFUR"
+  },
+  {
+    "displayName": "WEBFISHING",
+    "steamFolderName": "WEBFISHING",
+    "settingsIdentifier": "WEBFISHING",
+    "exeName": ["webfishing.exe"],
+    "dataFolderName": "",
+    "thunderstoreUrl": "https://thunderstore.io/c/webfishing/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "3146520" }],
+    "gameImage": "WEBFISHING.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "GDWeave",
+    "id": "WEBFISHING"
+  },
+  {
+    "displayName": "STRAFTAT",
+    "steamFolderName": "STRAFTAT",
+    "settingsIdentifier": "STRAFTAT",
+    "exeName": ["STRAFTAT.exe"],
+    "dataFolderName": "STRAFTAT_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/straftat/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "2386720" }],
+    "gameImage": "STRAFTAT.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "STRAFTAT"
+  },
+  {
+    "displayName": "ATLYSS",
+    "steamFolderName": "ATLYSS",
+    "settingsIdentifier": "ATLYSS",
+    "exeName": ["ATLYSS.exe"],
+    "dataFolderName": "ATLYSS_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/atlyss/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "2768430" }],
+    "gameImage": "ATLYSS.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "ATLYSS"
+  },
+  {
+    "displayName": "Peaks of Yore",
+    "steamFolderName": "Peaks of Yore",
+    "settingsIdentifier": "Peaks of Yore",
+    "exeName": ["Peaks of Yore.exe"],
+    "dataFolderName": "Peaks of Yore_Data",
+    "thunderstoreUrl": "https://thunderstore.io/c/peaks-of-yore/api/v1/package-listing-index/",
+    "exclusionsUrl": "https://raw.githubusercontent.com/ebkr/r2modmanPlus/master/modExclusions.md",
+    "storePlatformMetadata": [{ "_storePlatform": "Steam", "_storeIdentifier": "2236070" }],
+    "gameImage": "PeaksOfYore.png",
+    "displayMode": 0,
+    "instanceType": "Game",
+    "packageLoader": "BepInEx",
+    "id": "PeaksOfYore"
+  }
 ]
