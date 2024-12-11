@@ -32,6 +32,36 @@
   /* animation: hollow-purple-red 9s ease-out infinite; */
 }
 
+/* @keyframes hollow-purple-blue {
+  0% {
+    transform: translate(0%, 0%) rotate(720deg);
+  }
+
+  90% {
+    transform: translate(-50%, 50%) rotate(0deg);
+  }
+
+  100% {
+    transform: scale(8) translate(0%, 0%);
+    transform-origin: center;
+  }
+}
+
+@keyframes hollow-purple-red {
+  0% {
+    transform: translate(-100%, 100%) rotate(-720deg);
+  }
+
+  90% {
+    transform: translate(-50%, 50%) rotate(0deg);
+  }
+
+  100% {
+    transform: scale(8) translate(0%, 0%);
+    transform-origin: center;
+  }
+} */
+
 .gradientBlob[data-blob-3] {
   background-image: radial-gradient(circle at center, hsl(var(--clr-accent-hs), 40%, 0.45), transparent 60%);
   left: 0;

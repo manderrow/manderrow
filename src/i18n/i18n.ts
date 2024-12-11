@@ -3,16 +3,18 @@ import { BaseDict } from "@solid-primitives/i18n";
 import { createResource, createSignal } from "solid-js";
 
 import en_ca from "./locales/en-CA.json"; // en_ca has the base keys
+import localeNames from "./locales/localeNames.json";
+
 import { getPreferredLocales } from "../api";
 
-const rawLocales = ["en-CA", "en-US"] as const; // fully translated locales
+const rawLocales = ["en-CA", "en-US", "es", "fr-FR"] as const; // fully translated locales
 
 const DEFAULT_LOCALE = rawLocales[0];
 
 export type Locale = (typeof rawLocales)[number];
-
 export type RawDictionary = typeof en_ca;
 export type Dictionary = i18n.Flatten<RawDictionary>;
+export const localeNamesMap: { [key in Locale]: string } = Object.freeze(localeNames);
 
 function flattenDict(dict: RawDictionary) {
   return i18n.flatten(dict) as Flatten<Exclude<RawDictionary, undefined>>;

@@ -1,17 +1,17 @@
 import { faStar } from "@fortawesome/free-regular-svg-icons";
+import { faGlobe, faList, faTableCellsLarge } from "@fortawesome/free-solid-svg-icons";
 import { A } from "@solidjs/router";
 import Fa from "solid-fa";
 import { createSignal, For, onCleanup, onMount } from "solid-js";
 
+import { ListSortType } from "../../enums/ListSortOrder";
 import { games, gamesPopularity } from "../../globals";
+import { Locale, localeNamesMap, setLocale, locale, t } from "../../i18n/i18n";
 import { Game } from "../../types";
 
 import blobStyles from "./GameBlobs.module.css";
 import gameListStyles from "./GameList.module.css";
 import styles from "./GameSelect.module.css";
-import { ListSortType } from "../../enums/ListSortOrder";
-import { faList, faTableCellsLarge } from "@fortawesome/free-solid-svg-icons";
-import { t } from "../../i18n/i18n";
 
 enum DisplayType {
   Card = -1,
@@ -38,6 +38,22 @@ export default function GameSelect() {
         <div class={blobStyles.gradientBlob} data-blob-2></div>
         <div class={blobStyles.gradientBlob} data-blob-3></div>
         <div class={blobStyles.gradientBlob} data-blob-4></div>
+      </div>
+      <div class={styles.language}>
+        <form action="#" on:submit={(e) => e.preventDefault()}>
+          <label for="language" aria-label="Change language">
+            <Fa icon={faGlobe} />
+          </label>
+          <select name="language" id="language" on:change={(e) => setLocale(e.target.value as Locale)}>
+            <For each={Object.entries(localeNamesMap)}>
+              {([loc, name]) => (
+                <option value={loc} selected={locale() === loc}>
+                  {name}
+                </option>
+              )}
+            </For>
+          </select>
+        </form>
       </div>
       <header class={styles.header}>
         <h1>{t("game_select.title")}</h1>
