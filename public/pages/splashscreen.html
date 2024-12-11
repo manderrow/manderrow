@@ -11,12 +11,16 @@
     <link rel="stylesheet" href="/src/App.css" />
 
     <style>
+      :root {
+        font-size: 16px;
+      }
+
       html {
         height: 100%;
       }
 
       body {
-        background-image: radial-gradient(circle at top left, hsl(var(--clr-neutral-200)) 0%, hsl(var(--clr-neutral-200)) 30%, hsl(var(--clr-neutral-100)) 70%);
+        background-image: radial-gradient(ellipse at top left, hsla(218, 20%, 20%, 0.75) 30%, hsla(214, 28%, 15%, 0.75) 60%);
         height: 100%;
         user-select: none;
         -webkit-user-select: none;
@@ -33,6 +37,8 @@
         text-align: center;
         text-shadow: 0 0 1.25rem rgba(0, 0, 0, 0.5);
         overflow: hidden;
+        border: 4px solid rgba(165, 165, 165, 0.25);
+        border-radius: 4px;
       }
 
       .splashscreen__title {
@@ -42,6 +48,25 @@
 
       .splashscreen__text {
         color: hsl(var(--clr-neutral-700));
+        animation: dots 0.5s linear infinite alternate;
+      }
+
+      .splashscreen__text::after {
+        content: var(--text);
+      }
+
+      @keyframes dots {
+        0% {
+          --text: ".";
+        }
+
+        50% {
+          --text: "..";
+        }
+
+        100% {
+          --text: "...";
+        }
       }
 
       .splashscreen__loader {
@@ -51,7 +76,7 @@
       .splashscreen__loader-img {
         background-color: hsl(var(--clr-neutral-900));
         -webkit-mask: url("/images/loading.svg") no-repeat center;
-        mask: url("/images/loading.svg") no-repeat center;
+        mask: url("/img/loading.svg") no-repeat center;
         width: 4rem;
         height: 4rem;
       }
