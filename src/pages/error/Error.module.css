@@ -1,0 +1,25 @@
+.error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1em;
+}
+
+.error_heading {
+  font-size: 12rem;
+  color: var(--clr-neutral-2);
+  font-weight: 200;
+  text-transform: uppercase;
+}
+
+.error_path {
+  color: var(--clr-neutral-3);
+}
+
+.error_msg {
+  margin: 0.5em 0;
+}
+
+.error button {
+  border-radius: 100vmax;
+}
