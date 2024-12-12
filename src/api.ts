@@ -4,7 +4,7 @@ import { Game, Mod } from "./types";
 /**
  * An error thrown from native code.
  */
-class NativeError extends Error {
+export class NativeError extends Error {
   /**
    * A native stack trace. Inspecting this can help to determine where in
    * native code the error originated from.
@@ -42,10 +42,17 @@ export async function getGamesPopularity(): Promise<{ [key: string]: number }> {
 
 export type FetchEvent = { type: "Progress"; completed: number; total: number };
 
-export async function fetchModIndex(game: string, options: { refresh: boolean }, onEvent: (event: FetchEvent) => void) {
+export async function fetchModIndex(
+  game: string,
+  options: { refresh: boolean },
+  onEvent: (event: FetchEvent) => void
+) {
   const channel = new Channel<FetchEvent>();
   channel.onmessage = onEvent;
-  await wrapInvoke(async () => await invoke("fetch_mod_index", { game, ...options, onEvent: channel }));
+  await wrapInvoke(
+    async () =>
+      await invoke("fetch_mod_index", { game, ...options, onEvent: channel })
+  );
 }
 
 export enum SortColumn {
@@ -69,29 +76,47 @@ export async function queryModIndex(
   mods: Mod[];
   count: number;
 }> {
-  return await wrapInvoke(async () => await invoke("query_mod_index", { game, query, sort, ...options }));
+  return await wrapInvoke(
+    async () =>
+      await invoke("query_mod_index", { game, query, sort, ...options })
+  );
 }
 
 export async function getPreferredLocales(): Promise<string[]> {
-  return await wrapInvoke(async () => await invoke("get_preferred_locales"))
+  return await wrapInvoke(async () => await invoke("get_preferred_locales"));
 }
 
 export interface Profile {
-  name: string,
+  name: string;
+  game: string;
 }
 
 export interface ProfileWithId extends Profile {
+  id: string;
+}
+
+export async function getProfiles(): Promise<ProfileWithId[]> {
+  return await wrapInvoke(async () => await invoke("get_profiles", {}));
+}
+
+export async function createProfile(
+  game: string,
+  name: string
+): Promise<string> {
+  return await wrapInvoke(
+    async () => await invoke("create_profile", { game, name })
+  );
+}
+
+export async function deleteProfile(id: string): Promise<void> {
+  return await wrapInvoke(async () => await invoke("delete_profile", { id }));
+}
+
+export async function launchProfile(
   id: string,
-}
-
-export async function getProfiles(game: string): Promise<ProfileWithId[]> {
-  return await wrapInvoke(async () => await invoke("get_profiles", { game }));
-}
-
-export async function createProfile(game: string, name: string): Promise<string> {
-  return await wrapInvoke(async () => await invoke("create_profile", { game, name }));
-}
-
-export async function deleteProfile(game: string, id: string): Promise<void> {
-  return await wrapInvoke(async () => await invoke("delete_profile", { game, id }));
+  options: { modded: boolean }
+): Promise<void> {
+  return await wrapInvoke(
+    async () => await invoke("launch_profile", { id, ...options })
+  );
 }

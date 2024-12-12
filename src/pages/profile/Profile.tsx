@@ -1,4 +1,4 @@
-import { createResource, createSignal, createUniqueId, For, Match, onMount, Show, Switch } from "solid-js";
+import { createResource, createSignal, createUniqueId, For, Match, onMount, Show, Switch, useContext } from "solid-js";
 import { A, useNavigate, useParams, useSearchParams } from "@solidjs/router";
 import { faTrashCan, faCirclePlay as faCirclePlayOutline } from "@fortawesome/free-regular-svg-icons";
 import { faChevronLeft, faCirclePlay, faFileImport, faPlus, faThumbTack } from "@fortawesome/free-solid-svg-icons";
@@ -9,11 +9,13 @@ import ModList from "../../components/profile/ModList";
 
 import styles from "./Profile.module.css";
 import sidebarStyles from "./SidebarProfiles.module.css";
-import { gamesById } from "../../globals";
-import { createProfile, deleteProfile, getProfiles, ProfileWithId } from "../../api";
-import { Portal } from "solid-js/web";
+import * as globals from "../../globals";
+import { gamesById, refetchProfiles } from "../../globals";
+import { createProfile, deleteProfile, launchProfile, ProfileWithId } from "../../api";
 import { Refetcher } from "../../types";
 import Dialog from "../../components/Dialog";
+import { ErrorContext } from "../../components/ErrorBoundary";
+import { clearConsole } from "../../components/Console";
 
 interface ProfileParams {
   [key: string]: string | undefined;
@@ -34,13 +36,22 @@ export default function Profile() {
   const currentTab = () => searchParams.tab ?? "mod-list";
   const gameInfo = gamesById().get(params.gameId)!; // TODO, handle undefined case
 
-  const [profiles, { refetch: refetchProfiles }] = createResource(async () => {
-    const profiles = await getProfiles(params.gameId);
-    profiles.sort((a, b) => a.name.localeCompare(b.name));
-    return profiles;
+  const [profiles] = createResource(globals.profiles, profiles => {
+    return profiles.filter(profile => profile.game === params.gameId);
   }, { initialValue: [] });
 
   const [activeProfileMods, { refetch: refetchActiveProfileMods }] = createResource(() => [], { initialValue: [] })
+
+  const reportErr = useContext(ErrorContext)!;
+
+  async function launch(modded: boolean) {
+    try {
+      clearConsole();
+      await launchProfile(params.profileId!, { modded });
+    } catch (e) {
+      reportErr(e);
+    }
+  }
 
   return (
     <main class={styles.main}>
@@ -55,10 +66,10 @@ export default function Profile() {
           <h1>{gameInfo.name}</h1>
         </nav>
         <section class={styles.sidebar__group}>
-          <button>
+          <button disabled={params.profileId === undefined} on:click={() => launch(true)}>
             <Fa icon={faCirclePlay} /> Start modded
           </button>
-          <button>
+          <button disabled={params.profileId === undefined} on:click={() => launch(false)}>
             <Fa icon={faCirclePlayOutline} /> Start vanilla
           </button>
         </section>
@@ -97,7 +108,7 @@ export default function Profile() {
           <Switch>
             <Match when={currentTab() === "mod-list"}>
               <Show when={activeProfileMods.latest.length !== 0} fallback={<p>Looks like you haven't installed any mods yet.</p>}>
-                <ModList mods={async () => []} />
+                <ModList mods={async () => activeProfileMods.latest} />
               </Show>
             </Match>
             <Match when={currentTab() === "mod-search"}>
@@ -171,7 +182,7 @@ function SidebarProfileComponent(props: { gameId: string; profileId: string; pro
               navigator(`/profile/${props.gameId}`, { replace: true });
             }
             try {
-              await deleteProfile(props.gameId, props.profileId);
+              await deleteProfile(props.profileId);
             } finally {
               setConfirmingDeletion(false);
               setDeleting(false);

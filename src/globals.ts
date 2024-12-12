@@ -1,6 +1,6 @@
 import { createResource } from "solid-js";
 
-import { getGames, getGamesPopularity } from "./api";
+import { getGames, getGamesPopularity, getProfiles } from "./api";
 import { Game } from "./types";
 
 export const [gamesResource] = createResource<[Game[], Map<string, Game>], unknown>(async () => {
@@ -18,3 +18,12 @@ export const [gamesPopularityResource] = createResource<{ [key: string]: number 
   return Object.freeze(gamesPopularity);
 });
 export const gamesPopularity = () => gamesPopularityResource.latest!;
+
+export const [profiles, { refetch: refetchProfiles }] = createResource(
+  async () => {
+    const profiles = await getProfiles();
+    profiles.sort((a, b) => a.name.localeCompare(b.name));
+    return profiles;
+  },
+  { initialValue: [] }
+);

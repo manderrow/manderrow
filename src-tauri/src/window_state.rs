@@ -13,20 +13,16 @@ use tauri::{
 };
 
 use std::path::PathBuf;
-use std::sync::LazyLock;
+use std::sync::OnceLock;
 use std::{
     collections::HashMap,
     fs::{create_dir_all, File},
     sync::{Arc, Mutex},
 };
 
-use crate::paths::DATA_LOCAL_DIR;
 use crate::Error;
 
-/// Default filename used to store window state.
-///
-/// If using a custom filename, you should probably use [`AppHandleExt::filename`] instead.
-static PATH: LazyLock<PathBuf> = LazyLock::new(|| DATA_LOCAL_DIR.join("window-state.bin"));
+static PATH: OnceLock<PathBuf> = OnceLock::new();
 
 const BINCODE_CONFIG: bincode::config::Configuration = bincode::config::standard();
 
@@ -83,10 +79,11 @@ impl<R: Runtime> AppHandleExt for tauri::AppHandle<R> {
             }
         }
 
-        create_dir_all(PATH.parent().unwrap())?;
+        let path = PATH.get().unwrap();
+        create_dir_all(path.parent().unwrap())?;
         bincode::encode_into_std_write(
             &*state,
-            &mut std::io::BufWriter::new(File::create(&*PATH)?),
+            &mut std::io::BufWriter::new(File::create(path)?),
             BINCODE_CONFIG,
         )?;
         Ok(())
@@ -219,9 +216,12 @@ impl<R: Runtime> WindowExt for Window<R> {
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     PluginBuilder::new("window-state")
         .setup(|app, _api| {
-            let cache = std::fs::File::open(&*PATH)
+            PATH.set(app.path().local_data_dir()?.join("window-state.bin"))
+                .expect("Already set");
+
+            let cache = std::fs::File::open(PATH.get().unwrap())
                 .inspect_err(|e| {
-                    if e.kind() == std::io::ErrorKind::NotFound {
+                    if e.kind() != std::io::ErrorKind::NotFound {
                         error!("Unable to read window state: {e}");
                     }
                 })
