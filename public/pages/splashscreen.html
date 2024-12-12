@@ -15,20 +15,17 @@
         font-size: 16px;
       }
 
-      html {
-        height: 100%;
-      }
-
       body {
-        background-image: radial-gradient(ellipse at top left, hsla(218, 20%, 20%, 0.75) 30%, hsla(214, 28%, 15%, 0.75) 60%);
-        height: 100%;
+        display: flex;
+        flex-direction: column;
         user-select: none;
         -webkit-user-select: none;
         overflow: hidden;
+        background-color: hsla(218, 25%, 15%, 0.5);
       }
 
       .splashscreen {
-        height: 100%;
+        flex-grow: 1;
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -37,8 +34,12 @@
         text-align: center;
         text-shadow: 0 0 1.25rem rgba(0, 0, 0, 0.5);
         overflow: hidden;
-        border: 4px solid rgba(165, 165, 165, 0.25);
-        border-radius: 4px;
+        background-color: hsl(214, 28%, 15%);
+        background-image: radial-gradient(circle at top center, hsl(210, 30%, 24%) 30%, hsl(210, 30%, 15%) 60%);
+        background-size: 150%;
+        background-position: center;
+        margin: 8px;
+        border-radius: 6px;
       }
 
       .splashscreen__title {
@@ -47,38 +48,28 @@
       }
 
       .splashscreen__text {
-        color: hsl(var(--clr-neutral-700));
-        animation: dots 0.5s linear infinite alternate;
-      }
-
-      .splashscreen__text::after {
-        content: var(--text);
-      }
-
-      @keyframes dots {
-        0% {
-          --text: ".";
-        }
-
-        50% {
-          --text: "..";
-        }
-
-        100% {
-          --text: "...";
-        }
+        color: hsl(212, 18%, 70%);
       }
 
       .splashscreen__loader {
-        margin-top: 1.75em;
+        margin-top: 2em;
+        border-radius: 100vmax;
+        height: 0.75em;
+        width: 60%;
+        border: 1px solid hsl(210, 11%, 35%);
+        background-image: linear-gradient(90deg, var(--clr-primary-5), var(--clr-accent-5), var(--clr-primary-5));
+        background-repeat: repeat;
+        background-size: 200%;
+        animation: load 1s linear infinite;
       }
 
-      .splashscreen__loader-img {
-        background-color: hsl(var(--clr-neutral-900));
-        -webkit-mask: url("/images/loading.svg") no-repeat center;
-        mask: url("/img/loading.svg") no-repeat center;
-        width: 4rem;
-        height: 4rem;
+      @keyframes load {
+        from {
+          background-position: 0%;
+        }
+        to {
+          background-position: 200%;
+        }
       }
 
       .splashscreen__logo-image {
@@ -106,11 +97,9 @@
 
     <div class="splashscreen">
       <h1 class="splashscreen__title">Manderrow</h1>
-      <p class="splashscreen__text">Loading</p>
-      <div class="splashscreen__loader">
-        <div role="img" class="splashscreen__loader-img" aria-label="Loading animation"></div>
-      </div>
-      <!-- <img src="/images/logo512.png" alt="Logo" class="splashscreen__logo-image" /> -->
+      <p class="splashscreen__text">Launching...</p>
+      <div class="splashscreen__loader"></div>
+      <img src="/img/logo512.png" alt="Logo" class="splashscreen__logo-image" />
     </div>
   </body>
 </html>

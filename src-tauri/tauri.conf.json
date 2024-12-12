@@ -21,8 +21,8 @@
         "resizable": false,
         "transparent": true,
         "skipTaskbar": true,
-        "width": 500,
-        "height": 320
+        "width": 448,
+        "height": 280
       },
       {
         "title": "Manderrow",
