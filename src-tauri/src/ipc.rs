@@ -3,7 +3,7 @@ use std::ffi::OsString;
 
 use ipc_channel::ipc::IpcOneShotServer;
 use log::{debug, error};
-use tauri::Emitter;
+use tauri::ipc::Channel;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
 pub enum SafeOsString {
@@ -68,11 +68,10 @@ pub enum C2SMessage {
     },
 }
 
-pub fn spawn_server_listener<R: tauri::Runtime>(
-    app: &tauri::AppHandle<R>,
+pub fn spawn_server_listener(
+    channel: Channel<C2SMessage>,
     c2s_rx: IpcOneShotServer<C2SMessage>,
 ) -> anyhow::Result<()> {
-    let app = app.clone();
     std::thread::Builder::new()
         .name("ipc-receiver".to_owned())
         .spawn(move || {
@@ -85,7 +84,7 @@ pub fn spawn_server_listener<R: tauri::Runtime>(
             };
             loop {
                 debug!("Received message from client: {msg:?}");
-                if let Err(e) = app.emit_to("main", "ipc-message", msg) {
+                if let Err(e) = channel.send(msg) {
                     error!("Unable to emit ipc-message event to webview: {e}");
                 }
                 msg = match rx.recv() {

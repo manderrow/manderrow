@@ -15,7 +15,7 @@ import { createProfile, deleteProfile, launchProfile, ProfileWithId } from "../.
 import { Refetcher } from "../../types";
 import Dialog from "../../components/Dialog";
 import { ErrorContext } from "../../components/ErrorBoundary";
-import { clearConsole } from "../../components/Console";
+import Console, { C2SChannel, clearConsole, createC2SChannel } from "../../components/Console";
 
 interface ProfileParams {
   [key: string]: string | undefined;
@@ -44,10 +44,14 @@ export default function Profile() {
 
   const reportErr = useContext(ErrorContext)!;
 
+  const [consoleChannel, setConsoleChannel] = createSignal<C2SChannel>();
+
   async function launch(modded: boolean) {
     try {
       clearConsole();
-      await launchProfile(params.profileId!, { modded });
+      const channel = createC2SChannel();
+      setConsoleChannel(channel);
+      await launchProfile(params.profileId!, channel, { modded });
     } catch (e) {
       reportErr(e);
     }
@@ -117,6 +121,10 @@ export default function Profile() {
           </Switch>
         </Show>
       </div>
+
+      <Show when={consoleChannel()} keyed>
+        {channel => <Console channel={channel} />}
+      </Show>
     </main>
   );
 }

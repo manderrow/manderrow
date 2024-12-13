@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 
 use log::{error, info};
+use tauri::ipc::Channel;
 use tokio::process::Command;
 use uuid::Uuid;
 
@@ -14,15 +15,15 @@ pub static PROFILES_DIR: LazyLock<PathBuf> = LazyLock::new(|| local_data_dir().j
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct Profile {
-    name: String,
-    game: String,
+    pub name: String,
+    pub game: String,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct ProfileWithId {
-    id: Uuid,
+    pub id: Uuid,
     #[serde(flatten)]
-    metadata: Profile,
+    pub metadata: Profile,
 }
 
 macro_rules! hyphenated_uuid {
@@ -32,7 +33,7 @@ macro_rules! hyphenated_uuid {
 }
 
 #[derive(Debug, thiserror::Error)]
-enum ReadProfileError {
+pub enum ReadProfileError {
     #[error(transparent)]
     Io(#[from] std::io::Error),
     #[error(transparent)]
@@ -105,10 +106,10 @@ pub async fn delete_profile(id: Uuid) -> Result<(), Error> {
 }
 
 #[tauri::command]
-pub async fn launch_profile<R: tauri::Runtime>(
-    app: tauri::AppHandle<R>,
+pub async fn launch_profile(
     id: Uuid,
     modded: bool,
+    channel: Channel<C2SMessage>,
 ) -> Result<(), Error> {
     let mut path = profile_path(id);
     path.push("profile.json");
@@ -123,7 +124,28 @@ pub async fn launch_profile<R: tauri::Runtime>(
     let mut command: Command;
     match store_metadata {
         crate::games::StorePlatformMetadata::Steam { store_identifier } => {
-            command = Command::new("/Applications/Steam.app/Contents/MacOS/steam_osx");
+            command = Command::new(if cfg!(windows) {
+                #[cfg(windows)]
+                {
+                    use registry::{Data, Hive, Security};
+                    let regkey = Hive::LocalMachine
+                        .open(r"SOFTWARE\\WOW6432Node\\Valve\\Steam", Security::Read)?;
+                    match regkey.value("InstallPath")? {
+                        Data::String(s) | Data::ExpandString(s) => {
+                            Ok(PathBuf::from(s.to_string()?))
+                        }
+                        _ => Err("Unexpected data type in registry".into()),
+                    }
+                }
+                #[cfg(not(windows))]
+                unreachable!()
+            } else if cfg!(target_os = "macos") {
+                "/Applications/Steam.app/Contents/MacOS/steam_osx"
+            } else if cfg!(unix) {
+                "steam"
+            } else {
+                return Err("Unsupported platform for Steam".into());
+            });
             command.arg("-applaunch").arg(store_identifier);
         }
         _ => return Err("Unsupported game store".into()),
@@ -145,7 +167,7 @@ pub async fn launch_profile<R: tauri::Runtime>(
     let status = command.status().await?;
     info!("Launcher exited with status code {status}");
 
-    crate::ipc::spawn_server_listener(&app, c2s_rx)?;
+    crate::ipc::spawn_server_listener(channel, c2s_rx)?;
 
     Ok(())
 }

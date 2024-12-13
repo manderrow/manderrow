@@ -1,5 +1,6 @@
 import { Channel, invoke } from "@tauri-apps/api/core";
 import { Game, Mod } from "./types";
+import { C2SChannel } from "./components/Console";
 
 /**
  * An error thrown from native code.
@@ -114,9 +115,10 @@ export async function deleteProfile(id: string): Promise<void> {
 
 export async function launchProfile(
   id: string,
-  options: { modded: boolean }
+  channel: C2SChannel,
+  options: { modded: boolean },
 ): Promise<void> {
   return await wrapInvoke(
-    async () => await invoke("launch_profile", { id, ...options })
+    async () => await invoke("launch_profile", { id, channel, ...options })
   );
 }

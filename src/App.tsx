@@ -53,7 +53,6 @@ export default function App() {
           <Route path="/profile/:gameId/:profileId?" component={Profile} />
           <Route path="*path" component={ErrorPage} />
         </Router>
-        <Console />
       </Show>
     </ErrorBoundary>
   );
