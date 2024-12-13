@@ -68,7 +68,7 @@ pub enum StorePlatformMetadata {
     Other,
 }
 
-#[derive(Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, Copy, serde::Deserialize, serde::Serialize, strum::EnumString)]
 pub enum PackageLoader {
     BepInEx,
     MelonLoader,
@@ -79,6 +79,29 @@ pub enum PackageLoader {
     Lovely,
     ReturnOfModding,
     GDWeave,
+}
+
+impl PackageLoader {
+    pub const fn as_str(self) -> &'static str {
+        macro_rules! implement {
+            ($($variant:ident),*) => {
+                match self {
+                    $(Self::$variant => stringify!($variant)),*
+                }
+            };
+        }
+        implement!(
+            BepInEx,
+            MelonLoader,
+            NorthStar,
+            GodotML,
+            AncientDungeonVR,
+            ShimLoader,
+            Lovely,
+            ReturnOfModding,
+            GDWeave
+        )
+    }
 }
 
 #[derive(Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]

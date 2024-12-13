@@ -1,12 +1,31 @@
 #![deny(unused_must_use)]
+#![feature(path_add_extension)]
 
 mod commands;
-pub mod game_reviews;
-pub mod games;
-pub mod mods;
-pub mod window_state;
+mod game_reviews;
+mod games;
+mod ipc;
+mod launching;
+mod mods;
+mod paths;
+mod window_state;
+mod wrap;
 
+use std::sync::OnceLock;
+
+use anyhow::{anyhow, Context};
 use log::error;
+
+static PRODUCT_NAME: OnceLock<String> = OnceLock::new();
+static IDENTIFIER: OnceLock<String> = OnceLock::new();
+
+fn product_name() -> &'static str {
+    PRODUCT_NAME.get().unwrap()
+}
+
+fn identifier() -> &'static str {
+    IDENTIFIER.get().unwrap()
+}
 
 #[derive(Debug, Clone, serde::Serialize)]
 struct Error {
@@ -26,8 +45,7 @@ impl<T: std::fmt::Display> From<T> for Error {
     }
 }
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
-pub fn run() {
+fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
     let level_filter = std::env::var("RUST_LOG")
         .map(|s| {
             s.parse::<log::LevelFilter>()
@@ -56,7 +74,41 @@ pub fn run() {
             commands::i18n::get_preferred_locales,
             commands::mod_index::fetch_mod_index,
             commands::mod_index::query_mod_index,
+            commands::profiles::get_profiles,
+            commands::profiles::create_profile,
+            commands::profiles::delete_profile,
+            commands::profiles::launch_profile,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .run(ctx)
+        .context("error while running tauri application")
+}
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn main() -> anyhow::Result<()> {
+    let ctx = tauri::generate_context!();
+    PRODUCT_NAME
+        .set(ctx.config().product_name.clone().unwrap())
+        .unwrap();
+    IDENTIFIER.set(ctx.config().identifier.clone()).unwrap();
+
+    paths::init().unwrap();
+
+    let mut args = std::env::args_os();
+    _ = args.next().unwrap();
+
+    match args.next() {
+        Some(cmd) if cmd == "wrap" => tauri::async_runtime::block_on(async move {
+            match wrap::run(args).await {
+                Ok(()) => Ok(()),
+                Err(e) => {
+                    if cfg!(debug_assertions) {
+                        tokio::fs::write("/tmp/manderrow-wrap-crash", &format!("{e:?}")).await?;
+                    }
+                    Err(e)
+                }
+            }
+        }),
+        Some(cmd) => Err(anyhow!("Unrecognized command {cmd:?}")),
+        None => run_app(ctx),
+    }
 }

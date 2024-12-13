@@ -6,7 +6,9 @@ import styles from "./Dialog.module.css";
 export default function Dialog(props: { children: JSX.Element }) {
   return (
     <Portal>
-      <div class={styles.dialog}>{props.children}</div>
+      <div class={styles.dialog}>
+        <div>{props.children}</div>
+      </div>
     </Portal>
   );
 }

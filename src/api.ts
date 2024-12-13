@@ -1,7 +1,15 @@
 import { Channel, invoke } from "@tauri-apps/api/core";
 import { Game, Mod } from "./types";
+import { C2SChannel } from "./components/Console";
 
-class InvokeError extends Error {
+/**
+ * An error thrown from native code.
+ */
+export class NativeError extends Error {
+  /**
+   * A native stack trace. Inspecting this can help to determine where in
+   * native code the error originated from.
+   */
   readonly backtrace: string;
 
   constructor(message: string, backtrace: string) {
@@ -10,7 +18,7 @@ class InvokeError extends Error {
   }
 
   get [Symbol.toStringTag]() {
-    return `InvokeError: ${this.message}\nBacktrace:\n${this.backtrace}`;
+    return `NativeError: ${this.message}\nBacktrace:\n${this.backtrace}`;
   }
 }
 
@@ -18,7 +26,10 @@ async function wrapInvoke<T>(f: () => Promise<T>): Promise<T> {
   try {
     return await f();
   } catch (e: any) {
-    throw new InvokeError(e.message, e.backtrace);
+    if (e.message !== undefined) {
+      throw new NativeError(e.message, e.backtrace);
+    }
+    throw new Error(e.toString());
   }
 }
 
@@ -32,10 +43,17 @@ export async function getGamesPopularity(): Promise<{ [key: string]: number }> {
 
 export type FetchEvent = { type: "Progress"; completed: number; total: number };
 
-export async function fetchModIndex(game: string, options: { refresh: boolean }, onEvent: (event: FetchEvent) => void) {
+export async function fetchModIndex(
+  game: string,
+  options: { refresh: boolean },
+  onEvent: (event: FetchEvent) => void
+) {
   const channel = new Channel<FetchEvent>();
   channel.onmessage = onEvent;
-  await wrapInvoke(async () => await invoke("fetch_mod_index", { game, ...options, onEvent: channel }));
+  await wrapInvoke(
+    async () =>
+      await invoke("fetch_mod_index", { game, ...options, onEvent: channel })
+  );
 }
 
 export enum SortColumn {
@@ -59,9 +77,48 @@ export async function queryModIndex(
   mods: Mod[];
   count: number;
 }> {
-  return await wrapInvoke(async () => await invoke("query_mod_index", { game, query, sort, ...options }));
+  return await wrapInvoke(
+    async () =>
+      await invoke("query_mod_index", { game, query, sort, ...options })
+  );
 }
 
 export async function getPreferredLocales(): Promise<string[]> {
-  return await wrapInvoke(async () => await invoke("get_preferred_locales"))
+  return await wrapInvoke(async () => await invoke("get_preferred_locales"));
+}
+
+export interface Profile {
+  name: string;
+  game: string;
+}
+
+export interface ProfileWithId extends Profile {
+  id: string;
+}
+
+export async function getProfiles(): Promise<ProfileWithId[]> {
+  return await wrapInvoke(async () => await invoke("get_profiles", {}));
+}
+
+export async function createProfile(
+  game: string,
+  name: string
+): Promise<string> {
+  return await wrapInvoke(
+    async () => await invoke("create_profile", { game, name })
+  );
+}
+
+export async function deleteProfile(id: string): Promise<void> {
+  return await wrapInvoke(async () => await invoke("delete_profile", { id }));
+}
+
+export async function launchProfile(
+  id: string,
+  channel: C2SChannel,
+  options: { modded: boolean },
+): Promise<void> {
+  return await wrapInvoke(
+    async () => await invoke("launch_profile", { id, channel, ...options })
+  );
 }

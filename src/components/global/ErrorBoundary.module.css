@@ -1,0 +1,47 @@
+.error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  padding: 32px;
+
+  gap: 8px;
+
+  overflow: auto;
+
+  max-width: 100%;
+}
+
+.report {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+
+  margin: 16px 0;
+  align-self: stretch;
+  max-width: 100%;
+}
+
+.inlineButton {
+  display: inline-block;
+  appearance: none;
+  background: none;
+  border: none;
+}
+
+.pre {
+  margin: 8px 0;
+
+  overflow: auto;
+  padding: 8px;
+
+  border: 2px solid white;
+}
+
+.spoiler {
+  align-self: stretch;
+
+  & > summary > h3 {
+    display: inline-block;
+  }
+}

@@ -3,14 +3,12 @@ mod memory;
 use std::{
     collections::HashMap,
     io::{BufRead as _, Read as _},
-    pin::pin,
     sync::{atomic::AtomicU64, LazyLock},
 };
 
 use bytes::{Buf as _, Bytes};
 use drop_guard::ext::tokio1::JoinHandleExt;
 use flate2::bufread::GzDecoder;
-use futures::StreamExt as _;
 use log::debug;
 use tauri::ipc::Channel;
 use tokio::sync::{Mutex, RwLock};
@@ -60,13 +58,12 @@ static MOD_INDEXES: LazyLock<HashMap<&'static str, ModIndex>> = LazyLock::new(||
 });
 
 async fn fetch_gzipped(url: &str) -> Result<GzDecoder<StreamReadable>, Error> {
-    let resp = tauri_plugin_http::reqwest::get(url)
+    let mut resp = tauri_plugin_http::reqwest::get(url)
         .await?
         .error_for_status()?;
     let (tx, rx) = tokio::sync::mpsc::channel(1);
     tokio::task::spawn(async move {
-        let mut stream = pin!(resp.bytes_stream());
-        while let Some(r) = stream.next().await {
+        while let Some(r) = resp.chunk().await.transpose() {
             if tx
                 .send(r.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e)))
                 .await
