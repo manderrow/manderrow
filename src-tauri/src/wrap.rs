@@ -1,15 +1,28 @@
-use std::{collections::HashMap, ffi::OsString, sync::OnceLock};
+use std::{collections::HashMap, ffi::OsString, path::PathBuf, sync::OnceLock};
 
-use anyhow::{anyhow, bail, Context as _};
+use anyhow::{anyhow, bail, Context as _, Result};
 use ipc_channel::ipc::IpcSender;
+use log::{debug, info};
 use parking_lot::Mutex;
 use tokio::{io::AsyncBufReadExt as _, process::Command};
 use uuid::Uuid;
 
 use crate::ipc::{C2SMessage, OutputLine};
 
-pub async fn run(args: impl Iterator<Item = OsString>) -> anyhow::Result<()> {
-    async fn inner1(mut args: impl Iterator<Item = OsString>) -> anyhow::Result<()> {
+fn send_ipc(
+    channel: Option<&IpcSender<C2SMessage>>,
+    message: impl FnOnce() -> Result<C2SMessage>,
+) -> Result<()> {
+    if let Some(channel) = channel {
+        _ = channel.send(message()?);
+    } else {
+        info!("{:?}", message()?);
+    }
+    Ok(())
+}
+
+pub async fn run(args: impl Iterator<Item = OsString>) -> Result<()> {
+    async fn inner1(mut args: impl Iterator<Item = OsString>) -> Result<()> {
         let command = args.next().context("Missing required argument BINARY")?;
         let mut args = args.collect::<Vec<_>>();
         let i = args.iter().rposition(|s| s == ";");
@@ -39,8 +52,8 @@ pub async fn run(args: impl Iterator<Item = OsString>) -> anyhow::Result<()> {
             }
 
             impl log::Log for Logger {
-                fn enabled(&self, metadata: &log::Metadata) -> bool {
-                    metadata.level() < log::Level::Trace
+                fn enabled(&self, _: &log::Metadata) -> bool {
+                    true
                 }
 
                 fn log(&self, record: &log::Record) {
@@ -63,16 +76,35 @@ pub async fn run(args: impl Iterator<Item = OsString>) -> anyhow::Result<()> {
             {
                 bail!("LOGGER already set");
             }
-            log::set_max_level(log::LevelFilter::Trace);
+            log::set_max_level(log::LevelFilter::Debug);
             log::set_logger(LOGGER.get().unwrap())?;
+        } else {
+            env_logger::init();
         }
 
-        if let Err(e) = inner(args, command, command_args, c2s_tx.as_ref()).await {
-            if let Some(c2s_tx) = c2s_tx {
-                _ = c2s_tx.send(C2SMessage::Crash {
-                    error: e.to_string(),
-                });
+        info!("Wrapper started");
+        struct DisplayArgList;
+        impl std::fmt::Display for DisplayArgList {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                let mut iter = std::env::args_os();
+                if let Some(arg) = iter.next() {
+                    write!(f, "{:?}", arg)?;
+                    for arg in iter {
+                        write!(f, " {:?}", arg)?;
+                    }
+                }
+                Ok(())
             }
+        }
+        info!("  args: {}", DisplayArgList);
+        info!("  cwd: {:?}", std::env::current_dir()?);
+
+        if let Err(e) = inner(args, command, command_args, c2s_tx.as_ref()).await {
+            send_ipc(c2s_tx.as_ref(), || {
+                Ok(C2SMessage::Crash {
+                    error: e.to_string(),
+                })
+            })?;
             Err(e)
         } else {
             Ok(())
@@ -81,18 +113,19 @@ pub async fn run(args: impl Iterator<Item = OsString>) -> anyhow::Result<()> {
 
     async fn inner(
         args: Vec<OsString>,
-        command: OsString,
+        command_name: OsString,
         mut command_args: Vec<OsString>,
         c2s_tx: Option<&IpcSender<C2SMessage>>,
-    ) -> anyhow::Result<()> {
+    ) -> Result<()> {
         use lexopt::Arg::*;
 
-        let mut args = lexopt::Parser::from_args(args.into_iter());
+        let mut parsed_args = lexopt::Parser::from_args(args.iter().cloned());
 
         let mut profile = None::<Uuid>;
         let mut loader = None::<OsString>;
+        let mut wrapper_stage2_path = None::<OsString>;
 
-        while let Some(arg) = args.next()? {
+        while let Some(arg) = parsed_args.next()? {
             match arg {
                 Long("c2s-tx") => {
                     bail!("--c2s-tx must be the first argument to the wrapper");
@@ -102,7 +135,8 @@ pub async fn run(args: impl Iterator<Item = OsString>) -> anyhow::Result<()> {
                         bail!("--profile specified twice");
                     }
                     profile = Some(
-                        args.value()?
+                        parsed_args
+                            .value()?
                             .into_string()
                             .map_err(|s| anyhow!("Invalid profile id: {s:?}"))?
                             .parse::<Uuid>()?,
@@ -112,7 +146,13 @@ pub async fn run(args: impl Iterator<Item = OsString>) -> anyhow::Result<()> {
                     if loader.is_some() {
                         bail!("--loader specified twice");
                     }
-                    loader = Some(args.value()?);
+                    loader = Some(parsed_args.value()?);
+                }
+                Long("wrapper-stage2") => {
+                    if wrapper_stage2_path.is_some() {
+                        bail!("--wrapper-stage2 specified twice");
+                    }
+                    wrapper_stage2_path = Some(parsed_args.value()?.into());
                 }
                 _ => return Err(arg.unexpected().into()),
             }
@@ -154,9 +194,34 @@ pub async fn run(args: impl Iterator<Item = OsString>) -> anyhow::Result<()> {
             None => {}
         }
 
-        if let Some(c2s_tx) = &c2s_tx {
-            _ = c2s_tx.send(C2SMessage::Start {
-                command: command.clone().into(),
+        let mut command = Command::new(&command_name);
+
+        if let Some(mut i) = command_args.iter().position(|s| {
+            s.to_string_lossy()
+                .contains("scout-on-soldier-entry-point-v2")
+        }) {
+            debug!("Using the stage2 wrapper to inject environment to final process");
+            i += 1; // skip the arg
+            i += 1; // skip the next arg (--)
+            command_args.insert(
+                i,
+                match wrapper_stage2_path {
+                    Some(t) => t,
+                    None => std::env::current_exe()?
+                        .with_file_name("manderrow-wrapper-stage2")
+                        .into_os_string(),
+                },
+            );
+
+            command.env("MANDERROW_WRAPPER_ENV", serde_json::to_string(&env)?);
+        } else {
+            debug!("Injecting environment to final process");
+            command.envs(&env);
+        }
+
+        send_ipc(c2s_tx, || {
+            Ok(C2SMessage::Start {
+                command: command_name.clone().into(),
                 args: command_args
                     .iter()
                     .cloned()
@@ -166,16 +231,23 @@ pub async fn run(args: impl Iterator<Item = OsString>) -> anyhow::Result<()> {
                     .iter()
                     .map(|(k, v)| (k.clone(), v.clone().into()))
                     .collect::<HashMap<_, _>>(),
-            });
-        }
+            })
+        })?;
 
-        let mut command = Command::new(command);
-        command.envs(env.into_iter()).args(command_args);
+        command.args(command_args);
+
         if c2s_tx.is_some() {
             command.stdout(std::process::Stdio::piped());
             command.stderr(std::process::Stdio::piped());
         }
-        let mut child = command.spawn()?;
+        let mut child = match command.spawn() {
+            Ok(t) => t,
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
+                return Err(anyhow::Error::new(e)
+                    .context(format!("Could not locate command {command_name:?}")))
+            }
+            Err(e) => return Err(e.into()),
+        };
 
         let tasks = if let Some(c2s_tx) = &c2s_tx {
             fn spawn_task(
@@ -224,11 +296,11 @@ pub async fn run(args: impl Iterator<Item = OsString>) -> anyhow::Result<()> {
             err.await??;
         }
 
-        if let Some(c2s_tx) = &c2s_tx {
-            _ = c2s_tx.send(C2SMessage::Exit {
+        send_ipc(c2s_tx, || {
+            Ok(C2SMessage::Exit {
                 code: status.code(),
-            });
-        }
+            })
+        })?;
         Ok(())
     }
 

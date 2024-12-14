@@ -42,6 +42,7 @@ blake3 = { version = "1.5.5", features = ["mmap"] }
 bytes = "1.8.0"
 dirs = "5.0.1"
 drop-guard = { git = "https://git.pfaff.dev/michael/drop-guard.rs.git", version = "0.2.0", features = ["tokio1-task"] }
+env_logger = "0.11.5"
 event-listener = "5.3.1"
 futures = "0.3.31"
 get-locale = { git = "https://git.pfaff.dev/michael/get-locale.rs", version = "0.1.0" }

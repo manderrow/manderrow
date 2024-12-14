@@ -71,7 +71,7 @@ export default function Console({ channel }: { channel: Channel<C2SMessage> }) {
   const [displaying, setDisplaying] = createSignal(true);
 
   onMount(() => {
-    channel.onmessage = event => {
+    channel.onmessage = (event) => {
       setDisplaying(true);
       setEvents([...events(), event]);
     };
@@ -85,7 +85,15 @@ export default function Console({ channel }: { channel: Channel<C2SMessage> }) {
   return (
     <Show when={displaying()}>
       <Dialog>
-        <Show when={events().length !== 0} fallback={<progress />}>
+        <Show
+          when={events().length !== 0}
+          fallback={
+            <>
+              <p>Waiting for game...</p>
+              <progress />
+            </>
+          }
+        >
           <div class={styles.console}>
             <For each={events()}>
               {(event) => (
@@ -102,7 +110,9 @@ export default function Console({ channel }: { channel: Channel<C2SMessage> }) {
                           </Match>
                         </Switch>
                       </span>{" "}
-                      <Switch fallback={JSON.stringify(event.Output.line.Bytes)}>
+                      <Switch
+                        fallback={JSON.stringify(event.Output.line.Bytes)}
+                      >
                         <Match when={event.Output.line.Unicode}>
                           {event.Output.line.Unicode}
                         </Match>
@@ -112,11 +122,23 @@ export default function Console({ channel }: { channel: Channel<C2SMessage> }) {
                       <span class={styles.event__type}>{event.Log.level}</span>{" "}
                       <pre>{event.Log.message}</pre>
                     </Match>
+                    <Match when={event.Start}>
+                      <span class={styles.event__type}>Start</span>{" "}
+                      <DisplaySafeOsString string={event.Start.command} />
+                      <For each={event.Start.args}>
+                        {arg => <>
+                          {" "}
+                          <DisplaySafeOsString string={arg} />
+                        </>}
+                      </For>
+                    </Match>
                     <Match when={true}>
                       <span class={styles.event__type}>
                         {Object.keys(event)[0]}
                       </span>{" "}
-                      <Switch fallback={JSON.stringify(Object.values(event)[0])}>
+                      <Switch
+                        fallback={JSON.stringify(Object.values(event)[0])}
+                      >
                         <Match when={event.Exit}>{event.Exit.code}</Match>
                       </Switch>
                     </Match>
@@ -129,5 +151,22 @@ export default function Console({ channel }: { channel: Channel<C2SMessage> }) {
         <button on:click={() => setDisplaying(false)}>Dismiss</button>
       </Dialog>
     </Show>
+  );
+}
+
+function DisplaySafeOsString(props: { string: SafeOsString }) {
+  return (
+    <Switch>
+      <Match when={props.string.Unicode}>{(s) => JSON.stringify(s())}</Match>
+      <Match when={props.string.NonUnicodeBytes}>
+        {(b) => JSON.stringify(b())}
+      </Match>
+      <Match when={props.string.NonUnicodeWide}>
+        {(b) => JSON.stringify(b())}
+      </Match>
+      <Match when={props.string.NonUnicodeOther}>
+        {(b) => JSON.stringify(b())}
+      </Match>
+    </Switch>
   );
 }

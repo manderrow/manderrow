@@ -1,0 +1,12 @@
+[package]
+name = "manderrow-wrapper-stage2"
+version = "0.1.0"
+description = "Stage 2 wrapper for Manderrow, used on Linux"
+authors = ["Jack Huang", "Michael Pfaff"]
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.94"
+
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

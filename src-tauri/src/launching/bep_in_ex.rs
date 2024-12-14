@@ -2,7 +2,7 @@ use std::ffi::{OsStr, OsString};
 use std::io::Write;
 use std::path::PathBuf;
 
-use anyhow::{bail, Context as _};
+use anyhow::{anyhow, bail, Context as _};
 use log::debug;
 use tauri_plugin_http::reqwest;
 use tokio::io::AsyncWriteExt;
@@ -292,34 +292,35 @@ pub async fn configure_command(
     .await?;
 
     if cfg!(windows) || uses_proton {
-        command.args(["--doorstop-enabled", "true"]);
+        command.args(["--doorstop-enable", "true"]);
 
         command.args(["--doorstop-target-assembly"]);
-        // if uses_proton {
-        //     let mut buf = OsString::from("Z:");
-        //     buf.push(
-        //         bep_in_ex
-        //             .as_os_str()
-        //             .to_str()
-        //             .context(anyhow!("Invalid Unicode string: {bep_in_ex:?}"))?
-        //             .replace('/', "\\"),
-        //     );
-        //     buf.push("BepInEx\\core\\BepInEx.Preloader.dll");
-        //     command.args([buf]);
-        // } else {
-        let mut p = bep_in_ex.clone();
-        p.push("BepInEx");
-        p.push("core");
-        p.push("BepInEx.Preloader.dll");
-        command.args([p]);
-        // }
+        if uses_proton {
+            let mut buf = OsString::from("Z:");
+            buf.push(
+                bep_in_ex
+                    .as_os_str()
+                    .to_str()
+                    .context(anyhow!("Invalid Unicode string: {bep_in_ex:?}"))?,
+            );
+            buf.push("/BepInEx/core/BepInEx.Preloader.dll");
+            command.args([buf]);
+        } else {
+            let mut p = bep_in_ex.clone();
+            p.push("BepInEx");
+            p.push("core");
+            p.push("BepInEx.Preloader.dll");
+            command.args([p]);
+        }
 
-        command.args(["--doorstop-mono-dll-search-path-override", ""]);
         command.args(["--doorstop-mono-debug-enabled", "false"]);
         command.args(["--doorstop-mono-debug-address", "127.0.0.1:10000"]);
         command.args(["--doorstop-mono-debug-suspend", "false"]);
-        command.args(["--doorstop-clr-corlib-dir", ""]);
-        command.args(["--doorstop-clr-runtime-coreclr-path", ""]);
+        // specify these only if they have values
+        // especially --doorstop-mono-dll-search-path-override, which will cause the doorstop to fail if given an empty string
+        // command.args(["--doorstop-mono-dll-search-path-override", ""]);
+        // command.args(["--doorstop-clr-corlib-dir", ""]);
+        // command.args(["--doorstop-clr-runtime-coreclr-path", ""]);
     } else {
         command.env("DOORSTOP_ENABLED", "1");
         command.env(

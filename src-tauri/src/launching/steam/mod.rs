@@ -1,7 +1,7 @@
 use std::ops::Range;
 
 use anyhow::{bail, Result};
-use log::trace;
+use log::{debug, trace};
 use paths::{resolve_steam_app_compat_data_directory, resolve_steam_app_install_directory};
 
 pub mod paths;
@@ -26,7 +26,7 @@ pub async fn ensure_wine_will_load_dll_override(game_id: &str, proxy_dll: &str) 
         trace!("replacement user.reg:\n{user_reg_data}");
         let mut backup_file = user_reg.clone();
         loop {
-            backup_file.add_extension(".bak");
+            backup_file.add_extension("bak");
             if !tokio::fs::try_exists(&backup_file).await? {
                 break;
             }
@@ -42,7 +42,9 @@ pub async fn uses_proton(game_id: &str) -> Result<bool> {
         let install_dir = resolve_steam_app_install_directory(game_id).await?;
         let mut iter = tokio::fs::read_dir(&install_dir).await?;
         while let Some(e) = iter.next_entry().await? {
-            if e.file_name().as_encoded_bytes().ends_with(b".exe") {
+            let name = e.file_name();
+            if name.as_encoded_bytes().ends_with(b".exe") {
+                debug!("Guessing that {game_id:?} uses proton because it has file {name:?}");
                 return Ok(true);
             }
         }

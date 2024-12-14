@@ -153,6 +153,11 @@ pub async fn launch_profile(
     command.arg("--profile");
     command.arg(hyphenated_uuid!(id));
 
+    if let Some(path) = std::env::var_os("MANDERROW_WRAPPER_STAGE2_PATH") {
+        command.arg("--wrapper-stage2");
+        command.arg(path);
+    }
+
     if modded {
         command.arg("--loader");
         command.arg(game.package_loader.as_str());
