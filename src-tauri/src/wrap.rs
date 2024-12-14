@@ -21,6 +21,20 @@ fn send_ipc(
     Ok(())
 }
 
+struct DisplayArgList;
+impl std::fmt::Display for DisplayArgList {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut iter = std::env::args_os();
+        if let Some(arg) = iter.next() {
+            write!(f, "{:?}", arg)?;
+            for arg in iter {
+                write!(f, " {:?}", arg)?;
+            }
+        }
+        Ok(())
+    }
+}
+
 pub async fn run(args: impl Iterator<Item = OsString>) -> Result<()> {
     async fn inner1(mut args: impl Iterator<Item = OsString>) -> Result<()> {
         let command = args.next().context("Missing required argument BINARY")?;
@@ -83,19 +97,6 @@ pub async fn run(args: impl Iterator<Item = OsString>) -> Result<()> {
         }
 
         info!("Wrapper started");
-        struct DisplayArgList;
-        impl std::fmt::Display for DisplayArgList {
-            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                let mut iter = std::env::args_os();
-                if let Some(arg) = iter.next() {
-                    write!(f, "{:?}", arg)?;
-                    for arg in iter {
-                        write!(f, " {:?}", arg)?;
-                    }
-                }
-                Ok(())
-            }
-        }
         info!("  args: {}", DisplayArgList);
         info!("  cwd: {:?}", std::env::current_dir()?);
 
@@ -307,7 +308,7 @@ pub async fn run(args: impl Iterator<Item = OsString>) -> Result<()> {
     match inner1(args).await {
         Ok(()) => Ok(()),
         Err(e) => {
-            tokio::fs::write("/tmp/manderrow-wrap-crash", e.to_string())
+            tokio::fs::write("manderrow-wrap-crash", format!("{e}\nargs: {:?}", DisplayArgList))
                 .await
                 .unwrap();
             Err(e)
