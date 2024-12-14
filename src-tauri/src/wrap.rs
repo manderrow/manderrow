@@ -308,7 +308,7 @@ pub async fn run(args: impl Iterator<Item = OsString>) -> Result<()> {
     match inner1(args).await {
         Ok(()) => Ok(()),
         Err(e) => {
-            tokio::fs::write("manderrow-wrap-crash.txt", format!("{e}\nargs: {:?}", DisplayArgList))
+            tokio::fs::write("manderrow-wrap-crash.txt", format!("{e}\nargs: {}", DisplayArgList))
                 .await
                 .unwrap();
             Err(e)
