@@ -132,9 +132,9 @@ pub async fn launch_profile(
                         .open(r"SOFTWARE\\WOW6432Node\\Valve\\Steam", Security::Read)?;
                     match regkey.value("InstallPath")? {
                         Data::String(s) | Data::ExpandString(s) => {
-                            Ok(PathBuf::from(s.to_string()?))
+                            PathBuf::from(s.to_string()?)
                         }
-                        _ => Err("Unexpected data type in registry".into()),
+                        _ => return Err("Unexpected data type in registry".into()),
                     }
                 }
                 #[cfg(not(windows))]

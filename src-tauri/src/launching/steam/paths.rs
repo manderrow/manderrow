@@ -50,7 +50,7 @@ pub async fn resolve_steam_directory() -> Result<PathBuf> {
                 Hive::LocalMachine.open(r"SOFTWARE\\WOW6432Node\\Valve\\Steam", Security::Read)?;
             match regkey.value("InstallPath")? {
                 Data::String(s) | Data::ExpandString(s) => Ok(PathBuf::from(s.to_string()?)),
-                _ => Err("Unexpected data type in registry".into()),
+                _ => Err(anyhow!("Unexpected data type in registry")),
             }
         }
         #[cfg(not(windows))]
