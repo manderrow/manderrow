@@ -4,6 +4,16 @@ use anyhow::{anyhow, bail, ensure, Result};
 
 use crate::paths::home_dir;
 
+#[cfg(windows)]
+pub fn get_steam_install_path_from_registry() -> Result<PathBuf> {
+    use registry::{Data, Hive, Security};
+    let regkey = Hive::LocalMachine.open(r"SOFTWARE\\WOW6432Node\\Valve\\Steam", Security::Read)?;
+    match regkey.value("InstallPath")? {
+        Data::String(s) | Data::ExpandString(s) => Ok(PathBuf::from(s.to_string()?)),
+        _ => Err(anyhow!("Unexpected data type in registry")),
+    }
+}
+
 pub async fn resolve_steam_directory() -> Result<PathBuf> {
     const ERROR_MSG: &str = "Could not locate Steam";
     if cfg!(target_os = "macos") {
@@ -45,13 +55,7 @@ pub async fn resolve_steam_directory() -> Result<PathBuf> {
     } else if cfg!(windows) {
         #[cfg(windows)]
         {
-            use registry::{Data, Hive, Security};
-            let regkey =
-                Hive::LocalMachine.open(r"SOFTWARE\\WOW6432Node\\Valve\\Steam", Security::Read)?;
-            match regkey.value("InstallPath")? {
-                Data::String(s) | Data::ExpandString(s) => Ok(PathBuf::from(s.to_string()?)),
-                _ => Err(anyhow!("Unexpected data type in registry")),
-            }
+            get_steam_install_path_from_registry()
         }
         #[cfg(not(windows))]
         unreachable!()

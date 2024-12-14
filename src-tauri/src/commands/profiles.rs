@@ -127,15 +127,9 @@ pub async fn launch_profile(
             command = if cfg!(windows) {
                 #[cfg(windows)]
                 {
-                    use registry::{Data, Hive, Security};
-                    let regkey = Hive::LocalMachine
-                        .open(r"SOFTWARE\\WOW6432Node\\Valve\\Steam", Security::Read)?;
-                    match regkey.value("InstallPath")? {
-                        Data::String(s) | Data::ExpandString(s) => {
-                            Command::new(PathBuf::from(s.to_string()?))
-                        }
-                        _ => return Err("Unexpected data type in registry".into()),
-                    }
+                    let mut p = crate::launching::steam::paths::get_steam_install_path_from_registry()?;
+                    p.push("steam.exe");
+                    Command::new(p)
                 }
                 #[cfg(not(windows))]
                 unreachable!()
