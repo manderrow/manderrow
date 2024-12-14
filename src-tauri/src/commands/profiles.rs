@@ -124,7 +124,7 @@ pub async fn launch_profile(
     let mut command: Command;
     match store_metadata {
         crate::games::StorePlatformMetadata::Steam { store_identifier } => {
-            command = Command::new(if cfg!(windows) {
+            command = if cfg!(windows) {
                 #[cfg(windows)]
                 {
                     use registry::{Data, Hive, Security};
@@ -132,7 +132,7 @@ pub async fn launch_profile(
                         .open(r"SOFTWARE\\WOW6432Node\\Valve\\Steam", Security::Read)?;
                     match regkey.value("InstallPath")? {
                         Data::String(s) | Data::ExpandString(s) => {
-                            PathBuf::from(s.to_string()?)
+                            Command::new(PathBuf::from(s.to_string()?))
                         }
                         _ => return Err("Unexpected data type in registry".into()),
                     }
@@ -140,12 +140,12 @@ pub async fn launch_profile(
                 #[cfg(not(windows))]
                 unreachable!()
             } else if cfg!(target_os = "macos") {
-                "/Applications/Steam.app/Contents/MacOS/steam_osx"
+                Command::new("/Applications/Steam.app/Contents/MacOS/steam_osx")
             } else if cfg!(unix) {
-                "steam"
+                Command::new("steam")
             } else {
                 return Err("Unsupported platform for Steam".into());
-            });
+            };
             command.arg("-applaunch").arg(store_identifier);
         }
         _ => return Err("Unsupported game store".into()),
