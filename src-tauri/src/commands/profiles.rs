@@ -127,7 +127,8 @@ pub async fn launch_profile(
             command = if cfg!(windows) {
                 #[cfg(windows)]
                 {
-                    let mut p = crate::launching::steam::paths::get_steam_install_path_from_registry()?;
+                    let mut p =
+                        crate::launching::steam::paths::get_steam_install_path_from_registry()?;
                     p.push("steam.exe");
                     Command::new(p)
                 }
