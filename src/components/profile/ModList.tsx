@@ -1,10 +1,13 @@
 import { createInfiniteScroll } from "@solid-primitives/pagination";
-import { createSignal, For, Show, Signal } from "solid-js";
+import { Accessor, createSignal, For, Show, Signal } from "solid-js";
 
 import { ModAndVersion } from "../../types";
 import { numberFormatter } from "../../utils";
 
 import styles from "./ModList.module.css";
+import Fa from "solid-fa";
+import { faExternalLink } from "@fortawesome/free-solid-svg-icons";
+import { faHeart } from "@fortawesome/free-regular-svg-icons";
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   month: "short",
@@ -22,48 +25,72 @@ export default function ModList(props: { mods: Fetcher }) {
   return (
     <div class={styles.modListAndView}>
       <Show when={props.mods} keyed>
-        {(mods) => <ModListLeft mods={mods} selectedMod={[selectedMod, setSelectedMod]} />}
+        {(mods) => <ModListMods mods={mods} selectedMod={[selectedMod, setSelectedMod]} />}
       </Show>
-      <Show when={selectedMod()}>
-        {(mod) => (
-          <div class={styles.scrollOuter}>
-            <div class={`${styles.modView} ${styles.scrollInner}`}>
-              <h2 class={styles.name}>{mod().mod.name}</h2>
-              <p class={styles.description}>{mod().mod.versions[0].description}</p>
-
-              <h3>Versions</h3>
-              <ol class={styles.versions}>
-                <For each={mod().mod.versions}>
-                  {(version) => {
-                    return (
-                      <li>
-                        <div>
-                          <span class={styles.version}>{version.version_number}</span>
-                          <span> - </span>
-                          <span class={styles.timestamp} title={version.date_created}>
-                            {dateFormatter.format(new Date(version.date_created))}
-                          </span>
-                        </div>
-                        <div>
-                          <p class={styles.downloads}>
-                            <span class={styles.label}>Downloads: </span>
-                            <span class={styles.value}>{numberFormatter.format(version.downloads)}</span>
-                          </p>
-                        </div>
-                      </li>
-                    );
-                  }}
-                </For>
-              </ol>
-            </div>
-          </div>
-        )}
-      </Show>
+      <Show when={selectedMod()}>{(mod) => <ModView mod={mod} />}</Show>
     </div>
   );
 }
 
-function ModListLeft({ mods, selectedMod: [selectedMod, setSelectedMod] }: { mods: Fetcher; selectedMod: Signal<ModAndVersion | undefined> }) {
+function ModView({ mod }: { mod: Accessor<ModAndVersion> }) {
+  return (
+    <div class={styles.scrollOuter}>
+      <div class={`${styles.modView} ${styles.scrollInner}`}>
+        <div>
+          <h2 class={styles.name}>{mod().mod.name}</h2>
+          <p class={styles.description}>{mod().mod.owner}</p>
+          <p class={styles.description}>{mod().mod.versions[0].description}</p>
+        </div>
+
+        <form class={styles.modView__downloader} action="#">
+          <select class={styles.versions}>
+            <For each={mod().mod.versions}>
+              {(version, i) => {
+                return (
+                  <option value={version.uuid4}>
+                    v{version.version_number} {i() === 0 ? "(latest)" : ""}
+                  </option>
+                );
+              }}
+            </For>
+          </select>
+          <button>Download</button>
+        </form>
+
+        <div>
+          <h4>Links</h4>
+          <ul>
+            <li>
+              <Show when={mod().mod.package_url != null}>
+                <a href={mod().mod.package_url} target="_blank" rel="noopener noreferrer">
+                  <Fa icon={faExternalLink} /> Website
+                </a>
+              </Show>
+            </li>
+            <li>
+              <Show when={mod().mod.donation_link != null}>
+                <a href={mod().mod.donation_link} target="_blank" rel="noopener noreferrer">
+                  <Fa icon={faHeart} /> Donate
+                </a>
+              </Show>
+            </li>
+          </ul>
+          {/* <span class={styles.version}>{version.version_number}</span>
+                <span> - </span>
+                <span class={styles.timestamp} title={version.date_created}>
+                  {dateFormatter.format(new Date(version.date_created))}
+                </span> */}
+          {/* <p class={styles.downloads}>
+                  <span class={styles.label}>Downloads: </span>
+                  <span class={styles.value}>{numberFormatter.format(version.downloads)}</span>
+                </p> */}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ModListMods({ mods, selectedMod: [selectedMod, setSelectedMod] }: { mods: Fetcher; selectedMod: Signal<ModAndVersion | undefined> }) {
   const [paginatedMods, infiniteScrollLoader, { end }] = createInfiniteScroll(mods);
 
   return (
@@ -76,7 +103,7 @@ function ModListLeft({ mods, selectedMod: [selectedMod, setSelectedMod] }: { mod
                 <img class={styles.icon} src={mod.mod.versions[0].icon} />
                 <div class={styles.split}>
                   <div class={styles.left}>
-                    <div>
+                    <p>
                       <span class={styles.name}>{mod.mod.name}</span>{" "}
                       <span class={styles.version}>
                         v
@@ -84,11 +111,10 @@ function ModListLeft({ mods, selectedMod: [selectedMod, setSelectedMod] }: { mod
                           {(version) => version()}
                         </Show>
                       </span>
-                    </div>
-                    <div class={styles.owner}>
-                      <span class={styles.label}>@</span>
+                    </p>
+                    <p class={styles.owner}>
                       <span class={styles.value}>{mod.mod.owner}</span>
-                    </div>
+                    </p>
                     <ul class={styles.categories}>
                       <For each={mod.mod.categories}>{(category) => <li>{category}</li>}</For>
                     </ul>
@@ -96,7 +122,7 @@ function ModListLeft({ mods, selectedMod: [selectedMod, setSelectedMod] }: { mod
                   <div class={styles.right}>
                     <p class={styles.downloads}>
                       <span class={styles.label}>Downloads: </span>
-                      <span class={styles.value}>{numberFormatter.format(mod.mod.versions.map(v => v.downloads).reduce((acc, x) => acc + x))}</span>
+                      <span class={styles.value}>{numberFormatter.format(mod.mod.versions.map((v) => v.downloads).reduce((acc, x) => acc + x))}</span>
                     </p>
                   </div>
                 </div>
