@@ -32,31 +32,26 @@ p {
 
   > li {
     display: flex;
-    flex-direction: row;
+    margin: 0;
+    border: 2px solid var(--clr-neutral-7);
+    border-radius: 8px;
+    padding: 0.5em;
+    gap: 0.5em;
+    text-align: left;
+    background-color: var(--clr-neutral-8);
+    transition: background-color 0.1s ease-in-out, border-color 0.1s ease-in-out;
+    cursor: pointer;
 
-    &.selected > button {
-      border-color: var(--clr-primary-7);
+    &:hover {
+      background-color: var(--clr-neutral-7);
     }
 
-    > button {
-      display: flex;
-      margin: 0;
-      border: 2px solid var(--clr-neutral-7);
-      border-radius: 8px;
-      padding: 0.5em;
-      gap: 0.5em;
-      text-align: left;
-      flex-grow: 1;
-      background-color: var(--clr-neutral-8);
-      transition: background-color 0.1s ease-in-out, border-color 0.1s ease-in-out;
+    &:active {
+      border-color: var(--clr-neutral-6);
+    }
 
-      &:hover {
-        background-color: var(--clr-neutral-7);
-      }
-
-      &:active {
-        border-color: var(--clr-neutral-6);
-      }
+    &.selected {
+      border-color: var(--clr-primary-7);
     }
   }
 

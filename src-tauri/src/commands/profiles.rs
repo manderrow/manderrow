@@ -1,14 +1,22 @@
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 
+use anyhow::Context as _;
+use futures::stream::FuturesOrdered;
+use futures::StreamExt as _;
 use log::{error, info};
 use tauri::ipc::Channel;
+use tauri::path::SafePathBuf;
 use tokio::process::Command;
 use uuid::Uuid;
 
-use crate::games::GAMES_BY_ID;
+use crate::games::{PackageLoader, GAMES_BY_ID};
+use crate::installing::install_zip;
 use crate::ipc::C2SMessage;
+use crate::launching::bep_in_ex::BEP_IN_EX_FOLDER;
+use crate::mods::{Mod, ModAndVersion};
 use crate::paths::local_data_dir;
+use crate::util::IoErrorKindExt as _;
 use crate::Error;
 
 pub static PROFILES_DIR: LazyLock<PathBuf> = LazyLock::new(|| local_data_dir().join("profiles"));
@@ -59,7 +67,7 @@ pub async fn get_profiles() -> Result<Vec<ProfileWithId>, Error> {
     let mut profiles = Vec::new();
     let mut iter = match tokio::fs::read_dir(&*PROFILES_DIR).await {
         Ok(t) => t,
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Vec::new()),
+        Err(e) if e.is_not_found() => return Ok(Vec::new()),
         Err(e) => return Err(e.into()),
     };
     while let Some(e) = iter.next_entry().await? {
@@ -76,7 +84,7 @@ pub async fn get_profiles() -> Result<Vec<ProfileWithId>, Error> {
         path.push("profile.json");
         let metadata = match read_profile_file(&path).await {
             Ok(t) => t,
-            Err(ReadProfileError::Io(e)) if e.kind() == std::io::ErrorKind::NotFound => continue,
+            Err(ReadProfileError::Io(e)) if e.is_not_found() => continue,
             Err(e) => {
                 error!("Unable to read profile metadata from {path:?}: {e}");
                 continue;
@@ -116,7 +124,10 @@ pub async fn launch_profile(
     let metadata = read_profile_file(&path).await?;
     path.pop();
     let Some(game) = GAMES_BY_ID.get(&*metadata.game).copied() else {
-        return Err(format!("Unrecognized game {:?}", metadata.game).into());
+        return Err(Error::new(format_args!(
+            "Unrecognized game {:?}",
+            metadata.game
+        )));
     };
     let Some(store_metadata) = game.store_platform_metadata.iter().next() else {
         return Err("Unable to launch game".into());
@@ -170,4 +181,133 @@ pub async fn launch_profile(
     crate::ipc::spawn_server_listener(channel, c2s_rx)?;
 
     Ok(())
+}
+
+const MANIFEST_FILE_NAME: &str = "manderrow_mod.json";
+
+#[tauri::command]
+pub async fn get_profile_mods(id: Uuid) -> Result<Vec<ModAndVersion>, Error> {
+    let mut path = profile_path(id);
+    path.push("profile.json");
+    let metadata = read_profile_file(&path).await?;
+    path.pop();
+
+    let game = GAMES_BY_ID.get(&*metadata.game).context("No such game")?;
+
+    match game.package_loader {
+        PackageLoader::BepInEx => {
+            path.push(BEP_IN_EX_FOLDER);
+            path.push("BepInEx");
+            path.push("plugins");
+
+            let mut iter = match tokio::fs::read_dir(&path).await {
+                Ok(t) => t,
+                Err(e) if e.is_not_found() => return Ok(Vec::new()),
+                Err(e) => return Err(e.into()),
+            };
+            let mut tasks = FuturesOrdered::new();
+            while let Some(e) = iter.next_entry().await? {
+                if e.file_type().await?.is_dir() {
+                    let mut path = path.clone();
+                    tasks.push_back(tokio::task::spawn(async move {
+                        path.push(e.file_name());
+                        path.push(MANIFEST_FILE_NAME);
+                        tokio::task::block_in_place(|| {
+                            Ok::<_, Error>(Some(serde_json::from_reader(std::io::BufReader::new(
+                                match std::fs::File::open(&path) {
+                                    Ok(t) => t,
+                                    Err(e) if e.is_not_found() => {
+                                        return Ok(None)
+                                    }
+                                    Err(e) => return Err(e.into()),
+                                },
+                            ))?))
+                        })
+                    }));
+                }
+            }
+            let mut buf = Vec::new();
+            while let Some(r) = tasks.next().await {
+                if let Some(m) = r?? {
+                    buf.push(m);
+                }
+            }
+            Ok(buf)
+        }
+        _ => Ok(Vec::new()),
+    }
+}
+
+#[tauri::command]
+pub async fn install_profile_mod(id: Uuid, r#mod: Mod, version: usize) -> Result<(), Error> {
+    let mut path = profile_path(id);
+    path.push("profile.json");
+    let metadata = read_profile_file(&path).await?;
+    path.pop();
+
+    let game = GAMES_BY_ID.get(&*metadata.game).context("No such game")?;
+
+    let mod_with_version = ModAndVersion {
+        r#mod: r#mod.metadata,
+        game: metadata.game,
+        version: r#mod
+            .versions
+            .into_iter()
+            .nth(version)
+            .ok_or("No such version")?,
+    };
+
+    match game.package_loader {
+        PackageLoader::BepInEx => {
+            path.push(BEP_IN_EX_FOLDER);
+            path.push("BepInEx");
+            path.push("plugins");
+
+            tokio::fs::create_dir_all(&path).await?;
+
+            path.push(&mod_with_version.r#mod.full_name);
+            let staged = install_zip(&mod_with_version.version.download_url, None, &path).await?;
+
+            tokio::task::block_in_place(|| {
+                serde_json::to_writer(
+                    std::io::BufWriter::new(std::fs::File::create(
+                        staged.path().join(MANIFEST_FILE_NAME),
+                    )?),
+                    &mod_with_version,
+                )?;
+                Ok::<_, anyhow::Error>(())
+            })?;
+
+            staged.finish().await?;
+
+            Ok(())
+        }
+        _ => Err("Unsupported package loader for mod installation".into()),
+    }
+}
+
+#[tauri::command]
+pub async fn uninstall_profile_mod(id: Uuid, mod_name: &str) -> Result<bool, Error> {
+    let mut path = profile_path(id);
+    path.push("profile.json");
+    let metadata = read_profile_file(&path).await?;
+    path.pop();
+
+    let game = GAMES_BY_ID.get(&*metadata.game).context("No such game")?;
+
+    match game.package_loader {
+        PackageLoader::BepInEx => {
+            path.push(BEP_IN_EX_FOLDER);
+            path.push("BepInEx");
+            path.push("plugins");
+            path.push(mod_name);
+
+            match tokio::fs::remove_dir_all(&path).await {
+                Ok(()) => Ok(true),
+                Err(e) if e.is_not_found() => Ok(false),
+                Err(e) => return Err(e.into()),
+            }
+        }
+        _ => Err("Unsupported package loader for mod installation".into()),
+    }
 }

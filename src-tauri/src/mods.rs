@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 use rkyv_intern::Intern;
 use uuid::Uuid;
 
@@ -31,7 +33,41 @@ pub struct ModRef<'a> {
     serde::Serialize,
 )]
 #[rkyv(derive(Debug))]
+#[serde(deny_unknown_fields)]
 pub struct Mod {
+    #[serde(flatten)]
+    pub metadata: ModMetadata,
+    pub versions: Vec<ModVersion>,
+}
+
+impl Deref for Mod {
+    type Target = ModMetadata;
+
+    fn deref(&self) -> &Self::Target {
+        &self.metadata
+    }
+}
+
+impl Deref for ArchivedMod {
+    type Target = ArchivedModMetadata;
+
+    fn deref(&self) -> &Self::Target {
+        &self.metadata
+    }
+}
+
+#[derive(
+    Debug,
+    Clone,
+    rkyv::Archive,
+    rkyv::Deserialize,
+    rkyv::Serialize,
+    serde::Deserialize,
+    serde::Serialize,
+)]
+#[rkyv(derive(Debug))]
+#[serde(deny_unknown_fields)]
+pub struct ModMetadata {
     #[rkyv(with = Intern)]
     pub name: String,
     pub full_name: String,
@@ -48,7 +84,6 @@ pub struct Mod {
     pub is_deprecated: bool,
     pub has_nsfw_content: bool,
     pub categories: Vec<InternedString>,
-    pub versions: Vec<ModVersion>,
     pub uuid4: Uuid,
 }
 
@@ -80,6 +115,7 @@ pub struct ModVersionRef<'a> {
     serde::Serialize,
 )]
 #[rkyv(derive(Debug))]
+#[serde(deny_unknown_fields)]
 pub struct ModVersion {
     #[rkyv(with = Intern)]
     pub name: String,
@@ -98,6 +134,15 @@ pub struct ModVersion {
     pub is_active: bool,
     pub uuid4: Uuid,
     pub file_size: u64,
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct ModAndVersion {
+    #[serde(flatten)]
+    pub r#mod: ModMetadata,
+    pub game: String,
+    pub version: ModVersion,
 }
 
 #[derive(

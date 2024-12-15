@@ -1,4 +1,4 @@
-use std::{collections::HashMap, ffi::OsString, path::PathBuf, sync::OnceLock};
+use std::{collections::HashMap, ffi::OsString, sync::OnceLock};
 
 use anyhow::{anyhow, bail, Context as _, Result};
 use ipc_channel::ipc::IpcSender;

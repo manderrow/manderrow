@@ -38,7 +38,7 @@ vdf = { git = "https://git.pfaff.dev/michael/vdf.rs" }
 
 # general
 anyhow = "1.0.94"
-blake3 = { version = "1.5.5", features = ["mmap"] }
+blake3 = { version = "1.5.5", features = ["mmap", "serde"] }
 bytes = "1.8.0"
 dirs = "5.0.1"
 drop-guard = { git = "https://git.pfaff.dev/michael/drop-guard.rs.git", version = "0.2.0", features = ["tokio1-task"] }
@@ -60,6 +60,7 @@ uuid = { version = "1.11.0", features = ["serde"] }
 # provides gzip and zip
 flate2 = "1.0.35"
 zip = "2.2.1"
+walkdir = "2.5.0"
 
 [target.'cfg(windows)'.dependencies]
 registry = "1.3"

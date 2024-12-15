@@ -1,15 +1,18 @@
 #![deny(unused_must_use)]
+#![feature(error_generic_member_access)]
 #![feature(path_add_extension)]
 
 mod commands;
 mod game_reviews;
 mod games;
+mod installing;
 mod ipc;
 mod launching;
 mod mods;
 mod paths;
 mod window_state;
 mod wrap;
+pub mod util;
 
 use std::sync::OnceLock;
 
@@ -33,15 +36,35 @@ struct Error {
     backtrace: String,
 }
 
-impl<T: std::fmt::Display> From<T> for Error {
+impl Error {
+    fn new_with_backtrace(message: String, backtrace: String) -> Self {
+        error!("{message}\nBacktrace:\n{backtrace}");
+        Self { message, backtrace }
+    }
+
+    pub fn new(message: impl std::fmt::Display) -> Self {
+        Self::new_with_backtrace(
+            message.to_string(),
+            std::backtrace::Backtrace::force_capture().to_string(),
+        )
+    }
+}
+
+impl<T: std::fmt::Display + 'static> From<T> for Error {
     #[track_caller]
     fn from(value: T) -> Self {
-        let backtrace = std::backtrace::Backtrace::force_capture();
-        error!("{value}\nBacktrace:\n{backtrace}");
-        Self {
-            message: value.to_string(),
-            backtrace: backtrace.to_string(),
-        }
+        use std::any::Any;
+        Self::new_with_backtrace(
+            value.to_string(),
+            if let Some(e) = (&value as &dyn Any)
+                .downcast_ref::<anyhow::Error>()
+                .filter(|e| e.backtrace().status() != std::backtrace::BacktraceStatus::Disabled)
+            {
+                e.backtrace().to_string()
+            } else {
+                std::backtrace::Backtrace::force_capture().to_string()
+            },
+        )
     }
 }
 
@@ -78,6 +101,8 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
             commands::profiles::create_profile,
             commands::profiles::delete_profile,
             commands::profiles::launch_profile,
+            commands::profiles::get_profile_mods,
+            commands::profiles::install_profile_mod,
         ])
         .run(ctx)
         .context("error while running tauri application")
