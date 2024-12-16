@@ -82,7 +82,6 @@ function ModListLeft({
 }) {
   const infiniteScroll = createMemo(() => {
     resetSignal();
-    console.log("Creating infinite scroll");
     // cast away the readonly
     // TODO: when we fork this, make it take readonly instead
     return createInfiniteScroll(mods as (page: number) => Promise<Mod[]>);
