@@ -103,6 +103,7 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
             commands::profiles::launch_profile,
             commands::profiles::get_profile_mods,
             commands::profiles::install_profile_mod,
+            commands::profiles::uninstall_profile_mod,
         ])
         .run(ctx)
         .context("error while running tauri application")

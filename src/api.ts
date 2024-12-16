@@ -130,3 +130,7 @@ export async function getProfileMods(id: string): Promise<ModPackage[]> {
 export async function installProfileMod(id: string, mod: ModListing, version: number): Promise<void> {
   return await wrapInvoke(async () => await invoke("install_profile_mod", { id, mod, version }));
 }
+
+export async function uninstallProfileMod(id: string, modName: string): Promise<void> {
+  return await wrapInvoke(async () => await invoke("uninstall_profile_mod", { id, modName }));
+}

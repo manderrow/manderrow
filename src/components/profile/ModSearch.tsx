@@ -161,7 +161,14 @@ export default function ModSearch(props: { game: string }) {
             <Fa icon={faRefresh} />
           </button>
         </div>
-        <ModList mods={queriedMods()!.mods} />
+        <ModList
+          mods={queriedMods()!.mods}
+          refetchInstalled={async () => {}}
+          resetSignal={() => {
+            loadStatus.loading;
+            return true;
+          }}
+        />
       </Show>
     </div>
   );

@@ -33,7 +33,6 @@ import {
   createProfile,
   deleteProfile,
   getProfileMods,
-  installProfileMod,
   launchProfile,
   ProfileWithId,
 } from "../../api";
@@ -186,21 +185,19 @@ export default function Profile() {
             </li>
           </ul>
 
-          <Switch>
-            <Match when={currentTab() === "mod-list"}>
-              <InstalledModsList
-                game={params.gameId}
-                profile={params.profileId!}
-              />
-            </Match>
-            <Match when={currentTab() === "mod-search"}>
-              <ModInstallContext.Provider
-                value={{ profile: params.profileId! }}
-              >
+          <ModInstallContext.Provider value={{ profile: params.profileId! }}>
+            <Switch>
+              <Match when={currentTab() === "mod-list"}>
+                <InstalledModsList
+                  game={params.gameId}
+                  profile={params.profileId!}
+                />
+              </Match>
+              <Match when={currentTab() === "mod-search"}>
                 <ModSearch game={params.gameId} />
-              </ModInstallContext.Provider>
-            </Match>
-          </Switch>
+              </Match>
+            </Switch>
+          </ModInstallContext.Provider>
         </Show>
       </div>
 
@@ -270,7 +267,15 @@ function InstalledModsList(props: { game: string; profile: string }) {
       when={activeProfileMods.latest.length !== 0}
       fallback={<p>Looks like you haven't installed any mods yet.</p>}
     >
-      <ModList mods={async (page) => (page === 0 ? activeProfileMods() : [])} />
+      <ModList
+        mods={async (page) => (page === 0 ? activeProfileMods() : [])}
+        refetchInstalled={async () => {
+          await refetchActiveProfileMods();
+        }}
+        resetSignal={() => {
+          activeProfileMods.loading;
+        }}
+      />
     </Show>
   );
 }

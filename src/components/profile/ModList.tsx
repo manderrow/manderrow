@@ -1,5 +1,6 @@
 import { createInfiniteScroll } from "@solid-primitives/pagination";
 import {
+  Accessor,
   createContext,
   createMemo,
   createResource,
@@ -11,14 +12,21 @@ import {
   useContext,
 } from "solid-js";
 
-import { Mod, ModListing } from "../../types";
+import { Mod, ModListing, ModPackage } from "../../types";
 import { numberFormatter } from "../../utils";
 
 import styles from "./ModList.module.css";
 import ErrorBoundary, { ErrorContext } from "../global/ErrorBoundary";
 import { InitialProgress, ProgressData } from "./ModSearch";
 import { createStore } from "solid-js/store";
-import { fetchModIndex, installProfileMod, queryModIndex } from "../../api";
+import {
+  fetchModIndex,
+  installProfileMod,
+  queryModIndex,
+  uninstallProfileMod,
+} from "../../api";
+import Fa from "solid-fa";
+import { faTrash } from "@fortawesome/free-solid-svg-icons";
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   month: "short",
@@ -34,7 +42,14 @@ export const ModInstallContext = createContext<{
   profile: string;
 }>();
 
-export default function ModList(props: { mods: Fetcher }) {
+export default function ModList(props: {
+  mods: Fetcher;
+  refetchInstalled: () => Promise<void>;
+  /**
+   * Resource that may be tracked to listen to refetch.
+   */
+  resetSignal: () => void;
+}) {
   const [selectedMod, setSelectedMod] = createSignal<Mod>();
 
   return (
@@ -44,6 +59,8 @@ export default function ModList(props: { mods: Fetcher }) {
           <ModListLeft
             mods={mods}
             selectedMod={[selectedMod, setSelectedMod]}
+            refetchInstalled={props.refetchInstalled}
+            resetSignal={props.resetSignal}
           />
         )}
       </Show>
@@ -55,20 +72,36 @@ export default function ModList(props: { mods: Fetcher }) {
 function ModListLeft({
   mods,
   selectedMod,
+  refetchInstalled,
+  resetSignal,
 }: {
   mods: Fetcher;
   selectedMod: Signal<Mod | undefined>;
+  refetchInstalled: () => Promise<void>;
+  resetSignal: () => void;
 }) {
-  const [paginatedMods, infiniteScrollLoader, { end }] =
+  const infiniteScroll = createMemo(() => {
+    resetSignal();
+    console.log("Creating infinite scroll");
     // cast away the readonly
     // TODO: when we fork this, make it take readonly instead
-    createInfiniteScroll(mods as (page: number) => Promise<Mod[]>);
+    return createInfiniteScroll(mods as (page: number) => Promise<Mod[]>);
+  });
+  const paginatedMods = () => infiniteScroll()[0]();
+  const infiniteScrollLoader = (el: Element, props: Accessor<true>) => infiniteScroll()[1](el, props);
+  const end = () => infiniteScroll()[2].end();
 
   return (
     <div class={styles.scrollOuter}>
       <ol class={`${styles.modList} ${styles.scrollInner}`}>
         <For each={paginatedMods()}>
-          {(mod) => <ModListItem mod={mod} selectedMod={selectedMod} />}
+          {(mod) => (
+            <ModListItem
+              mod={mod}
+              selectedMod={selectedMod}
+              refetchInstalled={refetchInstalled}
+            />
+          )}
         </For>
         <Show when={!end()}>
           <li use:infiniteScrollLoader>Loading...</li>
@@ -81,6 +114,7 @@ function ModListLeft({
 function ModListItem(props: {
   mod: Mod;
   selectedMod: Signal<Mod | undefined>;
+  refetchInstalled: () => Promise<void>;
 }) {
   const displayVersion = createMemo(() => {
     if ("version" in props.mod) return props.mod.version;
@@ -135,6 +169,16 @@ function ModListItem(props: {
               <InstallButton
                 mod={props.mod as ModListing}
                 installContext={installContext!}
+                refetchInstalled={props.refetchInstalled}
+              />
+            </ErrorBoundary>
+          </Show>
+          <Show when={installContext !== undefined && "version" in props.mod}>
+            <ErrorBoundary>
+              <UninstallButton
+                mod={props.mod as ModPackage}
+                installContext={installContext!}
+                refetchInstalled={props.refetchInstalled}
               />
             </ErrorBoundary>
           </Show>
@@ -147,25 +191,60 @@ function ModListItem(props: {
 function InstallButton(props: {
   mod: ModListing;
   installContext: NonNullable<typeof ModInstallContext.defaultValue>;
+  refetchInstalled: () => Promise<void>;
 }) {
   const reportErr = useContext(ErrorContext);
-  const [installing, setInstalling] = createSignal(false);
+  const [busy, setBusy] = createSignal(false);
   return (
     <button
-      disabled={installing()}
+      disabled={busy()}
       on:click={async (e) => {
         e.stopPropagation();
-        setInstalling(true);
+        setBusy(true);
         try {
           await installProfileMod(props.installContext.profile, props.mod, 0);
+          await props.refetchInstalled();
         } catch (e) {
           reportErr(e);
         } finally {
-          setInstalling(false);
+          setBusy(false);
         }
       }}
     >
-      <Show when={installing()} fallback="Install">
+      <Show when={busy()} fallback="Install">
+        <progress />
+      </Show>
+    </button>
+  );
+}
+
+function UninstallButton(props: {
+  mod: ModPackage;
+  installContext: NonNullable<typeof ModInstallContext.defaultValue>;
+  refetchInstalled: () => Promise<void>;
+}) {
+  const reportErr = useContext(ErrorContext);
+  const [busy, setBusy] = createSignal(false);
+  return (
+    <button
+      disabled={busy()}
+      on:click={async (e) => {
+        e.stopPropagation();
+        setBusy(true);
+        try {
+          await uninstallProfileMod(
+            props.installContext.profile,
+            props.mod.full_name
+          );
+          await props.refetchInstalled();
+        } catch (e) {
+          reportErr(e);
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      <Show when={busy()} fallback={<Fa icon={faTrash} />}>
         <progress />
       </Show>
     </button>
