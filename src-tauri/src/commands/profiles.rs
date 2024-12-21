@@ -6,12 +6,11 @@ use futures::stream::FuturesOrdered;
 use futures::StreamExt as _;
 use log::{error, info};
 use tauri::ipc::Channel;
-use tauri::path::SafePathBuf;
 use tokio::process::Command;
 use uuid::Uuid;
 
 use crate::games::{PackageLoader, GAMES_BY_ID};
-use crate::installing::install_zip;
+use crate::installing::{install_zip, uninstall_package};
 use crate::ipc::C2SMessage;
 use crate::launching::bep_in_ex::BEP_IN_EX_FOLDER;
 use crate::mods::{Mod, ModAndVersion};
@@ -287,7 +286,7 @@ pub async fn install_profile_mod(id: Uuid, r#mod: Mod, version: usize) -> Result
 }
 
 #[tauri::command]
-pub async fn uninstall_profile_mod(id: Uuid, mod_name: &str) -> Result<bool, Error> {
+pub async fn uninstall_profile_mod(id: Uuid, mod_name: &str) -> Result<(), Error> {
     let mut path = profile_path(id);
     path.push("profile.json");
     let metadata = read_profile_file(&path).await?;
@@ -302,11 +301,15 @@ pub async fn uninstall_profile_mod(id: Uuid, mod_name: &str) -> Result<bool, Err
             path.push("plugins");
             path.push(mod_name);
 
-            match tokio::fs::remove_dir_all(&path).await {
-                Ok(()) => Ok(true),
-                Err(e) if e.is_not_found() => Ok(false),
-                Err(e) => return Err(e.into()),
-            }
+            // remove the manifest so it isn't left over after uninstalling the package
+            path.push(MANIFEST_FILE_NAME);
+            tokio::fs::remove_file(&path).await?;
+            path.pop();
+
+            // keep_changes is true so that configs and any other changes are
+            // preserved. Zero-risk uninstallation!
+            uninstall_package(&path, true).await?;
+            Ok(())
         }
         _ => Err("Unsupported package loader for mod installation".into()),
     }

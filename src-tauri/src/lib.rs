@@ -1,5 +1,6 @@
 #![deny(unused_must_use)]
 #![feature(error_generic_member_access)]
+#![feature(extend_one)]
 #![feature(path_add_extension)]
 
 mod commands;

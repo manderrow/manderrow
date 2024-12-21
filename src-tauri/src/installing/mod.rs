@@ -1,32 +1,215 @@
+//! Package installation helpers
+//!
+//! Never make changes to `IndexEntryV*` or [`Index`] variants. Make a new version instead.
+
 use std::{
-    collections::{HashMap, HashSet},
-    hash::Hash,
-    path::{Path, PathBuf},
+    borrow::Cow, collections::{HashMap, HashSet}, ffi::OsStr, hash::Hash, path::{Path, PathBuf}
 };
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
+use itertools::Itertools;
 use log::{debug, trace};
+use rkyv::{rend::u16_le, vec::ArchivedVec};
 use tauri_plugin_http::reqwest;
 use tempfile::TempDir;
-use tokio::io::AsyncWriteExt as _;
+use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
+use trie_rs::TrieBuilder;
 use walkdir::WalkDir;
 use zip::{result::ZipError, ZipArchive};
 
 use crate::{paths::cache_dir, util::IoErrorKindExt};
+
+#[derive(Debug, Clone, PartialEq, Eq, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize)]
+#[rkyv(derive(Debug, PartialEq, Eq))]
+#[rkyv(compare(PartialEq))]
+enum NativePath {
+    Unix(Vec<Vec<u8>>),
+    Windows(Vec<Vec<u16>>),
+}
+
+impl NativePath {
+    pub fn component_count(&self) -> usize {
+        match self {
+            Self::Unix(vec) => vec.len(),
+            Self::Windows(vec) => vec.len(),
+        }
+    }
+}
+
+impl ArchivedNativePath {
+    pub fn component_count(&self) -> usize {
+        match self {
+            Self::Unix(vec) => vec.len(),
+            Self::Windows(vec) => vec.len(),
+        }
+    }
+
+    pub fn components(&self) -> ArchivedNativePathComponents {
+        match self {
+            #[cfg(unix)]
+            ArchivedNativePath::Unix(vec) => ArchivedNativePathComponents { iter: vec.iter() },
+            #[cfg(windows)]
+            ArchivedNativePath::Windows(vec) => ArchivedNativePathComponents { iter: vec.iter() },
+            _ => panic!("Attempted to use an index across operating systems"),
+        }
+    }
+}
+
+struct ArchivedNativePathComponents<'a> {
+    #[cfg(unix)]
+    iter: std::slice::Iter<'a, ArchivedVec<u8>>,
+    #[cfg(windows)]
+    windows: std::slice::Iter<'a, ArchivedVec<u16_le>>,
+}
+
+impl<'a> Iterator for ArchivedNativePathComponents<'a> {
+    type Item = Cow<'a, OsStr>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        #[cfg(unix)]
+        {
+            use std::os::unix::ffi::OsStrExt;
+            self.iter.next().map(|component| OsStr::from_bytes(component).into())
+        }
+        #[cfg(windows)]
+        {
+            use std::os::windows::ffi::OsStringExt;
+            self.iter.next().map(|component| OsString::from_wide(component).into())
+        }
+    }
+}
+
+impl<T: AsRef<Path>> From<T> for NativePath {
+    fn from(value: T) -> Self {
+        let value = value.as_ref();
+        #[cfg(unix)]
+        {
+            use std::os::unix::ffi::OsStrExt;
+            Self::Unix(
+                value
+                    .components()
+                    .map(|s| s.as_os_str().as_bytes().to_owned())
+                    .collect(),
+            )
+        }
+        #[cfg(windows)]
+        {
+            use std::os::windows::ffi::OsStrExt;
+            Self::Windows(
+                value
+                    .components()
+                    .map(|s| s.as_os_str().encode_wide().collect::<Vec<_>>())
+                    .collect(),
+            )
+        }
+    }
+}
+
+impl Hash for NativePath {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            #[cfg(unix)]
+            Self::Unix(vec) => vec.hash(state),
+            #[cfg(windows)]
+            Self::Windows(vec) => vec.hash(state),
+            _ => panic!("Attempted to use an index across operating systems"),
+        }
+    }
+}
+
+impl Hash for ArchivedNativePath {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        match self {
+            #[cfg(unix)]
+            Self::Unix(vec) => vec.hash(state),
+            #[cfg(windows)]
+            Self::Windows(vec) => vec.hash(state),
+            _ => panic!("Attempted to use an index across operating systems"),
+        }
+    }
+}
+
+#[derive(PartialEq, Eq)]
+struct PathAsNativePath<'a>(&'a Path);
+
+impl<'a> Hash for PathAsNativePath<'a> {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        #[cfg(unix)]
+        {
+            use std::os::unix::ffi::OsStrExt;
+            self.0.components().count().hash(state);
+            self.0
+                .components()
+                .map(|s| s.as_os_str().as_bytes())
+                .for_each(|component| component.hash(state));
+        }
+        #[cfg(windows)]
+        {
+            use std::os::windows::ffi::OsStrExt;
+            self.0.components().count().hash(state);
+            self.0.components().for_each(|s| {
+                s.as_os_str().encode_wide().count().hash(state);
+                s.as_os_str()
+                    .encode_wide()
+                    .for_each(|element| element.hash(state));
+            });
+        }
+    }
+}
+
+impl<'a> PartialEq<ArchivedNativePath> for Path {
+    fn eq(&self, other: &ArchivedNativePath) -> bool {
+        match other {
+            #[cfg(unix)]
+            ArchivedNativePath::Unix(components) => {
+                use std::os::unix::ffi::OsStrExt;
+                self.components()
+                    .zip_longest(components.iter())
+                    .all(|item| {
+                        item.both()
+                            .map(|(a, b)| a.as_os_str().as_bytes() == b)
+                            .unwrap_or_default()
+                    })
+            }
+            #[cfg(windows)]
+            ArchivedNativePath::Windows(components) => {
+                use std::os::windows::ffi::OsStrExt;
+                self.components()
+                    .zip_longest(components.iter())
+                    .all(|item| {
+                        item.both()
+                            .map(|(a, b)| {
+                                a.as_os_str()
+                                    .encode_wide()
+                                    .zip_longest(b.iter())
+                                    .map(|(a, b)| a == b)
+                                    .unwrap_or_default()
+                            })
+                            .unwrap_or_default()
+                    })
+            }
+            _ => panic!("Attempted to use an index across operating systems"),
+        }
+    }
+}
 
 /// Index of files that came with the zip.
 #[derive(Debug, Clone, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize)]
 #[rkyv(derive(Debug))]
 enum Index {
     V1(HashMap<IndexPath, IndexEntryV1>),
+    V2(HashMap<NativePath, IndexEntryV1>),
 }
 
 impl ArchivedIndex {
-    pub fn get<'a>(&'a self, path: &IndexPath) -> Option<IndexEntryRef<'a>> {
+    pub fn get<'a>(&'a self, path: &Path) -> Option<IndexEntryRef<'a>> {
         match self {
-            ArchivedIndex::V1(entries) => {
-                entries.get_with(path, |a, b| a == b).map(IndexEntryRef::V1)
-            }
+            ArchivedIndex::V1(entries) => entries
+                .get_with(&IndexPath::try_from(path).ok()?, |a, b| a == b)
+                .map(IndexEntryRef::V1),
+            ArchivedIndex::V2(entries) => entries
+                .get_with(&PathAsNativePath(path), |a, b| a.0 == b)
+                .map(IndexEntryRef::V1),
         }
     }
 }
@@ -89,8 +272,6 @@ pub enum Status {
     LinkTargetChanged,
     /// A filesystem object that came with the package was deleted.
     Deleted,
-    /// The file could not be tracked due to containing non-Unicode characters in its path.
-    UntrackablePath,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -118,9 +299,20 @@ fn hash_file(path: &Path) -> std::io::Result<blake3::Hash> {
     Ok(blake3::Hasher::new().update_mmap(&path)?.finalize())
 }
 
-pub async fn scan_installed_package_for_changes(
+pub async fn scan_installed_package_for_changes<'i>(
     path: &Path,
-) -> Result<Vec<(PathBuf, Status)>, ScanError> {
+    buf: &mut impl Extend<(PathBuf, Status)>,
+) -> Result<(), ScanError> {
+    let mut index_buf = Vec::new();
+    scan_installed_package_for_changes_with_index_buf(path, buf, &mut index_buf).await?;
+    Ok(())
+}
+
+async fn scan_installed_package_for_changes_with_index_buf<'i>(
+    path: &Path,
+    buf: &mut impl Extend<(PathBuf, Status)>,
+    index_buf: &'i mut Vec<u8>,
+) -> Result<Option<&'i ArchivedIndex>, ScanError> {
     match tokio::fs::metadata(&path).await {
         Ok(m) if m.is_dir() => {}
         Ok(_) => {
@@ -133,22 +325,25 @@ pub async fn scan_installed_package_for_changes(
         Err(e) if e.is_not_found() => return Err(ScanError::IndexNotFoundError),
         Err(e) => return Err(e.into()),
     };
-    let index_buf = match tokio::fs::read(path.join(INDEX_FILE_NAME)).await {
-        Ok(t) => Some(t),
+    let index_buf = match tokio::fs::File::open(path.join(INDEX_FILE_NAME)).await {
+        Ok(mut f) => {
+            f.read_to_end(index_buf)
+                .await
+                .map_err(ScanError::ReadIndexError)?;
+            Some(index_buf)
+        }
         Err(e) if e.is_not_found() => None,
         Err(e) => return Err(ScanError::ReadIndexError(e)),
     };
-    let index = match &index_buf {
+    let index = match index_buf {
         Some(index_buf) => Some(
-            rkyv::access::<ArchivedIndex, rkyv::rancor::Error>(&index_buf)
+            rkyv::access::<ArchivedIndex, rkyv::rancor::Error>(index_buf)
                 .map_err(ScanError::InvalidIndexError)?,
         ),
         None => None,
     };
 
-    let mut buf = Vec::new();
-
-    let mut seen = HashSet::new();
+    // let mut seen = HashSet::new();
 
     let mut iter = WalkDir::new(path).into_iter();
     if iter
@@ -169,24 +364,19 @@ pub async fn scan_installed_package_for_changes(
         if rel_path == Path::new(INDEX_FILE_NAME) {
             continue;
         }
-        let Ok(index_path) = IndexPath::try_from(rel_path) else {
-            buf.push((dir_entry.path().to_owned(), Status::UntrackablePath));
-            continue;
-        };
-        if let Some(entry) = index.and_then(|index| index.get(&index_path)) {
-            seen.insert(index_path);
+        if let Some(entry) = index.and_then(|index| index.get(&rel_path)) {
+            // seen.insert(rel_path.to_owned());
             match entry {
                 IndexEntryRef::V1(ArchivedIndexEntryV1::File { hash }) => {
                     let hash = blake3::Hash::from_bytes(*hash);
-                    let metadata = tokio::fs::symlink_metadata(dir_entry.path()).await?;
-                    if !metadata.is_file() {
-                        if metadata.is_dir() {
+                    if !dir_entry.file_type().is_file() {
+                        if dir_entry.file_type().is_dir() {
                             // new directory, don't create an entry for each child
                             iter.skip_current_dir();
                         }
-                        buf.push((dir_entry.path().to_owned(), Status::TypeChanged));
+                        buf.extend_one((dir_entry.path().to_owned(), Status::TypeChanged));
                     } else if tokio::task::block_in_place(|| hash_file(dir_entry.path()))? != hash {
-                        buf.push((dir_entry.path().to_owned(), Status::ContentModified))
+                        buf.extend_one((dir_entry.path().to_owned(), Status::ContentModified))
                     }
                 }
                 IndexEntryRef::V1(ArchivedIndexEntryV1::Symlink { target }) => {
@@ -203,34 +393,34 @@ pub async fn scan_installed_package_for_changes(
                                 &real_target
                             };
                             if real_target == target {
-                                buf.push((dir_entry.path().to_owned(), Status::LinkTargetChanged));
+                                buf.extend_one((
+                                    dir_entry.path().to_owned(),
+                                    Status::LinkTargetChanged,
+                                ));
                             }
                         }
                         Err(e) if e.kind() == std::io::ErrorKind::InvalidInput => {
-                            let metadata = tokio::fs::symlink_metadata(dir_entry.path()).await?;
-                            if metadata.is_dir() {
+                            if dir_entry.file_type().is_dir() {
                                 // new directory, don't create an entry for each child
                                 iter.skip_current_dir();
                             }
-                            buf.push((dir_entry.path().to_owned(), Status::TypeChanged));
+                            buf.extend_one((dir_entry.path().to_owned(), Status::TypeChanged));
                         }
                         Err(e) => return Err(e.into()),
                     }
                 }
                 IndexEntryRef::V1(ArchivedIndexEntryV1::Directory) => {
-                    let metadata = tokio::fs::symlink_metadata(dir_entry.path()).await?;
-                    if !metadata.is_dir() {
-                        buf.push((dir_entry.path().to_owned(), Status::TypeChanged));
+                    if !dir_entry.file_type().is_dir() {
+                        buf.extend_one((dir_entry.path().to_owned(), Status::TypeChanged));
                     }
                 }
             }
         } else {
-            let metadata = tokio::fs::symlink_metadata(dir_entry.path()).await?;
-            if metadata.is_dir() {
+            if dir_entry.file_type().is_dir() {
                 // new directory, don't create an entry for each child
                 iter.skip_current_dir();
             }
-            buf.push((dir_entry.path().to_owned(), Status::Created));
+            buf.extend_one((dir_entry.path().to_owned(), Status::Created));
         }
     }
 
@@ -255,7 +445,35 @@ pub async fn scan_installed_package_for_changes(
                     }) {
                         trace!("Not recording deletion because a parent was also deleted: {e_path:?} is inside of {entry:?}");
                     } else {
-                        buf.push((p, Status::Deleted));
+                        buf.extend_one((p, Status::Deleted));
+                    }
+                }
+            }
+        }
+        Some(ArchivedIndex::V2(entries)) => {
+            // TODO: remove collect when https://github.com/rkyv/rkyv/issues/578 is fixed
+            for indexed_path in entries.iter().map(|(p, _)| p).collect::<Vec<_>>() {
+                let mut p: PathBuf = path.to_owned();
+                for comp in indexed_path.components() {
+                    match comp {
+                        Cow::Borrowed(comp) => p.push(comp),
+                        Cow::Owned(comp) => p.push(comp),
+                    }
+                }
+                if !tokio::fs::try_exists(&p).await? {
+                    // skip recording if a parent has been deleted.
+                    if let Some((entry, _)) = entries.iter().find(|(e_p, _)| {
+                        e_p.component_count() >= p.components().count()
+                            && e_p.components().zip(p.components()).all(|(a, b)| {
+                                b.as_os_str()
+                                    .to_str()
+                                    .map(|b| &*a == b)
+                                    .unwrap_or(false)
+                            })
+                    }) {
+                        trace!("Not recording deletion because a parent was also deleted: {indexed_path:?} is inside of {entry:?}");
+                    } else {
+                        buf.extend_one((p, Status::Deleted));
                     }
                 }
             }
@@ -264,9 +482,8 @@ pub async fn scan_installed_package_for_changes(
     }
 
     trace!("Index: {index:#?}");
-    trace!("Changes: {buf:#?}");
 
-    Ok(buf)
+    Ok(index)
 }
 
 async fn generate_package_index(path: &Path) -> Result<()> {
@@ -354,13 +571,16 @@ pub async fn install_zip<'a>(
         .parent()
         .context("Target must not be a filesystem root")?;
 
-    let changes = match scan_installed_package_for_changes(target).await {
-        Ok(t) => Some(t),
+    let mut changes = Vec::new();
+    let changes = match scan_installed_package_for_changes(target, &mut changes).await {
+        Ok(()) => Some(changes),
         Err(ScanError::IndexNotFoundError) => None,
         Err(e) => return Err(e.into()),
     };
-    if changes.is_some() {
+    if let Some(changes) = &changes {
         debug!("Zip is already installed to {target:?}");
+
+        trace!("Changes: {changes:#?}");
     }
 
     let temp_dir: TempDir;
@@ -438,6 +658,67 @@ pub async fn install_zip<'a>(
     Ok(StagedPackage { target, temp_dir })
 }
 
+pub async fn uninstall_package<'a>(path: &'a Path, keep_changes: bool) -> anyhow::Result<()> {
+    if keep_changes {
+        let mut changes = TrieBuilder::new();
+        struct ExtendByFn<F>(F);
+        impl<F, I> Extend<I> for ExtendByFn<F>
+        where
+            F: FnMut(I),
+        {
+            fn extend<T: IntoIterator<Item = I>>(&mut self, iter: T) {
+                iter.into_iter().for_each(&mut self.0);
+            }
+        }
+        scan_installed_package_for_changes(
+            path,
+            &mut ExtendByFn(|(path, status): (PathBuf, _)| {
+                if !matches!(status, Status::Deleted) {
+                    changes.insert(path.components().map(|c| c.as_os_str().to_owned()));
+                }
+            }),
+        )
+        .await?;
+        let changes = changes.build();
+
+        debug!("Changes: {changes:?}");
+
+        let mut iter = WalkDir::new(path).into_iter();
+        ensure!(
+            iter.next().context("Expected root entry")??.path() == path,
+            "First entry was not root"
+        );
+        while let Some(r) = iter.next() {
+            let e = r?;
+            #[derive(Clone, Copy)]
+            struct Discard;
+            impl<A> FromIterator<A> for Discard {
+                fn from_iter<T: IntoIterator<Item = A>>(iter: T) -> Self {
+                    iter.into_iter().for_each(|_| {});
+                    Self
+                }
+            }
+            // TODO: avoid cloning and collecting
+            if changes.predictive_search::<Discard, _>(e.path().components().map(|c| c.as_os_str().to_owned()).collect::<Vec<_>>()).next().is_none() {
+                if e.file_type().is_dir() {
+                    debug!("Removing directory tree at {:?}", e.path());
+                    tokio::fs::remove_dir_all(e.path()).await?;
+                    iter.skip_current_dir();
+                } else {
+                    debug!("Removing file at {:?}", e.path());
+                    tokio::fs::remove_file(e.path()).await?;
+                }
+            }
+        }
+    } else {
+        tokio::fs::remove_dir_all(path).await?;
+    }
+
+    debug!("Uninstalled package from {path:?}");
+
+    Ok(())
+}
+
 async fn merge_paths(from: &Path, to: &Path) -> Result<()> {
     let mut iter = WalkDir::new(from).into_iter();
     while let Some(r) = iter.next() {
@@ -448,10 +729,7 @@ async fn merge_paths(from: &Path, to: &Path) -> Result<()> {
         } else {
             to.join(rel_path)
         };
-        trace!(
-            "Merging {:?} ({rel_path:?}) into {to:?}",
-            dir_entry.path()
-        );
+        trace!("Merging {:?} ({rel_path:?}) into {to:?}", dir_entry.path());
         async {
             enum FileType {
                 FileLike,
