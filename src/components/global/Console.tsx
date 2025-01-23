@@ -1,22 +1,10 @@
-import {
-  For,
-  Match,
-  Show,
-  Switch,
-  createSignal,
-  onCleanup,
-  onMount,
-} from "solid-js";
+import { For, Match, Show, Switch, createSignal, onCleanup, onMount } from "solid-js";
 
 import Dialog from "./Dialog";
 import styles from "./Console.module.css";
 import { Channel } from "@tauri-apps/api/core";
 
-type SafeOsString =
-  | { Unicode: string }
-  | { NonUnicodeBytes: number[] }
-  | { NonUnicodeWide: number[] }
-  | { NonUnicodeOther: string };
+type SafeOsString = { Unicode: string } | { NonUnicodeBytes: number[] } | { NonUnicodeWide: number[] } | { NonUnicodeOther: string };
 
 type C2SMessage =
   | {
@@ -102,43 +90,31 @@ export default function Console({ channel }: { channel: Channel<C2SMessage> }) {
                     <Match when={event.Output}>
                       <span class={styles.event__type}>
                         <Switch>
-                          <Match when={event.Output.channel === "Out"}>
-                            stdout
-                          </Match>
-                          <Match when={event.Output.channel === "Err"}>
-                            stderr
-                          </Match>
+                          <Match when={event.Output.channel === "Out"}>stdout</Match>
+                          <Match when={event.Output.channel === "Err"}>stderr</Match>
                         </Switch>
                       </span>{" "}
-                      <Switch
-                        fallback={JSON.stringify(event.Output.line.Bytes)}
-                      >
-                        <Match when={event.Output.line.Unicode}>
-                          {event.Output.line.Unicode}
-                        </Match>
+                      <Switch fallback={JSON.stringify(event.Output.line.Bytes)}>
+                        <Match when={event.Output.line.Unicode}>{event.Output.line.Unicode}</Match>
                       </Switch>
                     </Match>
                     <Match when={event.Log}>
-                      <span class={styles.event__type}>{event.Log.level}</span>{" "}
-                      <pre>{event.Log.message}</pre>
+                      <span class={styles.event__type}>{event.Log.level}</span> <pre>{event.Log.message}</pre>
                     </Match>
                     <Match when={event.Start}>
-                      <span class={styles.event__type}>Start</span>{" "}
-                      <DisplaySafeOsString string={event.Start.command} />
+                      <span class={styles.event__type}>Start</span> <DisplaySafeOsString string={event.Start.command} />
                       <For each={event.Start.args}>
-                        {arg => <>
-                          {" "}
-                          <DisplaySafeOsString string={arg} />
-                        </>}
+                        {(arg) => (
+                          <>
+                            {" "}
+                            <DisplaySafeOsString string={arg} />
+                          </>
+                        )}
                       </For>
                     </Match>
                     <Match when={true}>
-                      <span class={styles.event__type}>
-                        {Object.keys(event)[0]}
-                      </span>{" "}
-                      <Switch
-                        fallback={JSON.stringify(Object.values(event)[0])}
-                      >
+                      <span class={styles.event__type}>{Object.keys(event)[0]}</span>{" "}
+                      <Switch fallback={JSON.stringify(Object.values(event)[0])}>
                         <Match when={event.Exit}>{event.Exit.code}</Match>
                       </Switch>
                     </Match>
@@ -158,15 +134,9 @@ function DisplaySafeOsString(props: { string: SafeOsString }) {
   return (
     <Switch>
       <Match when={props.string.Unicode}>{(s) => JSON.stringify(s())}</Match>
-      <Match when={props.string.NonUnicodeBytes}>
-        {(b) => JSON.stringify(b())}
-      </Match>
-      <Match when={props.string.NonUnicodeWide}>
-        {(b) => JSON.stringify(b())}
-      </Match>
-      <Match when={props.string.NonUnicodeOther}>
-        {(b) => JSON.stringify(b())}
-      </Match>
+      <Match when={props.string.NonUnicodeBytes}>{(b) => JSON.stringify(b())}</Match>
+      <Match when={props.string.NonUnicodeWide}>{(b) => JSON.stringify(b())}</Match>
+      <Match when={props.string.NonUnicodeOther}>{(b) => JSON.stringify(b())}</Match>
     </Switch>
   );
 }

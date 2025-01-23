@@ -6,7 +6,7 @@ import { numberFormatter } from "../../utils";
 
 import styles from "./ModList.module.css";
 import Fa from "solid-fa";
-import { faExternalLink } from "@fortawesome/free-solid-svg-icons";
+import { faDownload, faExternalLink } from "@fortawesome/free-solid-svg-icons";
 import { faHeart } from "@fortawesome/free-regular-svg-icons";
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
@@ -115,14 +115,12 @@ function ModListMods({ mods, selectedMod: [selectedMod, setSelectedMod] }: { mod
                     <p class={styles.owner}>
                       <span class={styles.value}>{mod.mod.owner}</span>
                     </p>
-                    <ul class={styles.categories}>
-                      <For each={mod.mod.categories}>{(category) => <li>{category}</li>}</For>
-                    </ul>
                   </div>
                   <div class={styles.right}>
                     <p class={styles.downloads}>
-                      <span class={styles.label}>Downloads: </span>
-                      <span class={styles.value}>{numberFormatter.format(mod.mod.versions.map((v) => v.downloads).reduce((acc, x) => acc + x))}</span>
+                      <span class={styles.value}>
+                        <Fa icon={faDownload} /> {numberFormatter.format(mod.mod.versions.map((v) => v.downloads).reduce((acc, x) => acc + x))}
+                      </span>
                     </p>
                   </div>
                 </div>
