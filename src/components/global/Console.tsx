@@ -84,43 +84,50 @@ export default function Console({ channel }: { channel: Channel<C2SMessage> }) {
         >
           <div class={styles.console}>
             <For each={events()}>
-              {(event) => (
-                <div>
-                  <Switch>
-                    <Match when={event.Output}>
-                      <span class={styles.event__type}>
-                        <Switch>
-                          <Match when={event.Output.channel === "Out"}>stdout</Match>
-                          <Match when={event.Output.channel === "Err"}>stderr</Match>
-                        </Switch>
-                      </span>{" "}
-                      <Switch fallback={JSON.stringify(event.Output.line.Bytes)}>
-                        <Match when={event.Output.line.Unicode}>{event.Output.line.Unicode}</Match>
+              {(event) => {
+                if ("Output" in event) {
+                  let line: string;
+                  if ("Unicode" in event.Output.line) {
+                    line = event.Output.line.Unicode;
+                  } else if ("Bytes" in event.Output.line) {
+                    line = JSON.stringify(event.Output.line.Bytes);
+                  } else {
+                    throw Error();
+                  }
+                  return <div>
+                    <span class={styles.event__type}>
+                      <Switch>
+                        <Match when={event.Output.channel === "Out"}>stdout</Match>
+                        <Match when={event.Output.channel === "Err"}>stderr</Match>
                       </Switch>
-                    </Match>
-                    <Match when={event.Log}>
-                      <span class={styles.event__type}>{event.Log.level}</span> <pre>{event.Log.message}</pre>
-                    </Match>
-                    <Match when={event.Start}>
-                      <span class={styles.event__type}>Start</span> <DisplaySafeOsString string={event.Start.command} />
-                      <For each={event.Start.args}>
-                        {(arg) => (
-                          <>
-                            {" "}
-                            <DisplaySafeOsString string={arg} />
-                          </>
-                        )}
-                      </For>
-                    </Match>
-                    <Match when={true}>
-                      <span class={styles.event__type}>{Object.keys(event)[0]}</span>{" "}
-                      <Switch fallback={JSON.stringify(Object.values(event)[0])}>
-                        <Match when={event.Exit}>{event.Exit.code}</Match>
-                      </Switch>
-                    </Match>
-                  </Switch>
-                </div>
-              )}
+                    </span>{" "}
+                    {line}
+                  </div>;
+                } else if ("Log" in event) {
+                  return <div>
+                    <span class={styles.event__type}>{event.Log.level}</span> <pre>{event.Log.message}</pre>
+                  </div>;
+                } else if ("Start" in event) {
+                  return <div>
+                    <span class={styles.event__type}>Start</span> <DisplaySafeOsString string={event.Start.command} />
+                        <For each={event.Start.args}>
+                          {(arg) => (
+                            <>
+                              {" "}
+                              <DisplaySafeOsString string={arg} />
+                            </>
+                          )}
+                        </For>
+                  </div>;
+                } else if ("Exit" in event) {
+                  return <div>
+                    <span class={styles.event__type}>{Object.keys(event)[0]}</span>{" "}
+                    <Switch fallback={JSON.stringify(Object.values(event)[0])}>
+                      <Match when={event.Exit}>{event.Exit.code}</Match>
+                    </Switch>
+                  </div>;
+                }
+              }}
             </For>
           </div>
         </Show>
@@ -131,12 +138,13 @@ export default function Console({ channel }: { channel: Channel<C2SMessage> }) {
 }
 
 function DisplaySafeOsString(props: { string: SafeOsString }) {
+  const s = props.string;
   return (
     <Switch>
-      <Match when={props.string.Unicode}>{(s) => JSON.stringify(s())}</Match>
-      <Match when={props.string.NonUnicodeBytes}>{(b) => JSON.stringify(b())}</Match>
-      <Match when={props.string.NonUnicodeWide}>{(b) => JSON.stringify(b())}</Match>
-      <Match when={props.string.NonUnicodeOther}>{(b) => JSON.stringify(b())}</Match>
+      <Match when={"Unicode" in s ? s.Unicode : null}>{(s) => JSON.stringify(s())}</Match>
+      <Match when={"NonUnicodeBytes" in s ? s.NonUnicodeBytes : null}>{(b) => JSON.stringify(b())}</Match>
+      <Match when={"NonUnicodeWide" in s ? s.NonUnicodeWide : null}>{(b) => JSON.stringify(b())}</Match>
+      <Match when={"NonUnicodeOther" in s ? s.NonUnicodeOther : null}>{(b) => JSON.stringify(b())}</Match>
     </Switch>
   );
 }
