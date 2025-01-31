@@ -116,7 +116,7 @@ export default function Profile() {
                 id: "mod-list",
                 name: "Installed",
                 component: (
-                  <Show when={activeProfileMods.latest.length !== 0} fallback={<p>Looks like you haven't installed any mods yet.</p>}>
+                  <Show when={activeProfileMods.latest.length !== 0} fallback={<p>No mods installed yet.</p>}>
                     <ModList mods={async () => activeProfileMods.latest} />
                   </Show>
                 ),
@@ -132,9 +132,10 @@ export default function Profile() {
                 id: "console",
                 name: "Console",
                 component: (
-                  <Show when={consoleChannel()} keyed fallback={<p>Game not launched.</p>}>
-                    {(channel) => <Console channel={channel} />}
-                  </Show>
+                  <div class={styles.content__console}>
+                    <h2 class={styles.content__consoleHeading}>Log Output</h2>
+                    <Console channel={consoleChannel} />
+                  </div>
                 ),
               },
             ]}
@@ -188,7 +189,7 @@ function SidebarProfileComponent(props: {
   const [confirmingDeletion, setConfirmingDeletion] = createSignal(false);
   const [deleting, setDeleting] = createSignal(false);
 
-  const navigator = useNavigate();
+  const navigate = useNavigate();
 
   return (
     <li class={sidebarStyles.profileList__item}>
@@ -208,14 +209,14 @@ function SidebarProfileComponent(props: {
       <Show when={confirmingDeletion()}>
         <Dialog>
           <p>
-            You are about to delete the profile <strong>{props.profileId}</strong>.
+            You are about to delete the profile <strong>{props.profileName}</strong>.
           </p>
           <button
             disabled={deleting()}
             on:click={async () => {
               setDeleting(true);
               if (props.selected) {
-                navigator(`/profile/${props.gameId}`, { replace: true });
+                navigate(`/profile/${props.gameId}`, { replace: true });
               }
               try {
                 await deleteProfile(props.profileId);

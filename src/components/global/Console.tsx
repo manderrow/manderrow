@@ -1,6 +1,5 @@
-import { For, Match, Show, Switch, createSignal, onCleanup, onMount } from "solid-js";
+import { Accessor, For, Match, Show, Switch, createEffect, createSignal, onCleanup, onMount } from "solid-js";
 
-import Dialog from "./Dialog";
 import styles from "./Console.module.css";
 import { Channel } from "@tauri-apps/api/core";
 
@@ -55,85 +54,90 @@ export function clearConsole() {
   setEvents([]);
 }
 
-export default function Console({ channel }: { channel: Channel<C2SMessage> }) {
-  const [displaying, setDisplaying] = createSignal(true);
+export default function Console({ channel }: { channel: Accessor<Channel<C2SMessage> | undefined> }) {
+  // onMount(() => {
+  //   channel.onmessage = (event) => {
+  //     setEvents([...events(), event]);
+  //   };
+  // });
 
-  onMount(() => {
-    channel.onmessage = (event) => {
-      setDisplaying(true);
-      setEvents([...events(), event]);
-    };
+  function handleLogEvent(event: C2SMessage) {
+    setEvents((events) => [...events, event]);
+  }
+
+  function clearChannelHandler() {
+    channel()!.onmessage = () => {};
+  }
+
+  createEffect(() => {
+    if (channel() != null) {
+      channel()!.onmessage = handleLogEvent;
+    }
   });
 
   onCleanup(() => {
-    // clear handler
-    channel.onmessage = () => {};
+    // Clear handler
+    if (channel() != null) clearChannelHandler();
   });
 
   return (
-    <Show when={displaying()}>
-      <Dialog>
-        <Show
-          when={events().length !== 0}
-          fallback={
-            <>
-              <p>Waiting for game...</p>
-              <progress />
-            </>
+    <div class={styles.console}>
+      <For each={events()} fallback={<p>Game not running.</p>}>
+        {(event) => {
+          if ("Output" in event) {
+            let line: string;
+            if ("Unicode" in event.Output.line) {
+              line = event.Output.line.Unicode;
+            } else if ("Bytes" in event.Output.line) {
+              line = JSON.stringify(event.Output.line.Bytes);
+            } else {
+              throw Error();
+            }
+            return (
+              <p>
+                <span class={styles.event__type}>
+                  <Switch>
+                    <Match when={event.Output.channel === "Out"}>[LOG]</Match>
+                    <Match when={event.Output.channel === "Err"}>[ERR]</Match>
+                  </Switch>
+                </span>{" "}
+                {line}
+              </p>
+            );
+          } else if ("Log" in event) {
+            return (
+              <p>
+                <span class={styles.event__type}>[{event.Log.level}]</span>
+                <span>{event.Log.message}</span>
+              </p>
+            );
+          } else if ("Start" in event) {
+            return (
+              <p>
+                <span class={styles.event__type}>[START]</span> <DisplaySafeOsString string={event.Start.command} />
+                <For each={event.Start.args}>
+                  {(arg) => (
+                    <>
+                      {" "}
+                      <DisplaySafeOsString string={arg} />
+                    </>
+                  )}
+                </For>
+              </p>
+            );
+          } else if ("Exit" in event) {
+            return (
+              <p>
+                <span class={styles.event__type}>{Object.keys(event)[0]}</span>{" "}
+                <Switch fallback={JSON.stringify(Object.values(event)[0])}>
+                  <Match when={event.Exit}>{event.Exit.code}</Match>
+                </Switch>
+              </p>
+            );
           }
-        >
-          <div class={styles.console}>
-            <For each={events()}>
-              {(event) => {
-                if ("Output" in event) {
-                  let line: string;
-                  if ("Unicode" in event.Output.line) {
-                    line = event.Output.line.Unicode;
-                  } else if ("Bytes" in event.Output.line) {
-                    line = JSON.stringify(event.Output.line.Bytes);
-                  } else {
-                    throw Error();
-                  }
-                  return <div>
-                    <span class={styles.event__type}>
-                      <Switch>
-                        <Match when={event.Output.channel === "Out"}>stdout</Match>
-                        <Match when={event.Output.channel === "Err"}>stderr</Match>
-                      </Switch>
-                    </span>{" "}
-                    {line}
-                  </div>;
-                } else if ("Log" in event) {
-                  return <div>
-                    <span class={styles.event__type}>{event.Log.level}</span> <pre>{event.Log.message}</pre>
-                  </div>;
-                } else if ("Start" in event) {
-                  return <div>
-                    <span class={styles.event__type}>Start</span> <DisplaySafeOsString string={event.Start.command} />
-                        <For each={event.Start.args}>
-                          {(arg) => (
-                            <>
-                              {" "}
-                              <DisplaySafeOsString string={arg} />
-                            </>
-                          )}
-                        </For>
-                  </div>;
-                } else if ("Exit" in event) {
-                  return <div>
-                    <span class={styles.event__type}>{Object.keys(event)[0]}</span>{" "}
-                    <Switch fallback={JSON.stringify(Object.values(event)[0])}>
-                      <Match when={event.Exit}>{event.Exit.code}</Match>
-                    </Switch>
-                  </div>;
-                }
-              }}
-            </For>
-          </div>
-        </Show>
-        <button on:click={() => setDisplaying(false)}>Dismiss</button>
-      </Dialog>
-    </Show>
+        }}
+      </For>
+    </div>
   );
 }
 
