@@ -68,6 +68,8 @@ export interface ModVersion {
 }
 
 export interface ModAndVersion {
-  mod: Mod,
-  version?: string,
+  // This interface does not extend Mod because it would need to copy all the keys from mod into itself.
+  // Instead, mod will be stored as a reference here.
+  mod: Mod;
+  version?: string;
 }
