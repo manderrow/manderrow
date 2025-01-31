@@ -8,9 +8,7 @@
 .searchBar {
   display: flex;
   flex-direction: row;
-
-  padding: 8px;
-  gap: 8px;
+  gap: 0.5em;
   align-items: center;
 
   > input {

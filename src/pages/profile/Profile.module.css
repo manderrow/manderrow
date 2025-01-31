@@ -71,10 +71,16 @@
   color: var(--clr-neutral-2);
 }
 
+.tabs {
+  margin: -1em -1em 1em -1em;
+  border-bottom: 1px solid var(--clr-neutral-8);
+}
+
 .tabs__tab a {
-  padding: 0.25em 0.5em;
+  padding: 0.35em 0.75em;
   border: 1px solid var(--clr-primary-4);
   display: block;
+  font-size: 1.1rem;
 }
 
 .tab__active.tabs__tab a {
@@ -83,8 +89,21 @@
 }
 
 .content {
-  padding: 1em 0 0 1em;
+  padding: 1em;
+  padding-bottom: 0;
   width: 100%;
   display: flex;
   flex-direction: column;
+}
+
+.content__consoleHeading {
+  margin-bottom: 0.25em;
+}
+
+.content__console {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  flex-basis: 0;
+  padding-bottom: 1em;
 }

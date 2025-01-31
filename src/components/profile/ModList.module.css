@@ -1,7 +1,7 @@
 .modListAndView {
   flex-grow: 1;
   display: grid;
-  grid-template-columns: 3fr 2fr;
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
   gap: 0.5em;
 }
 
@@ -19,33 +19,37 @@
 .modList {
   display: flex;
   flex-direction: column;
-  gap: 0.5em;
 
-  > li {
+  .mod {
     display: flex;
     flex-direction: row;
 
     &.selected > button {
       border-color: var(--clr-primary-7);
+      border-radius: 6px;
+      background-color: var(--clr-neutral-8);
     }
 
     > button {
       display: flex;
       margin: 0;
-      border: 2px solid var(--clr-neutral-7);
-      border-radius: 8px;
+      border: 1px solid transparent;
+      max-width: 100%;
+      border-top-color: var(--clr-neutral-8);
       padding: 0.5em;
       gap: 0.75em;
       text-align: left;
       flex-grow: 1;
-      background-color: var(--clr-neutral-8);
-      transition: background-color 0.1s ease-in-out, border-color 0.1s ease-in-out;
+      background-color: var(--clr-neutral-9);
+      transition: background-color 0.1s ease-in-out, border-color 0.1s ease-in-out, border-radius 0.3s ease-out;
 
       &:hover {
         background-color: var(--clr-neutral-7);
+        border-radius: 6px;
+        /* transition: border-color 0.2s ease, border-radius 0.3s ease-out; */
       }
 
-      &:active {
+      &.active {
         border-color: var(--clr-neutral-6);
       }
     }
@@ -53,15 +57,34 @@
 
   .icon {
     aspect-ratio: 1;
-    width: 5rem;
-    border-radius: inherit;
+    width: 4rem;
+    border-radius: 6px;
   }
 
-  .split {
+  .mod__content {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
     flex-grow: 1;
+    gap: 1em;
+
+    .info {
+      display: flex;
+      align-items: center;
+      gap: 0.35em;
+      color: var(--clr-neutral-2);
+      font-size: 0.9rem;
+    }
+
+    .info * {
+      flex-shrink: 0;
+    }
+
+    .separator {
+      color: var(--clr-neutral-6);
+      font-weight: 400;
+      font-size: 0.75rem;
+    }
 
     .left,
     .right {
@@ -71,6 +94,7 @@
     .left {
       display: flex;
       flex-direction: column;
+      flex-grow: 1;
     }
 
     .right {
@@ -78,26 +102,23 @@
       flex-direction: column;
       align-items: end;
     }
-  }
 
-  .name {
-  }
+    .name {
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--clr-neutral-1);
+      font-size: 1rem;
+      flex-shrink: 1;
+      max-width: 70%;
+      text-wrap: nowrap;
+    }
 
-  .version {
-    color: var(--clr-neutral-3);
-    font-size: 0.85em;
-  }
+    .owner {
+    }
 
-  .owner {
-    font-size: 0.9em;
-    color: var(--clr-neutral-2);
-  }
-
-  .label {
-  }
-
-  .downloads {
-    color: var(--clr-neutral-2);
+    .label {
+    }
   }
 
   .categories {
@@ -115,6 +136,11 @@
       border: 1px solid var(--clr-neutral-6);
     }
   }
+}
+
+.modList li:has(button:hover) + li button,
+.modList li:has(button:active) + li button {
+  border-top-color: transparent;
 }
 
 .modView {
@@ -138,13 +164,13 @@
       flex-direction: column;
     }
   }
+
+  .name {
+    overflow-wrap: break-word;
+  }
 }
 
 .modView__downloader {
   display: flex;
   align-items: center;
-}
-
-.name {
-  font-weight: bold;
 }

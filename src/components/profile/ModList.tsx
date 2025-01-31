@@ -2,7 +2,7 @@ import { createInfiniteScroll } from "@solid-primitives/pagination";
 import { Accessor, createSignal, For, Show, Signal } from "solid-js";
 
 import { ModAndVersion } from "../../types";
-import { numberFormatter } from "../../utils";
+import { numberFormatter, roundedNumberFormatter } from "../../utils";
 
 import styles from "./ModList.module.css";
 import Fa from "solid-fa";
@@ -98,31 +98,26 @@ function ModListMods({ mods, selectedMod: [selectedMod, setSelectedMod] }: { mod
       <ol class={`${styles.modList} ${styles.scrollInner}`}>
         <For each={paginatedMods()}>
           {(mod) => (
-            <li classList={{ [styles.selected]: selectedMod() === mod }}>
+            <li classList={{ [styles.mod]: true, [styles.selected]: selectedMod() === mod }}>
               <button on:click={() => setSelectedMod(selectedMod() === mod ? undefined : mod)}>
                 <img class={styles.icon} src={mod.mod.versions[0].icon} />
-                <div class={styles.split}>
+                <div class={styles.mod__content}>
                   <div class={styles.left}>
-                    <p>
-                      <span class={styles.name}>{mod.mod.name}</span>{" "}
-                      <span class={styles.version}>
-                        v
-                        <Show when={mod.version} fallback={mod.mod.versions[0].version_number}>
-                          {(version) => version()}
-                        </Show>
+                    <p class={styles.info}>
+                      <span class={styles.name}>{mod.mod.name}</span>
+                      <span class={styles.separator} aria-hidden>
+                        &bull;
                       </span>
-                    </p>
-                    <p class={styles.owner}>
-                      <span class={styles.value}>{mod.mod.owner}</span>
-                    </p>
-                  </div>
-                  <div class={styles.right}>
-                    <p class={styles.downloads}>
-                      <span class={styles.value}>
-                        <Fa icon={faDownload} /> {numberFormatter.format(mod.mod.versions.map((v) => v.downloads).reduce((acc, x) => acc + x))}
+                      <span class={styles.owner}>{mod.mod.owner}</span>
+                      <span class={styles.separator} aria-hidden>
+                        &bull;
+                      </span>
+                      <span class={styles.downloads}>
+                        <Fa icon={faDownload} /> {roundedNumberFormatter.format(mod.mod.versions.map((v) => v.downloads).reduce((acc, x) => acc + x))}
                       </span>
                     </p>
                   </div>
+                  <div class={styles.right}>Down</div>
                 </div>
               </button>
             </li>
