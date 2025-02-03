@@ -125,6 +125,31 @@ body {
   overscroll-behavior: none;
 }
 
+::-webkit-scrollbar {
+  width: 0.75rem; /* Vertical scrollbar width */
+  height: 0.75rem; /* Horizontal scrollbar height */
+}
+
+::-webkit-scrollbar-track {
+  background-color: var(--clr-primary-1);
+  border-radius: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--clr-primary-4);
+  border-radius: 6px;
+  /* border: 3px solid #f1f1f1; */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--clr-primary-5);
+}
+
+/* Firefox */
+* {
+  scrollbar-color: var(--clr-primary-4) var(--clr-primary-1); /* thumb and track color */
+}
+
 a {
   text-decoration: none;
   color: var(--clr-primary-5);

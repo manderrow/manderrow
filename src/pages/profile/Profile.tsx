@@ -1,7 +1,7 @@
 import { createResource, createSignal, createUniqueId, For, onMount, Show, useContext } from "solid-js";
 import { A, useNavigate, useParams } from "@solidjs/router";
 import { faTrashCan, faCirclePlay as faCirclePlayOutline } from "@fortawesome/free-regular-svg-icons";
-import { faChevronLeft, faCirclePlay, faFileImport, faPlus, faThumbTack } from "@fortawesome/free-solid-svg-icons";
+import { faChevronLeft, faCirclePlay, faFileImport, faPenToSquare, faPlus, faThumbTack } from "@fortawesome/free-solid-svg-icons";
 import Fa from "solid-fa";
 
 import ModSearch from "../../components/profile/ModSearch";
@@ -89,6 +89,20 @@ export default function Profile() {
           <form on:submit={(e) => e.preventDefault()} class={sidebarStyles.sidebar__profilesSearch}>
             <input type="text" name="profile-search" id="profile-search" placeholder="Search" maxLength={100} />
           </form>
+          <ul class={styles.sidebar__profileActions}>
+            <li>
+              <button>
+                <Fa icon={faFileImport} class={styles.sidebar__profileActionsBtnIcon} />
+                Import
+              </button>
+            </li>
+            <li>
+              <button>
+                <Fa icon={faFileExport} class={styles.sidebar__profileActionsBtnIcon} />
+                Export
+              </button>
+            </li>
+          </ul>
           <ol class={sidebarStyles.sidebar__profilesList}>
             <For each={profiles()}>
               {(profile) => (
@@ -122,27 +136,6 @@ export default function Profile() {
         >
           <TabRenderer
             styles={{ tabs: { container: styles.tabs, list: styles.tabs__list, list__item: styles.tabs__tab, list__itemActive: styles.tab__active } }}
-            customJsx={{
-              afterTabs: (
-                <>
-                  <h2 class={styles.tabs__profileName}>{currentProfile()?.name}</h2>
-                  <ul class={styles.tabs__profileOptions}>
-                    <li>
-                      <button>
-                        <Fa icon={faFileImport} class={styles.tab__profileOptBtnIcon} />
-                        Import
-                      </button>
-                    </li>
-                    <li>
-                      <button>
-                        <Fa icon={faFileExport} class={styles.tab__profileOptBtnIcon} />
-                        Export
-                      </button>
-                    </li>
-                  </ul>
-                </>
-              ),
-            }}
             tabs={[
               {
                 id: "mod-list",
@@ -235,6 +228,9 @@ function SidebarProfileComponent(props: {
       <div class={sidebarStyles.profileItem__options}>
         <button data-pin title="Pin">
           <Fa icon={faThumbTack} rotate={90} />
+        </button>
+        <button data-pin title="Rename">
+          <Fa icon={faPenToSquare} />
         </button>
         <button data-delete title="Delete" on:click={() => setConfirmingDeletion(true)}>
           <Fa icon={faTrashCan} />

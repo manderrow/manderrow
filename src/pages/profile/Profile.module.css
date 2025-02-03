@@ -8,11 +8,13 @@
   height: 100dvh;
 }
 
+/* Sidebar code */
+
 .sidebar {
   padding: 1em;
-  min-width: 18rem;
-  width: 22rem;
-  max-width: 26rem;
+  min-width: 16rem;
+  width: 24rem;
+  max-width: 30rem;
   resize: horizontal;
   overflow: auto;
   border-right: 1px solid var(--clr-neutral-8);
@@ -97,15 +99,13 @@
   font-size: 1.5rem;
 }
 
+/* Profile main section code */
+
 .tabs {
   margin: -1em -1em 1em -1em;
   padding: 0.5em;
   border-bottom: 1px solid var(--clr-neutral-8);
   background-color: var(--clr-neutral-10);
-
-  display: grid;
-  grid-template-columns: minmax(20%, 1fr) 1fr minmax(20%, 1fr);
-  gap: 1em;
 }
 
 .tabs__list {
@@ -113,12 +113,12 @@
 }
 
 .tabs__tab {
-  border-radius: 6px;
+  border-radius: 4px;
   overflow: hidden;
 }
 
 .tabs__tab a {
-  padding: 0.35em 0.75em;
+  padding: 0.35em 1em;
   border-right: 1px solid var(--clr-neutral-7);
   color: var(--clr-neutral-4);
   display: block;
@@ -146,27 +146,22 @@
   border-left-color: transparent;
 }
 
-.tabs__profileName {
-  justify-self: center;
-  font-weight: 350;
-}
-
-.tabs__profileOptions {
+.sidebar__profileActions {
   display: flex;
-  justify-self: end;
-  gap: 0.25em;
+  justify-items: stretch;
+  justify-content: center;
+  gap: 0.5em;
+  padding-top: 0.5em;
 }
 
-.tabs__profileOptions button {
-  padding: 0 1.5em;
+.sidebar__profileActions button {
+  padding: 0.5em 1em;
   border-radius: 100vmax;
-  height: 100%;
+  width: 100%;
   border: none;
-  font-size: 1rem;
-  min-width: max-content;
 }
 
-.tab__profileOptBtnIcon {
+.sidebar__profileActionsBtnIcon {
   margin-right: 0.5em;
   color: var(--clr-neutral-3);
   font-size: 1.1rem;
