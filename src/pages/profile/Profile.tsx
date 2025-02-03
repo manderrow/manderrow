@@ -17,6 +17,8 @@ import Dialog from "../../components/global/Dialog";
 import { ErrorContext } from "../../components/global/ErrorBoundary";
 import Console, { C2SChannel, clearConsole, createC2SChannel } from "../../components/global/Console";
 import TabRenderer from "../../components/global/TabRenderer";
+import { faGear } from "@fortawesome/free-solid-svg-icons/faGear";
+import { faFileExport } from "@fortawesome/free-solid-svg-icons/faFileExport";
 
 interface ProfileParams {
   [key: string]: string | undefined;
@@ -37,6 +39,8 @@ export default function Profile() {
     },
     { initialValue: [] }
   );
+
+  const currentProfile = () => globals.profiles().find((profile) => profile.id === params.profileId);
 
   const [activeProfileMods, { refetch: refetchActiveProfileMods }] = createResource(() => [], { initialValue: [] });
 
@@ -67,11 +71,11 @@ export default function Profile() {
 
           <h1>{gameInfo.name}</h1>
         </nav>
-        <section class={styles.sidebar__group}>
-          <button disabled={params.profileId === undefined} on:click={() => launch(true)}>
+        <section classList={{ [styles.sidebar__group]: true, [styles.sidebar__mainActions]: true }}>
+          <button disabled={params.profileId === undefined} on:click={() => launch(true)} data-modded>
             <Fa icon={faCirclePlay} /> Start modded
           </button>
-          <button disabled={params.profileId === undefined} on:click={() => launch(false)}>
+          <button disabled={params.profileId === undefined} on:click={() => launch(false)} data-vanilla>
             <Fa icon={faCirclePlayOutline} /> Start vanilla
           </button>
         </section>
@@ -101,6 +105,13 @@ export default function Profile() {
         </section>
         <section class={styles.sidebar__group}>
           <h3>Other</h3>
+          <div class={styles.sidebar__otherGrid}>
+            <button>
+              <A href="">
+                <Fa icon={faGear} />
+              </A>
+            </button>
+          </div>
         </section>
       </aside>
 
@@ -110,7 +121,28 @@ export default function Profile() {
           fallback={<NoSelectedProfileContent gameId={params.gameId} profiles={profiles} refetchProfiles={refetchProfiles} />}
         >
           <TabRenderer
-            styles={{ tabs: { list: styles.tabs, list__item: styles.tabs__tab, list__itemActive: styles.tab__active } }}
+            styles={{ tabs: { container: styles.tabs, list: styles.tabs__list, list__item: styles.tabs__tab, list__itemActive: styles.tab__active } }}
+            customJsx={{
+              afterTabs: (
+                <>
+                  <h2 class={styles.tabs__profileName}>{currentProfile()?.name}</h2>
+                  <ul class={styles.tabs__profileOptions}>
+                    <li>
+                      <button>
+                        <Fa icon={faFileImport} class={styles.tab__profileOptBtnIcon} />
+                        Import
+                      </button>
+                    </li>
+                    <li>
+                      <button>
+                        <Fa icon={faFileExport} class={styles.tab__profileOptBtnIcon} />
+                        Export
+                      </button>
+                    </li>
+                  </ul>
+                </>
+              ),
+            }}
             tabs={[
               {
                 id: "mod-list",
@@ -129,14 +161,20 @@ export default function Profile() {
               },
 
               {
-                id: "console",
-                name: "Console",
+                id: "logs",
+                name: "Logs",
                 component: (
                   <div class={styles.content__console}>
                     <h2 class={styles.content__consoleHeading}>Log Output</h2>
                     <Console channel={consoleChannel} />
                   </div>
                 ),
+              },
+
+              {
+                id: "config",
+                name: "Config",
+                component: <div></div>,
               },
             ]}
           />
@@ -195,9 +233,6 @@ function SidebarProfileComponent(props: {
     <li class={sidebarStyles.profileList__item}>
       <A href={`/profile/${props.gameId}/${props.profileId}`}>{props.profileName}</A>
       <div class={sidebarStyles.profileItem__options}>
-        <button data-import title="Import onto">
-          <Fa icon={faFileImport} />
-        </button>
         <button data-pin title="Pin">
           <Fa icon={faThumbTack} rotate={90} />
         </button>
