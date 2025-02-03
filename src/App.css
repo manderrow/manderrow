@@ -177,7 +177,7 @@ button {
 }
 
 button.primary {
-  background-color: var(--bg-clr);
+  --bg-clr: var(--clr-primary-4);
 }
 
 button.ghost {
@@ -186,6 +186,11 @@ button.ghost {
 
 button:hover {
   cursor: pointer;
+  --bg-clr: var(--clr-neutral-7);
+}
+
+button.primary:hover {
+  --bg-clr: var(--clr-primary-5);
 }
 
 button:disabled {
@@ -215,7 +220,7 @@ hr {
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --clr-neutral-10: hsl(214, 40%, 5%);
+    --clr-neutral-10: hsl(214, 30%, 12%);
     --clr-neutral-9: hsl(218, 25%, 15%);
     --clr-neutral-8: hsl(210, 22%, 20%);
     --clr-neutral-7: hsl(210, 15%, 28%);
