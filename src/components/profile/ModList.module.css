@@ -24,12 +24,6 @@
     display: flex;
     flex-direction: row;
 
-    &.selected > button {
-      border-color: var(--clr-primary-7);
-      border-radius: 6px;
-      background-color: var(--clr-neutral-8);
-    }
-
     > button {
       display: flex;
       margin: 0;
@@ -44,14 +38,33 @@
       transition: background-color 0.1s ease-in-out, border-color 0.1s ease-in-out, border-radius 0.3s ease-out;
 
       &:hover {
-        background-color: var(--clr-neutral-7);
+        background-color: var(--clr-neutral-8);
         border-radius: 6px;
         /* transition: border-color 0.2s ease, border-radius 0.3s ease-out; */
+        border-color: var(--clr-neutral-7);
+
+        .right {
+          visibility: visible;
+        }
       }
 
-      &.active {
-        border-color: var(--clr-neutral-6);
+      &:active {
+        border-color: var(--clr-neutral-5);
       }
+    }
+
+    &.selected > button {
+      border-color: var(--clr-primary-6);
+      border-radius: 6px;
+      background-color: var(--clr-neutral-8);
+    }
+
+    &.selected > button:hover {
+      background-color: var(--clr-neutral-7);
+    }
+
+    &.selected > button:active {
+      border-color: var(--clr-neutral-5);
     }
   }
 
@@ -67,6 +80,7 @@
     justify-content: space-between;
     flex-grow: 1;
     gap: 1em;
+    min-width: 0;
 
     .info {
       display: flex;
@@ -95,12 +109,14 @@
       display: flex;
       flex-direction: column;
       flex-grow: 1;
+      min-width: 0;
     }
 
     .right {
       display: flex;
       flex-direction: column;
       align-items: end;
+      visibility: hidden;
     }
 
     .name {
@@ -110,8 +126,20 @@
       color: var(--clr-neutral-1);
       font-size: 1rem;
       flex-shrink: 1;
-      max-width: 70%;
-      text-wrap: nowrap;
+      min-width: 5ch;
+      white-space: nowrap;
+    }
+
+    .downloads,
+    .description {
+      color: var(--clr-neutral-3);
+      font-size: 0.9rem;
+    }
+
+    .description {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     .owner {
