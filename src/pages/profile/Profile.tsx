@@ -13,7 +13,7 @@ import * as globals from "../../globals";
 import { gamesById, refetchProfiles } from "../../globals";
 import { createProfile, deleteProfile, launchProfile, ProfileWithId } from "../../api";
 import { Refetcher } from "../../types";
-import Dialog from "../../components/global/Dialog";
+import Dialog, { PromptDialog } from "../../components/global/Dialog";
 import { ErrorContext } from "../../components/global/ErrorBoundary";
 import Console, { C2SChannel, clearConsole, createC2SChannel } from "../../components/global/Console";
 import TabRenderer from "../../components/global/TabRenderer";
@@ -83,29 +83,23 @@ export default function Profile() {
         <section classList={{ [styles.sidebar__group]: true, [sidebarStyles.sidebar__profiles]: true }}>
           <h3 class={styles.sidebar__profilesTitle}>
             Profiles
-            <A class={styles.sidebar__profilesAddBtn} href={`/profile/${params.gameId}`}>
-              <Fa icon={faPlus} />
-            </A>
+            <div class={styles.sidebar__profilesActions}>
+              <A class={styles.sidebar__profilesActionBtn} href={`/profile/${params.gameId}`}>
+                <Fa icon={faPlus} />
+              </A>
+              <button class={styles.sidebar__profilesActionBtn} title="Import">
+                <Fa icon={faFileImport} class={sidebarStyles.sidebar__profileActionsBtnIcon} />
+              </button>
+            </div>
           </h3>
 
           <form on:submit={(e) => e.preventDefault()} class={sidebarStyles.sidebar__profilesSearch}>
             <input type="text" name="profile-search" id="profile-search" placeholder="Search" maxLength={100} />
+            <select name="profile-sort" id="profile-sort">
+              <option value="alphabetical">A-Z</option>
+              <option value="date-created">Date</option>
+            </select>
           </form>
-
-          <ul class={sidebarStyles.sidebar__profileActions}>
-            <li>
-              <button>
-                <Fa icon={faFileImport} class={sidebarStyles.sidebar__profileActionsBtnIcon} />
-                Import
-              </button>
-            </li>
-            <li>
-              <button>
-                <Fa icon={faFileExport} class={sidebarStyles.sidebar__profileActionsBtnIcon} />
-                Export
-              </button>
-            </li>
-          </ul>
 
           <OverlayScrollbarsComponent defer options={{ scrollbars: { autoHide: "leave" } }} class={sidebarStyles.sidebar__profilesListContainer}>
             <ol class={sidebarStyles.sidebar__profilesList}>
@@ -249,35 +243,42 @@ function SidebarProfileComponent(props: {
         <button data-delete title="Delete" on:click={() => setConfirmingDeletion(true)}>
           <Fa icon={faTrashCan} />
         </button>
+        <button data-export title="Export">
+          <Fa icon={faFileExport} />
+        </button>
       </div>
 
       <Show when={confirmingDeletion()}>
-        <Dialog>
-          <p>
-            You are about to delete the profile <strong>{props.profileName}</strong>.
-          </p>
-          <button
-            disabled={deleting()}
-            on:click={async () => {
-              setDeleting(true);
-              if (props.selected) {
-                navigate(`/profile/${props.gameId}`, { replace: true });
-              }
-              try {
-                await deleteProfile(props.profileId);
-              } finally {
-                setConfirmingDeletion(false);
-                setDeleting(false);
-                await props.refetchProfiles();
-              }
-            }}
-          >
-            Delete
-          </button>
-          <button disabled={deleting()} on:click={() => setConfirmingDeletion(false)}>
-            Cancel
-          </button>
-        </Dialog>
+        <PromptDialog
+          options={{
+            title: "Confirm",
+            question: `You are about to delete ${props.profileName}`,
+            btns: {
+              ok: {
+                type: "danger",
+                text: "Delete",
+                async callback() {
+                  setDeleting(true);
+                  if (props.selected) {
+                    navigate(`/profile/${props.gameId}`, { replace: true });
+                  }
+                  try {
+                    await deleteProfile(props.profileId);
+                  } finally {
+                    setConfirmingDeletion(false);
+                    setDeleting(false);
+                    await props.refetchProfiles();
+                  }
+                },
+              },
+              cancel: {
+                callback() {
+                  setConfirmingDeletion(false);
+                },
+              },
+            },
+          }}
+        />
       </Show>
     </li>
   );

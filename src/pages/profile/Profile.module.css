@@ -38,17 +38,28 @@
   padding-inline: 0.6em;
 }
 
-.sidebar__profilesTitle {
+.sidebar__profilesTitle,
+.sidebar__profilesActions {
   display: flex;
   flex-direction: row;
+  align-items: center;
+}
+
+.sidebar__profilesTitle {
   justify-content: space-between;
 }
 
-.sidebar__profilesAddBtn {
-  appearance: none;
-  background: none;
+.sidebar__profilesActionBtn {
+  background-color: transparent;
   padding: 0;
   color: inherit;
+  font-size: 1.25rem;
+  padding-inline: 0.25em;
+}
+
+.sidebar__profilesActionBtn:hover,
+.sidebar__profilesActionBtn:focus-visible {
+  color: var(--clr-primary-5);
 }
 
 .sidebar,

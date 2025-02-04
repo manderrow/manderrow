@@ -143,7 +143,11 @@ function ModListMods({ mods, selectedMod: [selectedMod, setSelectedMod] }: { mod
                     <p class={styles.description}>{mod.mod.versions[0].description}</p>
                   </div>
                   <div class={styles.right}>
-                    <button>
+                    <button
+                      on:click={(event) => {
+                        event.stopPropagation();
+                      }}
+                    >
                       <Fa icon={faDownLong} />
                     </button>
                   </div>

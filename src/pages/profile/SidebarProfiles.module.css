@@ -1,9 +1,11 @@
 .sidebar__profiles {
+  --neg-margin: -0.5em;
   flex-grow: 1;
+  margin-inline: var(--neg-margin);
 }
 
 .sidebar__profilesListContainer {
-  margin: 0 -1em;
+  margin: 0 var(--neg-margin);
   margin-top: 0.5em;
   flex: 1 1 0;
 }
@@ -19,26 +21,6 @@
   width: 100%;
   padding: 0.2em 0.4em;
   border-radius: 4px;
-}
-
-.sidebar__profileActions {
-  display: flex;
-  justify-items: stretch;
-  justify-content: center;
-  gap: 0.5em;
-  padding-top: 0.5em;
-}
-
-.sidebar__profileActions button {
-  padding: 0.5em 1em;
-  border-radius: 100vmax;
-  width: 100%;
-}
-
-.sidebar__profileActionsBtnIcon {
-  margin-right: 0.5em;
-  color: var(--clr-neutral-3);
-  font-size: 1.1rem;
 }
 
 .profileList__item {
@@ -68,6 +50,8 @@
   display: block;
   color: var(--clr-neutral-2);
   padding: 0.35em 1em;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 
 .profileList__item a:global(.active) {
