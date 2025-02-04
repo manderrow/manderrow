@@ -1,7 +1,7 @@
 import { createResource, createSignal, createUniqueId, For, onMount, Show, useContext } from "solid-js";
 import { A, useNavigate, useParams } from "@solidjs/router";
 import { faTrashCan, faCirclePlay as faCirclePlayOutline } from "@fortawesome/free-regular-svg-icons";
-import { faChevronLeft, faCirclePlay, faFileImport, faPenToSquare, faPlus, faThumbTack } from "@fortawesome/free-solid-svg-icons";
+import { faChevronLeft, faCirclePlay, faDownload, faFileImport, faPenToSquare, faPlus, faThumbTack } from "@fortawesome/free-solid-svg-icons";
 import Fa from "solid-fa";
 
 import ModSearch from "../../components/profile/ModSearch";
@@ -19,6 +19,7 @@ import Console, { C2SChannel, clearConsole, createC2SChannel } from "../../compo
 import TabRenderer from "../../components/global/TabRenderer";
 import { faGear } from "@fortawesome/free-solid-svg-icons/faGear";
 import { faFileExport } from "@fortawesome/free-solid-svg-icons/faFileExport";
+import { OverlayScrollbarsComponent } from "overlayscrollbars-solid";
 
 interface ProfileParams {
   [key: string]: string | undefined;
@@ -79,52 +80,65 @@ export default function Profile() {
             <Fa icon={faCirclePlayOutline} /> Start vanilla
           </button>
         </section>
-        <section class={styles.sidebar__group}>
+        <section classList={{ [styles.sidebar__group]: true, [sidebarStyles.sidebar__profiles]: true }}>
           <h3 class={styles.sidebar__profilesTitle}>
             Profiles
             <A class={styles.sidebar__profilesAddBtn} href={`/profile/${params.gameId}`}>
               <Fa icon={faPlus} />
             </A>
           </h3>
+
           <form on:submit={(e) => e.preventDefault()} class={sidebarStyles.sidebar__profilesSearch}>
             <input type="text" name="profile-search" id="profile-search" placeholder="Search" maxLength={100} />
           </form>
-          <ul class={styles.sidebar__profileActions}>
+
+          <ul class={sidebarStyles.sidebar__profileActions}>
             <li>
               <button>
-                <Fa icon={faFileImport} class={styles.sidebar__profileActionsBtnIcon} />
+                <Fa icon={faFileImport} class={sidebarStyles.sidebar__profileActionsBtnIcon} />
                 Import
               </button>
             </li>
             <li>
               <button>
-                <Fa icon={faFileExport} class={styles.sidebar__profileActionsBtnIcon} />
+                <Fa icon={faFileExport} class={sidebarStyles.sidebar__profileActionsBtnIcon} />
                 Export
               </button>
             </li>
           </ul>
-          <ol class={sidebarStyles.sidebar__profilesList}>
-            <For each={profiles()}>
-              {(profile) => (
-                <SidebarProfileComponent
-                  gameId={params.gameId}
-                  profileId={profile.id}
-                  profileName={profile.name}
-                  refetchProfiles={refetchProfiles}
-                  selected={profile.id === params.profileId}
-                />
-              )}
-            </For>
-          </ol>
+
+          <OverlayScrollbarsComponent defer options={{ scrollbars: { autoHide: "leave" } }} class={sidebarStyles.sidebar__profilesListContainer}>
+            <ol class={sidebarStyles.sidebar__profilesList}>
+              <For each={profiles()}>
+                {(profile) => (
+                  <SidebarProfileComponent
+                    gameId={params.gameId}
+                    profileId={profile.id}
+                    profileName={profile.name}
+                    refetchProfiles={refetchProfiles}
+                    selected={profile.id === params.profileId}
+                  />
+                )}
+              </For>
+            </ol>
+          </OverlayScrollbarsComponent>
         </section>
         <section class={styles.sidebar__group}>
-          <h3>Other</h3>
           <div class={styles.sidebar__otherGrid}>
-            <button>
-              <A href="">
-                <Fa icon={faGear} />
-              </A>
-            </button>
+            <A href="">
+              <button>
+                <Fa icon={faGear} class={styles.sidebar__otherGridIcon} />
+                <br />
+                Settings
+              </button>
+            </A>
+            <A href="">
+              <button>
+                <Fa icon={faDownload} class={styles.sidebar__otherGridIcon} />
+                <br />
+                Downloads
+              </button>
+            </A>
           </div>
         </section>
       </aside>

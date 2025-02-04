@@ -44,6 +44,12 @@ importers:
       '@thisbeyond/solid-dnd':
         specifier: 0.7.5
         version: 0.7.5(solid-js@1.9.4)
+      overlayscrollbars:
+        specifier: ^2.10.1
+        version: 2.10.1
+      overlayscrollbars-solid:
+        specifier: ^0.5.6
+        version: 0.5.6(overlayscrollbars@2.10.1)(solid-js@1.9.4)
       solid-fa:
         specifier: ^0.2.0
         version: 0.2.0(solid-js@1.9.4)
@@ -646,6 +652,15 @@ packages:
   node-releases@2.0.19:
     resolution: {integrity: sha512-xxOWJsBKtzAq7DY0J+DTzuz58K8e7sJbdgwkbMWQe8UYB6ekmsQ45q0M/tJDsGaZmbC+l7n57UV8Hl5tHxO9uw==}
 
+  overlayscrollbars-solid@0.5.6:
+    resolution: {integrity: sha512-n1iaIT5vLxT7TSum9f80BDfIpXX53CcCxWyqWid9doJDDPPPzEMv+QbDM8I5sctbeExUqc9WAgNnu3W9/M2Q3g==}
+    peerDependencies:
+      overlayscrollbars: ^2.0.0
+      solid-js: ^1.7.0
+
+  overlayscrollbars@2.10.1:
+    resolution: {integrity: sha512-BQoUAaw533ZbqBIE8LzKtsIiOKzB3pkhA6oS2ol+8THB5b2VO91myEXPlKrQqXQRYHG53f/169fFBNrGZ9tzag==}
+
   parse5@7.2.1:
     resolution: {integrity: sha512-BuBYQYlv1ckiPdQi/ohiivi9Sagc9JG+Ozs0r7b/0iK3sKmrb0b9FdWdBbOdx6hBCM/F9Ir82ofnBhtZOjCRPQ==}
 
@@ -1247,6 +1262,13 @@ snapshots:
   nanoid@3.3.8: {}
 
   node-releases@2.0.19: {}
+
+  overlayscrollbars-solid@0.5.6(overlayscrollbars@2.10.1)(solid-js@1.9.4):
+    dependencies:
+      overlayscrollbars: 2.10.1
+      solid-js: 1.9.4
+
+  overlayscrollbars@2.10.1: {}
 
   parse5@7.2.1:
     dependencies:

@@ -6,7 +6,7 @@ import { numberFormatter, roundedNumberFormatter } from "../../utils";
 
 import styles from "./ModList.module.css";
 import Fa from "solid-fa";
-import { faDownload, faExternalLink } from "@fortawesome/free-solid-svg-icons";
+import { faDownload, faDownLong, faExternalLink } from "@fortawesome/free-solid-svg-icons";
 import { faHeart } from "@fortawesome/free-regular-svg-icons";
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
@@ -39,7 +39,7 @@ function ModView({ selectedMod }: { selectedMod: Accessor<ModAndVersion | undefi
         <Show
           when={selectedMod()}
           fallback={
-            <div>
+            <div class={styles.nothingMsg}>
               <h2>No mod selected</h2>
               <p>Select a mod to it view here.</p>
             </div>
@@ -107,13 +107,26 @@ function ModView({ selectedMod }: { selectedMod: Accessor<ModAndVersion | undefi
 function ModListMods({ mods, selectedMod: [selectedMod, setSelectedMod] }: { mods: Fetcher; selectedMod: Signal<ModAndVersion | undefined> }) {
   const [paginatedMods, infiniteScrollLoader, { end }] = createInfiniteScroll(mods);
 
+  function selectMod(mod: ModAndVersion) {
+    setSelectedMod(selectedMod() === mod ? undefined : mod);
+  }
+
   return (
     <div class={styles.scrollOuter}>
       <ol class={`${styles.modList} ${styles.scrollInner}`}>
         <For each={paginatedMods()}>
           {(mod) => (
             <li classList={{ [styles.mod]: true, [styles.selected]: selectedMod() === mod }}>
-              <button on:click={() => setSelectedMod(selectedMod() === mod ? undefined : mod)}>
+              <div
+                on:click={() => selectMod(mod)}
+                onKeyDown={(key) => {
+                  if (key.key === "Enter") selectMod(mod);
+                }}
+                class={styles.mod__btn}
+                role="button"
+                aria-pressed={selectedMod() === mod}
+                tabIndex={0}
+              >
                 <img class={styles.icon} src={mod.mod.versions[0].icon} />
                 <div class={styles.mod__content}>
                   <div class={styles.left}>
@@ -129,9 +142,13 @@ function ModListMods({ mods, selectedMod: [selectedMod, setSelectedMod] }: { mod
                     </p>
                     <p class={styles.description}>{mod.mod.versions[0].description}</p>
                   </div>
-                  <div class={styles.right}>Down</div>
+                  <div class={styles.right}>
+                    <button>
+                      <Fa icon={faDownLong} />
+                    </button>
+                  </div>
                 </div>
-              </button>
+              </div>
             </li>
           )}
         </For>

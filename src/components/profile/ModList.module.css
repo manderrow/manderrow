@@ -1,7 +1,7 @@
 .modListAndView {
   flex-grow: 1;
   display: grid;
-  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+  grid-template-columns: minmax(0, 5fr) minmax(0, 3fr);
   gap: 0.5em;
 }
 
@@ -31,7 +31,7 @@
     display: flex;
     flex-direction: row;
 
-    > button {
+    .mod__btn {
       display: flex;
       margin: 0;
       border: 1px solid transparent;
@@ -49,6 +49,7 @@
         border-radius: 6px;
         /* transition: border-color 0.2s ease, border-radius 0.3s ease-out; */
         border-color: var(--clr-neutral-7);
+        cursor: pointer;
 
         .right {
           visibility: visible;
@@ -60,17 +61,17 @@
       }
     }
 
-    &.selected > button {
+    &.selected .mod__btn {
       border-color: var(--clr-primary-6);
       border-radius: 6px;
       background-color: var(--clr-neutral-8);
     }
 
-    &.selected > button:hover {
+    &.selected .mod__btn:hover {
       background-color: var(--clr-neutral-7);
     }
 
-    &.selected > button:active {
+    &.selected .mod__btn:active {
       border-color: var(--clr-neutral-5);
     }
   }
@@ -183,6 +184,23 @@
   flex-direction: column;
   gap: 8px;
   padding-inline: 0.5em;
+  margin-right: -1em;
+
+  .nothingMsg {
+    text-align: center;
+    margin: auto;
+    padding-bottom: 3em;
+
+    h2 {
+      font-weight: 400;
+      color: var(--clr-neutral-2);
+      margin-bottom: 0.25em;
+    }
+
+    p {
+      color: var(--clr-neutral-3);
+    }
+  }
 
   h2,
   h3 {

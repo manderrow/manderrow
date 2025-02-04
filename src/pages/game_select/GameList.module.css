@@ -126,7 +126,6 @@
   font-size: 1.5rem;
   border-radius: 50%;
   background-color: transparent;
-  border: none;
   color: var(--clr-neutral-2);
 }
 
@@ -149,7 +148,6 @@
   color: black;
   font-weight: 600;
   text-shadow: none;
-  border: none;
 
   &:hover {
     background-color: rgb(215, 215, 215);

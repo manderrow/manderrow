@@ -46,7 +46,6 @@
 
 .sidebar__profilesAddBtn {
   appearance: none;
-  border: none;
   background: none;
   padding: 0;
   color: inherit;
@@ -68,7 +67,6 @@
 
 .sidebar__mainActions button {
   border-radius: 100vmax;
-  border: none;
   padding-block: 0.5em;
 }
 
@@ -85,8 +83,9 @@
 }
 
 .sidebar__group h3 {
-  font-weight: 400;
+  font-weight: 350;
   color: var(--clr-neutral-2);
+  margin-bottom: 0.5em;
 }
 
 .sidebar__otherGrid {
@@ -95,15 +94,23 @@
   gap: 0.5em;
 }
 
-.sidebar__otherGrid button {
+.sidebar__otherGridIcon {
   font-size: 1.5rem;
+  margin-bottom: 0.15em;
+}
+
+.sidebar__otherGrid button {
+  border-radius: 6px;
+  font-size: 0.9rem;
+  width: 100%;
+  padding: 0.5em;
 }
 
 /* Profile main section code */
 
 .tabs {
   margin: -1em -1em 1em -1em;
-  padding: 0.5em;
+  padding: 0.3em;
   border-bottom: 1px solid var(--clr-neutral-8);
   background-color: var(--clr-neutral-10);
 }
@@ -113,12 +120,12 @@
 }
 
 .tabs__tab {
-  border-radius: 4px;
+  border-radius: 6px;
   overflow: hidden;
 }
 
 .tabs__tab a {
-  padding: 0.35em 1em;
+  padding: 0.5em 1em;
   border-right: 1px solid var(--clr-neutral-7);
   color: var(--clr-neutral-4);
   display: block;
@@ -137,34 +144,8 @@
   color: white;
 }
 
-.tab__active {
-  outline: 3px solid var(--clr-primary-4);
-  outline-offset: -1px;
-}
-
-.tab__active + .tabs__tab a {
-  border-left-color: transparent;
-}
-
-.sidebar__profileActions {
-  display: flex;
-  justify-items: stretch;
-  justify-content: center;
-  gap: 0.5em;
-  padding-top: 0.5em;
-}
-
-.sidebar__profileActions button {
-  padding: 0.5em 1em;
-  border-radius: 100vmax;
-  width: 100%;
-  border: none;
-}
-
-.sidebar__profileActionsBtnIcon {
-  margin-right: 0.5em;
-  color: var(--clr-neutral-3);
-  font-size: 1.1rem;
+.tabs__tab:has(+ .tab__active) a {
+  border-right-color: transparent;
 }
 
 .content {
