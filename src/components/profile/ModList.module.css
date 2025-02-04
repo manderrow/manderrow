@@ -174,8 +174,8 @@
   }
 }
 
-.modList li:has(button:hover) + li button,
-.modList li:has(button:active) + li button {
+.modList li:has(.mod__btn:hover) + li .mod__btn,
+.modList li:has(.mod__btn:active) + li .mod__btn {
   border-top-color: transparent;
 }
 
