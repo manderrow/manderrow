@@ -1,4 +1,4 @@
-import { createResource, createSignal, createUniqueId, ResourceFetcherInfo, Show } from "solid-js";
+import { createResource, createSignal, ResourceFetcherInfo, Show } from "solid-js";
 import { fetchModIndex, queryModIndex, SortColumn, SortOption } from "../../api";
 import { SortableList } from "../global/SortableList";
 import ModList from "./ModList";
@@ -7,6 +7,7 @@ import { faRefresh } from "@fortawesome/free-solid-svg-icons";
 import Fa from "solid-fa";
 import { numberFormatter } from "../../utils";
 import { createStore } from "solid-js/store";
+import Dropdown from "../global/Dropdown";
 
 interface ProgressData {
   completed: number;
@@ -52,16 +53,13 @@ export default function ModSearch(props: { game: string }) {
     { initialValue: { mods: async (_: number) => [], count: 0 } }
   );
 
-  const searchOptionsId = createUniqueId();
-
   return (
     <div class={styles.modSearch}>
-      <div class={styles.searchForm}>
+      <form class={styles.searchForm}>
         <div class={styles.searchBar}>
-          <input type="search" placeholder="Search" value={query()} on:input={(e) => setQuery(e.target.value)} />
-          <label for={searchOptionsId}>Options</label>
+          <input type="mod-search" placeholder="Search for mods" value={query()} on:input={(e) => setQuery(e.target.value)} />
+          <label for="mod-search">Mod search</label>
         </div>
-        <input type="checkbox" class={styles.searchOptionsToggle} id={searchOptionsId} />
         <div class={styles.searchOptions}>
           <div class={styles.sortOptions}>
             <div class={styles.inner}>
@@ -87,7 +85,7 @@ export default function ModSearch(props: { game: string }) {
             </div>
           </div>
         </div>
-      </div>
+      </form>
 
       <Show when={loadStatus.loading}>
         <div class={styles.progressLine}>

@@ -10,6 +10,7 @@
   flex-direction: row;
   gap: 0.5em;
   align-items: center;
+  position: relative;
 
   > input {
     flex-grow: 1;
