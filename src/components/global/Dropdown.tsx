@@ -1,9 +1,12 @@
-import { createSignal, onCleanup, onMount } from "solid-js";
+import { createSignal, JSX, onCleanup, onMount } from "solid-js";
 import styles from "./Dropdown.module.css";
 
-type Alignment = "center" | "left" | "right";
-interface DropdownOptions {
-  align: Alignment;
+export type Alignment = "center" | "left" | "right";
+
+export interface DropdownOptions {
+  align?: Alignment;
+  maxWidth?: string;
+  children: JSX.Element;
 }
 
 const VIEWPORT_PADDING = 16;
@@ -35,8 +38,8 @@ export default function Dropdown(options: DropdownOptions) {
   }
 
   onMount(() => {
-    window.addEventListener("resize", checkVisibility);
     checkVisibility();
+    window.addEventListener("resize", checkVisibility);
   });
 
   onCleanup(() => {
@@ -47,14 +50,9 @@ export default function Dropdown(options: DropdownOptions) {
     <div
       classList={{ [styles.dropdown]: true, [getDropdownTypeClass(options.align)]: true }}
       ref={dropdownElement}
-      style={{ transform: `translateX(${offsetX()}px)` }}
+      style={{ transform: `translateX(${offsetX()}px)`, "max-width": options.maxWidth || "unset" }}
     >
-      <p>
-        Lorem ipsum dolor sit amet consectetur adipisicing elit. Provident, illo! Lorem ipsum dolor sit amet consectetur, adipisicing elit. Accusamus omnis eius
-      </p>
-      <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Provident, illo!</p>
-      <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Provident, illo!</p>
-      <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Provident, illo!</p>
+      {options.children}
     </div>
   );
 }

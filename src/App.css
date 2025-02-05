@@ -248,6 +248,14 @@ hr {
   margin: 1em 0;
 }
 
+.phantom {
+  width: 1px;
+  height: 1px;
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --clr-neutral-10: hsl(214, 30%, 12%);

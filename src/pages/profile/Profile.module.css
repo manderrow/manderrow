@@ -120,7 +120,7 @@
 /* Profile main section code */
 
 .tabs {
-  margin: -1em -1em 1em -1em;
+  margin: -1em -1em 0.75em -1em;
   padding: 0.3em;
   border-bottom: 1px solid var(--clr-neutral-8);
   background-color: var(--clr-neutral-10);

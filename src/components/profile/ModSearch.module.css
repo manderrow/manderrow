@@ -5,21 +5,33 @@
   gap: 0.5em;
 }
 
-.searchBar {
+.modSearch__form {
+  display: flex;
+  flex-direction: column;
+}
+
+.modSearch__searchBar {
   display: flex;
   flex-direction: row;
-  gap: 0.5em;
+  gap: 0.25em;
   align-items: center;
-  position: relative;
+  border-radius: 100vmax;
+  background-color: var(--clr-neutral-8);
+  padding-right: 1em;
 
   > input {
     flex-grow: 1;
+    padding: 0.65em 1em;
+    border-top-left-radius: inherit;
+    border-bottom-left-radius: inherit;
+    background-color: transparent;
+    border: none;
   }
 }
 
-.searchForm {
-  display: flex;
-  flex-direction: column;
+.modSearch__dropdownBtn {
+  background-color: transparent;
+  color: var(--clr-neutral-2);
 }
 
 .searchOptionsToggle {
@@ -33,8 +45,6 @@
 }
 
 .searchOptions {
-  height: 0;
-  transition: height 0.3s ease-in-out;
   overflow: hidden;
 
   > .inner {

@@ -1,25 +1,27 @@
-import { createResource, createSignal, createUniqueId, For, onMount, Show, useContext } from "solid-js";
-import { A, useNavigate, useParams } from "@solidjs/router";
-import { faTrashCan, faCirclePlay as faCirclePlayOutline } from "@fortawesome/free-regular-svg-icons";
+import { faCirclePlay as faCirclePlayOutline, faTrashCan } from "@fortawesome/free-regular-svg-icons";
 import { faChevronLeft, faCirclePlay, faDownload, faFileImport, faPenToSquare, faPlus, faThumbTack } from "@fortawesome/free-solid-svg-icons";
+import { faFileExport } from "@fortawesome/free-solid-svg-icons/faFileExport";
+import { faGear } from "@fortawesome/free-solid-svg-icons/faGear";
+import { A, useNavigate, useParams } from "@solidjs/router";
+import { OverlayScrollbarsComponent } from "overlayscrollbars-solid";
 import Fa from "solid-fa";
+import { createResource, createSignal, createUniqueId, For, onMount, Show, useContext } from "solid-js";
 
-import ModSearch from "../../components/profile/ModSearch";
+import Console, { C2SChannel, clearConsole, createC2SChannel } from "../../components/global/Console";
+import { PromptDialog } from "../../components/global/Dialog";
+import { ErrorContext } from "../../components/global/ErrorBoundary";
+import SelectDropdown from "../../components/global/SelectDropdown";
+import TabRenderer from "../../components/global/TabRenderer";
 import ModList from "../../components/profile/ModList";
+import ModSearch from "../../components/profile/ModSearch";
+
+import { createProfile, deleteProfile, launchProfile, ProfileWithId } from "../../api";
+import * as globals from "../../globals";
+import { gamesById, refetchProfiles } from "../../globals";
+import { Refetcher } from "../../types";
 
 import styles from "./Profile.module.css";
 import sidebarStyles from "./SidebarProfiles.module.css";
-import * as globals from "../../globals";
-import { gamesById, refetchProfiles } from "../../globals";
-import { createProfile, deleteProfile, launchProfile, ProfileWithId } from "../../api";
-import { Refetcher } from "../../types";
-import Dialog, { PromptDialog } from "../../components/global/Dialog";
-import { ErrorContext } from "../../components/global/ErrorBoundary";
-import Console, { C2SChannel, clearConsole, createC2SChannel } from "../../components/global/Console";
-import TabRenderer from "../../components/global/TabRenderer";
-import { faGear } from "@fortawesome/free-solid-svg-icons/faGear";
-import { faFileExport } from "@fortawesome/free-solid-svg-icons/faFileExport";
-import { OverlayScrollbarsComponent } from "overlayscrollbars-solid";
 
 interface ProfileParams {
   [key: string]: string | undefined;
@@ -95,10 +97,23 @@ export default function Profile() {
 
           <form on:submit={(e) => e.preventDefault()} class={sidebarStyles.sidebar__profilesSearch}>
             <input type="text" name="profile-search" id="profile-search" placeholder="Search" maxLength={100} />
-            <select name="profile-sort" id="profile-sort">
-              <option value="alphabetical">A-Z</option>
-              <option value="date-created">Date</option>
-            </select>
+            <SelectDropdown
+              multiselect={false}
+              options={[
+                {
+                  name: "A-Z",
+                  value: "alphabetical-descending",
+                },
+                {
+                  name: "Creation Date",
+                  value: "creation-date-descending",
+                },
+              ]}
+              label={{ labelText: "preset", preset: "Sort" }}
+              onChange={(selected) => {
+                console.log(selected);
+              }}
+            />
           </form>
 
           <OverlayScrollbarsComponent defer options={{ scrollbars: { autoHide: "leave" } }} class={sidebarStyles.sidebar__profilesListContainer}>
