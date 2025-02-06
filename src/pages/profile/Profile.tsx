@@ -117,10 +117,7 @@ export default function Profile() {
               ]}
               label={{ labelText: "preset", preset: "Sort" }}
               selected={(key) => profileSearchOptions[key]}
-              onChanged={(key, selected) => {
-                setProfileSearchOptions({ [key]: selected });
-                console.log(key, selected, profileSearchOptions);
-              }}
+              onChanged={(key, selected) => setProfileSearchOptions({ [key]: selected })}
             />
           </form>
 
