@@ -6,6 +6,7 @@ import { A, useNavigate, useParams } from "@solidjs/router";
 import { OverlayScrollbarsComponent } from "overlayscrollbars-solid";
 import Fa from "solid-fa";
 import { createResource, createSignal, createUniqueId, For, onMount, Show, useContext } from "solid-js";
+import { createStore } from "solid-js/store";
 
 import Console, { C2SChannel, clearConsole, createC2SChannel } from "../../components/global/Console";
 import { PromptDialog } from "../../components/global/Dialog";
@@ -62,6 +63,11 @@ export default function Profile() {
     }
   }
 
+  const [profileSearchOptions, setProfileSearchOptions] = createStore({
+    "alphabetical-descending": false,
+    "creation-date-descending": false,
+  });
+
   return (
     <main class={styles.main}>
       <aside class={styles.sidebar}>
@@ -97,7 +103,7 @@ export default function Profile() {
 
           <form on:submit={(e) => e.preventDefault()} class={sidebarStyles.sidebar__profilesSearch}>
             <input type="text" name="profile-search" id="profile-search" placeholder="Search" maxLength={100} />
-            <SelectDropdown
+            <SelectDropdown<"alphabetical-descending" | "creation-date-descending">
               multiselect={false}
               options={[
                 {
@@ -110,8 +116,10 @@ export default function Profile() {
                 },
               ]}
               label={{ labelText: "preset", preset: "Sort" }}
-              onChange={(selected) => {
-                console.log(selected);
+              selected={(key) => profileSearchOptions[key]}
+              onChanged={(key, selected) => {
+                setProfileSearchOptions({ [key]: selected });
+                console.log(key, selected, profileSearchOptions);
               }}
             />
           </form>
