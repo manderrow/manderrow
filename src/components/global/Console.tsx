@@ -107,7 +107,7 @@ export default function Console({ channel }: { channel: Accessor<Channel<C2SMess
           } else if ("Log" in event) {
             return (
               <p>
-                <span class={styles.event__type}>[{event.Log.level}]</span>
+                <span class={styles.event__type}>[{event.Log.level}]</span>{" "}
                 <span>{event.Log.message}</span>
               </p>
             );
