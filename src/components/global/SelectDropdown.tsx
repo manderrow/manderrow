@@ -4,6 +4,7 @@ import { faCaretDown } from "@fortawesome/free-solid-svg-icons/faCaretDown";
 import Fa from "solid-fa";
 import Dropdown, { DropdownOptions } from "./Dropdown";
 import { createStore, produce } from "solid-js/store";
+import { faCheck } from "@fortawesome/free-solid-svg-icons";
 
 interface Option {
   name: string;
@@ -62,6 +63,7 @@ export default function SelectDropdown(options: SelectDropdownOptions) {
               {(option, i) => {
                 function onSelect() {
                   setSelectedValues(i(), !selectedValues[i()]);
+
                   if (!options.multiselect) {
                     setSelectedValues(
                       produce((state) => {
@@ -71,20 +73,21 @@ export default function SelectDropdown(options: SelectDropdownOptions) {
                       })
                     );
                   }
-                  if (options.label.labelText === "value") setLabelValue(option.value);
+                  if (options.label.labelText === "value") setLabelValue(option.name);
                 }
 
                 return (
                   <li
                     tabIndex={0}
-                    role="button"
+                    role="checkbox"
+                    class={styles.option}
                     aria-checked={selectedValues[i()]}
                     on:click={onSelect}
                     on:keydown={(event) => {
-                      if (event.key === "Enter") onSelect();
+                      if (event.key === "Enter" || event.key === " ") onSelect();
                     }}
                   >
-                    <Show when={selectedValues[i()]}>✅</Show>
+                    <Fa icon={faCheck} class={styles.option__check} />
                     {option.name}
                   </li>
                 );

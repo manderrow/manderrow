@@ -7,6 +7,7 @@ export interface DropdownOptions {
   align?: Alignment;
   maxWidth?: string;
   children: JSX.Element;
+  class?: string;
 }
 
 const VIEWPORT_PADDING = 16;
@@ -49,6 +50,7 @@ export default function Dropdown(options: DropdownOptions) {
   return (
     <div
       classList={{ [styles.dropdown]: true, [getDropdownTypeClass(options.align)]: true }}
+      class={options.class}
       ref={dropdownElement}
       style={{ transform: `translateX(${offsetX()}px)`, "max-width": options.maxWidth || "unset" }}
     >

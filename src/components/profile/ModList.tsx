@@ -1,5 +1,5 @@
 import { createInfiniteScroll } from "@solid-primitives/pagination";
-import { Accessor, createSignal, For, Show, Signal } from "solid-js";
+import { Accessor, createEffect, createResource, createSignal, For, Show, Signal } from "solid-js";
 
 import { ModAndVersion } from "../../types";
 import { numberFormatter, roundedNumberFormatter } from "../../utils";
@@ -33,6 +33,16 @@ export default function ModList(props: { mods: Fetcher }) {
 }
 
 function ModView({ selectedMod }: { selectedMod: Accessor<ModAndVersion | undefined> }) {
+  // const [modReadme] = createResource(selectedMod, async (data) => {
+  //   if (data == null) return undefined;
+
+  //   const request = await fetch(`https://thunderstore.io/api/experimental/package/${data.mod.owner}/${data.mod.name}/${data.version}/readme/`);
+
+  //   return await request.text();
+  // });
+
+  // createEffect(() => console.log(modReadme));
+
   return (
     <div class={styles.scrollOuter}>
       <div class={`${styles.modView} ${styles.scrollInner}`}>
@@ -86,6 +96,7 @@ function ModView({ selectedMod }: { selectedMod: Accessor<ModAndVersion | undefi
                     </Show>
                   </li>
                 </ul>
+
                 {/* <span class={styles.version}>{version.version_number}</span>
                 <span> - </span>
                 <span class={styles.timestamp} title={version.date_created}>

@@ -18,3 +18,26 @@
   background-color: var(--clr-neutral-7);
   border-radius: 4px;
 }
+
+.options {
+}
+
+.option {
+  user-select: none;
+  -webkit-user-select: none;
+  padding: 0.25em;
+}
+
+.option:hover {
+  cursor: pointer;
+  background-color: var(--clr-neutral-6);
+}
+
+.option__check {
+  opacity: 0;
+  margin-right: 0.5em;
+}
+
+.option[aria-checked="true"] .option__check {
+  opacity: 1;
+}
