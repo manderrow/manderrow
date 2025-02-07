@@ -16,7 +16,7 @@
   width: 24rem;
   max-width: 30rem;
   resize: horizontal;
-  overflow: auto;
+  overflow: visible;
   border-right: 1px solid var(--clr-neutral-8);
 }
 

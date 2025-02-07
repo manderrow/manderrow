@@ -49,8 +49,7 @@ export default function Dropdown(options: DropdownOptions) {
 
   return (
     <div
-      classList={{ [styles.dropdown]: true, [getDropdownTypeClass(options.align)]: true }}
-      class={options.class}
+      classList={{ [styles.dropdown]: true, [getDropdownTypeClass(options.align)]: true, [options.class || ""]: true }}
       ref={dropdownElement}
       style={{ transform: `translateX(${offsetX()}px)`, "max-width": options.maxWidth || "unset" }}
     >

@@ -34,16 +34,6 @@
   color: var(--clr-neutral-2);
 }
 
-.searchOptionsToggle {
-  display: none;
-
-  &:checked + .searchOptions {
-    /* ensure compatibility with older webviews */
-    height: auto;
-    height: calc-size(auto);
-  }
-}
-
 .searchOptions {
   overflow: hidden;
 

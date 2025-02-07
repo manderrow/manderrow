@@ -1,3 +1,11 @@
+declare module "solid-js" {
+  namespace JSX {
+    interface Directives {
+      autofocus: true;
+    }
+  }
+}
+
 export type Refetcher<T, R = unknown> = (info?: R) => T | Promise<T> | undefined | null;
 
 export interface Game {

@@ -155,6 +155,7 @@ function ModListMods({ mods, selectedMod: [selectedMod, setSelectedMod] }: { mod
                   </div>
                   <div class={styles.right}>
                     <button
+                      class={styles.downloadBtn}
                       on:click={(event) => {
                         event.stopPropagation();
                       }}

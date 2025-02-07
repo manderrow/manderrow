@@ -1,13 +1,12 @@
 import { createSignal, createUniqueId, For, Show } from "solid-js";
 import styles from "./SelectDropdown.module.css";
-import { faCaretDown } from "@fortawesome/free-solid-svg-icons/faCaretDown";
+import { faCaretDown, faCheck } from "@fortawesome/free-solid-svg-icons";
 import Fa from "solid-fa";
 import Dropdown, { DropdownOptions } from "./Dropdown";
-import { faCheck } from "@fortawesome/free-solid-svg-icons";
 
 interface Option<T> {
   name: string;
-  value: T,
+  value: T;
 }
 
 type LabelTextValue = {
@@ -22,8 +21,8 @@ type LabelText = LabelTextValue | LabelTextPreset;
 interface SelectDropdownOptions<T> extends Omit<DropdownOptions, "children"> {
   label: LabelText;
   options: Option<T>[];
-  selected: (value: T) => boolean,
-  onChanged: (value: T, selected: boolean) => void,
+  selected: (value: T) => boolean;
+  onChanged: (value: T, selected: boolean) => void;
   /**
    * In some cases, it would be better to set this to false and handle manually in `onChanged`.
    */
@@ -40,17 +39,17 @@ export default function SelectDropdown<T>(options: SelectDropdownOptions<T>) {
   );
 
   return (
-    <div class={styles.container}>
-      <label for={id} class={styles.label}>
+    <div classList={{ [styles.container]: true, [options.class || ""]: true }}>
+      <label for={id} class={styles.label} data-btn>
         <Fa icon={faCaretDown} rotate={open() ? 180 : 0} />
         {labelValue()}
         <input type="checkbox" name="Toggle" id={id} class="phantom" onInput={(event) => setOpen(event.target.checked)} />
       </label>
       <Show when={open()}>
-        <Dropdown align={options.align}>
-          <ul>
+        <Dropdown align={options.align} class={styles.dropdown}>
+          <ul class={styles.options}>
             <For each={options.options}>
-              {option => {
+              {(option) => {
                 let ref!: HTMLLIElement;
 
                 function onSelect() {

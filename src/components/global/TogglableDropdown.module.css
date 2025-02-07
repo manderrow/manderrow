@@ -11,6 +11,10 @@
   -webkit-user-select: none;
 }
 
+.label:hover {
+  cursor: pointer;
+}
+
 .labelDefault {
   background-color: var(--clr-neutral-7);
   border-radius: 4px;
