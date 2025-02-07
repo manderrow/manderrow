@@ -76,11 +76,6 @@ export default function Profile() {
     }
   }
 
-  const [profileSearchOptions, setProfileSearchOptions] = createStore({
-    alphabetical: false,
-    creationDate: false,
-  });
-
   return (
     <main class={styles.main}>
       <aside class={styles.sidebar}>
@@ -119,19 +114,17 @@ export default function Profile() {
             <SelectDropdown<"alphabetical" | "creationDate">
               class={sidebarStyles.sidebar__profilesSearchSortBtn}
               multiselect={false}
-              options={[
-                {
-                  name: "A-Z",
+              options={{
+                "A-Z": {
                   value: "alphabetical",
                 },
-                {
-                  name: "Creation Date",
+
+                "Creation Date": {
                   value: "creationDate",
                 },
-              ]}
+              }}
               label={{ labelText: "preset", preset: "Sort" }}
-              selected={(key) => profileSearchOptions[key]}
-              onChanged={(key, selected) => setProfileSearchOptions({ [key]: selected })}
+              onChanged={(key, selected) => console.log(key, selected)}
             />
             <button class={sidebarStyles.sidebar__profilesSearchSortByBtn} on:click={() => setProfileSortOrder((order) => !order)}>
               {profileSortOrder() ? <Fa icon={faArrowUpWideShort} /> : <Fa icon={faArrowDownShortWide} />}

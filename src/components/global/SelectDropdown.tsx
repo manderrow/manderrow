@@ -3,10 +3,11 @@ import styles from "./SelectDropdown.module.css";
 import { faCaretDown, faCheck } from "@fortawesome/free-solid-svg-icons";
 import Fa from "solid-fa";
 import Dropdown, { DropdownOptions } from "./Dropdown";
+import { createStore } from "solid-js/store";
 
 interface Option<T> {
-  name: string;
   value: T;
+  selected?: boolean;
 }
 
 type LabelTextValue = {
@@ -20,22 +21,17 @@ type LabelText = LabelTextValue | LabelTextPreset;
 
 interface SelectDropdownOptions<T> extends Omit<DropdownOptions, "children"> {
   label: LabelText;
-  options: Option<T>[];
-  selected: (value: T) => boolean;
+  options: Record<string, Option<T>>;
   onChanged: (value: T, selected: boolean) => void;
-  /**
-   * In some cases, it would be better to set this to false and handle manually in `onChanged`.
-   */
   multiselect?: boolean;
 }
 
 export default function SelectDropdown<T>(options: SelectDropdownOptions<T>) {
   const id = createUniqueId();
   const [open, setOpen] = createSignal(false);
+  const [selected, setSelected] = createStore(options.options);
   const [labelValue, setLabelValue] = createSignal(
-    options.label.labelText === "preset"
-      ? options.label.preset
-      : options.options.find((option) => options.selected(option.value))?.name ?? options.options[0].name ?? "Select..."
+    options.label.labelText === "preset" ? options.label.preset : Object.entries(options.options).find(([key, value]) => value.selected)?.[0] ?? "Select..."
   );
 
   return (
@@ -48,23 +44,25 @@ export default function SelectDropdown<T>(options: SelectDropdownOptions<T>) {
       <Show when={open()}>
         <Dropdown align={options.align} class={styles.dropdown}>
           <ul class={styles.options}>
-            <For each={options.options}>
-              {(option) => {
+            <For each={Object.entries(options.options)}>
+              {([key, option]) => {
                 let ref!: HTMLLIElement;
 
                 function onSelect() {
                   // use the cached value here, so the action performed by the
                   // UI is **never** out of sync with the displayed value.
-                  options.onChanged(option.value, ref.ariaChecked! !== "true");
+                  const isSelected = ref.ariaChecked! !== "true";
+                  setSelected(key, "selected", isSelected);
+                  options.onChanged(option.value, isSelected);
 
-                  if (!options.multiselect) {
-                    for (const other of options.options) {
-                      if (other.value !== option.value) {
-                        options.onChanged(other.value, false);
+                  if (!options.multiselect && isSelected) {
+                    for (const other in options.options) {
+                      if (options.options[other].value !== option.value) {
+                        setSelected(other, "selected", false);
                       }
                     }
                   }
-                  if (options.label.labelText === "value") setLabelValue(option.name);
+                  if (options.label.labelText === "value") setLabelValue(key);
                 }
 
                 return (
@@ -72,7 +70,7 @@ export default function SelectDropdown<T>(options: SelectDropdownOptions<T>) {
                     tabIndex={0}
                     role="checkbox"
                     class={styles.option}
-                    aria-checked={options.selected(option.value)}
+                    aria-checked={selected[key].selected}
                     on:click={onSelect}
                     on:keydown={(event) => {
                       if (event.key === "Enter" || event.key === " ") onSelect();
@@ -80,7 +78,7 @@ export default function SelectDropdown<T>(options: SelectDropdownOptions<T>) {
                     ref={ref}
                   >
                     <Fa icon={faCheck} class={styles.option__check} />
-                    {option.name}
+                    {key}
                   </li>
                 );
               }}
