@@ -1,7 +1,6 @@
 [package]
 name = "manderrow-wrapper-stage2"
 version = "0.1.0"
-description = "Stage 2 wrapper for Manderrow, used on Linux"
 authors = ["Jack Huang", "Michael Pfaff"]
 edition = "2021"
 

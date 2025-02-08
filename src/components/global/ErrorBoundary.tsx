@@ -1,4 +1,5 @@
 import {
+  For,
   JSX,
   Match,
   Show,
@@ -9,7 +10,7 @@ import {
 } from "solid-js";
 
 import Dialog from "./Dialog";
-import { NativeError } from "../../api";
+import { AbortedError, NativeError } from "../../api";
 import styles from "./ErrorBoundary.module.css";
 
 export const ErrorContext = createContext<(err: any) => void>(
@@ -22,11 +23,16 @@ export const ErrorContext = createContext<(err: any) => void>(
 
 export default function ErrorBoundary(props: { children: JSX.Element }) {
   const [error, setError] = createSignal<Error>();
+  function onError(e: Error) {
+    if (e instanceof AbortedError) return;
+    console.error(e);
+    setError(e);
+  }
   return (
     <SolidErrorBoundary
       fallback={(err, reset) => <Error err={err} reset={reset} />}
     >
-      <ErrorContext.Provider value={setError}>
+      <ErrorContext.Provider value={onError}>
         <Show when={error()} fallback={props.children}>
           {(err) => <Error err={err()} reset={() => setError(undefined)} />}
         </Show>
@@ -45,7 +51,9 @@ function Error(props: { err: any; reset: () => void }) {
         <div class={styles.report}>
           <Switch fallback={<p>{props.err}</p>}>
             <Match when={props.err instanceof NativeError}>
-              <p>{props.err.message}</p>
+              <For each={props.err.messages}>
+                {(msg) => <p>{msg}</p>}
+              </For>
               <details class={styles.spoiler}>
                 <summary>
                   <h3>Native Stack Trace:</h3>

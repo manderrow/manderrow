@@ -68,6 +68,16 @@ pub enum StorePlatformMetadata {
     Other,
 }
 
+impl StorePlatformMetadata {
+    pub fn steam_or_direct(&self) -> Option<&str> {
+        match self {
+            StorePlatformMetadata::Steam { store_identifier }
+            | StorePlatformMetadata::SteamDirect { store_identifier } => Some(store_identifier),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, serde::Deserialize, serde::Serialize, strum::EnumString)]
 pub enum PackageLoader {
     BepInEx,

@@ -1,4 +1,5 @@
-use std::path::PathBuf;
+use std::borrow::Cow;
+use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, bail, ensure, Result};
 
@@ -11,6 +12,25 @@ pub fn get_steam_install_path_from_registry() -> Result<PathBuf> {
     match regkey.value("InstallPath")? {
         Data::String(s) | Data::ExpandString(s) => Ok(PathBuf::from(s.to_string()?)),
         _ => Err(anyhow!("Unexpected data type in registry")),
+    }
+}
+
+pub fn get_steam_exe() -> Result<Cow<'static, Path>> {
+    if cfg!(windows) {
+        #[cfg(windows)]
+        {
+            let mut p = get_steam_install_path_from_registry()?;
+            p.push("steam.exe");
+            Ok(Cow::Owned(p))
+        }
+        #[cfg(not(windows))]
+        unreachable!()
+    } else if cfg!(target_os = "macos") {
+        Ok(Cow::Borrowed(Path::new("/Applications/Steam.app/Contents/MacOS/steam_osx")))
+    } else if cfg!(unix) {
+        Ok(Cow::Borrowed(Path::new("steam")))
+    } else {
+        return Err(anyhow!("Unsupported platform for Steam").into());
     }
 }
 

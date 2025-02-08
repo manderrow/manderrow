@@ -1,9 +1,8 @@
 use std::ffi::{OsStr, OsString};
-use std::io::Write;
 use std::path::PathBuf;
 
 use anyhow::{anyhow, bail, Context as _};
-use log::debug;
+use slog::debug;
 use tauri_plugin_http::reqwest;
 use tokio::io::AsyncWriteExt;
 use uuid::Uuid;
@@ -13,10 +12,9 @@ use zip::ZipArchive;
 use crate::commands::profiles::read_profile;
 use crate::games::GAMES_BY_ID;
 use crate::paths::cache_dir;
-use crate::Error;
 
-use super::steam::paths::{resolve_steam_app_install_directory, resolve_steam_directory};
-use super::steam::{ensure_wine_will_load_dll_override, uses_proton};
+use super::steam::paths::resolve_steam_app_install_directory;
+use super::steam::proton::{ensure_wine_will_load_dll_override, uses_proton};
 
 #[derive(Debug, thiserror::Error)]
 enum InstallZipError {
@@ -34,6 +32,7 @@ enum InstallZipError {
 }
 
 async fn install_zip(
+    log: &slog::Logger,
     url: &str,
     hash_str: &str,
     mut target: PathBuf,
@@ -41,7 +40,7 @@ async fn install_zip(
     target.push(hash_str);
     match tokio::fs::metadata(&target).await {
         Ok(m) if m.is_dir() => {
-            debug!("Zip is already installed to {target:?}");
+            debug!(log, "Zip is already installed to {target:?}");
             return Ok(target);
         }
         Ok(_) => {
@@ -73,9 +72,9 @@ async fn install_zip(
         while let Some(chunk) = resp.chunk().await? {
             wtr.write_all(&chunk).await?;
         }
-        debug!("Cached zip at {path:?}");
+        debug!(log, "Cached zip at {path:?}");
     } else {
-        debug!("Zip is cached at {path:?}");
+        debug!(log, "Zip is cached at {path:?}");
     }
 
     let tmp_dir = tempfile::tempdir_in(&target)?;
@@ -86,164 +85,8 @@ async fn install_zip(
     })?;
     target.push(hash_str);
     tokio::fs::rename(tmp_dir.into_path(), &target).await?;
-    debug!("Installed zip to {target:?}");
+    debug!(log, "Installed zip to {target:?}");
     Ok(target)
-}
-
-async fn apply_launch_args(game_id: &str) -> Result<(), Error> {
-    let mut path = resolve_steam_directory().await?;
-    path.push("userdata");
-
-    let mut iter = tokio::fs::read_dir(&path).await?;
-    while let Some(e) = iter.next_entry().await? {
-        tokio::task::block_in_place(|| {
-            use vdf::Event;
-
-            path.push(e.file_name());
-            path.push("config");
-            let mut dst = tempfile::NamedTempFile::new_in(&path)?;
-            let mut wtr = std::io::BufWriter::new(dst.as_file_mut());
-            path.push("localconfig.vdf");
-            let mut rdr = vdf::Reader::new(std::fs::File::open(&path)?);
-
-            const KEY_PATH: &[&str] =
-                &["UserLocalConfigStore", "Software", "Valve", "Steam", "apps"];
-            const LAUNCH_OPTIONS_KEY: &str = "LaunchOptions";
-            enum MatcherState {
-                MatchingPath(usize),
-                SkippingPath(usize),
-                MatchingGame,
-                MatchingLaunchOptions,
-                SkippingGame(usize),
-                SkippingInsideGame(usize),
-                Done,
-            }
-            let mut state = MatcherState::MatchingPath(0);
-            let mut launch_options_str = std::env::current_exe()
-                .unwrap()
-                .into_os_string()
-                .into_string()
-                .map_err(|_| "Non-Unicode executable name")?;
-            launch_options_str.push_str(" wrap %command%");
-            let mut matched_launch_options = false;
-            while let Some(event) = rdr.next()? {
-                match event {
-                    Event::GroupStart { key, .. } => {
-                        vdf::write_io(event, &mut wtr)?;
-                        if let MatcherState::MatchingPath(i) = state {
-                            if i < KEY_PATH.len() {
-                                if key.s != KEY_PATH[i].as_bytes() {
-                                    state = MatcherState::SkippingPath(i);
-                                }
-                            }
-                        }
-                        match &mut state {
-                            MatcherState::MatchingPath(i)
-                            | MatcherState::SkippingPath(i)
-                            | MatcherState::SkippingGame(i)
-                            | MatcherState::SkippingInsideGame(i) => {
-                                *i += 1;
-                            }
-                            MatcherState::MatchingGame if key.s == game_id.as_bytes() => {
-                                state = MatcherState::MatchingLaunchOptions;
-                            }
-                            MatcherState::MatchingGame => {
-                                state = MatcherState::SkippingGame(0);
-                            }
-                            MatcherState::MatchingLaunchOptions => {
-                                state = MatcherState::SkippingInsideGame(0);
-                            }
-                            MatcherState::Done => {}
-                        }
-                    }
-                    Event::Item {
-                        pre_whitespace,
-                        key,
-                        mid_whitespace,
-                        // TODO: don't just discard this
-                        value: _value,
-                    } if matches!(state, MatcherState::MatchingLaunchOptions)
-                        && key.s == LAUNCH_OPTIONS_KEY.as_bytes() =>
-                    {
-                        matched_launch_options = true;
-                        vdf::write_io(
-                            Event::Item {
-                                pre_whitespace,
-                                key,
-                                mid_whitespace,
-                                value: vdf::Str {
-                                    s: launch_options_str.as_bytes(),
-                                    quoted: true,
-                                },
-                            },
-                            &mut wtr,
-                        )?;
-                    }
-                    Event::Item { .. } => {
-                        vdf::write_io(event, &mut wtr)?;
-                    }
-                    Event::GroupEnd { pre_whitespace } => {
-                        match &mut state {
-                            MatcherState::MatchingPath(i) | MatcherState::SkippingPath(i) => {
-                                *i -= 1;
-                            }
-                            MatcherState::SkippingGame(0) => {
-                                state = MatcherState::MatchingGame;
-                            }
-                            MatcherState::SkippingGame(i) => {
-                                *i -= 1;
-                            }
-                            MatcherState::SkippingInsideGame(0) => {
-                                state = MatcherState::MatchingLaunchOptions;
-                            }
-                            MatcherState::SkippingInsideGame(i) => {
-                                *i -= 1;
-                            }
-                            MatcherState::MatchingGame => {
-                                return Err("Game not installed".into());
-                            }
-                            MatcherState::MatchingLaunchOptions => {
-                                if !matched_launch_options {
-                                    vdf::write_io(
-                                        Event::Item {
-                                            pre_whitespace,
-                                            key: vdf::Str {
-                                                s: LAUNCH_OPTIONS_KEY.as_bytes(),
-                                                quoted: true,
-                                            },
-                                            mid_whitespace: b"\t\t",
-                                            value: vdf::Str {
-                                                s: launch_options_str.as_bytes(),
-                                                quoted: true,
-                                            },
-                                        },
-                                        &mut wtr,
-                                    )?;
-                                }
-                                state = MatcherState::Done;
-                            }
-                            MatcherState::Done => {}
-                        }
-                        vdf::write_io(event, &mut wtr)?;
-                    }
-                    Event::Comment { .. } => vdf::write_io(event, &mut wtr)?,
-                    Event::FileEnd { .. } => vdf::write_io(event, &mut wtr)?,
-                }
-            }
-
-            wtr.flush()?;
-            drop(wtr);
-            dst.persist(&path)?;
-
-            path.pop();
-            path.pop();
-            path.pop();
-
-            Ok::<_, Error>(())
-        })?;
-    }
-
-    Ok(())
 }
 
 pub trait CommandBuilder {
@@ -253,26 +96,20 @@ pub trait CommandBuilder {
 }
 
 pub async fn configure_command(
+    log: &slog::Logger,
     command: &mut impl CommandBuilder,
     profile_id: Uuid,
 ) -> anyhow::Result<()> {
     let profile = read_profile(profile_id).await?;
-    let game = GAMES_BY_ID.get(&*profile.game).context("No such game")?;
-    let steam_id = &**game
+    let steam_id = GAMES_BY_ID
+        .get(&*profile.game)
+        .context("No such game")?
         .store_platform_metadata
         .iter()
-        .find_map(|m| match m {
-            crate::games::StorePlatformMetadata::Steam { store_identifier } => {
-                Some(store_identifier)
-            }
-            crate::games::StorePlatformMetadata::SteamDirect { store_identifier } => {
-                Some(store_identifier)
-            }
-            _ => None,
-        })
+        .find_map(|m| m.steam_or_direct())
         .context("Unsupported store platform")?;
 
-    let uses_proton = uses_proton(steam_id).await?;
+    let uses_proton = uses_proton(log, steam_id).await?;
 
     let (url, hash) = match (std::env::consts::OS, std::env::consts::ARCH, uses_proton) {
         ("macos", "x86_64", false) => ("https://github.com/BepInEx/BepInEx/releases/download/v5.4.23.2/BepInEx_macos_x64_5.4.23.2.zip", "f90cb47010b52e8d2da1fff4b39b4e95f89dc1de9dddca945b685b9bf8e3ef81"),
@@ -285,6 +122,7 @@ pub async fn configure_command(
         (os, arch, uses_proton) => bail!("Unsupported platform combo: (os: {os:?}, arch: {arch:?}, uses_proton: {uses_proton})"),
     };
     let bep_in_ex = install_zip(
+        log,
         url,
         hash,
         crate::commands::profiles::profile_path(profile_id),
@@ -317,7 +155,8 @@ pub async fn configure_command(
         command.args(["--doorstop-mono-debug-address", "127.0.0.1:10000"]);
         command.args(["--doorstop-mono-debug-suspend", "false"]);
         // specify these only if they have values
-        // especially --doorstop-mono-dll-search-path-override, which will cause the doorstop to fail if given an empty string
+        // especially --doorstop-mono-dll-search-path-override, which will
+        // cause the doorstop to fail if given an empty string
         // command.args(["--doorstop-mono-dll-search-path-override", ""]);
         // command.args(["--doorstop-clr-corlib-dir", ""]);
         // command.args(["--doorstop-clr-runtime-coreclr-path", ""]);
@@ -338,7 +177,9 @@ pub async fn configure_command(
 
     if cfg!(windows) || uses_proton {
         if uses_proton {
-            ensure_wine_will_load_dll_override(steam_id, "winhttp").await?;
+            // TODO: don't overwrite anything without checking with the user
+            //       via a doctor's note.
+            ensure_wine_will_load_dll_override(log, steam_id, "winhttp").await?;
         }
         tokio::fs::copy(
             bep_in_ex.join("winhttp.dll"),

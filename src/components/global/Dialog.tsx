@@ -3,6 +3,8 @@ import { Portal } from "solid-js/web";
 
 import styles from "./Dialog.module.css";
 
+export const dialogStyles = styles;
+
 type BtnType = "danger" | "ok" | "attention" | "info";
 interface PromptDialogButton {
   type?: BtnType;

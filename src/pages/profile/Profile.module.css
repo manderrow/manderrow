@@ -167,10 +167,6 @@
   flex-direction: column;
 }
 
-.content__consoleHeading {
-  margin-bottom: 0.25em;
-}
-
 .content__console {
   display: flex;
   flex-direction: column;

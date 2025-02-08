@@ -6,17 +6,18 @@ use std::{
     sync::{atomic::AtomicU64, LazyLock},
 };
 
+use anyhow::{Context as _, Result};
 use bytes::{Buf as _, Bytes};
 use drop_guard::ext::tokio1::JoinHandleExt;
 use flate2::bufread::GzDecoder;
-use log::debug;
+use slog::debug;
 use tauri::ipc::Channel;
 use tokio::sync::{Mutex, RwLock};
 
 use crate::{
     games::{GAMES, GAMES_BY_ID},
     mods::{ArchivedMod, Mod, ModRef, ModVersionRef},
-    Error,
+    CommandError,
 };
 
 use memory::MemoryModIndex;
@@ -57,7 +58,7 @@ static MOD_INDEXES: LazyLock<HashMap<&'static str, ModIndex>> = LazyLock::new(||
         .collect()
 });
 
-async fn fetch_gzipped(url: &str) -> Result<GzDecoder<StreamReadable>, Error> {
+async fn fetch_gzipped(url: &str) -> Result<GzDecoder<StreamReadable>> {
     let mut resp = tauri_plugin_http::reqwest::get(url)
         .await?
         .error_for_status()?;
@@ -145,8 +146,10 @@ pub async fn fetch_mod_index(
     game: &str,
     refresh: bool,
     on_event: Channel<FetchEvent>,
-) -> Result<(), Error> {
-    let game = *GAMES_BY_ID.get(game).ok_or("No such game")?;
+) -> Result<(), CommandError> {
+    let log = slog_scope::logger();
+
+    let game = *GAMES_BY_ID.get(game).context("No such game")?;
     let mod_index = MOD_INDEXES.get(&*game.thunderstore_url).unwrap();
 
     if refresh
@@ -156,7 +159,7 @@ pub async fn fetch_mod_index(
             .map(|data| data.is_empty())
             .unwrap_or(true)
     {
-        debug!("Fetching mods");
+        debug!(log, "Fetching mods");
 
         let _guard = tokio::task::spawn(async move {
             loop {
@@ -182,18 +185,20 @@ pub async fn fetch_mod_index(
         mod_index.set_progress(0, 1);
         let chunk_urls = fetch_gzipped(&game.thunderstore_url).await?;
         let chunk_urls =
-            tokio::task::block_in_place(|| serde_json::from_reader::<_, Vec<String>>(chunk_urls))?;
+            tokio::task::block_in_place(|| serde_json::from_reader::<_, Vec<String>>(chunk_urls))
+                .context("Unable to decode chunk URLs from Thunderstore")?;
         mod_index.set_progress(
             1,
             chunk_urls
                 .len()
                 .checked_add(1)
                 .and_then(|n| n.try_into().ok())
-                .ok_or("too many chunk urls")?,
+                .context("too many chunk urls")?,
         );
 
         let new_mod_index =
             futures::future::try_join_all(chunk_urls.into_iter().map(|url| async {
+                let log = log.clone();
                 tokio::task::spawn(async move {
                     let mut buf = Vec::new();
                     let mut rdr = fetch_gzipped(&url).await?;
@@ -216,6 +221,7 @@ pub async fn fetch_mod_index(
                             Ok::<_, rkyv::rancor::Error>(serializer.into_serializer().into_writer())
                         })?;
                         debug!(
+                            log,
                             "{} bytes of JSON -> {} bytes in memory",
                             buf.len(),
                             mods.len()
@@ -224,7 +230,7 @@ pub async fn fetch_mod_index(
                             rkyv::access::<_, rkyv::rancor::Error>(data)
                         })?;
                         mod_index.inc_progress();
-                        Ok::<_, Error>(index)
+                        Ok::<_, anyhow::Error>(index)
                     })
                 })
                 .await?
@@ -232,7 +238,7 @@ pub async fn fetch_mod_index(
             .await?;
         *mod_index.data.write().await = new_mod_index;
 
-        debug!("Finished fetching mods");
+        debug!(log, "Finished fetching mods");
     }
 
     Ok(())
@@ -266,8 +272,10 @@ pub async fn query_mod_index(
     sort: Vec<SortOption>,
     skip: Option<usize>,
     limit: Option<usize>,
-) -> Result<simd_json::OwnedValue, Error> {
-    let game = *GAMES_BY_ID.get(game).ok_or("No such game")?;
+) -> Result<simd_json::OwnedValue, CommandError> {
+    let log = slog_scope::logger();
+
+    let game = *GAMES_BY_ID.get(game).context("No such game")?;
     let mod_index = MOD_INDEXES
         .get(&*game.thunderstore_url)
         .unwrap()
@@ -275,7 +283,7 @@ pub async fn query_mod_index(
         .read()
         .await;
 
-    debug!("Querying mods");
+    debug!(log, "Querying mods");
 
     let mut buf = mod_index
         .iter()
@@ -320,7 +328,7 @@ pub async fn query_mod_index(
 
     fn map_to_json<'a>(
         it: impl IntoIterator<Item = (&'a ArchivedMod, f64)>,
-    ) -> Result<Vec<simd_json::OwnedValue>, simd_json::Error> {
+    ) -> Vec<simd_json::OwnedValue> {
         it.into_iter()
             .map(|(m, _)| {
                 simd_json::serde::to_owned_value(ModRef {
@@ -357,8 +365,9 @@ pub async fn query_mod_index(
                         .collect(),
                     uuid4: m.uuid4,
                 })
+                .unwrap()
             })
-            .collect::<Result<Vec<_>, simd_json::Error>>()
+            .collect::<Vec<_>>()
     }
 
     let mut map = simd_json::owned::Object::with_capacity(2);
@@ -368,7 +377,7 @@ pub async fn query_mod_index(
         (None, Some(limit)) => map_to_json(buf.into_iter().take(limit)),
         (Some(skip), None) => map_to_json(buf.into_iter().skip(skip)),
         (None, None) => map_to_json(buf),
-    }?;
+    };
     map.insert_nocheck(
         "mods".to_owned(),
         simd_json::OwnedValue::Array(Box::new(buf)),

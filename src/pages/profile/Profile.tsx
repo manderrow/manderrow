@@ -2,7 +2,7 @@ import { faCirclePlay as faCirclePlayOutline, faTrashCan } from "@fortawesome/fr
 import { faChevronLeft, faCirclePlay, faDownload, faFileImport, faPenToSquare, faPlus, faThumbTack } from "@fortawesome/free-solid-svg-icons";
 import { faFileExport } from "@fortawesome/free-solid-svg-icons/faFileExport";
 import { faGear } from "@fortawesome/free-solid-svg-icons/faGear";
-import { A, useNavigate, useParams } from "@solidjs/router";
+import { A, useNavigate, useParams, useSearchParams } from "@solidjs/router";
 import { OverlayScrollbarsComponent } from "overlayscrollbars-solid";
 import Fa from "solid-fa";
 import { createResource, createSignal, createUniqueId, For, onMount, Show, useContext } from "solid-js";
@@ -52,9 +52,15 @@ export default function Profile() {
 
   const [consoleChannel, setConsoleChannel] = createSignal<C2SChannel>();
 
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
   async function launch(modded: boolean) {
     try {
       clearConsole();
+      if (searchParams.tab !== "logs") {
+        navigate(`?tab=logs`);
+      }
       const channel = createC2SChannel();
       setConsoleChannel(channel);
       await launchProfile(params.profileId!, channel, { modded });
@@ -186,7 +192,6 @@ export default function Profile() {
                 name: "Logs",
                 component: (
                   <div class={styles.content__console}>
-                    <h2 class={styles.content__consoleHeading}>Log Output</h2>
                     <Console channel={consoleChannel} />
                   </div>
                 ),
@@ -208,14 +213,14 @@ export default function Profile() {
 function NoSelectedProfileContent(props: { gameId: string; profiles: () => ProfileWithId[]; refetchProfiles: Refetcher<ProfileWithId[]> }) {
   const [name, setName] = createSignal("");
 
-  const navigator = useNavigate();
+  const navigate = useNavigate();
 
   async function submit(e: SubmitEvent) {
     e.preventDefault();
 
     const id = await createProfile(props.gameId, name());
     await props.refetchProfiles();
-    navigator(`/profile/${props.gameId}/${id}`, { replace: true });
+    navigate(`/profile/${props.gameId}/${id}`, { replace: true });
   }
 
   const nameId = createUniqueId();
