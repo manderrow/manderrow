@@ -70,7 +70,8 @@ pub struct DoctorFix<T> {
 pub struct DoctorReport {
     pub id: Uuid,
     pub translation_key: String,
-    pub message: Option<HashMap<String, serde_json::Value>>,
+    pub message: Option<String>,
+    pub message_args: Option<HashMap<String, serde_json::Value>>,
     pub fixes: Vec<DoctorFix<String>>,
 }
 
@@ -291,7 +292,8 @@ impl<'a> SpcReceiver<'a> {
     pub async fn prompt_patient<T: Send>(
         &mut self,
         translation_key: impl Into<String>,
-        message: Option<HashMap<String, serde_json::Value>>,
+        message: Option<String>,
+        message_args: Option<HashMap<String, serde_json::Value>>,
         fixes: impl IntoIterator<Item = DoctorFix<T>>,
     ) -> Result<T>
     where
@@ -315,6 +317,7 @@ impl<'a> SpcReceiver<'a> {
             id,
             translation_key,
             message,
+            message_args,
             fixes,
         }))
         .await?;

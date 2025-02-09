@@ -159,8 +159,8 @@ function DoctorDialog(props: { report: DoctorReport; onDismiss: () => void }) {
         <h2 class={dialogStyles.dialog__title}>Uh oh!</h2>
         <p class={styles.dialog__message}>
           {translateUnchecked(
-            `doctor.${props.report.translation_key}.message`,
-            props.report.message
+            props.report.message ?? `doctor.${props.report.translation_key}.message`,
+            props.report.message_args
           )}
         </p>
 

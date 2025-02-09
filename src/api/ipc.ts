@@ -10,7 +10,8 @@ export type SafeOsString =
 export interface DoctorReport {
   id: string;
   translation_key: string;
-  message?: Object;
+  message?: string;
+  message_args?: Object;
   fixes: DoctorFix[];
 }
 

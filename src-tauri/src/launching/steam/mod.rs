@@ -2,6 +2,7 @@ pub mod paths;
 pub mod proton;
 
 use std::io::Write as _;
+use std::ops::BitOrAssign;
 use std::process::Stdio;
 use std::time::Duration;
 
@@ -206,8 +207,8 @@ pub async fn ensure_launch_args_are_applied(
     game_id: &str,
 ) -> Result<(), crate::Error> {
     loop {
-        let modified = apply_launch_args(game_id, true).await?;
-        if modified {
+        let result = apply_launch_args(game_id, true, true).await?;
+        if matches!(result, AppliedLaunchArgs::Applied | AppliedLaunchArgs::Overwrote) {
             #[derive(serde::Deserialize, serde::Serialize)]
             #[serde(rename_all = "snake_case")]
             enum Fix {
@@ -223,6 +224,11 @@ pub async fn ensure_launch_args_are_applied(
                 .await?
                 .prompt_patient(
                     "launch_options",
+                    if matches!(result, AppliedLaunchArgs::Overwrote) {
+                        Some("doctor.launch_options.message_overwrite".to_owned())
+                    } else {
+                        None
+                    },
                     None,
                     [
                         DoctorFix {
@@ -255,7 +261,7 @@ pub async fn ensure_launch_args_are_applied(
             match choice {
                 Fix::Apply => {
                     kill_steam(log).await?;
-                    apply_launch_args(game_id, false).await?;
+                    apply_launch_args(game_id, matches!(result, AppliedLaunchArgs::Overwrote), false).await?;
                     break;
                 }
                 Fix::Retry => {}
@@ -268,16 +274,34 @@ pub async fn ensure_launch_args_are_applied(
     Ok(())
 }
 
+#[derive(Clone, Copy)]
+enum AppliedLaunchArgs {
+    Unchanged,
+    Applied,
+    Overwrote,
+}
+
+impl BitOrAssign for AppliedLaunchArgs {
+    fn bitor_assign(&mut self, rhs: Self) {
+        use AppliedLaunchArgs::*;
+        *self = match (*self, rhs) {
+            (Overwrote, _) | (_, Overwrote) => Overwrote,
+            (Applied, _) | (_, Applied) => Applied,
+            (Unchanged, Unchanged) => Unchanged,
+        };
+    }
+}
+
 /// Attempts to apply the launch options necessary to use our wrapper to the
 /// specified game. If `dry_run` is `true`, this will simply check if the
 /// options have already been applied.
 ///
 /// Returns `true` if a change was made, or would be made if this is a dry run.
-pub async fn apply_launch_args(game_id: &str, dry_run: bool) -> Result<bool> {
+async fn apply_launch_args(game_id: &str, overwrite_ok: bool, dry_run: bool) -> Result<AppliedLaunchArgs> {
     let mut path = paths::resolve_steam_directory().await?;
     path.push("userdata");
 
-    let mut modified = false;
+    let mut result = AppliedLaunchArgs::Unchanged;
 
     let launch_options_str = generate_launch_options()?;
 
@@ -297,7 +321,7 @@ pub async fn apply_launch_args(game_id: &str, dry_run: bool) -> Result<bool> {
 
         path.push("localconfig.vdf");
 
-        modified |= tokio::task::block_in_place(|| {
+        result |= tokio::task::block_in_place(|| {
             let mut wtr = if let Some(ref mut dst) = dst {
                 Some(std::io::BufWriter::new(dst.as_file_mut()))
             } else {
@@ -306,11 +330,11 @@ pub async fn apply_launch_args(game_id: &str, dry_run: bool) -> Result<bool> {
             let rdr = vdf::Reader::new(std::io::BufReader::new(std::fs::File::open(&path)?));
 
             let result = if let Some(ref mut wtr) = wtr {
-                let result = apply_launch_args_inner(game_id, &launch_options_str, rdr, &mut *wtr)?;
+                let result = apply_launch_args_inner(game_id, overwrite_ok, &launch_options_str, rdr, &mut *wtr)?;
                 wtr.flush()?;
                 result
             } else {
-                apply_launch_args_inner(game_id, &launch_options_str, rdr, std::io::empty())?
+                apply_launch_args_inner(game_id, overwrite_ok, &launch_options_str, rdr, std::io::empty())?
             };
             drop(wtr);
 
@@ -326,15 +350,16 @@ pub async fn apply_launch_args(game_id: &str, dry_run: bool) -> Result<bool> {
         path.pop();
         path.pop();
     }
-    Ok(modified)
+    Ok(result)
 }
 
 fn apply_launch_args_inner<R: std::io::BufRead, W: std::io::Write>(
     game_id: &str,
+    overwrite_ok: bool,
     launch_options_str: &str,
     mut rdr: vdf::Reader<R>,
     mut wtr: W,
-) -> Result<bool> {
+) -> Result<AppliedLaunchArgs> {
     use vdf::Event;
 
     const KEY_PATH: &[&str] = &["UserLocalConfigStore", "Software", "Valve", "Steam", "apps"];
@@ -357,7 +382,7 @@ fn apply_launch_args_inner<R: std::io::BufRead, W: std::io::Write>(
         MatchedPath(usize),
         MatchedGame,
         MatchedLaunchOptions,
-        ModifiedLaunchOptions,
+        ModifiedLaunchOptions { overwrote: bool },
     }
     let mut state = MatcherState::MatchingPath(0);
     let mut flag = Flag::None;
@@ -423,7 +448,7 @@ fn apply_launch_args_inner<R: std::io::BufRead, W: std::io::Write>(
                     Flag::None => unreachable!(),
                     Flag::MatchedPath(_) => unreachable!(),
                     Flag::MatchedGame => {}
-                    Flag::MatchedLaunchOptions | Flag::ModifiedLaunchOptions => {
+                    Flag::MatchedLaunchOptions | Flag::ModifiedLaunchOptions { .. } => {
                         bail!("Duplicate LaunchOptions entry")
                     }
                 }
@@ -433,10 +458,10 @@ fn apply_launch_args_inner<R: std::io::BufRead, W: std::io::Write>(
                         key,
                         mid_whitespace,
                         value: if value.s != launch_options_str.as_bytes() {
-                            flag = Flag::ModifiedLaunchOptions;
-                            if !value.s.is_empty() {
-                                bail!("Refusing to overwrite launch options. Please set custom launch options through the game config in Manderrow.");
+                            if !value.s.is_empty() && !overwrite_ok {
+                                bail!("Refusing to overwrite launch options.");
                             }
+                            flag = Flag::ModifiedLaunchOptions { overwrote: !value.s.is_empty() };
                             vdf::Str {
                                 s: launch_options_str.as_bytes(),
                                 quoted: true,
@@ -478,7 +503,7 @@ fn apply_launch_args_inner<R: std::io::BufRead, W: std::io::Write>(
                             Flag::None => unreachable!(),
                             Flag::MatchedPath(_) => unreachable!(),
                             Flag::MatchedGame => {
-                                flag = Flag::ModifiedLaunchOptions;
+                                flag = Flag::ModifiedLaunchOptions { overwrote: false };
                                 vdf::write_io(
                                     Event::Item {
                                         pre_whitespace,
@@ -495,7 +520,7 @@ fn apply_launch_args_inner<R: std::io::BufRead, W: std::io::Write>(
                                     &mut wtr,
                                 )?;
                             }
-                            Flag::MatchedLaunchOptions | Flag::ModifiedLaunchOptions => {}
+                            Flag::MatchedLaunchOptions | Flag::ModifiedLaunchOptions { .. } => {}
                         }
                         // go back to MatchingGame, just in case there's something weird going on and there is more than one entry for the game.
                         state = MatcherState::MatchingGame;
@@ -521,7 +546,8 @@ fn apply_launch_args_inner<R: std::io::BufRead, W: std::io::Write>(
         Flag::MatchedGame => {
             unreachable!("MatchedGame, but neither MatchedLaunchOptions nor ModifiedLaunchOptions")
         }
-        Flag::MatchedLaunchOptions => false,
-        Flag::ModifiedLaunchOptions => true,
+        Flag::MatchedLaunchOptions => AppliedLaunchArgs::Unchanged,
+        Flag::ModifiedLaunchOptions { overwrote: false } => AppliedLaunchArgs::Applied,
+        Flag::ModifiedLaunchOptions { overwrote: true } => AppliedLaunchArgs::Overwrote,
     })
 }
