@@ -156,7 +156,7 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
         {
             for pid in output.lines() {
                 let pid = pid.parse()?;
-                let pidfd = match nc::pidfd_open(pid, 0) {
+                let pidfd = match unsafe { nc::pidfd_open(pid, 0) } {
                     Ok(t) => t,
                     Err(nc::ESRCH) => {
                         info!(log, "Steam process {pid} has already shut down");
