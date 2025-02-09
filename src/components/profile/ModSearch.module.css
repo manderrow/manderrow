@@ -5,37 +5,36 @@
   gap: 0.5em;
 }
 
-.searchBar {
-  display: flex;
-  flex-direction: row;
-
-  padding: 8px;
-  gap: 8px;
-  align-items: center;
-
-  > input {
-    flex-grow: 1;
-  }
-}
-
-.searchForm {
+.modSearch__form {
   display: flex;
   flex-direction: column;
 }
 
-.searchOptionsToggle {
-  display: none;
+.modSearch__searchBar {
+  display: flex;
+  flex-direction: row;
+  gap: 0.25em;
+  align-items: center;
+  border-radius: 100vmax;
+  background-color: var(--clr-neutral-8);
+  padding-right: 1em;
 
-  &:checked + .searchOptions {
-    /* ensure compatibility with older webviews */
-    height: auto;
-    height: calc-size(auto);
+  > input {
+    flex-grow: 1;
+    padding: 0.65em 1em;
+    border-top-left-radius: inherit;
+    border-bottom-left-radius: inherit;
+    background-color: transparent;
+    border: none;
   }
 }
 
+.modSearch__dropdownBtn {
+  background-color: transparent;
+  color: var(--clr-neutral-2);
+}
+
 .searchOptions {
-  height: 0;
-  transition: height 0.3s ease-in-out;
   overflow: hidden;
 
   > .inner {

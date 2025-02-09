@@ -6,27 +6,31 @@ import {
   createResource,
   createSignal,
   For,
+  InitializedResource,
+  Match,
   ResourceFetcherInfo,
   Show,
   Signal,
+  Switch,
   useContext,
 } from "solid-js";
+import { createStore } from "solid-js/store";
+import Fa from "solid-fa";
+import { faDownload, faDownLong, faExternalLink, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faHeart } from "@fortawesome/free-regular-svg-icons";
 
 import { Mod, ModListing, ModPackage } from "../../types";
-import { numberFormatter } from "../../utils";
-
-import styles from "./ModList.module.css";
+import { numberFormatter, roundedNumberFormatter } from "../../utils";
 import ErrorBoundary, { ErrorContext } from "../global/ErrorBoundary";
 import { InitialProgress, ProgressData } from "./ModSearch";
-import { createStore } from "solid-js/store";
 import {
   fetchModIndex,
   installProfileMod,
   queryModIndex,
   uninstallProfileMod,
 } from "../../api";
-import Fa from "solid-fa";
-import { faTrash } from "@fortawesome/free-solid-svg-icons";
+
+import styles from "./ModList.module.css";
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   month: "short",
@@ -40,53 +44,192 @@ export type Fetcher = (page: number) => Promise<readonly Mod[]>;
 
 export const ModInstallContext = createContext<{
   profile: string;
+  installed: InitializedResource<readonly ModPackage[]>;
+  refetchInstalled: () => Promise<void>;
 }>();
 
-export default function ModList(props: {
-  mods: Fetcher;
-  refetchInstalled: () => Promise<void>;
-  /**
-   * Resource that may be tracked to listen to refetch.
-   */
-  resetSignal: () => void;
-}) {
+export default function ModList(props: { mods: Fetcher }) {
   const [selectedMod, setSelectedMod] = createSignal<Mod>();
 
   return (
     <div class={styles.modListAndView}>
       <Show when={props.mods} keyed>
         {(mods) => (
-          <ModListLeft
+          <ModListMods
             mods={mods}
             selectedMod={[selectedMod, setSelectedMod]}
-            refetchInstalled={props.refetchInstalled}
-            resetSignal={props.resetSignal}
           />
         )}
       </Show>
-      <Show when={selectedMod()}>{(mod) => <SelectedMod mod={mod()} />}</Show>
+      <ModView mod={selectedMod} />
     </div>
   );
 }
 
-function ModListLeft({
-  mods,
-  selectedMod,
-  refetchInstalled,
-  resetSignal,
-}: {
-  mods: Fetcher;
-  selectedMod: Signal<Mod | undefined>;
-  refetchInstalled: () => Promise<void>;
-  resetSignal: () => void;
-}) {
+function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
+  const [progress, setProgress] = createStore<InitialProgress | ProgressData>({
+    completed: null,
+    total: null,
+  });
+
+  function getInitialValue(mod: Mod | undefined) {
+    if (mod === undefined) return undefined;
+    if ("version" in mod) {
+      const obj = { ...mod, versions: [mod.version] };
+      // @ts-expect-error
+      delete obj.version;
+      // @ts-expect-error
+      delete obj.game;
+      return obj;
+    } else {
+      return mod;
+    }
+  }
+
+  const [modListing, { refetch: refetchModListing }] = createResource<ModListing | undefined, Mod | {}, never>(
+    // we need the "nullish" value passed through, so disguise it as non-nullish
+    () => mod() === undefined ? {} : mod()!,
+    async (mod, info: ResourceFetcherInfo<ModListing | undefined, never>) => {
+      if ("game" in mod) {
+        await fetchModIndex(
+          mod.game,
+          { refresh: info.refetching },
+          setProgress
+        );
+        return (
+          await queryModIndex(mod.game, "", [], { exact: [mod.full_name] })
+        ).mods[0];
+      } else if ("versions" in mod) {
+        setProgress({ completed: null, total: null });
+        return mod;
+      } else {
+        return undefined;
+      }
+    },
+    { initialValue: getInitialValue(mod()) }
+  );
+
+  // const [modReadme] = createResource(selectedMod, async (data) => {
+  //   if (data == null) return undefined;
+
+  //   const request = await fetch(`https://thunderstore.io/api/experimental/package/${data.mod.owner}/${data.mod.name}/${data.version}/readme/`);
+
+  //   return await request.text();
+  // });
+
+  // createEffect(() => console.log(modReadme));
+
+  return (
+    <div class={styles.scrollOuter}>
+      <div class={`${styles.modView} ${styles.scrollInner}`}>
+        <Show
+          when={mod()}
+          fallback={
+            <div class={styles.nothingMsg}>
+              <h2>No mod selected</h2>
+              <p>Select a mod to it view here.</p>
+            </div>
+          }
+        >
+          {(mod) => (
+            <>
+              <div>
+                <h2 class={styles.name}>{mod().name}</h2>
+                <p class={styles.description}>{mod().owner}</p>
+                <Show when={modListing.latest}>
+                  {(modListing) => <p class={styles.description}>{modListing().versions[0].description}</p>}
+                </Show>
+              </div>
+
+              {/* <form class={styles.modView__downloader} action="#">
+                <select class={styles.versions}>
+                  <For each={modListing.latest!.versions}>
+                    {(version, i) => {
+                      return (
+                        <option value={version.uuid4}>
+                          v{version.version_number} {i() === 0 ? "(latest)" : ""}
+                        </option>
+                      );
+                    }}
+                  </For>
+                </select>
+                <button>Download</button>
+              </form> */}
+              <Show when={modListing.latest}>
+                {(modListing) => <>
+                  <h3>Versions</h3>
+                  <ol class={styles.versions}>
+                    <For each={modListing().versions}>
+                      {(version) => {
+                        return (
+                          <li>
+                            <div>
+                              <span class={styles.version}>{version.version_number}</span>
+                              <span> - </span>
+                              <span class={styles.timestamp} title={version.date_created}>
+                                {dateFormatter.format(new Date(version.date_created))}
+                              </span>
+                            </div>
+                            <div>
+                              <p class={styles.downloads}>
+                                <span class={styles.label}>Downloads: </span>
+                                <span class={styles.value}>
+                                  {numberFormatter.format(version.downloads)}
+                                </span>
+                              </p>
+                            </div>
+                          </li>
+                        );
+                      }}
+                    </For>
+                  </ol>
+                </>}
+              </Show>
+
+              <div>
+                <h4>Links</h4>
+                <ul>
+                  <li>
+                    <Show when={mod().package_url != null}>
+                      <a href={mod().package_url} target="_blank" rel="noopener noreferrer">
+                        <Fa icon={faExternalLink} /> Website
+                      </a>
+                    </Show>
+                  </li>
+                  <li>
+                    <Show when={mod().donation_link != null}>
+                      <a href={mod().donation_link} target="_blank" rel="noopener noreferrer">
+                        <Fa icon={faHeart} /> Donate
+                      </a>
+                    </Show>
+                  </li>
+                </ul>
+
+                {/* <span class={styles.version}>{version.version_number}</span>
+                <span> - </span>
+                <span class={styles.timestamp} title={version.date_created}>
+                  {dateFormatter.format(new Date(version.date_created))}
+                </span> */}
+                {/* <p class={styles.downloads}>
+                  <span class={styles.label}>Downloads: </span>
+                  <span class={styles.value}>{numberFormatter.format(version.downloads)}</span>
+                </p> */}
+              </div>
+            </>
+          )}
+        </Show>
+      </div>
+    </div>
+  );
+}
+
+function ModListMods(props: { mods: Fetcher; selectedMod: Signal<Mod | undefined> }) {
   const infiniteScroll = createMemo(() => {
-    resetSignal();
-    // cast away the readonly
-    // TODO: when we fork this, make it take readonly instead
-    return createInfiniteScroll(mods as (page: number) => Promise<Mod[]>);
+    // this should take readonly, which would make the cast unnecessary
+    return createInfiniteScroll(props.mods as (page: number) => Promise<Mod[]>);
   });
   const paginatedMods = () => infiniteScroll()[0]();
+  // idk why we're passing props here
   const infiniteScrollLoader = (el: Element, props: Accessor<true>) => infiniteScroll()[1](el, props);
   const end = () => infiniteScroll()[2].end();
 
@@ -97,8 +240,7 @@ function ModListLeft({
           {(mod) => (
             <ModListItem
               mod={mod}
-              selectedMod={selectedMod}
-              refetchInstalled={refetchInstalled}
+              selectedMod={props.selectedMod}
             />
           )}
         </For>
@@ -113,7 +255,6 @@ function ModListLeft({
 function ModListItem(props: {
   mod: Mod;
   selectedMod: Signal<Mod | undefined>;
-  refetchInstalled: () => Promise<void>;
 }) {
   const displayVersion = createMemo(() => {
     if ("version" in props.mod) return props.mod.version;
@@ -122,65 +263,76 @@ function ModListItem(props: {
 
   const installContext = useContext(ModInstallContext);
 
+  const installed = createMemo(() => {
+    const mod = props.mod;
+    if ("version" in mod) {
+      return mod;
+    } else {
+      return installContext?.installed.latest.find(pkg => pkg.uuid4 === mod.uuid4);
+    }
+  });
+
+  function onSelect() {
+    props.selectedMod[1](props.selectedMod[0]() === props.mod ? undefined : props.mod);
+  }
+
   return (
-    <li
-      classList={{ [styles.selected]: props.selectedMod[0]() === props.mod }}
-      on:click={() =>
-        props.selectedMod[1](
-          props.selectedMod[0]() === props.mod ? undefined : props.mod
-        )
-      }
-    >
-      <img class={styles.icon} src={displayVersion().icon} />
-      <div class={styles.split}>
-        <div class={styles.left}>
-          <div>
-            <span class={styles.name}>{props.mod.name}</span>{" "}
-            <span class={styles.version}>
-              v{displayVersion().version_number}
-            </span>
-          </div>
-          <div class={styles.owner}>
-            <span class={styles.label}>@</span>
-            <span class={styles.value}>{props.mod.owner}</span>
-          </div>
-          <ul class={styles.categories}>
-            <For each={props.mod.categories}>
-              {(category) => <li>{category}</li>}
-            </For>
-          </ul>
-        </div>
-        <div class={styles.right}>
-          <Show when={"versions" in props.mod}>
-            <p class={styles.downloads}>
-              <span class={styles.label}>Downloads: </span>
-              <span class={styles.value}>
-                {numberFormatter.format(
-                  (props.mod as ModListing).versions
-                    .map((v) => v.downloads)
-                    .reduce((acc, x) => acc + x)
-                )}
+    <li classList={{ [styles.mod]: true, [styles.selected]: props.selectedMod[0]() === props.mod }}>
+      <div
+        on:click={onSelect}
+        onKeyDown={(key) => {
+          if (key.key === "Enter") onSelect();
+        }}
+        class={styles.mod__btn}
+        role="button"
+        aria-pressed={props.selectedMod[0]() === props.mod}
+        tabIndex={0}
+      >
+        <img class={styles.icon} src={displayVersion().icon} />
+        <div class={styles.mod__content}>
+          <div class={styles.left}>
+            <div>
+              <span class={styles.name}>{props.mod.name}</span>{" "}
+              <span class={styles.version}>
+                v{displayVersion().version_number}
               </span>
-            </p>
-          </Show>
-          <Show when={installContext !== undefined && "versions" in props.mod}>
-            <ErrorBoundary>
-              <InstallButton
-                mod={props.mod as ModListing}
-                installContext={installContext!}
-                refetchInstalled={props.refetchInstalled}
-              />
-            </ErrorBoundary>
-          </Show>
-          <Show when={installContext !== undefined && "version" in props.mod}>
-            <ErrorBoundary>
-              <UninstallButton
-                mod={props.mod as ModPackage}
-                installContext={installContext!}
-                refetchInstalled={props.refetchInstalled}
-              />
-            </ErrorBoundary>
-          </Show>
+            </div>
+            <div class={styles.owner}>
+              <span class={styles.label}>@</span>
+              <span class={styles.value}>{props.mod.owner}</span>
+            </div>
+            <ul class={styles.categories}>
+              <For each={props.mod.categories}>
+                {(category) => <li>{category}</li>}
+              </For>
+            </ul>
+          </div>
+          <div class={styles.right}>
+            <Show when={"versions" in props.mod}>
+              <p class={styles.downloads}>
+                <Fa icon={faDownload} /> {roundedNumberFormatter.format((props.mod as ModListing).versions.map((v) => v.downloads).reduce((acc, x) => acc + x))}
+              </p>
+            </Show>
+            <Show when={installContext !== undefined}>
+              <Switch fallback={
+                <ErrorBoundary>
+                  <InstallButton
+                    mod={props.mod as ModListing}
+                    installContext={installContext!}
+                  />
+                </ErrorBoundary>
+              }>
+                <Match when={installed()}>
+                  {(installed) => <ErrorBoundary>
+                    <UninstallButton
+                      mod={installed()}
+                      installContext={installContext!}
+                    />
+                  </ErrorBoundary>}
+                </Match>
+              </Switch>
+            </Show>
+          </div>
         </div>
       </div>
     </li>
@@ -190,19 +342,19 @@ function ModListItem(props: {
 function InstallButton(props: {
   mod: ModListing;
   installContext: NonNullable<typeof ModInstallContext.defaultValue>;
-  refetchInstalled: () => Promise<void>;
 }) {
   const reportErr = useContext(ErrorContext);
   const [busy, setBusy] = createSignal(false);
   return (
     <button
+      class={styles.downloadBtn}
       disabled={busy()}
       on:click={async (e) => {
         e.stopPropagation();
         setBusy(true);
         try {
           await installProfileMod(props.installContext.profile, props.mod, 0);
-          await props.refetchInstalled();
+          await props.installContext.refetchInstalled();
         } catch (e) {
           reportErr(e);
         } finally {
@@ -210,7 +362,7 @@ function InstallButton(props: {
         }
       }}
     >
-      <Show when={busy()} fallback="Install">
+      <Show when={busy()} fallback={<Fa icon={faDownLong} />}>
         <progress />
       </Show>
     </button>
@@ -220,12 +372,12 @@ function InstallButton(props: {
 function UninstallButton(props: {
   mod: ModPackage;
   installContext: NonNullable<typeof ModInstallContext.defaultValue>;
-  refetchInstalled: () => Promise<void>;
 }) {
   const reportErr = useContext(ErrorContext);
   const [busy, setBusy] = createSignal(false);
   return (
     <button
+      class={styles.downloadBtn}
       disabled={busy()}
       on:click={async (e) => {
         e.stopPropagation();
@@ -235,7 +387,7 @@ function UninstallButton(props: {
             props.installContext.profile,
             props.mod.full_name
           );
-          await props.refetchInstalled();
+          await props.installContext.refetchInstalled();
         } catch (e) {
           reportErr(e);
         } finally {
@@ -247,83 +399,5 @@ function UninstallButton(props: {
         <progress />
       </Show>
     </button>
-  );
-}
-
-function SelectedMod(props: { mod: Mod }) {
-  const [progress, setProgress] = createStore<InitialProgress | ProgressData>({
-    completed: null,
-    total: null,
-  });
-
-  function getInitialValue(mod: Mod) {
-    if ("version" in mod) {
-      const obj = { ...mod, versions: [mod.version] };
-      // @ts-expect-error
-      delete obj.version;
-      // @ts-expect-error
-      delete obj.game;
-      return obj;
-    } else {
-      return mod;
-    }
-  }
-
-  const [modListing, { refetch: refetchModListing }] = createResource(
-    () => props.mod,
-    async (mod, info: ResourceFetcherInfo<ModListing, never>) => {
-      if ("game" in mod) {
-        await fetchModIndex(
-          mod.game,
-          { refresh: info.refetching },
-          setProgress
-        );
-        return (
-          await queryModIndex(mod.game, "", [], { exact: [mod.full_name] })
-        ).mods[0];
-      } else {
-        setProgress({ completed: null, total: null });
-        return mod;
-      }
-    },
-    { initialValue: getInitialValue(props.mod) }
-  );
-
-  return (
-    <div class={styles.scrollOuter}>
-      <div class={`${styles.modView} ${styles.scrollInner}`}>
-        <h2 class={styles.name}>{props.mod.name}</h2>
-        <p class={styles.description}>
-          {modListing.latest.versions[0].description}
-        </p>
-
-        <h3>Versions</h3>
-        <ol class={styles.versions}>
-          <For each={modListing.latest.versions}>
-            {(version) => {
-              return (
-                <li>
-                  <div>
-                    <span class={styles.version}>{version.version_number}</span>
-                    <span> - </span>
-                    <span class={styles.timestamp} title={version.date_created}>
-                      {dateFormatter.format(new Date(version.date_created))}
-                    </span>
-                  </div>
-                  <div>
-                    <p class={styles.downloads}>
-                      <span class={styles.label}>Downloads: </span>
-                      <span class={styles.value}>
-                        {numberFormatter.format(version.downloads)}
-                      </span>
-                    </p>
-                  </div>
-                </li>
-              );
-            }}
-          </For>
-        </ol>
-      </div>
-    </div>
   );
 }

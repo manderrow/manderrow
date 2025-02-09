@@ -1,10 +1,42 @@
+.sidebar__profiles {
+  --neg-margin: -0.5em;
+  flex-grow: 1;
+  margin-inline: var(--neg-margin);
+}
+
+.sidebar__profilesListContainer {
+  margin: 0 var(--neg-margin);
+  margin-top: 0.5em;
+  flex: 1 1 0;
+}
+
 .sidebar__profilesList {
   list-style-type: none;
-  padding-top: 0.5em;
-  margin: 0 -1em;
 }
 
 .sidebar__profilesSearch {
+  border-radius: 4px;
+  display: flex;
+  background-color: var(--clr-neutral-8);
+  border: 1px solid var(--clr-neutral-7);
+}
+
+.sidebar__profilesSearch input {
+  width: 100%;
+  padding: 0.2em 0.4em;
+  border-top-left-radius: inherit;
+  border-bottom-left-radius: inherit;
+  background-color: transparent;
+  border: none;
+}
+
+.sidebar__profilesSearchSortBtn {
+  color: var(--clr-neutral-2);
+}
+
+.sidebar__profilesSearchSortByBtn {
+  padding-inline: 0.5em;
+  color: var(--clr-neutral-2);
 }
 
 .profileList__item {
@@ -34,6 +66,8 @@
   display: block;
   color: var(--clr-neutral-2);
   padding: 0.35em 1em;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 
 .profileList__item a:global(.active) {
@@ -54,7 +88,6 @@
 }
 
 .profileList__item button {
-  border: none;
   padding: 0.2em 0.25em;
   background-color: transparent;
   border-radius: 4px;

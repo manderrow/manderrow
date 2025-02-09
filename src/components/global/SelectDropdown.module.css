@@ -1,2 +1,50 @@
-.select {
+.container {
+  position: relative;
+}
+
+.label {
+  padding: 0.25em;
+  display: flex;
+  align-items: center;
+  gap: 0.25em;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.label:hover {
+  cursor: pointer;
+}
+
+.labelDefault {
+  background-color: var(--clr-neutral-7);
+  border-radius: 4px;
+}
+
+.dropdown {
+  padding: 0.5em 0 !important;
+}
+
+.options {
+  border-radius: inherit;
+}
+
+.option {
+  user-select: none;
+  -webkit-user-select: none;
+  padding: 0.3em 0.5em;
+  white-space: nowrap;
+}
+
+.option:hover {
+  cursor: pointer;
+  background-color: var(--clr-neutral-6);
+}
+
+.option__check {
+  opacity: 0;
+  margin-right: 0.5em;
+}
+
+.option[aria-checked="true"] .option__check {
+  opacity: 1;
 }

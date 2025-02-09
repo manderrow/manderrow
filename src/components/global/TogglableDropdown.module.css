@@ -1,0 +1,21 @@
+.container {
+  position: relative;
+}
+
+.label {
+  padding: 0.25em;
+  display: flex;
+  align-items: center;
+  gap: 0.25em;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.label:hover {
+  cursor: pointer;
+}
+
+.labelDefault {
+  background-color: var(--clr-neutral-7);
+  border-radius: 4px;
+}

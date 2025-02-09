@@ -1,22 +1,24 @@
+use std::panic::AssertUnwindSafe;
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 
-use anyhow::Context as _;
+use anyhow::{anyhow, Context as _, Result};
 use futures::stream::FuturesOrdered;
 use futures::StreamExt as _;
-use log::{error, info};
+use slog::{error, info, o};
 use tauri::ipc::Channel;
+use tauri::{AppHandle, State};
 use tokio::process::Command;
 use uuid::Uuid;
 
 use crate::games::{PackageLoader, GAMES_BY_ID};
 use crate::installing::{install_zip, uninstall_package};
-use crate::ipc::C2SMessage;
+use crate::ipc::{C2SMessage, IpcState};
 use crate::launching::bep_in_ex::BEP_IN_EX_FOLDER;
 use crate::mods::{Mod, ModAndVersion};
 use crate::paths::local_data_dir;
 use crate::util::IoErrorKindExt as _;
-use crate::Error;
+use crate::CommandError;
 
 pub static PROFILES_DIR: LazyLock<PathBuf> = LazyLock::new(|| local_data_dir().join("profiles"));
 
@@ -62,14 +64,20 @@ pub fn profile_path(id: Uuid) -> PathBuf {
 }
 
 #[tauri::command]
-pub async fn get_profiles() -> Result<Vec<ProfileWithId>, Error> {
+pub async fn get_profiles() -> Result<Vec<ProfileWithId>, CommandError> {
+    let log = slog_scope::logger();
+
     let mut profiles = Vec::new();
     let mut iter = match tokio::fs::read_dir(&*PROFILES_DIR).await {
         Ok(t) => t,
         Err(e) if e.is_not_found() => return Ok(Vec::new()),
-        Err(e) => return Err(e.into()),
+        Err(e) => return Err(e).context("Failed to read profiles directory")?,
     };
-    while let Some(e) = iter.next_entry().await? {
+    while let Some(e) = iter
+        .next_entry()
+        .await
+        .context("Failed to read profiles directory")?
+    {
         let mut path = e.path();
         let Some(id) = path.file_name().and_then(|s| s.to_str()) else {
             continue;
@@ -85,7 +93,7 @@ pub async fn get_profiles() -> Result<Vec<ProfileWithId>, Error> {
             Ok(t) => t,
             Err(ReadProfileError::Io(e)) if e.is_not_found() => continue,
             Err(e) => {
-                error!("Unable to read profile metadata from {path:?}: {e}");
+                error!(log, "Unable to read profile metadata from {path:?}: {e}");
                 continue;
             }
         };
@@ -95,45 +103,100 @@ pub async fn get_profiles() -> Result<Vec<ProfileWithId>, Error> {
 }
 
 #[tauri::command]
-pub async fn create_profile(game: String, name: String) -> Result<Uuid, Error> {
-    tokio::fs::create_dir_all(&*PROFILES_DIR).await?;
+pub async fn create_profile(game: String, name: String) -> Result<Uuid, CommandError> {
+    tokio::fs::create_dir_all(&*PROFILES_DIR)
+        .await
+        .context("Failed to create profiles directory")?;
     let id = Uuid::new_v4();
     let mut path = profile_path(id);
-    tokio::fs::create_dir(&path).await?;
+    tokio::fs::create_dir(&path)
+        .await
+        .context("Failed to create profile directory")?;
     path.push("profile.json");
-    tokio::fs::write(path, &serde_json::to_vec(&Profile { name, game })?).await?;
+    tokio::fs::write(path, &serde_json::to_vec(&Profile { name, game }).unwrap())
+        .await
+        .context("Failed to write profile metadata")?;
     Ok(id)
 }
 
 #[tauri::command]
-pub async fn delete_profile(id: Uuid) -> Result<(), Error> {
+pub async fn delete_profile(id: Uuid) -> Result<(), CommandError> {
     let path = profile_path(id);
-    tokio::fs::remove_dir_all(&path).await?;
+    tokio::fs::remove_dir_all(&path)
+        .await
+        .context("Failed to delete profile directory")?;
     Ok(())
 }
 
 #[tauri::command]
 pub async fn launch_profile(
+    app_handle: AppHandle,
+    ipc_state: State<'_, IpcState>,
     id: Uuid,
     modded: bool,
     channel: Channel<C2SMessage>,
-) -> Result<(), Error> {
+) -> Result<(), CommandError> {
+    struct Logger {
+        c2s_tx: AssertUnwindSafe<Channel<C2SMessage>>,
+    }
+
+    impl slog::Drain for Logger {
+        type Ok = ();
+
+        type Err = slog::Never;
+
+        fn log(
+            &self,
+            record: &slog::Record<'_>,
+            _values: &slog::OwnedKVList,
+        ) -> Result<Self::Ok, Self::Err> {
+            _ = tokio::task::block_in_place(|| {
+                self.c2s_tx.send(C2SMessage::Log {
+                    level: record.level().into(),
+                    message: record.msg().to_string(),
+                })
+            });
+            Ok(())
+        }
+    }
+    let log = slog::Logger::root(
+        Logger {
+            c2s_tx: AssertUnwindSafe(channel.clone()),
+        },
+        o!(),
+    );
+
     let mut path = profile_path(id);
     path.push("profile.json");
-    let metadata = read_profile_file(&path).await?;
+    let metadata = read_profile_file(&path)
+        .await
+        .context("Failed to read profile")?;
     path.pop();
     let Some(game) = GAMES_BY_ID.get(&*metadata.game).copied() else {
-        return Err(Error::new(format_args!(
-            "Unrecognized game {:?}",
-            metadata.game
-        )));
+        return Err(anyhow!("Unrecognized game {:?}", metadata.game).into());
     };
     let Some(store_metadata) = game.store_platform_metadata.iter().next() else {
-        return Err("Unable to launch game".into());
+        return Err(anyhow!("Unable to launch game").into());
     };
     let mut command: Command;
     match store_metadata {
         crate::games::StorePlatformMetadata::Steam { store_identifier } => {
+            let profile = read_profile(id).await.context("Failed to read profile")?;
+            let steam_id = GAMES_BY_ID
+                .get(&*profile.game)
+                .context("No such game")?
+                .store_platform_metadata
+                .iter()
+                .find_map(|m| m.steam_or_direct())
+                .context("Unsupported store platform")?;
+
+            crate::launching::steam::ensure_launch_args_are_applied(
+                &log,
+                Some(ipc_state.spc(channel.clone())),
+                steam_id,
+            )
+            .await?;
+
             command = if cfg!(windows) {
                 #[cfg(windows)]
                 {
@@ -149,14 +212,15 @@ pub async fn launch_profile(
             } else if cfg!(unix) {
                 Command::new("steam")
             } else {
-                return Err("Unsupported platform for Steam".into());
+                return Err(anyhow!("Unsupported platform for Steam").into());
             };
             command.arg("-applaunch").arg(store_identifier);
         }
-        _ => return Err("Unsupported game store".into()),
+        _ => return Err(anyhow!("Unsupported game store").into()),
     }
 
-    let (c2s_rx, c2s_tx) = ipc_channel::ipc::IpcOneShotServer::<C2SMessage>::new()?;
+    let (c2s_rx, c2s_tx) = ipc_channel::ipc::IpcOneShotServer::<C2SMessage>::new()
+        .context("Failed to create IPC channel")?;
 
     command.arg(";");
     command.arg("--c2s-tx");
@@ -164,6 +228,7 @@ pub async fn launch_profile(
     command.arg("--profile");
     command.arg(hyphenated_uuid!(id));
 
+    // TODO: use Tauri sidecar
     if let Some(path) = std::env::var_os("MANDERROW_WRAPPER_STAGE2_PATH") {
         command.arg("--wrapper-stage2");
         command.arg(path);
@@ -173,11 +238,18 @@ pub async fn launch_profile(
         command.arg("--loader");
         command.arg(game.package_loader.as_str());
     }
-    info!("Launching game: {command:?}");
-    let status = command.status().await?;
-    info!("Launcher exited with status code {status}");
 
-    crate::ipc::spawn_server_listener(channel, c2s_rx)?;
+    command.arg(";");
+
+    // TODO: find a way to stop this if the launch fails
+    crate::ipc::spawn_c2s_pipe(log.clone(), app_handle, channel, c2s_rx)?;
+
+    info!(log, "Launching game: {command:?}");
+    let status = command
+        .status()
+        .await
+        .context("Failed to wait for subprocess to exit")?;
+    info!(log, "Launcher exited with status code {status}");
 
     Ok(())
 }
@@ -185,10 +257,10 @@ pub async fn launch_profile(
 const MANIFEST_FILE_NAME: &str = "manderrow_mod.json";
 
 #[tauri::command]
-pub async fn get_profile_mods(id: Uuid) -> Result<Vec<ModAndVersion>, Error> {
+pub async fn get_profile_mods(id: Uuid) -> Result<Vec<ModAndVersion>, CommandError> {
     let mut path = profile_path(id);
     path.push("profile.json");
-    let metadata = read_profile_file(&path).await?;
+    let metadata = read_profile_file(&path).await.context("Failed to read profile")?;
     path.pop();
 
     let game = GAMES_BY_ID.get(&*metadata.game).context("No such game")?;
@@ -202,17 +274,17 @@ pub async fn get_profile_mods(id: Uuid) -> Result<Vec<ModAndVersion>, Error> {
             let mut iter = match tokio::fs::read_dir(&path).await {
                 Ok(t) => t,
                 Err(e) if e.is_not_found() => return Ok(Vec::new()),
-                Err(e) => return Err(e.into()),
+                Err(e) => return Err(anyhow::Error::from(e).into()),
             };
             let mut tasks = FuturesOrdered::new();
-            while let Some(e) = iter.next_entry().await? {
-                if e.file_type().await?.is_dir() {
+            while let Some(e) = iter.next_entry().await.map_err(anyhow::Error::from)? {
+                if e.file_type().await.map_err(anyhow::Error::from)?.is_dir() {
                     let mut path = path.clone();
                     tasks.push_back(tokio::task::spawn(async move {
                         path.push(e.file_name());
                         path.push(MANIFEST_FILE_NAME);
                         tokio::task::block_in_place(|| {
-                            Ok::<_, Error>(Some(serde_json::from_reader(std::io::BufReader::new(
+                            Ok::<_, anyhow::Error>(Some(serde_json::from_reader(std::io::BufReader::new(
                                 match std::fs::File::open(&path) {
                                     Ok(t) => t,
                                     Err(e) if e.is_not_found() => {
@@ -227,7 +299,7 @@ pub async fn get_profile_mods(id: Uuid) -> Result<Vec<ModAndVersion>, Error> {
             }
             let mut buf = Vec::new();
             while let Some(r) = tasks.next().await {
-                if let Some(m) = r?? {
+                if let Some(m) = r.map_err(anyhow::Error::from)?? {
                     buf.push(m);
                 }
             }
@@ -238,10 +310,12 @@ pub async fn get_profile_mods(id: Uuid) -> Result<Vec<ModAndVersion>, Error> {
 }
 
 #[tauri::command]
-pub async fn install_profile_mod(id: Uuid, r#mod: Mod, version: usize) -> Result<(), Error> {
+pub async fn install_profile_mod(id: Uuid, r#mod: Mod, version: usize) -> Result<(), CommandError> {
+    let log = slog_scope::logger();
+
     let mut path = profile_path(id);
     path.push("profile.json");
-    let metadata = read_profile_file(&path).await?;
+    let metadata = read_profile_file(&path).await.context("Failed to read profile")?;
     path.pop();
 
     let game = GAMES_BY_ID.get(&*metadata.game).context("No such game")?;
@@ -253,7 +327,7 @@ pub async fn install_profile_mod(id: Uuid, r#mod: Mod, version: usize) -> Result
             .versions
             .into_iter()
             .nth(version)
-            .ok_or("No such version")?,
+            .context("No such version")?,
     };
 
     match game.package_loader {
@@ -262,10 +336,10 @@ pub async fn install_profile_mod(id: Uuid, r#mod: Mod, version: usize) -> Result
             path.push("BepInEx");
             path.push("plugins");
 
-            tokio::fs::create_dir_all(&path).await?;
+            tokio::fs::create_dir_all(&path).await.context("Failed to create BepInEx plugins directory")?;
 
             path.push(&mod_with_version.r#mod.full_name);
-            let staged = install_zip(&mod_with_version.version.download_url, None, &path).await?;
+            let staged = install_zip(&log, &mod_with_version.version.download_url, None, &path).await?;
 
             tokio::task::block_in_place(|| {
                 serde_json::to_writer(
@@ -277,19 +351,21 @@ pub async fn install_profile_mod(id: Uuid, r#mod: Mod, version: usize) -> Result
                 Ok::<_, anyhow::Error>(())
             })?;
 
-            staged.finish().await?;
+            staged.finish(&log).await?;
 
             Ok(())
         }
-        _ => Err("Unsupported package loader for mod installation".into()),
+        _ => Err(anyhow!("Unsupported package loader for mod installation").into()),
     }
 }
 
 #[tauri::command]
-pub async fn uninstall_profile_mod(id: Uuid, mod_name: &str) -> Result<(), Error> {
+pub async fn uninstall_profile_mod(id: Uuid, mod_name: &str) -> Result<(), CommandError> {
+    let log = slog_scope::logger();
+
     let mut path = profile_path(id);
     path.push("profile.json");
-    let metadata = read_profile_file(&path).await?;
+    let metadata = read_profile_file(&path).await.context("Failed to read profile")?;
     path.pop();
 
     let game = GAMES_BY_ID.get(&*metadata.game).context("No such game")?;
@@ -303,14 +379,14 @@ pub async fn uninstall_profile_mod(id: Uuid, mod_name: &str) -> Result<(), Error
 
             // remove the manifest so it isn't left over after uninstalling the package
             path.push(MANIFEST_FILE_NAME);
-            tokio::fs::remove_file(&path).await?;
+            tokio::fs::remove_file(&path).await.context("Failed to remove manifest file")?;
             path.pop();
 
             // keep_changes is true so that configs and any other changes are
             // preserved. Zero-risk uninstallation!
-            uninstall_package(&path, true).await?;
+            uninstall_package(&log, &path, true).await?;
             Ok(())
         }
-        _ => Err("Unsupported package loader for mod installation".into()),
+        _ => Err(anyhow!("Unsupported package loader for mod installation").into()),
     }
 }

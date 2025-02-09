@@ -3,13 +3,13 @@
 //! Never make changes to `IndexEntryV*` or [`Index`] variants. Make a new version instead.
 
 use std::{
-    borrow::Cow, collections::{HashMap, HashSet}, ffi::OsStr, hash::Hash, path::{Path, PathBuf}
+    borrow::Cow, collections::HashMap, ffi::OsStr, hash::Hash, path::{Path, PathBuf}
 };
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use itertools::Itertools;
-use log::{debug, trace};
 use rkyv::{rend::u16_le, vec::ArchivedVec};
+use slog::{debug, trace};
 use tauri_plugin_http::reqwest;
 use tempfile::TempDir;
 use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
@@ -300,15 +300,17 @@ fn hash_file(path: &Path) -> std::io::Result<blake3::Hash> {
 }
 
 pub async fn scan_installed_package_for_changes<'i>(
+    log: &slog::Logger,
     path: &Path,
     buf: &mut impl Extend<(PathBuf, Status)>,
 ) -> Result<(), ScanError> {
     let mut index_buf = Vec::new();
-    scan_installed_package_for_changes_with_index_buf(path, buf, &mut index_buf).await?;
+    scan_installed_package_for_changes_with_index_buf(log, path, buf, &mut index_buf).await?;
     Ok(())
 }
 
 async fn scan_installed_package_for_changes_with_index_buf<'i>(
+    log: &slog::Logger,
     path: &Path,
     buf: &mut impl Extend<(PathBuf, Status)>,
     index_buf: &'i mut Vec<u8>,
@@ -443,7 +445,7 @@ async fn scan_installed_package_for_changes_with_index_buf<'i>(
                                     .unwrap_or(false)
                             })
                     }) {
-                        trace!("Not recording deletion because a parent was also deleted: {e_path:?} is inside of {entry:?}");
+                        trace!(log, "Not recording deletion because a parent was also deleted: {e_path:?} is inside of {entry:?}");
                     } else {
                         buf.extend_one((p, Status::Deleted));
                     }
@@ -471,7 +473,7 @@ async fn scan_installed_package_for_changes_with_index_buf<'i>(
                                     .unwrap_or(false)
                             })
                     }) {
-                        trace!("Not recording deletion because a parent was also deleted: {indexed_path:?} is inside of {entry:?}");
+                        trace!(log, "Not recording deletion because a parent was also deleted: {indexed_path:?} is inside of {entry:?}");
                     } else {
                         buf.extend_one((p, Status::Deleted));
                     }
@@ -481,13 +483,13 @@ async fn scan_installed_package_for_changes_with_index_buf<'i>(
         None => {}
     }
 
-    trace!("Index: {index:#?}");
+    trace!(log, "Index: {index:#?}");
 
     Ok(index)
 }
 
-async fn generate_package_index(path: &Path) -> Result<()> {
-    debug!("Generating package index for {path:?}");
+async fn generate_package_index(log: &slog::Logger, path: &Path) -> Result<()> {
+    debug!(log, "Generating package index for {path:?}");
 
     let mut buf = HashMap::new();
     let mut iter = WalkDir::new(path).into_iter();
@@ -543,7 +545,7 @@ impl StagedPackage<'_> {
         self.temp_dir.path()
     }
 
-    pub async fn finish(self) -> anyhow::Result<()> {
+    pub async fn finish(self, log: &slog::Logger) -> anyhow::Result<()> {
         match tokio::fs::remove_dir_all(&self.target).await {
             Ok(()) => {}
             Err(e) if e.is_not_found() => {}
@@ -552,7 +554,7 @@ impl StagedPackage<'_> {
         tokio::fs::rename(self.temp_dir.into_path(), &self.target)
             .await
             .context("Unable to move temporary directory into place")?;
-        debug!("Installed package to {:?}", self.target);
+        debug!(log, "Installed package to {:?}", self.target);
         Ok(())
     }
 }
@@ -561,26 +563,27 @@ impl StagedPackage<'_> {
 /// directory. If `hash_str` is provided, it will be used to cache the zip file
 /// for future reuse.
 pub async fn install_zip<'a>(
+    log: &slog::Logger,
     url: &str,
     hash_str: Option<&str>,
     target: &'a Path,
 ) -> anyhow::Result<StagedPackage<'a>> {
-    debug!("Installing zip from {url:?} to {target:?}");
+    debug!(log, "Installing zip from {url:?} to {target:?}");
 
     let target_parent = target
         .parent()
         .context("Target must not be a filesystem root")?;
 
     let mut changes = Vec::new();
-    let changes = match scan_installed_package_for_changes(target, &mut changes).await {
+    let changes = match scan_installed_package_for_changes(log, target, &mut changes).await {
         Ok(()) => Some(changes),
         Err(ScanError::IndexNotFoundError) => None,
         Err(e) => return Err(e.into()),
     };
     if let Some(changes) = &changes {
-        debug!("Zip is already installed to {target:?}");
+        debug!(log, "Zip is already installed to {target:?}");
 
-        trace!("Changes: {changes:#?}");
+        trace!(log, "Changes: {changes:#?}");
     }
 
     let temp_dir: TempDir;
@@ -602,9 +605,9 @@ pub async fn install_zip<'a>(
             while let Some(chunk) = resp.chunk().await? {
                 wtr.write_all(&chunk).await?;
             }
-            debug!("Cached zip at {path:?}");
+            debug!(log, "Cached zip at {path:?}");
         } else {
-            debug!("Zip is cached at {path:?}");
+            debug!(log, "Zip is cached at {path:?}");
         }
 
         temp_dir = tempfile::tempdir_in(target_parent)?;
@@ -627,14 +630,14 @@ pub async fn install_zip<'a>(
         })?;
     }
 
-    generate_package_index(temp_dir.path()).await?;
+    generate_package_index(log, temp_dir.path()).await?;
 
     if let Some(changes) = changes {
         let mut buf = temp_dir.path().to_owned();
         for (path, status) in changes {
             let rel_path = path.strip_prefix(target)?;
             buf.push(rel_path);
-            debug!("Preserving {rel_path:?} {status:?} across update");
+            debug!(log, "Preserving {rel_path:?} {status:?} across update");
             if matches!(status, Status::Deleted) {
                 let metadata = tokio::fs::symlink_metadata(&buf).await?;
                 match if metadata.is_dir() {
@@ -647,7 +650,7 @@ pub async fn install_zip<'a>(
                     Err(e) => return Err(e.into()),
                 }
             } else {
-                merge_paths(&path, &buf).await?;
+                merge_paths(log, &path, &buf).await?;
             }
             for _ in rel_path.components() {
                 buf.pop();
@@ -658,7 +661,7 @@ pub async fn install_zip<'a>(
     Ok(StagedPackage { target, temp_dir })
 }
 
-pub async fn uninstall_package<'a>(path: &'a Path, keep_changes: bool) -> anyhow::Result<()> {
+pub async fn uninstall_package<'a>(log: &slog::Logger, path: &'a Path, keep_changes: bool) -> anyhow::Result<()> {
     if keep_changes {
         let mut changes = TrieBuilder::new();
         struct ExtendByFn<F>(F);
@@ -671,6 +674,7 @@ pub async fn uninstall_package<'a>(path: &'a Path, keep_changes: bool) -> anyhow
             }
         }
         scan_installed_package_for_changes(
+            log,
             path,
             &mut ExtendByFn(|(path, status): (PathBuf, _)| {
                 if !matches!(status, Status::Deleted) {
@@ -681,7 +685,7 @@ pub async fn uninstall_package<'a>(path: &'a Path, keep_changes: bool) -> anyhow
         .await?;
         let changes = changes.build();
 
-        debug!("Changes: {changes:?}");
+        debug!(log, "Changes: {changes:?}");
 
         let mut iter = WalkDir::new(path).into_iter();
         ensure!(
@@ -701,11 +705,11 @@ pub async fn uninstall_package<'a>(path: &'a Path, keep_changes: bool) -> anyhow
             // TODO: avoid cloning and collecting
             if changes.predictive_search::<Discard, _>(e.path().components().map(|c| c.as_os_str().to_owned()).collect::<Vec<_>>()).next().is_none() {
                 if e.file_type().is_dir() {
-                    debug!("Removing directory tree at {:?}", e.path());
+                    debug!(log, "Removing directory tree at {:?}", e.path());
                     tokio::fs::remove_dir_all(e.path()).await?;
                     iter.skip_current_dir();
                 } else {
-                    debug!("Removing file at {:?}", e.path());
+                    debug!(log, "Removing file at {:?}", e.path());
                     tokio::fs::remove_file(e.path()).await?;
                 }
             }
@@ -714,12 +718,12 @@ pub async fn uninstall_package<'a>(path: &'a Path, keep_changes: bool) -> anyhow
         tokio::fs::remove_dir_all(path).await?;
     }
 
-    debug!("Uninstalled package from {path:?}");
+    debug!(log, "Uninstalled package from {path:?}");
 
     Ok(())
 }
 
-async fn merge_paths(from: &Path, to: &Path) -> Result<()> {
+async fn merge_paths(log: &slog::Logger,from: &Path, to: &Path) -> Result<()> {
     let mut iter = WalkDir::new(from).into_iter();
     while let Some(r) = iter.next() {
         let dir_entry = r?;
@@ -729,7 +733,7 @@ async fn merge_paths(from: &Path, to: &Path) -> Result<()> {
         } else {
             to.join(rel_path)
         };
-        trace!("Merging {:?} ({rel_path:?}) into {to:?}", dir_entry.path());
+        trace!(log, "Merging {:?} ({rel_path:?}) into {to:?}", dir_entry.path());
         async {
             enum FileType {
                 FileLike,

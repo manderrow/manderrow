@@ -15,7 +15,6 @@
           "url": "https://thunderstore.io/*"
         }
       ]
-    },
-    "log:default"
+    }
   ]
 }
