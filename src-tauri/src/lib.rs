@@ -1,5 +1,7 @@
 #![deny(unused_must_use)]
+#![feature(exit_status_error)]
 #![feature(path_add_extension)]
+#![feature(type_changing_struct_update)]
 
 mod commands;
 mod game_reviews;
@@ -11,10 +13,14 @@ mod paths;
 mod window_state;
 mod wrap;
 
+#[cfg(windows)]
+mod windows_util;
+
 use std::sync::OnceLock;
 
 use anyhow::{anyhow, Context};
-use log::error;
+use ipc::IpcState;
+use slog::error;
 
 static PRODUCT_NAME: OnceLock<String> = OnceLock::new();
 static IDENTIFIER: OnceLock<String> = OnceLock::new();
@@ -28,42 +34,48 @@ fn identifier() -> &'static str {
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
-struct Error {
-    message: String,
-    backtrace: String,
+enum CommandError {
+    Aborted,
+    Error {
+        messages: Vec<String>,
+        backtrace: String,
+    },
 }
 
-impl<T: std::fmt::Display> From<T> for Error {
+impl From<anyhow::Error> for CommandError {
     #[track_caller]
-    fn from(value: T) -> Self {
+    fn from(value: anyhow::Error) -> Self {
         let backtrace = std::backtrace::Backtrace::force_capture();
-        error!("{value}\nBacktrace:\n{backtrace}");
-        Self {
-            message: value.to_string(),
+        Self::Error {
+            messages: value.chain().map(|e| e.to_string()).collect(),
             backtrace: backtrace.to_string(),
         }
     }
 }
 
+impl From<Error> for CommandError {
+    fn from(value: Error) -> Self {
+        match value {
+            Error::Aborted => Self::Aborted,
+            Error::Error(e) => Self::from(e),
+        }
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+enum Error {
+    #[error("Aborted by the user")]
+    Aborted,
+    #[error(transparent)]
+    Error(#[from] anyhow::Error),
+}
+
 fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
-    let level_filter = std::env::var("RUST_LOG")
-        .map(|s| {
-            s.parse::<log::LevelFilter>()
-                .expect("Invalid logging configuration")
-        })
-        .unwrap_or(log::LevelFilter::Info);
+    let _guard = slog_envlogger::init()?;
     tauri::Builder::default()
+        .manage(IpcState::default())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_http::init())
-        .plugin(
-            tauri_plugin_log::Builder::new()
-                .filter(move |metadata| {
-                    metadata.level() <= level_filter
-                        && (metadata.level() < log::Level::Trace
-                            || (cfg!(debug_assertions) && metadata.target() == "manderrow"))
-                })
-                .build(),
-        )
         .plugin(tauri_plugin_os::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(window_state::init())
@@ -72,6 +84,7 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
             commands::games::get_games,
             commands::games::get_games_popularity,
             commands::i18n::get_preferred_locales,
+            commands::ipc::send_s2c_message,
             commands::mod_index::fetch_mod_index,
             commands::mod_index::query_mod_index,
             commands::profiles::get_profiles,

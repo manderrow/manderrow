@@ -24,5 +24,30 @@
     "fav_btn": "Favorite this game"
   },
 
-  "profile": {}
+  "profile": {},
+
+  "doctor": {
+    "launch_options": {
+      "message": "To unlock the full functionality of Manderrow, one small tweak must be made to your Steam configuration.",
+      "message_overwrite": "It seems you've set some Launch Options for this game in Steam. To unlock the full functionality of Manderrow, those Launch Options will need to be changed.",
+
+      "fixes": {
+        "apply": {
+          "label": "Do it for me",
+          "confirm_label": "Apply Changes",
+          "description": "We'll go ahead and apply the changes for you. If you have it open, Steam will be closed as part of this process."
+        },
+        "retry": {
+          "label": "Do it myself",
+          "confirm_label": "I did it",
+          "description": "You'll need to paste the following string in the Launch Options field for the game in Steam: {{ launch_options }}"
+        },
+        "abort": {
+          "label": "I don't want to",
+          "confirm_label": "Abort",
+          "description": "No worries. Unfortunately, you'll be unable to launch with Manderrow at this time."
+        }
+      }
+    }
+  }
 }

@@ -15,6 +15,7 @@ export type Locale = (typeof rawLocales)[number];
 export type RawDictionary = typeof en_ca;
 export type Dictionary = i18n.Flatten<RawDictionary>;
 export const localeNamesMap: { [key in Locale]: string } = Object.freeze(localeNames);
+export type TranslationKey = keyof RawDictionary;
 
 function flattenDict(dict: RawDictionary) {
   return i18n.flatten(dict) as Flatten<Exclude<RawDictionary, undefined>>;

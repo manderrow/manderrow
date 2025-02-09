@@ -1,46 +1,13 @@
-import { Accessor, For, Match, Show, Switch, createEffect, createSignal, onCleanup, onMount } from "solid-js";
-
-import styles from "./Console.module.css";
 import { Channel } from "@tauri-apps/api/core";
+import { Accessor, For, Match, Switch, createEffect, createSignal, onCleanup, useContext } from "solid-js";
 
-type SafeOsString = { Unicode: string } | { NonUnicodeBytes: number[] } | { NonUnicodeWide: number[] } | { NonUnicodeOther: string };
+import { C2SMessage, DoctorReport, SafeOsString, sendS2CMessage } from "../../api/ipc";
+import styles from "./Console.module.css";
+import Dialog, { dialogStyles } from "./Dialog";
+import { t } from "../../i18n/i18n";
+import { ErrorContext } from "./ErrorBoundary";
 
-type C2SMessage =
-  | {
-      Start: {
-        command: SafeOsString;
-        args: SafeOsString[];
-        env: { [key: string]: SafeOsString };
-      };
-    }
-  | {
-      Log: {
-        level: "Error" | "Warn" | "Info" | "Debug" | "Trace";
-        message: string;
-      };
-    }
-  | {
-      Output: {
-        channel: "Out" | "Err";
-        line:
-          | {
-              Unicode: string;
-            }
-          | {
-              Bytes: number[];
-            };
-      };
-    }
-  | {
-      Exit: {
-        code?: number;
-      };
-    }
-  | {
-      Crash: {
-        error: string;
-      };
-    };
+const translateUnchecked = t as (key: string, args: Object | undefined) => string;
 
 const [events, setEvents] = createSignal<C2SMessage[]>([]);
 
@@ -55,14 +22,21 @@ export function clearConsole() {
 }
 
 export default function Console({ channel }: { channel: Accessor<Channel<C2SMessage> | undefined> }) {
-  // onMount(() => {
-  //   channel.onmessage = (event) => {
-  //     setEvents([...events(), event]);
-  //   };
-  // });
+  const [doctorReports, setDoctorReports] = createSignal<DoctorReport[]>([]);
+
+  const [connected, setConnected] = createSignal(false);
 
   function handleLogEvent(event: C2SMessage) {
-    setEvents((events) => [...events, event]);
+    if ("Connect" in event) {
+      setConnected(true);
+    } else if ("Disconnect" in event) {
+      setConnected(false);
+    } else if ("DoctorReport" in event) {
+      console.log(event.DoctorReport);
+      setDoctorReports((reports) => [...reports, event.DoctorReport]);
+    } else {
+      setEvents((events) => [...events, event]);
+    }
   }
 
   function clearChannelHandler() {
@@ -80,7 +54,8 @@ export default function Console({ channel }: { channel: Accessor<Channel<C2SMess
     if (channel() != null) clearChannelHandler();
   });
 
-  return (
+  return (<>
+    <h2 class={styles.heading}>{connected() ? "Connected" : "Disconnected"} <span class={styles.statusIndicator} data-connected={connected()}></span></h2>
     <div class={styles.console}>
       <For each={events()} fallback={<p>Game not running.</p>}>
         {(event) => {
@@ -111,10 +86,17 @@ export default function Console({ channel }: { channel: Accessor<Channel<C2SMess
                 <span>{event.Log.message}</span>
               </p>
             );
+          } else if ("Connect" in event) {
+            return (
+              <p>
+                <span class={styles.event__type}>[CONNECT]</span>{" Wrapper connected to Manderrow"}
+              </p>
+            );
           } else if ("Start" in event) {
             return (
               <p>
-                <span class={styles.event__type}>[START]</span> <DisplaySafeOsString string={event.Start.command} />
+                <span class={styles.event__type}>[START]</span>{" "}
+                <DisplaySafeOsString string={event.Start.command} />
                 <For each={event.Start.args}>
                   {(arg) => (
                     <>
@@ -134,11 +116,26 @@ export default function Console({ channel }: { channel: Accessor<Channel<C2SMess
                 </Switch>
               </p>
             );
+          } else if ("Crash" in event) {
+            return (
+              <p>
+                <span class={styles.event__type}>[CRASH]</span>{" "}
+                <span>{event.Crash.error}</span>
+              </p>
+            );
           }
         }}
       </For>
+
+      <For each={doctorReports()}>
+        {(report, i) => <DoctorDialog report={report} onDismiss={() => {
+          setDoctorReports((reports) => {
+            return [...reports.slice(0, i()), ...reports.slice(i() + 1)];
+          });
+        }} />}
+      </For>
     </div>
-  );
+  </>);
 }
 
 function DisplaySafeOsString(props: { string: SafeOsString }) {
@@ -150,5 +147,66 @@ function DisplaySafeOsString(props: { string: SafeOsString }) {
       <Match when={"NonUnicodeWide" in s ? s.NonUnicodeWide : null}>{(b) => JSON.stringify(b())}</Match>
       <Match when={"NonUnicodeOther" in s ? s.NonUnicodeOther : null}>{(b) => JSON.stringify(b())}</Match>
     </Switch>
+  );
+}
+
+function DoctorDialog(props: { report: DoctorReport; onDismiss: () => void }) {
+  const reportErr = useContext(ErrorContext)!;
+
+  return (
+    <Dialog>
+      <div class={dialogStyles.dialog__container}>
+        <h2 class={dialogStyles.dialog__title}>Uh oh!</h2>
+        <p class={styles.dialog__message}>
+          {translateUnchecked(
+            props.report.message ?? `doctor.${props.report.translation_key}.message`,
+            props.report.message_args
+          )}
+        </p>
+
+        <ul>
+          <For each={props.report.fixes}>
+            {(fix) => (
+              <li>
+                <div>
+                  {translateUnchecked(
+                    `doctor.${props.report.translation_key}.fixes.${fix.id}.label`,
+                    fix.label
+                  )}
+                </div>
+                <div>
+                  {translateUnchecked(
+                    `doctor.${props.report.translation_key}.fixes.${fix.id}.description`,
+                    fix.description
+                  )}
+                </div>
+                <button
+                  on:click={async () => {
+                    try {
+                      await sendS2CMessage({
+                        PatientResponse: {
+                          id: props.report.id,
+                          choice: fix.id,
+                        },
+                      });
+                    } catch (e) {
+                      reportErr(e);
+                    } finally {
+                      console.log("Dismissing");
+                      props.onDismiss();
+                    }
+                  }}
+                >
+                  {translateUnchecked(
+                    `doctor.${props.report.translation_key}.fixes.${fix.id}.confirm_label`,
+                    fix.confirm_label
+                  )}
+                </button>
+              </li>
+            )}
+          </For>
+        </ul>
+      </div>
+    </Dialog>
   );
 }

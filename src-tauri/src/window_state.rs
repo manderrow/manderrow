@@ -6,7 +6,7 @@
 
 #![cfg(not(any(target_os = "android", target_os = "ios")))]
 
-use log::error;
+use slog::error;
 use tauri::{
     plugin::{Builder as PluginBuilder, TauriPlugin},
     Manager, Monitor, PhysicalPosition, PhysicalSize, RunEvent, Runtime, Window, WindowEvent,
@@ -20,13 +20,9 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::Error;
-
 static PATH: OnceLock<PathBuf> = OnceLock::new();
 
 const BINCODE_CONFIG: bincode::config::Configuration = bincode::config::standard();
-
-type Result<T> = std::result::Result<T, Error>;
 
 #[derive(Debug, PartialEq, bincode::Decode, bincode::Encode)]
 struct WindowState {
@@ -64,11 +60,11 @@ struct RestoringWindowState(Mutex<()>);
 
 trait AppHandleExt {
     /// Saves all open windows state to disk
-    fn save_window_state(&self) -> Result<()>;
+    fn save_window_state(&self) -> anyhow::Result<()>;
 }
 
 impl<R: Runtime> AppHandleExt for tauri::AppHandle<R> {
-    fn save_window_state(&self) -> Result<()> {
+    fn save_window_state(&self) -> anyhow::Result<()> {
         let windows = self.webview_windows();
         let cache = self.state::<WindowStateCache>();
         let mut state = cache.0.lock().unwrap();
@@ -222,7 +218,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             let cache = std::fs::File::open(PATH.get().unwrap())
                 .inspect_err(|e| {
                     if e.kind() != std::io::ErrorKind::NotFound {
-                        error!("Unable to read window state: {e}");
+                        error!(slog_scope::logger(), "Unable to read window state: {e}");
                     }
                 })
                 .map_err(|_| ())
