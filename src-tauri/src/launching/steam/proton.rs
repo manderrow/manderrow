@@ -11,7 +11,10 @@ pub async fn uses_proton(log: &slog::Logger, game_id: &str) -> Result<bool> {
         while let Some(e) = iter.next_entry().await? {
             let name = e.file_name();
             if name.as_encoded_bytes().ends_with(b".exe") {
-                debug!(log, "Guessing that {game_id:?} uses proton because it has file {name:?}");
+                debug!(
+                    log,
+                    "Guessing that {game_id:?} uses proton because it has file {name:?}"
+                );
                 return Ok(true);
             }
         }
@@ -21,7 +24,11 @@ pub async fn uses_proton(log: &slog::Logger, game_id: &str) -> Result<bool> {
     }
 }
 
-pub async fn ensure_wine_will_load_dll_override(log: &slog::Logger, game_id: &str, proxy_dll: &str) -> Result<()> {
+pub async fn ensure_wine_will_load_dll_override(
+    log: &slog::Logger,
+    game_id: &str,
+    proxy_dll: &str,
+) -> Result<()> {
     let compat_data_dir = resolve_steam_app_compat_data_directory(game_id).await?;
 
     let mut user_reg = compat_data_dir;
@@ -136,7 +143,7 @@ fn reg_add_in_section(
 
 #[cfg(test)]
 mod tests {
-    use crate::launching::steam::reg_add_in_section;
+    use crate::launching::steam::proton::reg_add_in_section;
 
     #[test]
     fn test_reg_add_in_section() {

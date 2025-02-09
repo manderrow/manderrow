@@ -1,14 +1,15 @@
 pub mod paths;
 pub mod proton;
 
-use std::io::Write as _;
 use std::process::Stdio;
 use std::time::Duration;
+use std::{io::Write as _, ptr::addr_of_mut};
 
 use anyhow::{anyhow, bail, Context as _, Result};
-use slog::{debug, info};
 use paths::get_steam_exe;
+use slog::{debug, info, warn};
 use tokio::process::Command;
+use windows::Win32::System::Diagnostics::ToolHelp::PROCESSENTRY32;
 
 use crate::ipc::{DoctorFix, OutputLine, Spc};
 
@@ -28,28 +29,43 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
                 )?,
             )?
         };
-        let slot = MaybeUninit::uninit();
+        let mut slot = MaybeUninit::<PROCESSENTRY32>::uninit();
+        unsafe {
+            (&raw mut (*slot.as_mut_ptr()).dwSize)
+                .write(size_of::<PROCESSENTRY32>().try_into().unwrap());
+        }
         if unsafe {
-            windows::Win32::System::Diagnostics::ToolHelp::Process32First(snapshot, slot.as_ptr())
+            windows::Win32::System::Diagnostics::ToolHelp::Process32First(
+                snapshot.as_raw(),
+                slot.as_mut_ptr(),
+            )
         }
         .is_ok()
         {
             let mut issued_shutdown = false;
 
             loop {
-                let proc = unsafe { slot.as_ref() };
-                let name = unsafe { NonNull::from(proc.szExeFile).cast::<[u8; 260]>().as_ref() };
-                if let Ok(s) = std::str::from_utf8(
-                    &name[..name.iter().position(|b| b == 0).unwrap_or(name.len())],
+                let proc = unsafe { slot.assume_init_ref() };
+                let name = unsafe { NonNull::from(&proc.szExeFile).cast::<[u8; 260]>().as_ref() };
+                if let Ok(name) = std::str::from_utf8(
+                    &name[..name.iter().position(|b| *b == 0).unwrap_or(name.len())],
                 ) {
-                    if s == b"steam.exe" {
+                    debug!(log, "{name:?}");
+                    if name == "steam.exe" {
                         if !issued_shutdown {
                             issued_shutdown = true;
                             info!(log, "Steam is open. Issuing shutdown request.");
-                            Command::new(get_steam_exe()?.as_ref()).arg("-shutdown").status().await?.exit_ok()?;
+                            Command::new(get_steam_exe()?.as_ref())
+                                .arg("-shutdown")
+                                .status()
+                                .await?
+                                .exit_ok()?;
                         }
 
-                        info!(log, "Waiting for Steam process {} to shut down", proc.th32ProcessID);
+                        info!(
+                            log,
+                            "Waiting for Steam process {} to shut down", proc.th32ProcessID
+                        );
                         let proc = unsafe {
                             Handle::new(windows::Win32::System::Threading::OpenProcess(
                                 windows::Win32::System::Threading::PROCESS_SYNCHRONIZE,
@@ -59,23 +75,23 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
                         };
                         let event = unsafe {
                             windows::Win32::System::Threading::WaitForSingleObject(
-                                proc,
-                                windows_sys::Win32::System::Threading::INFINITE,
+                                proc.as_raw(),
+                                windows::Win32::System::Threading::INFINITE,
                             )
                         };
                         match event {
-                            windows::Win32::System::Threading::WAIT_OBJECT_0 => {}
-                            windows::Win32::System::Threading::WAIT_FAILED => {
-                                return Err(windows::Win32::Foundation::GetLastError().ok().into())
-                            }
-                            _ => bail!("Unexpected WAIT_EVENT: {event}"),
+                            windows::Win32::Foundation::WAIT_OBJECT_0 => {}
+                            windows::Win32::Foundation::WAIT_FAILED => unsafe {
+                                bail!("{:?}", windows::Win32::Foundation::GetLastError().ok())
+                            },
+                            _ => bail!("Unexpected WAIT_EVENT: {event:?}"),
                         }
                     }
                 }
                 if unsafe {
                     windows::Win32::System::Diagnostics::ToolHelp::Process32Next(
-                        snapshot,
-                        slot.as_ptr(),
+                        snapshot.as_raw(),
+                        slot.as_mut_ptr(),
                     )
                 }
                 .is_err()
@@ -83,31 +99,49 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
                     break;
                 }
             }
+        } else {
+            warn!(
+                log,
+                "Windows told us there are no processes. This is weird."
+            );
         }
     }
     #[cfg(not(windows))]
     {
         let output = tokio::process::Command::new("pgrep")
-        .arg(if cfg!(target_os = "macos") {
-            "steam_osx"
-        } else {
-            "steam"
-        })
-        .output()
-        .await?;
+            .arg(if cfg!(target_os = "macos") {
+                "steam_osx"
+            } else {
+                "steam"
+            })
+            .output()
+            .await?;
         if output.status.code() == Some(1) {
             if output.stdout.is_empty() && output.stderr.is_empty() {
-                debug!(log, "pgrep exited with code 1 and no output. Assuming no processes found.");
+                debug!(
+                    log,
+                    "pgrep exited with code 1 and no output. Assuming no processes found."
+                );
                 return Ok(());
             }
         }
         match output.status.exit_ok() {
             Ok(()) => {}
-            Err(e) => return Err(anyhow::Error::from(e).context(format!("pgrep failed\nstdout: {:?}\nstderr: {:?}", OutputLine::new(output.stdout), OutputLine::new(output.stderr)))),
+            Err(e) => {
+                return Err(anyhow::Error::from(e).context(format!(
+                    "pgrep failed\nstdout: {:?}\nstderr: {:?}",
+                    OutputLine::new(output.stdout),
+                    OutputLine::new(output.stderr)
+                )))
+            }
         }
 
         info!(log, "Steam is open. Issuing shutdown request.");
-        Command::new(get_steam_exe()?.as_ref()).arg("-shutdown").status().await?.exit_ok()?;
+        Command::new(get_steam_exe()?.as_ref())
+            .arg("-shutdown")
+            .status()
+            .await?
+            .exit_ok()?;
 
         let output = String::from_utf8(output.stdout)?;
         #[cfg(target_os = "macos")]
@@ -134,7 +168,7 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
                     Ok(t) => t,
                     Err(nc::ESRCH) => {
                         info!(log, "Steam process {pid} has already shut down");
-                        continue
+                        continue;
                     }
                     Err(errno) => bail!("pidfd_open errno={errno}"),
                 };
@@ -167,13 +201,12 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
 }
 
 pub fn generate_launch_options() -> Result<String> {
-    let mut s = std::env::current_exe()
+    let bin = std::env::current_exe()
         .unwrap()
         .into_os_string()
         .into_string()
         .map_err(|s| anyhow!("Non-Unicode executable name: {s:?}"))?;
-    s.push_str(" wrap %command%");
-    Ok(s)
+    Ok(format!("{bin:?} wrap %command%"))
 }
 
 pub async fn ensure_launch_args_are_applied(

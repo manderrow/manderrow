@@ -165,7 +165,9 @@ pub fn spawn_c2s_pipe(
             loop {
                 match msg {
                     C2SMessage::Connect { ref mut s2c_tx } => {
-                        if let Err(e) = spawn_s2c_pipe(log.clone(), &app_handle, std::mem::take(s2c_tx)) {
+                        if let Err(e) =
+                            spawn_s2c_pipe(log.clone(), &app_handle, std::mem::take(s2c_tx))
+                        {
                             error!(log, "Failed to spawn S2C IPC pipe: {e}");
                         }
                     }
@@ -173,7 +175,10 @@ pub fn spawn_c2s_pipe(
                 }
                 if let Err(e) = c2s_channel.send(msg) {
                     // log this to the global logger because if we can't send messages on the channel, the local logger will fail
-                    error!(slog_scope::logger(), "Unable to emit ipc-message event to webview: {e}");
+                    error!(
+                        slog_scope::logger(),
+                        "Unable to emit ipc-message event to webview: {e}"
+                    );
                 }
                 msg = match rx.recv() {
                     Ok(t) => t,
@@ -184,7 +189,10 @@ pub fn spawn_c2s_pipe(
                 };
             }
             if let Err(e) = c2s_channel.send(C2SMessage::Disconnect {}) {
-                error!(slog_scope::logger(), "Unable to emit ipc-message event to webview: {e}");
+                error!(
+                    slog_scope::logger(),
+                    "Unable to emit ipc-message event to webview: {e}"
+                );
             }
         })?;
     Ok(())
@@ -217,7 +225,7 @@ pub struct Ipc {
 
 impl Drop for Ipc {
     fn drop(&mut self) {
-        _ = self.c2s_tx.send(C2SMessage::Disconnect {  });
+        _ = self.c2s_tx.send(C2SMessage::Disconnect {});
     }
 }
 

@@ -18,8 +18,11 @@ impl Handle {
     }
 }
 
-impl Drop {
+impl Drop for Handle {
     fn drop(&mut self) {
-        windows::Win32::Foundation::CloseHandle(self.as_raw()).unwrap()
+        unsafe { windows::Win32::Foundation::CloseHandle(self.as_raw()).unwrap() }
     }
 }
+
+unsafe impl Send for Handle {}
+unsafe impl Sync for Handle {}

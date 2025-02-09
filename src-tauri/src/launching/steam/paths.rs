@@ -26,7 +26,9 @@ pub fn get_steam_exe() -> Result<Cow<'static, Path>> {
         #[cfg(not(windows))]
         unreachable!()
     } else if cfg!(target_os = "macos") {
-        Ok(Cow::Borrowed(Path::new("/Applications/Steam.app/Contents/MacOS/steam_osx")))
+        Ok(Cow::Borrowed(Path::new(
+            "/Applications/Steam.app/Contents/MacOS/steam_osx",
+        )))
     } else if cfg!(unix) {
         Ok(Cow::Borrowed(Path::new("steam")))
     } else {

@@ -235,14 +235,15 @@ pub async fn launch_profile(
 
     command.arg(";");
 
+    // TODO: find a way to stop this if the launch fails
+    crate::ipc::spawn_c2s_pipe(log.clone(), app_handle, channel, c2s_rx)?;
+
     info!(log, "Launching game: {command:?}");
     let status = command
         .status()
         .await
         .context("Failed to wait for subprocess to exit")?;
     info!(log, "Launcher exited with status code {status}");
-
-    crate::ipc::spawn_c2s_pipe(log, app_handle, channel, c2s_rx)?;
 
     Ok(())
 }

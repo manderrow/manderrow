@@ -3,9 +3,9 @@ use std::{collections::HashMap, ffi::OsString};
 
 use anyhow::{anyhow, bail, ensure, Context as _, Result};
 use ipc_channel::ipc::IpcSender;
-use slog::{debug, info};
 use parking_lot::Mutex;
 use slog::o;
+use slog::{debug, info};
 use tokio::{io::AsyncBufReadExt as _, process::Command};
 use uuid::Uuid;
 
@@ -224,7 +224,10 @@ pub async fn run(args: impl Iterator<Item = OsString>) -> Result<()> {
             s.to_string_lossy()
                 .contains("scout-on-soldier-entry-point-v2")
         }) {
-            debug!(log, "Using the stage2 wrapper to inject environment to final process");
+            debug!(
+                log,
+                "Using the stage2 wrapper to inject environment to final process"
+            );
             i += 1; // skip the arg
             i += 1; // skip the next arg (--)
             command_args.insert(
