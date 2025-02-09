@@ -1,5 +1,7 @@
 # Manderrow
 
+[![build](https://github.com/Jack-the-Pro101/manderrow/actions/workflows/build.yml/badge.svg)](https://github.com/Jack-the-Pro101/manderrow/actions/workflows/build.yml)
+
 - [About](#about)
 - [Features and Improvements](#features-and-improvements)
 - [Contributing](#contributing)

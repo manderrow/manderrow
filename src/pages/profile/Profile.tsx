@@ -1,11 +1,21 @@
 import { faCirclePlay as faCirclePlayOutline, faTrashCan } from "@fortawesome/free-regular-svg-icons";
-import { faChevronLeft, faCirclePlay, faDownload, faFileImport, faPenToSquare, faPlus, faThumbTack } from "@fortawesome/free-solid-svg-icons";
-import { faFileExport } from "@fortawesome/free-solid-svg-icons/faFileExport";
-import { faGear } from "@fortawesome/free-solid-svg-icons/faGear";
+import {
+  faChevronLeft,
+  faCirclePlay,
+  faDownload,
+  faFileImport,
+  faPenToSquare,
+  faPlus,
+  faThumbTack,
+  faFileExport,
+  faGear,
+  faArrowUpWideShort,
+  faArrowDownShortWide,
+} from "@fortawesome/free-solid-svg-icons";
 import { A, useNavigate, useParams, useSearchParams } from "@solidjs/router";
 import { OverlayScrollbarsComponent } from "overlayscrollbars-solid";
 import Fa from "solid-fa";
-import { createResource, createSignal, createUniqueId, For, onMount, Show, useContext } from "solid-js";
+import { createMemo, createResource, createSignal, createUniqueId, For, onMount, Show, useContext } from "solid-js";
 import { createStore } from "solid-js/store";
 
 import Console, { C2SChannel, clearConsole, createC2SChannel } from "../../components/global/Console";
@@ -23,6 +33,7 @@ import { Refetcher } from "../../types";
 
 import styles from "./Profile.module.css";
 import sidebarStyles from "./SidebarProfiles.module.css";
+import { autofocus } from "../../components/global/Directives";
 
 interface ProfileParams {
   [key: string]: string | undefined;
@@ -36,6 +47,8 @@ export default function Profile() {
 
   const gameInfo = gamesById().get(params.gameId)!; // TODO, handle undefined case
 
+  const [profileSortOrder, setProfileSortOrder] = createSignal(false);
+
   const [profiles] = createResource(
     globals.profiles,
     (profiles) => {
@@ -44,7 +57,7 @@ export default function Profile() {
     { initialValue: [] }
   );
 
-  const currentProfile = () => globals.profiles().find((profile) => profile.id === params.profileId);
+  const currentProfile = createMemo(() => globals.profiles().find((profile) => profile.id === params.profileId));
 
   const [activeProfileMods, { refetch: refetchActiveProfileMods }] = createResource(() => [], { initialValue: [] });
 
@@ -68,11 +81,6 @@ export default function Profile() {
       reportErr(e);
     }
   }
-
-  const [profileSearchOptions, setProfileSearchOptions] = createStore({
-    "alphabetical-descending": false,
-    "creation-date-descending": false,
-  });
 
   return (
     <main class={styles.main}>
@@ -109,22 +117,24 @@ export default function Profile() {
 
           <form on:submit={(e) => e.preventDefault()} class={sidebarStyles.sidebar__profilesSearch}>
             <input type="text" name="profile-search" id="profile-search" placeholder="Search" maxLength={100} />
-            <SelectDropdown<"alphabetical-descending" | "creation-date-descending">
+            <SelectDropdown<"alphabetical" | "creationDate">
+              class={sidebarStyles.sidebar__profilesSearchSortBtn}
               multiselect={false}
-              options={[
-                {
-                  name: "A-Z",
-                  value: "alphabetical-descending",
+              options={{
+                "A-Z": {
+                  value: "alphabetical",
                 },
-                {
-                  name: "Creation Date",
-                  value: "creation-date-descending",
+
+                "Creation Date": {
+                  value: "creationDate",
                 },
-              ]}
+              }}
               label={{ labelText: "preset", preset: "Sort" }}
-              selected={(key) => profileSearchOptions[key]}
-              onChanged={(key, selected) => setProfileSearchOptions({ [key]: selected })}
+              onChanged={(key, selected) => console.log(key, selected)}
             />
+            <button class={sidebarStyles.sidebar__profilesSearchSortByBtn} on:click={() => setProfileSortOrder((order) => !order)}>
+              {profileSortOrder() ? <Fa icon={faArrowUpWideShort} /> : <Fa icon={faArrowDownShortWide} />}
+            </button>
           </form>
 
           <OverlayScrollbarsComponent defer options={{ scrollbars: { autoHide: "leave" } }} class={sidebarStyles.sidebar__profilesListContainer}>
@@ -225,18 +235,12 @@ function NoSelectedProfileContent(props: { gameId: string; profiles: () => Profi
 
   const nameId = createUniqueId();
 
-  let inputRef!: HTMLInputElement;
-
-  onMount(() => {
-    inputRef.focus();
-  });
-
   return (
     <>
       <p>{props.profiles().length !== 0 ? "Select a profile from the sidebar or create a new one" : "Create a new profile"}</p>
       <form on:submit={submit}>
         <label for={nameId}>Name</label>
-        <input id={nameId} value={name()} on:input={(e) => setName(e.target.value)} ref={inputRef} />
+        <input id={nameId} value={name()} on:input={(e) => setName(e.target.value)} use:autofocus />
         <button type="submit">Create</button>
       </form>
     </>

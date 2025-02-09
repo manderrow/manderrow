@@ -1,6 +1,6 @@
 import { createSignal, createUniqueId, JSX, Show } from "solid-js";
 
-import { faCaretDown } from "@fortawesome/free-solid-svg-icons/faCaretDown";
+import { faCaretDown } from "@fortawesome/free-solid-svg-icons";
 import Fa from "solid-fa";
 import Dropdown, { Alignment, DropdownOptions } from "./Dropdown";
 

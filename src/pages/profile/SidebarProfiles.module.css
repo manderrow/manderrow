@@ -15,12 +15,28 @@
 }
 
 .sidebar__profilesSearch {
+  border-radius: 4px;
+  display: flex;
+  background-color: var(--clr-neutral-8);
+  border: 1px solid var(--clr-neutral-7);
 }
 
 .sidebar__profilesSearch input {
   width: 100%;
   padding: 0.2em 0.4em;
-  border-radius: 4px;
+  border-top-left-radius: inherit;
+  border-bottom-left-radius: inherit;
+  background-color: transparent;
+  border: none;
+}
+
+.sidebar__profilesSearchSortBtn {
+  color: var(--clr-neutral-2);
+}
+
+.sidebar__profilesSearchSortByBtn {
+  padding-inline: 0.5em;
+  color: var(--clr-neutral-2);
 }
 
 .profileList__item {

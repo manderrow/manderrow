@@ -8,6 +8,7 @@ import { ListSortType } from "../../enums/ListSortOrder";
 import { games, gamesPopularity } from "../../globals";
 import { Locale, localeNamesMap, setLocale, locale, t } from "../../i18n/i18n";
 import { Game } from "../../types";
+import { autofocus } from "../../components/global/Directives";
 
 import blobStyles from "./GameBlobs.module.css";
 import gameListStyles from "./GameList.module.css";
@@ -68,6 +69,7 @@ export default function GameSelect() {
             placeholder={t("game_select.search.input_placeholder")}
             value={search()}
             maxlength="100"
+            use:autofocus
             on:input={(e) => setSearch(e.target.value)}
           />
           <select name="sort-type" id="sort-type" on:input={(e) => setSort(e.target.value as ListSortType)}>

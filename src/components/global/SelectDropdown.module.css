@@ -1,6 +1,3 @@
-.select {
-}
-
 .container {
   position: relative;
 }
@@ -14,18 +11,28 @@
   -webkit-user-select: none;
 }
 
+.label:hover {
+  cursor: pointer;
+}
+
 .labelDefault {
   background-color: var(--clr-neutral-7);
   border-radius: 4px;
 }
 
+.dropdown {
+  padding: 0.5em 0 !important;
+}
+
 .options {
+  border-radius: inherit;
 }
 
 .option {
   user-select: none;
   -webkit-user-select: none;
-  padding: 0.25em;
+  padding: 0.3em 0.5em;
+  white-space: nowrap;
 }
 
 .option:hover {
