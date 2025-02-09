@@ -1,15 +1,14 @@
 pub mod paths;
 pub mod proton;
 
+use std::io::Write as _;
 use std::process::Stdio;
 use std::time::Duration;
-use std::{io::Write as _, ptr::addr_of_mut};
 
 use anyhow::{anyhow, bail, Context as _, Result};
 use paths::get_steam_exe;
-use slog::{debug, info, warn};
+use slog::{debug, info};
 use tokio::process::Command;
-use windows::Win32::System::Diagnostics::ToolHelp::PROCESSENTRY32;
 
 use crate::ipc::{DoctorFix, OutputLine, Spc};
 
@@ -17,7 +16,10 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
     #[cfg(windows)]
     {
         use std::mem::MaybeUninit;
-        use std::ptr::NonNull;
+        use std::ptr::{addr_of_mut, NonNull};
+
+        use slog::warn;
+        use windows::Win32::System::Diagnostics::ToolHelp::PROCESSENTRY32;
 
         use crate::windows_util::Handle;
 
@@ -34,76 +36,65 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
             (&raw mut (*slot.as_mut_ptr()).dwSize)
                 .write(size_of::<PROCESSENTRY32>().try_into().unwrap());
         }
-        if unsafe {
+        unsafe {
             windows::Win32::System::Diagnostics::ToolHelp::Process32First(
                 snapshot.as_raw(),
                 slot.as_mut_ptr(),
             )
         }
-        .is_ok()
-        {
-            let mut issued_shutdown = false;
+        .map_err(|e| anyhow!("{e:?}"))?;
 
-            loop {
-                let proc = unsafe { slot.assume_init_ref() };
-                let name = unsafe { NonNull::from(&proc.szExeFile).cast::<[u8; 260]>().as_ref() };
-                if let Ok(name) = std::str::from_utf8(
-                    &name[..name.iter().position(|b| *b == 0).unwrap_or(name.len())],
-                ) {
-                    debug!(log, "{name:?}");
-                    if name == "steam.exe" {
-                        if !issued_shutdown {
-                            issued_shutdown = true;
-                            info!(log, "Steam is open. Issuing shutdown request.");
-                            Command::new(get_steam_exe()?.as_ref())
-                                .arg("-shutdown")
-                                .status()
-                                .await?
-                                .exit_ok()?;
-                        }
-
-                        info!(
-                            log,
-                            "Waiting for Steam process {} to shut down", proc.th32ProcessID
-                        );
-                        let proc = unsafe {
-                            Handle::new(windows::Win32::System::Threading::OpenProcess(
-                                windows::Win32::System::Threading::PROCESS_SYNCHRONIZE,
-                                false,
-                                proc.th32ProcessID,
-                            )?)?
-                        };
-                        let event = unsafe {
-                            windows::Win32::System::Threading::WaitForSingleObject(
-                                proc.as_raw(),
-                                windows::Win32::System::Threading::INFINITE,
-                            )
-                        };
-                        match event {
-                            windows::Win32::Foundation::WAIT_OBJECT_0 => {}
-                            windows::Win32::Foundation::WAIT_FAILED => unsafe {
-                                bail!("{:?}", windows::Win32::Foundation::GetLastError().ok())
-                            },
-                            _ => bail!("Unexpected WAIT_EVENT: {event:?}"),
-                        }
-                    }
+        let mut issued_shutdown = false;
+        loop {
+            let proc = unsafe { slot.assume_init_ref() };
+            let name = unsafe { NonNull::from(&proc.szExeFile).cast::<[u8; 260]>().as_ref() };
+            let name = std::ffi::CStr::from_bytes_until_nul(name)?;
+            if name == b"steam.exe" {
+                if !issued_shutdown {
+                    issued_shutdown = true;
+                    info!(log, "Steam is open. Issuing shutdown request.");
+                    Command::new(get_steam_exe()?.as_ref())
+                        .arg("-shutdown")
+                        .status()
+                        .await?
+                        .exit_ok()?;
                 }
-                if unsafe {
-                    windows::Win32::System::Diagnostics::ToolHelp::Process32Next(
-                        snapshot.as_raw(),
-                        slot.as_mut_ptr(),
+
+                info!(
+                    log,
+                    "Waiting for Steam process {} to shut down", proc.th32ProcessID
+                );
+                let proc = unsafe {
+                    Handle::new(windows::Win32::System::Threading::OpenProcess(
+                        windows::Win32::System::Threading::PROCESS_SYNCHRONIZE,
+                        false,
+                        proc.th32ProcessID,
+                    )?)?
+                };
+                let event = unsafe {
+                    windows::Win32::System::Threading::WaitForSingleObject(
+                        proc.as_raw(),
+                        windows::Win32::System::Threading::INFINITE,
                     )
-                }
-                .is_err()
-                {
-                    break;
+                };
+                match event {
+                    windows::Win32::Foundation::WAIT_OBJECT_0 => {}
+                    windows::Win32::Foundation::WAIT_FAILED => unsafe {
+                        bail!("{:?}", windows::Win32::Foundation::GetLastError())
+                    },
+                    _ => bail!("Unexpected WAIT_EVENT: {event:?}"),
                 }
             }
-        } else {
-            warn!(
-                log,
-                "Windows told us there are no processes. This is weird."
-            );
+            if unsafe {
+                windows::Win32::System::Diagnostics::ToolHelp::Process32Next(
+                    snapshot.as_raw(),
+                    slot.as_mut_ptr(),
+                )
+            }
+            .is_err()
+            {
+                break;
+            }
         }
     }
     #[cfg(not(windows))]

@@ -4,8 +4,8 @@ use std::collections::HashMap;
 use std::ffi::OsString;
 
 use anyhow::{bail, Context as _, Result};
-use ipc_channel::ipc::{IpcOneShotServer, IpcReceiver, IpcSender};
-use slog::{debug, error};
+use ipc_channel::ipc::{IpcError, IpcOneShotServer, IpcReceiver, IpcSender};
+use slog::error;
 use tauri::ipc::Channel;
 use tauri::{AppHandle, Manager};
 use uuid::Uuid;
@@ -162,6 +162,7 @@ pub fn spawn_c2s_pipe(
                     return;
                 }
             };
+            let mut exited = false;
             loop {
                 match msg {
                     C2SMessage::Connect { ref mut s2c_tx } => {
@@ -170,6 +171,9 @@ pub fn spawn_c2s_pipe(
                         {
                             error!(log, "Failed to spawn S2C IPC pipe: {e}");
                         }
+                    }
+                    C2SMessage::Crash { .. } | C2SMessage::Exit { .. } => {
+                        exited = true;
                     }
                     _ => {}
                 }
@@ -182,6 +186,11 @@ pub fn spawn_c2s_pipe(
                 }
                 msg = match rx.recv() {
                     Ok(t) => t,
+                    Err(IpcError::Disconnected) if exited => break,
+                    Err(IpcError::Disconnected) => {
+                        error!(log, "Unexpected IPC disconnection");
+                        break;
+                    }
                     Err(e) => {
                         error!(log, "Unable to receive IPC message: {e}");
                         break;
