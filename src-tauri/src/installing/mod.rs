@@ -80,10 +80,12 @@ impl<'a> Iterator for ArchivedNativePathComponents<'a> {
         }
         #[cfg(windows)]
         {
+            // TODO: if host is little-endian, cast instead of mapping and collecting into an intermediate buffer
             use std::os::windows::ffi::OsStringExt;
-            self.iter
-                .next()
-                .map(|component| OsString::from_wide(component).into())
+            self.iter.next().map(|component| {
+                OsString::from_wide(&component.iter().map(|c| c.to_native()).collect::<Vec<_>>())
+                    .into()
+            })
         }
     }
 }
@@ -191,7 +193,9 @@ impl<'a> PartialEq<ArchivedNativePath> for Path {
                                 a.as_os_str()
                                     .encode_wide()
                                     .zip_longest(b.iter())
-                                    .map(|item| item.both().map(|(a, b)| a == b).unwrap_or_default())
+                                    .map(|item| {
+                                        item.both().map(|(a, b)| a == b).unwrap_or_default()
+                                    })
                                     .all()
                             })
                             .unwrap_or_default()
