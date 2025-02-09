@@ -2,6 +2,7 @@
 #![feature(error_generic_member_access)]
 #![feature(exit_status_error)]
 #![feature(extend_one)]
+#![feature(os_string_truncate)]
 #![feature(path_add_extension)]
 #![feature(type_changing_struct_update)]
 
@@ -13,9 +14,9 @@ mod ipc;
 mod launching;
 mod mods;
 mod paths;
+pub mod util;
 mod window_state;
 mod wrap;
-pub mod util;
 
 #[cfg(windows)]
 mod windows_util;
@@ -50,9 +51,9 @@ impl From<anyhow::Error> for CommandError {
     #[track_caller]
     fn from(value: anyhow::Error) -> Self {
         let backtrace = if value.backtrace().status() != std::backtrace::BacktraceStatus::Disabled {
-          value.backtrace().to_string()
+            value.backtrace().to_string()
         } else {
-          std::backtrace::Backtrace::force_capture().to_string()
+            std::backtrace::Backtrace::force_capture().to_string()
         };
         Self::Error {
             messages: value.chain().map(|e| e.to_string()).collect(),

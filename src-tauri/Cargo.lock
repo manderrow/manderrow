@@ -2466,6 +2466,7 @@ dependencies = [
  "dirs 6.0.0",
  "drop-guard",
  "event-listener",
+ "fastrand",
  "flate2",
  "futures",
  "get-locale",

@@ -260,7 +260,9 @@ const MANIFEST_FILE_NAME: &str = "manderrow_mod.json";
 pub async fn get_profile_mods(id: Uuid) -> Result<Vec<ModAndVersion>, CommandError> {
     let mut path = profile_path(id);
     path.push("profile.json");
-    let metadata = read_profile_file(&path).await.context("Failed to read profile")?;
+    let metadata = read_profile_file(&path)
+        .await
+        .context("Failed to read profile")?;
     path.pop();
 
     let game = GAMES_BY_ID.get(&*metadata.game).context("No such game")?;
@@ -284,15 +286,13 @@ pub async fn get_profile_mods(id: Uuid) -> Result<Vec<ModAndVersion>, CommandErr
                         path.push(e.file_name());
                         path.push(MANIFEST_FILE_NAME);
                         tokio::task::block_in_place(|| {
-                            Ok::<_, anyhow::Error>(Some(serde_json::from_reader(std::io::BufReader::new(
-                                match std::fs::File::open(&path) {
+                            Ok::<_, anyhow::Error>(Some(serde_json::from_reader(
+                                std::io::BufReader::new(match std::fs::File::open(&path) {
                                     Ok(t) => t,
-                                    Err(e) if e.is_not_found() => {
-                                        return Ok(None)
-                                    }
+                                    Err(e) if e.is_not_found() => return Ok(None),
                                     Err(e) => return Err(e.into()),
-                                },
-                            ))?))
+                                }),
+                            )?))
                         })
                     }));
                 }
@@ -315,7 +315,9 @@ pub async fn install_profile_mod(id: Uuid, r#mod: Mod, version: usize) -> Result
 
     let mut path = profile_path(id);
     path.push("profile.json");
-    let metadata = read_profile_file(&path).await.context("Failed to read profile")?;
+    let metadata = read_profile_file(&path)
+        .await
+        .context("Failed to read profile")?;
     path.pop();
 
     let game = GAMES_BY_ID.get(&*metadata.game).context("No such game")?;
@@ -336,10 +338,13 @@ pub async fn install_profile_mod(id: Uuid, r#mod: Mod, version: usize) -> Result
             path.push("BepInEx");
             path.push("plugins");
 
-            tokio::fs::create_dir_all(&path).await.context("Failed to create BepInEx plugins directory")?;
+            tokio::fs::create_dir_all(&path)
+                .await
+                .context("Failed to create BepInEx plugins directory")?;
 
             path.push(&mod_with_version.r#mod.full_name);
-            let staged = install_zip(&log, &mod_with_version.version.download_url, None, &path).await?;
+            let staged =
+                install_zip(&log, &mod_with_version.version.download_url, None, &path).await?;
 
             tokio::task::block_in_place(|| {
                 serde_json::to_writer(
@@ -365,7 +370,9 @@ pub async fn uninstall_profile_mod(id: Uuid, mod_name: &str) -> Result<(), Comma
 
     let mut path = profile_path(id);
     path.push("profile.json");
-    let metadata = read_profile_file(&path).await.context("Failed to read profile")?;
+    let metadata = read_profile_file(&path)
+        .await
+        .context("Failed to read profile")?;
     path.pop();
 
     let game = GAMES_BY_ID.get(&*metadata.game).context("No such game")?;
@@ -379,7 +386,9 @@ pub async fn uninstall_profile_mod(id: Uuid, mod_name: &str) -> Result<(), Comma
 
             // remove the manifest so it isn't left over after uninstalling the package
             path.push(MANIFEST_FILE_NAME);
-            tokio::fs::remove_file(&path).await.context("Failed to remove manifest file")?;
+            tokio::fs::remove_file(&path)
+                .await
+                .context("Failed to remove manifest file")?;
             path.pop();
 
             // keep_changes is true so that configs and any other changes are

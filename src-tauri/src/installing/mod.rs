@@ -2,8 +2,13 @@
 //!
 //! Never make changes to `IndexEntryV*` or [`Index`] variants. Make a new version instead.
 
+use std::ffi::OsString;
 use std::{
-    borrow::Cow, collections::HashMap, ffi::OsStr, hash::Hash, path::{Path, PathBuf}
+    borrow::Cow,
+    collections::HashMap,
+    ffi::OsStr,
+    hash::Hash,
+    path::{Path, PathBuf},
 };
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
@@ -69,12 +74,16 @@ impl<'a> Iterator for ArchivedNativePathComponents<'a> {
         #[cfg(unix)]
         {
             use std::os::unix::ffi::OsStrExt;
-            self.iter.next().map(|component| OsStr::from_bytes(component).into())
+            self.iter
+                .next()
+                .map(|component| OsStr::from_bytes(component).into())
         }
         #[cfg(windows)]
         {
             use std::os::windows::ffi::OsStringExt;
-            self.iter.next().map(|component| OsString::from_wide(component).into())
+            self.iter
+                .next()
+                .map(|component| OsString::from_wide(component).into())
         }
     }
 }
@@ -467,10 +476,7 @@ async fn scan_installed_package_for_changes_with_index_buf<'i>(
                     if let Some((entry, _)) = entries.iter().find(|(e_p, _)| {
                         e_p.component_count() >= p.components().count()
                             && e_p.components().zip(p.components()).all(|(a, b)| {
-                                b.as_os_str()
-                                    .to_str()
-                                    .map(|b| &*a == b)
-                                    .unwrap_or(false)
+                                b.as_os_str().to_str().map(|b| &*a == b).unwrap_or(false)
                             })
                     }) {
                         trace!(log, "Not recording deletion because a parent was also deleted: {indexed_path:?} is inside of {entry:?}");
@@ -540,20 +546,145 @@ pub struct StagedPackage<'a> {
     temp_dir: TempDir,
 }
 
+fn append_random(buf: &mut OsString, count: usize) {
+    buf.reserve(count);
+    let mut char_buf = [0u8; 4];
+    for c in std::iter::repeat_with(fastrand::alphanumeric).take(count) {
+        buf.push(c.encode_utf8(&mut char_buf));
+    }
+}
+
+async fn generate_deletion_path(path: &Path) -> Result<PathBuf, AtomicReplaceError> {
+    // tbd => to be deleted
+    const PREFIX: &str = ".tbd-";
+    const SUFFIX: &str = "-";
+    const RAND_COUNT: usize = 6;
+    let mut buf =
+        OsString::with_capacity(path.as_os_str().len() + PREFIX.len() + RAND_COUNT + SUFFIX.len());
+    buf.push(
+        path.parent()
+            .ok_or_else(|| AtomicReplaceError::InvalidTargetPath("Path must have a parent"))?
+            .as_os_str(),
+    );
+    buf.push(std::path::MAIN_SEPARATOR_STR);
+    buf.push(PREFIX);
+    let trunc_len = buf.len();
+    loop {
+        append_random(&mut buf, RAND_COUNT);
+        buf.push(SUFFIX);
+        buf.push(
+            path.file_name().ok_or_else(|| {
+                AtomicReplaceError::InvalidTargetPath("Path must have a file name")
+            })?,
+        );
+        if !tokio::fs::try_exists(Path::new(&buf))
+            .await
+            .map_err(AtomicReplaceError::PreModification)?
+        {
+            return Ok(PathBuf::from(buf));
+        }
+        buf.truncate(trunc_len);
+    }
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum AtomicReplaceError {
+    #[error("Invalid target path: {0}")]
+    InvalidTargetPath(&'static str),
+    #[error("Failed pre-modification: {0}")]
+    PreModification(#[source] std::io::Error),
+    #[error("Failed to stage the original for deletion at {deletion_path:?}: {cause}")]
+    StageForDeletion {
+        deletion_path: PathBuf,
+        #[source]
+        cause: std::io::Error,
+    },
+    #[error("{}", AtomicReplaceMoveReplacementDisplay { deletion_path: deletion_path, cause: cause })]
+    MoveReplacement {
+        deletion_path: Option<PathBuf>,
+        #[source]
+        cause: std::io::Error,
+    },
+    #[error("Failed to delete the original: {cause}. Remnants may be found at {deletion_path:?}.")]
+    CleanUp {
+        deletion_path: PathBuf,
+        #[source]
+        cause: std::io::Error,
+    },
+}
+
+struct AtomicReplaceMoveReplacementDisplay<'a> {
+    deletion_path: &'a Option<PathBuf>,
+    cause: &'a std::io::Error,
+}
+
+impl<'a> std::fmt::Display for AtomicReplaceMoveReplacementDisplay<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Failed to move the replacement into place: {}.",
+            self.cause
+        )?;
+        if let Some(deletion_path) = self.deletion_path {
+            write!(f, " The original may be found at {deletion_path:?}.")
+        } else {
+            Ok(())
+        }
+    }
+}
+
+/// "Atomically" replaces `target` with `from`, which must be on the same file
+/// system. If the operation fails, the original directory at `target`, if any,
+/// will be left behind at a hidden path in the same parent directory as
+/// `target`.
+async fn atomic_replace(target: &Path, from: &Path) -> Result<(), AtomicReplaceError> {
+    let deletion_path = if tokio::fs::try_exists(target)
+        .await
+        .map_err(AtomicReplaceError::PreModification)?
+    {
+        let deletion_path = generate_deletion_path(target).await?;
+        // Move the original to a hidden file just in case replacing it fails.
+        if let Err(cause) = tokio::fs::rename(target, &deletion_path).await {
+            return Err(AtomicReplaceError::StageForDeletion {
+                deletion_path,
+                cause,
+            });
+        }
+        Some(deletion_path)
+    } else {
+        None
+    };
+    // If this fails, we will likely fail to restore the original, so don't
+    // bother trying. Just let the user know where to find it.
+    if let Err(cause) = tokio::fs::rename(from, target).await {
+        return Err(AtomicReplaceError::MoveReplacement {
+            deletion_path,
+            cause,
+        });
+    }
+    if let Some(deletion_path) = deletion_path {
+        // The replacement has succeeded. Delete the original.
+        if let Err(cause) = tokio::fs::remove_dir_all(&deletion_path).await {
+            return Err(AtomicReplaceError::CleanUp {
+                deletion_path,
+                cause,
+            });
+        }
+    }
+    Ok(())
+}
+
 impl StagedPackage<'_> {
     pub fn path(&self) -> &Path {
         self.temp_dir.path()
     }
 
+    /// Finishes installing the package by moving the staging directory into place,
     pub async fn finish(self, log: &slog::Logger) -> anyhow::Result<()> {
-        match tokio::fs::remove_dir_all(&self.target).await {
-            Ok(()) => {}
-            Err(e) if e.is_not_found() => {}
-            Err(e) => return Err(e).context("Unable to remove previous installation"),
-        }
-        tokio::fs::rename(self.temp_dir.into_path(), &self.target)
-            .await
-            .context("Unable to move temporary directory into place")?;
+        atomic_replace(self.target, self.temp_dir.path()).await?;
+        // the temp directory doesn't exist anymore.
+        // without this, TempDir::drop would try to delete it
+        _ = self.temp_dir.into_path();
         debug!(log, "Installed package to {:?}", self.target);
         Ok(())
     }
@@ -661,7 +792,11 @@ pub async fn install_zip<'a>(
     Ok(StagedPackage { target, temp_dir })
 }
 
-pub async fn uninstall_package<'a>(log: &slog::Logger, path: &'a Path, keep_changes: bool) -> anyhow::Result<()> {
+pub async fn uninstall_package<'a>(
+    log: &slog::Logger,
+    path: &'a Path,
+    keep_changes: bool,
+) -> anyhow::Result<()> {
     if keep_changes {
         let mut changes = TrieBuilder::new();
         struct ExtendByFn<F>(F);
@@ -703,7 +838,16 @@ pub async fn uninstall_package<'a>(log: &slog::Logger, path: &'a Path, keep_chan
                 }
             }
             // TODO: avoid cloning and collecting
-            if changes.predictive_search::<Discard, _>(e.path().components().map(|c| c.as_os_str().to_owned()).collect::<Vec<_>>()).next().is_none() {
+            if changes
+                .predictive_search::<Discard, _>(
+                    e.path()
+                        .components()
+                        .map(|c| c.as_os_str().to_owned())
+                        .collect::<Vec<_>>(),
+                )
+                .next()
+                .is_none()
+            {
                 if e.file_type().is_dir() {
                     debug!(log, "Removing directory tree at {:?}", e.path());
                     tokio::fs::remove_dir_all(e.path()).await?;
@@ -723,7 +867,7 @@ pub async fn uninstall_package<'a>(log: &slog::Logger, path: &'a Path, keep_chan
     Ok(())
 }
 
-async fn merge_paths(log: &slog::Logger,from: &Path, to: &Path) -> Result<()> {
+async fn merge_paths(log: &slog::Logger, from: &Path, to: &Path) -> Result<()> {
     let mut iter = WalkDir::new(from).into_iter();
     while let Some(r) = iter.next() {
         let dir_entry = r?;
@@ -733,7 +877,11 @@ async fn merge_paths(log: &slog::Logger,from: &Path, to: &Path) -> Result<()> {
         } else {
             to.join(rel_path)
         };
-        trace!(log, "Merging {:?} ({rel_path:?}) into {to:?}", dir_entry.path());
+        trace!(
+            log,
+            "Merging {:?} ({rel_path:?}) into {to:?}",
+            dir_entry.path()
+        );
         async {
             enum FileType {
                 FileLike,
