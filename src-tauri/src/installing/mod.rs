@@ -64,7 +64,7 @@ struct ArchivedNativePathComponents<'a> {
     #[cfg(unix)]
     iter: std::slice::Iter<'a, ArchivedVec<u8>>,
     #[cfg(windows)]
-    windows: std::slice::Iter<'a, ArchivedVec<u16_le>>,
+    iter: std::slice::Iter<'a, ArchivedVec<u16_le>>,
 }
 
 impl<'a> Iterator for ArchivedNativePathComponents<'a> {
@@ -191,8 +191,8 @@ impl<'a> PartialEq<ArchivedNativePath> for Path {
                                 a.as_os_str()
                                     .encode_wide()
                                     .zip_longest(b.iter())
-                                    .map(|(a, b)| a == b)
-                                    .unwrap_or_default()
+                                    .map(|item| item.both().map(|(a, b)| a == b).unwrap_or_default())
+                                    .all()
                             })
                             .unwrap_or_default()
                     })

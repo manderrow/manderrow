@@ -50,7 +50,7 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
             let proc = unsafe { slot.assume_init_ref() };
             let name = unsafe { NonNull::from(&proc.szExeFile).cast::<[u8; 260]>().as_ref() };
             let name = std::ffi::CStr::from_bytes_until_nul(name)?;
-            if name == b"steam.exe" {
+            if name.to_bytes() == b"steam.exe" {
                 if !issued_shutdown {
                     issued_shutdown = true;
                     info!(log, "Steam is open. Issuing shutdown request.");
@@ -167,7 +167,9 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
 
                 info!(log, "Waiting for Steam process {pid} to shut down");
 
-                drop_guard::defer(|| unsafe { libc::close(pidfd) });
+                drop_guard::defer(|| {
+                    _ = unsafe { libc::close(pidfd) };
+                });
                 let mut pollfd = libc::pollfd {
                     fd: pidfd,
                     events: libc::POLLIN,
