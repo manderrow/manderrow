@@ -193,10 +193,9 @@ impl<'a> PartialEq<ArchivedNativePath> for Path {
                                 a.as_os_str()
                                     .encode_wide()
                                     .zip_longest(b.iter())
-                                    .map(|item| {
-                                        item.both().map(|(a, b)| a == b).unwrap_or_default()
+                                    .all(|item| {
+                                        item.both().map(|(a, b)| a == *b).unwrap_or_default()
                                     })
-                                    .all()
                             })
                             .unwrap_or_default()
                     })
