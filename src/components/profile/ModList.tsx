@@ -23,12 +23,7 @@ import { Mod, ModListing, ModPackage } from "../../types";
 import { numberFormatter, roundedNumberFormatter } from "../../utils";
 import ErrorBoundary, { ErrorContext } from "../global/ErrorBoundary";
 import { InitialProgress, ProgressData } from "./ModSearch";
-import {
-  fetchModIndex,
-  installProfileMod,
-  queryModIndex,
-  uninstallProfileMod,
-} from "../../api";
+import { fetchModIndex, installProfileMod, queryModIndex, uninstallProfileMod } from "../../api";
 
 import styles from "./ModList.module.css";
 
@@ -54,12 +49,7 @@ export default function ModList(props: { mods: Fetcher }) {
   return (
     <div class={styles.modListAndView}>
       <Show when={props.mods} keyed>
-        {(mods) => (
-          <ModListMods
-            mods={mods}
-            selectedMod={[selectedMod, setSelectedMod]}
-          />
-        )}
+        {(mods) => <ModListMods mods={mods} selectedMod={[selectedMod, setSelectedMod]} />}
       </Show>
       <ModView mod={selectedMod} />
     </div>
@@ -88,17 +78,11 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
 
   const [modListing, { refetch: refetchModListing }] = createResource<ModListing | undefined, Mod | {}, never>(
     // we need the "nullish" value passed through, so disguise it as non-nullish
-    () => mod() === undefined ? {} : mod()!,
+    () => (mod() === undefined ? {} : mod()!),
     async (mod, info: ResourceFetcherInfo<ModListing | undefined, never>) => {
       if ("game" in mod) {
-        await fetchModIndex(
-          mod.game,
-          { refresh: info.refetching },
-          setProgress
-        );
-        return (
-          await queryModIndex(mod.game, "", [], { exact: [mod.full_name] })
-        ).mods[0];
+        await fetchModIndex(mod.game, { refresh: info.refetching }, setProgress);
+        return (await queryModIndex(mod.game, "", [], { exact: [mod.full_name] })).mods[0];
       } else if ("versions" in mod) {
         setProgress({ completed: null, total: null });
         return mod;
@@ -136,14 +120,13 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
               <div>
                 <h2 class={styles.name}>{mod().name}</h2>
                 <p class={styles.description}>{mod().owner}</p>
-                <Show when={modListing.latest}>
-                  {(modListing) => <p class={styles.description}>{modListing().versions[0].description}</p>}
-                </Show>
+                <Show when={modListing.latest}>{(modListing) => <p class={styles.description}>{modListing().versions[0].description}</p>}</Show>
               </div>
 
-              {/* <form class={styles.modView__downloader} action="#">
+              <form class={styles.modView__downloader} action="#">
                 <select class={styles.versions}>
-                  <For each={modListing.latest!.versions}>
+                  {/* This entire thing is temporary anyway, it will be removed in a later commit */}
+                  <For each={modListing.latest?.versions}>
                     {(version, i) => {
                       return (
                         <option value={version.uuid4}>
@@ -154,37 +137,7 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
                   </For>
                 </select>
                 <button>Download</button>
-              </form> */}
-              <Show when={modListing.latest}>
-                {(modListing) => <>
-                  <h3>Versions</h3>
-                  <ol class={styles.versions}>
-                    <For each={modListing().versions}>
-                      {(version) => {
-                        return (
-                          <li>
-                            <div>
-                              <span class={styles.version}>{version.version_number}</span>
-                              <span> - </span>
-                              <span class={styles.timestamp} title={version.date_created}>
-                                {dateFormatter.format(new Date(version.date_created))}
-                              </span>
-                            </div>
-                            <div>
-                              <p class={styles.downloads}>
-                                <span class={styles.label}>Downloads: </span>
-                                <span class={styles.value}>
-                                  {numberFormatter.format(version.downloads)}
-                                </span>
-                              </p>
-                            </div>
-                          </li>
-                        );
-                      }}
-                    </For>
-                  </ol>
-                </>}
-              </Show>
+              </form>
 
               <div>
                 <h4>Links</h4>
@@ -236,14 +189,7 @@ function ModListMods(props: { mods: Fetcher; selectedMod: Signal<Mod | undefined
   return (
     <div class={styles.scrollOuter}>
       <ol class={`${styles.modList} ${styles.scrollInner}`}>
-        <For each={paginatedMods()}>
-          {(mod) => (
-            <ModListItem
-              mod={mod}
-              selectedMod={props.selectedMod}
-            />
-          )}
-        </For>
+        <For each={paginatedMods()}>{(mod) => <ModListItem mod={mod} selectedMod={props.selectedMod} />}</For>
         <Show when={!end()}>
           <li use:infiniteScrollLoader>Loading...</li>
         </Show>
@@ -252,10 +198,7 @@ function ModListMods(props: { mods: Fetcher; selectedMod: Signal<Mod | undefined
   );
 }
 
-function ModListItem(props: {
-  mod: Mod;
-  selectedMod: Signal<Mod | undefined>;
-}) {
+function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) {
   const displayVersion = createMemo(() => {
     if ("version" in props.mod) return props.mod.version;
     return props.mod.versions[0];
@@ -268,7 +211,7 @@ function ModListItem(props: {
     if ("version" in mod) {
       return mod;
     } else {
-      return installContext?.installed.latest.find(pkg => pkg.uuid4 === mod.uuid4);
+      return installContext?.installed.latest.find((pkg) => pkg.uuid4 === mod.uuid4);
     }
   });
 
@@ -291,44 +234,35 @@ function ModListItem(props: {
         <img class={styles.icon} src={displayVersion().icon} />
         <div class={styles.mod__content}>
           <div class={styles.left}>
-            <div>
-              <span class={styles.name}>{props.mod.name}</span>{" "}
-              <span class={styles.version}>
-                v{displayVersion().version_number}
+            <p class={styles.info}>
+              <span class={styles.name}>{displayVersion().name}</span>
+              <span class={styles.separator} aria-hidden>
+                &bull;
               </span>
-            </div>
-            <div class={styles.owner}>
-              <span class={styles.label}>@</span>
-              <span class={styles.value}>{props.mod.owner}</span>
-            </div>
-            <ul class={styles.categories}>
-              <For each={props.mod.categories}>
-                {(category) => <li>{category}</li>}
-              </For>
-            </ul>
+              <span class={styles.owner}>{props.mod.owner}</span>
+            </p>
+            <p class={styles.downloads}>
+              <Show when={"versions" in props.mod}>
+                <Fa icon={faDownload} /> {roundedNumberFormatter.format((props.mod as ModListing).versions.map((v) => v.downloads).reduce((acc, x) => acc + x))}
+              </Show>
+            </p>
+            <p class={styles.description}>{displayVersion().description}</p>
           </div>
           <div class={styles.right}>
-            <Show when={"versions" in props.mod}>
-              <p class={styles.downloads}>
-                <Fa icon={faDownload} /> {roundedNumberFormatter.format((props.mod as ModListing).versions.map((v) => v.downloads).reduce((acc, x) => acc + x))}
-              </p>
-            </Show>
             <Show when={installContext !== undefined}>
-              <Switch fallback={
-                <ErrorBoundary>
-                  <InstallButton
-                    mod={props.mod as ModListing}
-                    installContext={installContext!}
-                  />
-                </ErrorBoundary>
-              }>
+              <Switch
+                fallback={
+                  <ErrorBoundary>
+                    <InstallButton mod={props.mod as ModListing} installContext={installContext!} />
+                  </ErrorBoundary>
+                }
+              >
                 <Match when={installed()}>
-                  {(installed) => <ErrorBoundary>
-                    <UninstallButton
-                      mod={installed()}
-                      installContext={installContext!}
-                    />
-                  </ErrorBoundary>}
+                  {(installed) => (
+                    <ErrorBoundary>
+                      <UninstallButton mod={installed()} installContext={installContext!} />
+                    </ErrorBoundary>
+                  )}
                 </Match>
               </Switch>
             </Show>
@@ -339,10 +273,7 @@ function ModListItem(props: {
   );
 }
 
-function InstallButton(props: {
-  mod: ModListing;
-  installContext: NonNullable<typeof ModInstallContext.defaultValue>;
-}) {
+function InstallButton(props: { mod: ModListing; installContext: NonNullable<typeof ModInstallContext.defaultValue> }) {
   const reportErr = useContext(ErrorContext);
   const [busy, setBusy] = createSignal(false);
   return (
@@ -369,10 +300,7 @@ function InstallButton(props: {
   );
 }
 
-function UninstallButton(props: {
-  mod: ModPackage;
-  installContext: NonNullable<typeof ModInstallContext.defaultValue>;
-}) {
+function UninstallButton(props: { mod: ModPackage; installContext: NonNullable<typeof ModInstallContext.defaultValue> }) {
   const reportErr = useContext(ErrorContext);
   const [busy, setBusy] = createSignal(false);
   return (
@@ -383,10 +311,7 @@ function UninstallButton(props: {
         e.stopPropagation();
         setBusy(true);
         try {
-          await uninstallProfileMod(
-            props.installContext.profile,
-            props.mod.full_name
-          );
+          await uninstallProfileMod(props.installContext.profile, props.mod.full_name);
           await props.installContext.refetchInstalled();
         } catch (e) {
           reportErr(e);
