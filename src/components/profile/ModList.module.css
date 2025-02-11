@@ -29,7 +29,6 @@
 
   .mod {
     display: flex;
-    flex-direction: row;
 
     .mod__btn {
       display: flex;
@@ -79,6 +78,7 @@
   .icon {
     aspect-ratio: 1;
     width: 4rem;
+    align-self: flex-start;
     border-radius: 6px;
   }
 
@@ -110,7 +110,7 @@
 
     .left,
     .right {
-      gap: 0.5em;
+      gap: 0.25em;
     }
 
     .left {

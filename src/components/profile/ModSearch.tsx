@@ -1,7 +1,7 @@
-import { createResource, createSignal, ResourceFetcherInfo, Show } from "solid-js";
+import { createResource, createSignal, ResourceFetcherInfo, Show, useContext } from "solid-js";
 import { fetchModIndex, queryModIndex, SortColumn, SortOption } from "../../api";
 import { SortableList } from "../global/SortableList";
-import ModList from "./ModList";
+import ModList, { ModInstallContext } from "./ModList";
 import styles from "./ModSearch.module.css";
 import { faRefresh } from "@fortawesome/free-solid-svg-icons";
 import Fa from "solid-fa";
@@ -10,11 +10,12 @@ import { createStore } from "solid-js/store";
 import Dropdown from "../global/Dropdown";
 import TogglableDropdown from "../global/TogglableDropdown";
 
-interface ProgressData {
+export interface ProgressData {
   completed: number;
   total: number;
 }
-interface InitialProgress {
+
+export interface InitialProgress {
   completed: null;
   total: null;
 }
@@ -31,7 +32,10 @@ export default function ModSearch(props: { game: string }) {
     { column: SortColumn.Owner, descending: false },
   ]);
 
-  const [progress, setProgress] = createStore<InitialProgress | ProgressData>({ completed: null, total: null });
+  const [progress, setProgress] = createStore<InitialProgress | ProgressData>({
+    completed: null,
+    total: null,
+  });
 
   const [loadStatus, { refetch: refetchModIndex }] = createResource(
     () => props.game,
@@ -42,17 +46,32 @@ export default function ModSearch(props: { game: string }) {
   );
 
   const [queriedMods] = createResource(
-    () => [props.game, query(), sort(), loadStatus.loading] as [string, string, SortOption[], true | undefined],
+    () =>
+      [props.game, query(), sort(), loadStatus.loading] as [
+        string,
+        string,
+        SortOption[],
+        true | undefined
+      ],
     async ([game, query, sort]) => {
-      const { count } = await queryModIndex(game, query, sort, { limit: 0 });
+      const { count } = await queryModIndex(game, query, sort, {
+        limit: 0,
+      });
       return {
         count,
         mods: async (page: number) =>
-          (await queryModIndex(game, query, sort, { skip: page * MODS_PER_PAGE, limit: MODS_PER_PAGE })).mods.map((mod) => ({ mod })),
+          (
+            await queryModIndex(game, query, sort, {
+              skip: page * MODS_PER_PAGE,
+              limit: MODS_PER_PAGE,
+            })
+          ).mods,
       };
     },
     { initialValue: { mods: async (_: number) => [], count: 0 } }
   );
+
+  const installContext = useContext(ModInstallContext);
 
   return (
     <div class={styles.modSearch}>
@@ -98,14 +117,21 @@ export default function ModSearch(props: { game: string }) {
       <Show when={loadStatus.loading}>
         <div class={styles.progressLine}>
           <p>Fetching mods</p>
-          <progress value={progress.total == null ? 0 : progress.completed / progress.total} />
+          <progress
+            value={
+              progress.total == null ? 0 : progress.completed / progress.total
+            }
+          />
         </div>
       </Show>
 
       <Show when={queriedMods.latest} fallback={<p>Querying mods...</p>}>
         <div class={styles.discoveredLine}>
           Discovered {numberFormatter.format(queriedMods()!.count)} mods
-          <button class={styles.refreshButton} on:click={() => refetchModIndex()}>
+          <button
+            class={styles.refreshButton}
+            on:click={() => refetchModIndex()}
+          >
             <Fa icon={faRefresh} />
           </button>
         </div>

@@ -50,7 +50,7 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
             let proc = unsafe { slot.assume_init_ref() };
             let name = unsafe { NonNull::from(&proc.szExeFile).cast::<[u8; 260]>().as_ref() };
             let name = std::ffi::CStr::from_bytes_until_nul(name)?;
-            if name == b"steam.exe" {
+            if name.to_bytes() == b"steam.exe" {
                 if !issued_shutdown {
                     issued_shutdown = true;
                     info!(log, "Steam is open. Issuing shutdown request.");
@@ -156,7 +156,7 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
         {
             for pid in output.lines() {
                 let pid = pid.parse()?;
-                let pidfd = match nc::pidfd_open(pid, 0) {
+                let pidfd = match unsafe { nc::pidfd_open(pid, 0) } {
                     Ok(t) => t,
                     Err(nc::ESRCH) => {
                         info!(log, "Steam process {pid} has already shut down");
@@ -167,7 +167,9 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
 
                 info!(log, "Waiting for Steam process {pid} to shut down");
 
-                drop_guard::defer(|| unsafe { libc::close(pidfd) });
+                drop_guard::defer(|| {
+                    _ = unsafe { libc::close(pidfd) };
+                });
                 let mut pollfd = libc::pollfd {
                     fd: pidfd,
                     events: libc::POLLIN,
@@ -208,7 +210,10 @@ pub async fn ensure_launch_args_are_applied(
 ) -> Result<(), crate::Error> {
     loop {
         let result = apply_launch_args(game_id, true, true).await?;
-        if matches!(result, AppliedLaunchArgs::Applied | AppliedLaunchArgs::Overwrote) {
+        if matches!(
+            result,
+            AppliedLaunchArgs::Applied | AppliedLaunchArgs::Overwrote
+        ) {
             #[derive(serde::Deserialize, serde::Serialize)]
             #[serde(rename_all = "snake_case")]
             enum Fix {
@@ -261,7 +266,12 @@ pub async fn ensure_launch_args_are_applied(
             match choice {
                 Fix::Apply => {
                     kill_steam(log).await?;
-                    apply_launch_args(game_id, matches!(result, AppliedLaunchArgs::Overwrote), false).await?;
+                    apply_launch_args(
+                        game_id,
+                        matches!(result, AppliedLaunchArgs::Overwrote),
+                        false,
+                    )
+                    .await?;
                     break;
                 }
                 Fix::Retry => {}
@@ -297,7 +307,11 @@ impl BitOrAssign for AppliedLaunchArgs {
 /// options have already been applied.
 ///
 /// Returns `true` if a change was made, or would be made if this is a dry run.
-async fn apply_launch_args(game_id: &str, overwrite_ok: bool, dry_run: bool) -> Result<AppliedLaunchArgs> {
+async fn apply_launch_args(
+    game_id: &str,
+    overwrite_ok: bool,
+    dry_run: bool,
+) -> Result<AppliedLaunchArgs> {
     let mut path = paths::resolve_steam_directory().await?;
     path.push("userdata");
 
@@ -330,11 +344,23 @@ async fn apply_launch_args(game_id: &str, overwrite_ok: bool, dry_run: bool) -> 
             let rdr = vdf::Reader::new(std::io::BufReader::new(std::fs::File::open(&path)?));
 
             let result = if let Some(ref mut wtr) = wtr {
-                let result = apply_launch_args_inner(game_id, overwrite_ok, &launch_options_str, rdr, &mut *wtr)?;
+                let result = apply_launch_args_inner(
+                    game_id,
+                    overwrite_ok,
+                    &launch_options_str,
+                    rdr,
+                    &mut *wtr,
+                )?;
                 wtr.flush()?;
                 result
             } else {
-                apply_launch_args_inner(game_id, overwrite_ok, &launch_options_str, rdr, std::io::empty())?
+                apply_launch_args_inner(
+                    game_id,
+                    overwrite_ok,
+                    &launch_options_str,
+                    rdr,
+                    std::io::empty(),
+                )?
             };
             drop(wtr);
 
@@ -461,7 +487,9 @@ fn apply_launch_args_inner<R: std::io::BufRead, W: std::io::Write>(
                             if !value.s.is_empty() && !overwrite_ok {
                                 bail!("Refusing to overwrite launch options.");
                             }
-                            flag = Flag::ModifiedLaunchOptions { overwrote: !value.s.is_empty() };
+                            flag = Flag::ModifiedLaunchOptions {
+                                overwrote: !value.s.is_empty(),
+                            };
                             vdf::Str {
                                 s: launch_options_str.as_bytes(),
                                 quoted: true,

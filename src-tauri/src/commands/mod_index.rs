@@ -1,7 +1,7 @@
 mod memory;
 
 use std::{
-    collections::HashMap,
+    collections::{HashMap, HashSet},
     io::{BufRead as _, Read as _},
     sync::{atomic::AtomicU64, LazyLock},
 };
@@ -272,6 +272,7 @@ pub async fn query_mod_index(
     sort: Vec<SortOption>,
     skip: Option<usize>,
     limit: Option<usize>,
+    exact: Option<HashSet<&str>>,
 ) -> Result<simd_json::OwnedValue, CommandError> {
     let log = slog_scope::logger();
 
@@ -288,13 +289,22 @@ pub async fn query_mod_index(
     let mut buf = mod_index
         .iter()
         .flat_map(|mi| {
-            mi.mods().iter().filter_map(|m| {
-                if query.is_empty() {
-                    Some((m, 0.0))
-                } else {
-                    rff::match_and_score(&query, &m.full_name).map(|(_, score)| (m, score))
-                }
-            })
+            mi.mods()
+                .iter()
+                .filter(|m| {
+                    if let Some(exact) = &exact {
+                        exact.contains(m.full_name.as_str())
+                    } else {
+                        true
+                    }
+                })
+                .filter_map(|m| {
+                    if query.is_empty() {
+                        Some((m, 0.0))
+                    } else {
+                        rff::match_and_score(&query, &m.full_name).map(|(_, score)| (m, score))
+                    }
+                })
         })
         .collect::<Vec<_>>();
     buf.sort_unstable_by(|(m1, score1), (m2, score2)| {

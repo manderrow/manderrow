@@ -1,15 +1,20 @@
 #![deny(unused_must_use)]
+#![feature(error_generic_member_access)]
 #![feature(exit_status_error)]
+#![feature(extend_one)]
+#![feature(os_string_truncate)]
 #![feature(path_add_extension)]
 #![feature(type_changing_struct_update)]
 
 mod commands;
 mod game_reviews;
 mod games;
+mod installing;
 mod ipc;
 mod launching;
 mod mods;
 mod paths;
+pub mod util;
 mod window_state;
 mod wrap;
 
@@ -45,10 +50,14 @@ enum CommandError {
 impl From<anyhow::Error> for CommandError {
     #[track_caller]
     fn from(value: anyhow::Error) -> Self {
-        let backtrace = std::backtrace::Backtrace::force_capture();
+        let backtrace = if value.backtrace().status() != std::backtrace::BacktraceStatus::Disabled {
+            value.backtrace().to_string()
+        } else {
+            std::backtrace::Backtrace::force_capture().to_string()
+        };
         Self::Error {
             messages: value.chain().map(|e| e.to_string()).collect(),
-            backtrace: backtrace.to_string(),
+            backtrace,
         }
     }
 }
@@ -91,6 +100,9 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
             commands::profiles::create_profile,
             commands::profiles::delete_profile,
             commands::profiles::launch_profile,
+            commands::profiles::get_profile_mods,
+            commands::profiles::install_profile_mod,
+            commands::profiles::uninstall_profile_mod,
         ])
         .run(ctx)
         .context("error while running tauri application")

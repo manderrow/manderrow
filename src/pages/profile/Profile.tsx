@@ -1,3 +1,13 @@
+import {
+  createMemo,
+  createResource,
+  createSignal,
+  createUniqueId,
+  For,
+  Show,
+  useContext,
+} from "solid-js";
+import { A, useNavigate, useParams, useSearchParams } from "@solidjs/router";
 import { faCirclePlay as faCirclePlayOutline, faTrashCan } from "@fortawesome/free-regular-svg-icons";
 import {
   faChevronLeft,
@@ -12,28 +22,25 @@ import {
   faArrowUpWideShort,
   faArrowDownShortWide,
 } from "@fortawesome/free-solid-svg-icons";
-import { A, useNavigate, useParams, useSearchParams } from "@solidjs/router";
 import { OverlayScrollbarsComponent } from "overlayscrollbars-solid";
 import Fa from "solid-fa";
-import { createMemo, createResource, createSignal, createUniqueId, For, onMount, Show, useContext } from "solid-js";
-import { createStore } from "solid-js/store";
 
 import Console, { C2SChannel, clearConsole, createC2SChannel } from "../../components/global/Console";
 import { PromptDialog } from "../../components/global/Dialog";
 import { ErrorContext } from "../../components/global/ErrorBoundary";
 import SelectDropdown from "../../components/global/SelectDropdown";
 import TabRenderer from "../../components/global/TabRenderer";
-import ModList from "../../components/profile/ModList";
+import ModList, { ModInstallContext } from "../../components/profile/ModList";
 import ModSearch from "../../components/profile/ModSearch";
 
-import { createProfile, deleteProfile, launchProfile, ProfileWithId } from "../../api";
+import { createProfile, deleteProfile, getProfileMods, launchProfile, ProfileWithId } from "../../api";
 import * as globals from "../../globals";
-import { gamesById, refetchProfiles } from "../../globals";
+import { refetchProfiles } from "../../globals";
 import { Refetcher } from "../../types";
+import { autofocus } from "../../components/global/Directives";
 
 import styles from "./Profile.module.css";
-import sidebarStyles from "./SidebarProfiles.module.css";
-import { autofocus } from "../../components/global/Directives";
+import sidebarStyles from "./SidebarProfiles.module.css"
 
 interface ProfileParams {
   [key: string]: string | undefined;
@@ -45,7 +52,7 @@ export default function Profile() {
   // @ts-expect-error params.profileId is an optional param, it can be undefined
   const params = useParams<ProfileParams>();
 
-  const gameInfo = gamesById().get(params.gameId)!; // TODO, handle undefined case
+  const gameInfo = globals.gamesById().get(params.gameId)!; // TODO, handle undefined case
 
   const [profileSortOrder, setProfileSortOrder] = createSignal(false);
 
@@ -58,8 +65,6 @@ export default function Profile() {
   );
 
   const currentProfile = createMemo(() => globals.profiles().find((profile) => profile.id === params.profileId));
-
-  const [activeProfileMods, { refetch: refetchActiveProfileMods }] = createResource(() => [], { initialValue: [] });
 
   const reportErr = useContext(ErrorContext)!;
 
@@ -175,45 +180,57 @@ export default function Profile() {
 
       <div class={styles.content}>
         <Show
-          when={params.profileId !== undefined}
+          when={params.profileId}
           fallback={<NoSelectedProfileContent gameId={params.gameId} profiles={profiles} refetchProfiles={refetchProfiles} />}
         >
-          <TabRenderer
-            styles={{ tabs: { container: styles.tabs, list: styles.tabs__list, list__item: styles.tabs__tab, list__itemActive: styles.tab__active } }}
-            tabs={[
-              {
-                id: "mod-list",
-                name: "Installed",
-                component: (
-                  <Show when={activeProfileMods.latest.length !== 0} fallback={<p>No mods installed yet.</p>}>
-                    <ModList mods={async () => activeProfileMods.latest} />
-                  </Show>
-                ),
-              },
+          {(profileId) => {
+            const [installed, { refetch: refetchInstalled0 }] = createResource(
+              profileId,
+              (profileId) => getProfileMods(profileId),
+              { initialValue: [] }
+            );
 
-              {
-                id: "mod-search",
-                name: "Online",
-                component: <ModSearch game={params.gameId} />,
-              },
+            const refetchInstalled = async () => {
+              await refetchInstalled0();
+            };
 
-              {
-                id: "logs",
-                name: "Logs",
-                component: (
-                  <div class={styles.content__console}>
-                    <Console channel={consoleChannel} />
-                  </div>
-                ),
-              },
+            return (
+              <ModInstallContext.Provider value={{ profile: profileId(), installed, refetchInstalled }}>
+                <TabRenderer
+                  styles={{ tabs: { container: styles.tabs, list: styles.tabs__list, list__item: styles.tabs__tab, list__itemActive: styles.tab__active } }}
+                  tabs={[
+                    {
+                      id: "mod-list",
+                      name: "Installed",
+                      component: <InstalledModsList game={params.gameId} />,
+                    },
 
-              {
-                id: "config",
-                name: "Config",
-                component: <div></div>,
-              },
-            ]}
-          />
+                    {
+                      id: "mod-search",
+                      name: "Online",
+                      component: <ModSearch game={params.gameId} />,
+                    },
+
+                    {
+                      id: "logs",
+                      name: "Logs",
+                      component: (
+                        <div class={styles.content__console}>
+                          <Console channel={consoleChannel} />
+                        </div>
+                      ),
+                    },
+
+                    {
+                      id: "config",
+                      name: "Config",
+                      component: <div></div>,
+                    },
+                  ]}
+                />
+              </ModInstallContext.Provider>
+            );
+          }}
         </Show>
       </div>
     </main>
@@ -247,6 +264,25 @@ function NoSelectedProfileContent(props: { gameId: string; profiles: () => Profi
   );
 }
 
+function InstalledModsList(props: { game: string }) {
+  const context = useContext(ModInstallContext)!;
+
+  return (
+    <Show
+      when={context.installed.latest.length !== 0}
+      fallback={<p>Looks like you haven't installed any mods yet.</p>}
+    >
+      <ModList
+        // kinda gross
+        mods={(() => {
+          const data = context.installed();
+          return async (page) => page === 0 ? data : [];
+        })()}
+      />
+    </Show>
+  );
+}
+
 function SidebarProfileComponent(props: {
   gameId: string;
   profileId: string;
@@ -261,7 +297,9 @@ function SidebarProfileComponent(props: {
 
   return (
     <li class={sidebarStyles.profileList__item}>
-      <A href={`/profile/${props.gameId}/${props.profileId}`}>{props.profileName}</A>
+      <A href={`/profile/${props.gameId}/${props.profileId}`}>
+        {props.profileName}
+      </A>
       <div class={sidebarStyles.profileItem__options}>
         <button data-pin title="Pin">
           <Fa icon={faThumbTack} rotate={90} />
@@ -287,10 +325,11 @@ function SidebarProfileComponent(props: {
                 type: "danger",
                 text: "Delete",
                 async callback() {
-                  setDeleting(true);
                   if (props.selected) {
                     navigate(`/profile/${props.gameId}`, { replace: true });
                   }
+                  if (deleting()) return;
+                  setDeleting(true);
                   try {
                     await deleteProfile(props.profileId);
                   } finally {

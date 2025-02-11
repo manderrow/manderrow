@@ -1,5 +1,7 @@
+use std::collections::HashMap;
+use std::ffi::OsString;
 use std::panic::AssertUnwindSafe;
-use std::{collections::HashMap, ffi::OsString};
+use std::sync::OnceLock;
 
 use anyhow::{anyhow, bail, ensure, Context as _, Result};
 use ipc_channel::ipc::IpcSender;

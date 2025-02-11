@@ -37,12 +37,19 @@ export enum PackageLoader {
 }
 
 export type StorePlatformMetadata =
-  | (({ _storePlatform: "Steam" } | { _storePlatform: "SteamDirect" } | { _storePlatform: "Epic" } | { _storePlatform: "Xbox" }) & { store_identifier: string })
+  | ((
+      | { _storePlatform: "Steam" }
+      | { _storePlatform: "SteamDirect" }
+      | { _storePlatform: "Epic" }
+      | { _storePlatform: "Xbox" }
+    ) & { store_identifier: string })
   | { _storePlatform: "Oculus" }
   | { _storePlatform: "Origin" }
   | { _storePlatform: "Other" };
 
-export interface Mod {
+export type Mod = ModListing | ModPackage;
+
+export interface ModMetadata {
   name: string;
   full_name: string;
   owner: string;
@@ -55,8 +62,22 @@ export interface Mod {
   is_deprecated: boolean;
   has_nsfw_content: boolean;
   categories: string[];
-  versions: ModVersion[];
   uuid4: string;
+}
+
+/**
+ * A mod listing with all available versions.
+ */
+export interface ModListing extends ModMetadata {
+  versions: ModVersion[];
+}
+
+/**
+ * A versioned mod package.
+ */
+export interface ModPackage extends ModMetadata {
+  game: string;
+  version: ModVersion;
 }
 
 export interface ModVersion {
@@ -73,11 +94,4 @@ export interface ModVersion {
   is_active: boolean;
   uuid4: string;
   file_size: number;
-}
-
-export interface ModAndVersion {
-  // This interface does not extend Mod because it would need to copy all the keys from mod into itself.
-  // Instead, mod will be stored as a reference here.
-  mod: Mod;
-  version?: string;
 }

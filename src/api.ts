@@ -1,5 +1,5 @@
 import { Channel, invoke } from "@tauri-apps/api/core";
-import { Game, Mod } from "./types";
+import { Game, ModListing, ModPackage } from "./types";
 import { C2SChannel } from "./components/global/Console";
 
 /**
@@ -76,9 +76,9 @@ export async function queryModIndex(
   game: string,
   query: string,
   sort: SortOption[],
-  options: { skip?: number; limit?: number }
+  options: { skip?: number; limit?: number, exact?: string[] }
 ): Promise<{
-  mods: Mod[];
+  mods: ModListing[];
   count: number;
 }> {
   return await wrapInvoke(() => invoke("query_mod_index", { game, query, sort, ...options }));
@@ -111,4 +111,16 @@ export async function deleteProfile(id: string): Promise<void> {
 
 export async function launchProfile(id: string, channel: C2SChannel, options: { modded: boolean }): Promise<void> {
   return await wrapInvoke(() => invoke("launch_profile", { id, channel, ...options }));
+}
+
+export async function getProfileMods(id: string): Promise<ModPackage[]> {
+  return await wrapInvoke(async () => await invoke("get_profile_mods", { id }));
+}
+
+export async function installProfileMod(id: string, mod: ModListing, version: number): Promise<void> {
+  return await wrapInvoke(async () => await invoke("install_profile_mod", { id, mod, version }));
+}
+
+export async function uninstallProfileMod(id: string, modName: string): Promise<void> {
+  return await wrapInvoke(async () => await invoke("uninstall_profile_mod", { id, modName }));
 }

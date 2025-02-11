@@ -1,13 +1,31 @@
 import { createInfiniteScroll } from "@solid-primitives/pagination";
-import { Accessor, createEffect, createResource, createSignal, For, Show, Signal } from "solid-js";
+import {
+  Accessor,
+  createContext,
+  createMemo,
+  createResource,
+  createSignal,
+  For,
+  InitializedResource,
+  Match,
+  ResourceFetcherInfo,
+  Show,
+  Signal,
+  Switch,
+  useContext,
+} from "solid-js";
+import { createStore } from "solid-js/store";
+import Fa from "solid-fa";
+import { faDownload, faDownLong, faExternalLink, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faHeart } from "@fortawesome/free-regular-svg-icons";
 
-import { ModAndVersion } from "../../types";
+import { Mod, ModListing, ModPackage } from "../../types";
 import { numberFormatter, roundedNumberFormatter } from "../../utils";
+import ErrorBoundary, { ErrorContext } from "../global/ErrorBoundary";
+import { InitialProgress, ProgressData } from "./ModSearch";
+import { fetchModIndex, installProfileMod, queryModIndex, uninstallProfileMod } from "../../api";
 
 import styles from "./ModList.module.css";
-import Fa from "solid-fa";
-import { faDownload, faDownLong, faExternalLink } from "@fortawesome/free-solid-svg-icons";
-import { faHeart } from "@fortawesome/free-regular-svg-icons";
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   month: "short",
@@ -17,22 +35,64 @@ const dateFormatter = new Intl.DateTimeFormat(undefined, {
   minute: "numeric",
 });
 
-export type Fetcher = (page: number) => Promise<ModAndVersion[]>;
+export type Fetcher = (page: number) => Promise<readonly Mod[]>;
+
+export const ModInstallContext = createContext<{
+  profile: string;
+  installed: InitializedResource<readonly ModPackage[]>;
+  refetchInstalled: () => Promise<void>;
+}>();
 
 export default function ModList(props: { mods: Fetcher }) {
-  const [selectedMod, setSelectedMod] = createSignal<ModAndVersion>();
+  const [selectedMod, setSelectedMod] = createSignal<Mod>();
 
   return (
     <div class={styles.modListAndView}>
       <Show when={props.mods} keyed>
         {(mods) => <ModListMods mods={mods} selectedMod={[selectedMod, setSelectedMod]} />}
       </Show>
-      <ModView selectedMod={selectedMod} />
+      <ModView mod={selectedMod} />
     </div>
   );
 }
 
-function ModView({ selectedMod }: { selectedMod: Accessor<ModAndVersion | undefined> }) {
+function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
+  const [progress, setProgress] = createStore<InitialProgress | ProgressData>({
+    completed: null,
+    total: null,
+  });
+
+  function getInitialValue(mod: Mod | undefined) {
+    if (mod === undefined) return undefined;
+    if ("version" in mod) {
+      const obj = { ...mod, versions: [mod.version] };
+      // @ts-expect-error
+      delete obj.version;
+      // @ts-expect-error
+      delete obj.game;
+      return obj;
+    } else {
+      return mod;
+    }
+  }
+
+  const [modListing, { refetch: refetchModListing }] = createResource<ModListing | undefined, Mod | {}, never>(
+    // we need the "nullish" value passed through, so disguise it as non-nullish
+    () => (mod() === undefined ? {} : mod()!),
+    async (mod, info: ResourceFetcherInfo<ModListing | undefined, never>) => {
+      if ("game" in mod) {
+        await fetchModIndex(mod.game, { refresh: info.refetching }, setProgress);
+        return (await queryModIndex(mod.game, "", [], { exact: [mod.full_name] })).mods[0];
+      } else if ("versions" in mod) {
+        setProgress({ completed: null, total: null });
+        return mod;
+      } else {
+        return undefined;
+      }
+    },
+    { initialValue: getInitialValue(mod()) }
+  );
+
   // const [modReadme] = createResource(selectedMod, async (data) => {
   //   if (data == null) return undefined;
 
@@ -47,7 +107,7 @@ function ModView({ selectedMod }: { selectedMod: Accessor<ModAndVersion | undefi
     <div class={styles.scrollOuter}>
       <div class={`${styles.modView} ${styles.scrollInner}`}>
         <Show
-          when={selectedMod()}
+          when={mod()}
           fallback={
             <div class={styles.nothingMsg}>
               <h2>No mod selected</h2>
@@ -58,14 +118,15 @@ function ModView({ selectedMod }: { selectedMod: Accessor<ModAndVersion | undefi
           {(mod) => (
             <>
               <div>
-                <h2 class={styles.name}>{mod().mod.name}</h2>
-                <p class={styles.description}>{mod()!.mod.owner}</p>
-                <p class={styles.description}>{mod()!.mod.versions[0].description}</p>
+                <h2 class={styles.name}>{mod().name}</h2>
+                <p class={styles.description}>{mod().owner}</p>
+                <Show when={modListing.latest}>{(modListing) => <p class={styles.description}>{modListing().versions[0].description}</p>}</Show>
               </div>
 
               <form class={styles.modView__downloader} action="#">
                 <select class={styles.versions}>
-                  <For each={mod()!.mod.versions}>
+                  {/* This entire thing is temporary anyway, it will be removed in a later commit */}
+                  <For each={modListing.latest?.versions}>
                     {(version, i) => {
                       return (
                         <option value={version.uuid4}>
@@ -82,15 +143,15 @@ function ModView({ selectedMod }: { selectedMod: Accessor<ModAndVersion | undefi
                 <h4>Links</h4>
                 <ul>
                   <li>
-                    <Show when={mod()!.mod.package_url != null}>
-                      <a href={mod()!.mod.package_url} target="_blank" rel="noopener noreferrer">
+                    <Show when={mod().package_url != null}>
+                      <a href={mod().package_url} target="_blank" rel="noopener noreferrer">
                         <Fa icon={faExternalLink} /> Website
                       </a>
                     </Show>
                   </li>
                   <li>
-                    <Show when={mod()!.mod.donation_link != null}>
-                      <a href={mod()!.mod.donation_link} target="_blank" rel="noopener noreferrer">
+                    <Show when={mod().donation_link != null}>
+                      <a href={mod().donation_link} target="_blank" rel="noopener noreferrer">
                         <Fa icon={faHeart} /> Donate
                       </a>
                     </Show>
@@ -115,63 +176,153 @@ function ModView({ selectedMod }: { selectedMod: Accessor<ModAndVersion | undefi
   );
 }
 
-function ModListMods({ mods, selectedMod: [selectedMod, setSelectedMod] }: { mods: Fetcher; selectedMod: Signal<ModAndVersion | undefined> }) {
-  const [paginatedMods, infiniteScrollLoader, { end }] = createInfiniteScroll(mods);
-
-  function selectMod(mod: ModAndVersion) {
-    setSelectedMod(selectedMod() === mod ? undefined : mod);
-  }
+function ModListMods(props: { mods: Fetcher; selectedMod: Signal<Mod | undefined> }) {
+  const infiniteScroll = createMemo(() => {
+    // this should take readonly, which would make the cast unnecessary
+    return createInfiniteScroll(props.mods as (page: number) => Promise<Mod[]>);
+  });
+  const paginatedMods = () => infiniteScroll()[0]();
+  // idk why we're passing props here
+  const infiniteScrollLoader = (el: Element, props: Accessor<true>) => infiniteScroll()[1](el, props);
+  const end = () => infiniteScroll()[2].end();
 
   return (
     <div class={styles.scrollOuter}>
       <ol class={`${styles.modList} ${styles.scrollInner}`}>
-        <For each={paginatedMods()}>
-          {(mod) => (
-            <li classList={{ [styles.mod]: true, [styles.selected]: selectedMod() === mod }}>
-              <div
-                on:click={() => selectMod(mod)}
-                onKeyDown={(key) => {
-                  if (key.key === "Enter") selectMod(mod);
-                }}
-                class={styles.mod__btn}
-                role="button"
-                aria-pressed={selectedMod() === mod}
-                tabIndex={0}
-              >
-                <img class={styles.icon} src={mod.mod.versions[0].icon} />
-                <div class={styles.mod__content}>
-                  <div class={styles.left}>
-                    <p class={styles.info}>
-                      <span class={styles.name}>{mod.mod.name}</span>
-                      <span class={styles.separator} aria-hidden>
-                        &bull;
-                      </span>
-                      <span class={styles.owner}>{mod.mod.owner}</span>
-                    </p>
-                    <p class={styles.downloads}>
-                      <Fa icon={faDownload} /> {roundedNumberFormatter.format(mod.mod.versions.map((v) => v.downloads).reduce((acc, x) => acc + x))}
-                    </p>
-                    <p class={styles.description}>{mod.mod.versions[0].description}</p>
-                  </div>
-                  <div class={styles.right}>
-                    <button
-                      class={styles.downloadBtn}
-                      on:click={(event) => {
-                        event.stopPropagation();
-                      }}
-                    >
-                      <Fa icon={faDownLong} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </li>
-          )}
-        </For>
+        <For each={paginatedMods()}>{(mod) => <ModListItem mod={mod} selectedMod={props.selectedMod} />}</For>
         <Show when={!end()}>
           <li use:infiniteScrollLoader>Loading...</li>
         </Show>
       </ol>
     </div>
+  );
+}
+
+function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) {
+  const displayVersion = createMemo(() => {
+    if ("version" in props.mod) return props.mod.version;
+    return props.mod.versions[0];
+  });
+
+  const installContext = useContext(ModInstallContext);
+
+  const installed = createMemo(() => {
+    const mod = props.mod;
+    if ("version" in mod) {
+      return mod;
+    } else {
+      return installContext?.installed.latest.find((pkg) => pkg.uuid4 === mod.uuid4);
+    }
+  });
+
+  function onSelect() {
+    props.selectedMod[1](props.selectedMod[0]() === props.mod ? undefined : props.mod);
+  }
+
+  return (
+    <li classList={{ [styles.mod]: true, [styles.selected]: props.selectedMod[0]() === props.mod }}>
+      <div
+        on:click={onSelect}
+        onKeyDown={(key) => {
+          if (key.key === "Enter") onSelect();
+        }}
+        class={styles.mod__btn}
+        role="button"
+        aria-pressed={props.selectedMod[0]() === props.mod}
+        tabIndex={0}
+      >
+        <img class={styles.icon} src={displayVersion().icon} />
+        <div class={styles.mod__content}>
+          <div class={styles.left}>
+            <p class={styles.info}>
+              <span class={styles.name}>{displayVersion().name}</span>
+              <span class={styles.separator} aria-hidden>
+                &bull;
+              </span>
+              <span class={styles.owner}>{props.mod.owner}</span>
+            </p>
+            <p class={styles.downloads}>
+              <Show when={"versions" in props.mod}>
+                <Fa icon={faDownload} /> {roundedNumberFormatter.format((props.mod as ModListing).versions.map((v) => v.downloads).reduce((acc, x) => acc + x))}
+              </Show>
+            </p>
+            <p class={styles.description}>{displayVersion().description}</p>
+          </div>
+          <div class={styles.right}>
+            <Show when={installContext !== undefined}>
+              <Switch
+                fallback={
+                  <ErrorBoundary>
+                    <InstallButton mod={props.mod as ModListing} installContext={installContext!} />
+                  </ErrorBoundary>
+                }
+              >
+                <Match when={installed()}>
+                  {(installed) => (
+                    <ErrorBoundary>
+                      <UninstallButton mod={installed()} installContext={installContext!} />
+                    </ErrorBoundary>
+                  )}
+                </Match>
+              </Switch>
+            </Show>
+          </div>
+        </div>
+      </div>
+    </li>
+  );
+}
+
+function InstallButton(props: { mod: ModListing; installContext: NonNullable<typeof ModInstallContext.defaultValue> }) {
+  const reportErr = useContext(ErrorContext);
+  const [busy, setBusy] = createSignal(false);
+  return (
+    <button
+      class={styles.downloadBtn}
+      disabled={busy()}
+      on:click={async (e) => {
+        e.stopPropagation();
+        setBusy(true);
+        try {
+          await installProfileMod(props.installContext.profile, props.mod, 0);
+          await props.installContext.refetchInstalled();
+        } catch (e) {
+          reportErr(e);
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      <Show when={busy()} fallback={<Fa icon={faDownLong} />}>
+        <progress />
+      </Show>
+    </button>
+  );
+}
+
+function UninstallButton(props: { mod: ModPackage; installContext: NonNullable<typeof ModInstallContext.defaultValue> }) {
+  const reportErr = useContext(ErrorContext);
+  const [busy, setBusy] = createSignal(false);
+  return (
+    <button
+      class={styles.downloadBtn}
+      disabled={busy()}
+      on:click={async (e) => {
+        e.stopPropagation();
+        setBusy(true);
+        try {
+          await uninstallProfileMod(props.installContext.profile, props.mod.full_name);
+          await props.installContext.refetchInstalled();
+        } catch (e) {
+          reportErr(e);
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      <Show when={busy()} fallback={<Fa icon={faTrash} />}>
+        <progress />
+      </Show>
+    </button>
   );
 }
