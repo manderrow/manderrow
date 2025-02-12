@@ -1,11 +1,8 @@
 name: 'build'
 
 on:
-  push
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  release
+  workflow_dispatch
 
 jobs:
   build:
