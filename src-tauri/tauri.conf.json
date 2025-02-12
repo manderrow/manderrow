@@ -4,9 +4,9 @@
   "version": "0.1.0",
   "identifier": "io.github.jack-the-pro101.manderrow",
   "build": {
-    "beforeDevCommand": "pnpm dev",
+    "beforeDevCommand": "deno run dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm build",
+    "beforeBuildCommand": "deno run build",
     "frontendDist": "../dist"
   },
   "app": {
