@@ -11,6 +11,7 @@ mod error;
 mod game_reviews;
 mod games;
 mod http;
+mod importing;
 mod installing;
 mod ipc;
 mod launching;

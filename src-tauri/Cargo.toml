@@ -67,6 +67,8 @@ flate2 = "1.0.35"
 zip = "2.2.1"
 walkdir = "2.5.0"
 fastrand = "2.3.0"
+base64 = "0.22.1"
+serde_yaml = "0.9.34"
 
 [target.'cfg(windows)'.dependencies]
 registry = "1.3"
