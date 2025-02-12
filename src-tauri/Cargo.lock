@@ -2477,6 +2477,7 @@ dependencies = [
  "nc",
  "parking_lot",
  "registry",
+ "reqwest",
  "rff",
  "rkyv",
  "rkyv_intern",
