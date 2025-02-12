@@ -2,22 +2,22 @@ mod memory;
 
 use std::{
     collections::{HashMap, HashSet},
-    io::{BufRead as _, Read as _},
+    io::Read as _,
     sync::{atomic::AtomicU64, LazyLock},
 };
 
 use anyhow::{Context as _, Result};
-use bytes::{Buf as _, Bytes};
 use drop_guard::ext::tokio1::JoinHandleExt;
 use flate2::bufread::GzDecoder;
 use slog::debug;
-use tauri::ipc::Channel;
+use tauri::{ipc::Channel, AppHandle, Manager};
 use tokio::sync::{Mutex, RwLock};
 
 use crate::{
     games::{GAMES, GAMES_BY_ID},
+    http::{fetch_as_blocking, StreamReadable},
     mods::{ArchivedMod, Mod, ModRef, ModVersionRef},
-    CommandError,
+    CommandError, Reqwest,
 };
 
 use memory::MemoryModIndex;
@@ -58,81 +58,9 @@ static MOD_INDEXES: LazyLock<HashMap<&'static str, ModIndex>> = LazyLock::new(||
         .collect()
 });
 
-async fn fetch_gzipped(url: &str) -> Result<GzDecoder<StreamReadable>> {
-    let mut resp = tauri_plugin_http::reqwest::get(url)
-        .await?
-        .error_for_status()?;
-    let (tx, rx) = tokio::sync::mpsc::channel(1);
-    tokio::task::spawn(async move {
-        while let Some(r) = resp.chunk().await.transpose() {
-            if tx
-                .send(r.map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e)))
-                .await
-                .is_err()
-            {
-                break;
-            }
-        }
-    });
-    Ok(tokio::task::block_in_place(move || {
-        GzDecoder::new(StreamReadable::new(rx))
-    }))
-}
-
-struct StreamReadable {
-    rx: tokio::sync::mpsc::Receiver<Result<Bytes, std::io::Error>>,
-    bytes: Bytes,
-}
-
-impl StreamReadable {
-    pub fn new(rx: tokio::sync::mpsc::Receiver<Result<Bytes, std::io::Error>>) -> Self {
-        Self {
-            rx,
-            bytes: Bytes::new(),
-        }
-    }
-}
-
-impl std::io::Read for StreamReadable {
-    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-        if buf.is_empty() {
-            return Ok(0);
-        }
-
-        if self.fill_buf()?.is_empty() {
-            return Ok(0);
-        }
-
-        let bytes = &mut self.bytes;
-
-        // copy_to_slice requires the bytes to have enough remaining bytes
-        // to fill buf.
-        let n = buf.len().min(bytes.remaining());
-
-        // <Bytes as Buf>::copy_to_slice copies and consumes the bytes
-        bytes.copy_to_slice(&mut buf[..n]);
-
-        Ok(n)
-    }
-}
-
-impl std::io::BufRead for StreamReadable {
-    fn fill_buf(&mut self) -> std::io::Result<&[u8]> {
-        let bytes = &mut self.bytes;
-
-        if !bytes.has_remaining() {
-            if let Some(new_bytes) = self.rx.blocking_recv() {
-                // new_bytes are guaranteed to be non-empty.
-                *bytes = new_bytes?;
-            }
-        }
-
-        Ok(&*bytes)
-    }
-
-    fn consume(&mut self, amt: usize) {
-        self.bytes.advance(amt);
-    }
+async fn fetch_gzipped(reqwest: &Reqwest, url: &str) -> Result<GzDecoder<StreamReadable>> {
+    let rdr = fetch_as_blocking(reqwest.get(url)).await?;
+    Ok(tokio::task::block_in_place(move || GzDecoder::new(rdr)))
 }
 
 #[derive(Clone, serde::Serialize)]
@@ -143,6 +71,7 @@ pub enum FetchEvent {
 
 #[tauri::command]
 pub async fn fetch_mod_index(
+    app_handle: AppHandle,
     game: &str,
     refresh: bool,
     on_event: Channel<FetchEvent>,
@@ -183,7 +112,8 @@ pub async fn fetch_mod_index(
         };
 
         mod_index.set_progress(0, 1);
-        let chunk_urls = fetch_gzipped(&game.thunderstore_url).await?;
+        let chunk_urls =
+            fetch_gzipped(&*app_handle.state::<Reqwest>(), &game.thunderstore_url).await?;
         let chunk_urls =
             tokio::task::block_in_place(|| serde_json::from_reader::<_, Vec<String>>(chunk_urls))
                 .context("Unable to decode chunk URLs from Thunderstore")?;
@@ -199,9 +129,10 @@ pub async fn fetch_mod_index(
         let new_mod_index =
             futures::future::try_join_all(chunk_urls.into_iter().map(|url| async {
                 let log = log.clone();
+                let app_handle = app_handle.clone();
                 tokio::task::spawn(async move {
                     let mut buf = Vec::new();
-                    let mut rdr = fetch_gzipped(&url).await?;
+                    let mut rdr = fetch_gzipped(&*app_handle.state::<Reqwest>(), &url).await?;
                     tokio::task::block_in_place(move || {
                         rdr.read_to_end(&mut buf)?;
                         let mods = simd_json::from_slice::<Vec<Mod>>(&mut buf)?;

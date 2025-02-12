@@ -18,7 +18,7 @@ use crate::launching::bep_in_ex::BEP_IN_EX_FOLDER;
 use crate::mods::{Mod, ModAndVersion};
 use crate::paths::local_data_dir;
 use crate::util::IoErrorKindExt as _;
-use crate::CommandError;
+use crate::{CommandError, Reqwest};
 
 pub static PROFILES_DIR: LazyLock<PathBuf> = LazyLock::new(|| local_data_dir().join("profiles"));
 
@@ -310,7 +310,12 @@ pub async fn get_profile_mods(id: Uuid) -> Result<Vec<ModAndVersion>, CommandErr
 }
 
 #[tauri::command]
-pub async fn install_profile_mod(id: Uuid, r#mod: Mod, version: usize) -> Result<(), CommandError> {
+pub async fn install_profile_mod(
+    reqwest: State<'_, Reqwest>,
+    id: Uuid,
+    r#mod: Mod,
+    version: usize,
+) -> Result<(), CommandError> {
     let log = slog_scope::logger();
 
     let mut path = profile_path(id);
@@ -343,8 +348,14 @@ pub async fn install_profile_mod(id: Uuid, r#mod: Mod, version: usize) -> Result
                 .context("Failed to create BepInEx plugins directory")?;
 
             path.push(&mod_with_version.r#mod.full_name);
-            let staged =
-                install_zip(&log, &mod_with_version.version.download_url, None, &path).await?;
+            let staged = install_zip(
+                &log,
+                &*reqwest,
+                &mod_with_version.version.download_url,
+                None,
+                &path,
+            )
+            .await?;
 
             tokio::task::block_in_place(|| {
                 serde_json::to_writer(

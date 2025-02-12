@@ -7,6 +7,7 @@ use uuid::Uuid;
 use crate::commands::profiles::read_profile;
 use crate::games::{Game, GAMES_BY_ID};
 use crate::installing::install_zip;
+use crate::Reqwest;
 
 use super::steam::paths::resolve_steam_app_install_directory;
 use super::steam::proton::{ensure_wine_will_load_dll_override, uses_proton};
@@ -71,10 +72,16 @@ pub async fn configure_command(
 
     let (url, hash) = get_url_and_hash(uses_proton)?;
     let bep_in_ex = get_bep_in_ex_path(profile_id);
-    install_zip(log, url, Some(hash), &bep_in_ex)
-        .await?
-        .finish(log)
-        .await?;
+    install_zip(
+        log,
+        &Reqwest(reqwest::Client::new()),
+        url,
+        Some(hash),
+        &bep_in_ex,
+    )
+    .await?
+    .finish(log)
+    .await?;
 
     if cfg!(windows) || uses_proton {
         command.args(["--doorstop-enable", "true"]);

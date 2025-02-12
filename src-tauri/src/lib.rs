@@ -7,8 +7,10 @@
 #![feature(type_changing_struct_update)]
 
 mod commands;
+mod error;
 mod game_reviews;
 mod games;
+mod http;
 mod installing;
 mod ipc;
 mod launching;
@@ -21,11 +23,12 @@ mod wrap;
 #[cfg(windows)]
 mod windows_util;
 
-use std::sync::OnceLock;
+use std::{ops::Deref, sync::OnceLock};
 
 use anyhow::{anyhow, Context};
 use ipc::IpcState;
-use slog::error;
+
+pub use error::{CommandError, Error};
 
 static PRODUCT_NAME: OnceLock<String> = OnceLock::new();
 static IDENTIFIER: OnceLock<String> = OnceLock::new();
@@ -38,51 +41,21 @@ fn identifier() -> &'static str {
     IDENTIFIER.get().unwrap()
 }
 
-#[derive(Debug, Clone, serde::Serialize)]
-enum CommandError {
-    Aborted,
-    Error {
-        messages: Vec<String>,
-        backtrace: String,
-    },
-}
+struct Reqwest(reqwest::Client);
 
-impl From<anyhow::Error> for CommandError {
-    #[track_caller]
-    fn from(value: anyhow::Error) -> Self {
-        let backtrace = if value.backtrace().status() != std::backtrace::BacktraceStatus::Disabled {
-            value.backtrace().to_string()
-        } else {
-            std::backtrace::Backtrace::force_capture().to_string()
-        };
-        Self::Error {
-            messages: value.chain().map(|e| e.to_string()).collect(),
-            backtrace,
-        }
+impl Deref for Reqwest {
+    type Target = reqwest::Client;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
     }
-}
-
-impl From<Error> for CommandError {
-    fn from(value: Error) -> Self {
-        match value {
-            Error::Aborted => Self::Aborted,
-            Error::Error(e) => Self::from(e),
-        }
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
-enum Error {
-    #[error("Aborted by the user")]
-    Aborted,
-    #[error(transparent)]
-    Error(#[from] anyhow::Error),
 }
 
 fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
     let _guard = slog_envlogger::init()?;
     tauri::Builder::default()
         .manage(IpcState::default())
+        .manage(Reqwest(reqwest::Client::builder().build()?))
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_os::init())

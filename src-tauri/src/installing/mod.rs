@@ -15,13 +15,13 @@ use anyhow::{anyhow, bail, ensure, Context, Result};
 use itertools::Itertools;
 use rkyv::{rend::u16_le, vec::ArchivedVec};
 use slog::{debug, trace};
-use tauri_plugin_http::reqwest;
 use tempfile::TempDir;
 use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
 use trie_rs::TrieBuilder;
 use walkdir::WalkDir;
 use zip::{result::ZipError, ZipArchive};
 
+use crate::Reqwest;
 use crate::{paths::cache_dir, util::IoErrorKindExt};
 
 #[derive(Debug, Clone, PartialEq, Eq, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize)]
@@ -698,6 +698,7 @@ impl StagedPackage<'_> {
 /// for future reuse.
 pub async fn install_zip<'a>(
     log: &slog::Logger,
+    reqwest: &Reqwest,
     url: &str,
     hash_str: Option<&str>,
     target: &'a Path,
@@ -734,7 +735,7 @@ pub async fn install_zip<'a>(
         };
 
         if hash_on_disk.map(|h| h != hash).unwrap_or(true) {
-            let mut resp = reqwest::get(url).await?.error_for_status()?;
+            let mut resp = reqwest.get(url).send().await?.error_for_status()?;
             let mut wtr = tokio::fs::File::create(&path).await?;
             while let Some(chunk) = resp.chunk().await? {
                 wtr.write_all(&chunk).await?;
