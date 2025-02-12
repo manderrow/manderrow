@@ -20,7 +20,7 @@ export class NativeError extends Error {
   }
 
   get [Symbol.toStringTag]() {
-    return `NativeError: ${this.messages.join('\n')}\nBacktrace:\n${this.backtrace}`;
+    return `NativeError: ${this.messages.join("\n")}\nBacktrace:\n${this.backtrace}`;
   }
 }
 
@@ -76,7 +76,7 @@ export async function queryModIndex(
   game: string,
   query: string,
   sort: SortOption[],
-  options: { skip?: number; limit?: number, exact?: string[] }
+  options: { skip?: number; limit?: number; exact?: string[] },
 ): Promise<{
   mods: ModListing[];
   count: number;

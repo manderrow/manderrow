@@ -21,7 +21,13 @@ export default function TogglableDropdown(options: TogglableDropdownOptions) {
       <label for={id} classList={{ [styles.label]: true, [options.labelClass || styles.labelDefault]: true }}>
         <Fa icon={faCaretDown} rotate={open() ? 180 : 0} />
         {options.label}
-        <input type="checkbox" name="Toggle" id={id} class="phantom" onInput={(event) => setOpen(event.target.checked)} />
+        <input
+          type="checkbox"
+          name="Toggle"
+          id={id}
+          class="phantom"
+          onInput={(event) => setOpen(event.target.checked)}
+        />
       </label>
       <Show when={open()}>
         <Dropdown align={options.align}>{options.children}</Dropdown>

@@ -44,7 +44,9 @@
   background-size: cover;
   z-index: -1;
   filter: blur(4px) brightness(1.9);
-  transition: filter 0.7s ease, opacity 0.5s ease;
+  transition:
+    filter 0.7s ease,
+    opacity 0.5s ease;
   opacity: 0.75;
 }
 
@@ -73,7 +75,9 @@
   text-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
 
   :global([data-webview="safari"]) & {
-    transition: backdrop-filter 0.2s ease, background-color 0.3s ease;
+    transition:
+      backdrop-filter 0.2s ease,
+      background-color 0.3s ease;
 
     > * {
       transition: opacity 0.3s ease;
@@ -83,7 +87,9 @@
 
   :global([data-webview]:not([data-webview="safari"])) & {
     opacity: 0;
-    transition: backdrop-filter 0.2s ease, opacity 0.3s ease;
+    transition:
+      backdrop-filter 0.2s ease,
+      opacity 0.3s ease;
   }
 }
 
@@ -207,14 +213,19 @@
   border-right-color: transparent;
   border-left-color: transparent;
   padding: 0.75em 0.5em;
-  transition: background-color 0.2s ease-out, border-color 0.2s ease, border-radius 0.3s ease-out;
+  transition:
+    background-color 0.2s ease-out,
+    border-color 0.2s ease,
+    border-radius 0.3s ease-out;
 }
 
 .gameList__gameItem .gameList__game:hover {
   border-color: rgba(215, 215, 215, 0.2);
   background-color: rgba(225, 225, 225, 0.1);
   border-radius: 5px;
-  transition: border-color 0.2s ease, border-radius 0.3s ease-out;
+  transition:
+    border-color 0.2s ease,
+    border-radius 0.3s ease-out;
 }
 
 .gameList__gameItem .gameList__game:hover + .gameList__game {

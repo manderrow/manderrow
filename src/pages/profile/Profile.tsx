@@ -1,12 +1,4 @@
-import {
-  createMemo,
-  createResource,
-  createSignal,
-  createUniqueId,
-  For,
-  Show,
-  useContext,
-} from "solid-js";
+import { createMemo, createResource, createSignal, createUniqueId, For, Show, useContext } from "solid-js";
 import { A, useNavigate, useParams, useSearchParams } from "@solidjs/router";
 import { faCirclePlay as faCirclePlayOutline, faTrashCan } from "@fortawesome/free-regular-svg-icons";
 import {
@@ -40,7 +32,7 @@ import { Refetcher } from "../../types";
 import { autofocus } from "../../components/global/Directives";
 
 import styles from "./Profile.module.css";
-import sidebarStyles from "./SidebarProfiles.module.css"
+import sidebarStyles from "./SidebarProfiles.module.css";
 
 interface ProfileParams {
   [key: string]: string | undefined;
@@ -61,7 +53,7 @@ export default function Profile() {
     (profiles) => {
       return profiles.filter((profile) => profile.game === params.gameId);
     },
-    { initialValue: [] }
+    { initialValue: [] },
   );
 
   const currentProfile = createMemo(() => globals.profiles().find((profile) => profile.id === params.profileId));
@@ -137,12 +129,19 @@ export default function Profile() {
               label={{ labelText: "preset", preset: "Sort" }}
               onChanged={(key, selected) => console.log(key, selected)}
             />
-            <button class={sidebarStyles.sidebar__profilesSearchSortByBtn} on:click={() => setProfileSortOrder((order) => !order)}>
+            <button
+              class={sidebarStyles.sidebar__profilesSearchSortByBtn}
+              on:click={() => setProfileSortOrder((order) => !order)}
+            >
               {profileSortOrder() ? <Fa icon={faArrowUpWideShort} /> : <Fa icon={faArrowDownShortWide} />}
             </button>
           </form>
 
-          <OverlayScrollbarsComponent defer options={{ scrollbars: { autoHide: "leave" } }} class={sidebarStyles.sidebar__profilesListContainer}>
+          <OverlayScrollbarsComponent
+            defer
+            options={{ scrollbars: { autoHide: "leave" } }}
+            class={sidebarStyles.sidebar__profilesListContainer}
+          >
             <ol class={sidebarStyles.sidebar__profilesList}>
               <For each={profiles()}>
                 {(profile) => (
@@ -181,13 +180,15 @@ export default function Profile() {
       <div class={styles.content}>
         <Show
           when={params.profileId}
-          fallback={<NoSelectedProfileContent gameId={params.gameId} profiles={profiles} refetchProfiles={refetchProfiles} />}
+          fallback={
+            <NoSelectedProfileContent gameId={params.gameId} profiles={profiles} refetchProfiles={refetchProfiles} />
+          }
         >
           {(profileId) => {
             const [installed, { refetch: refetchInstalled0 }] = createResource(
               profileId,
               (profileId) => getProfileMods(profileId),
-              { initialValue: [] }
+              { initialValue: [] },
             );
 
             const refetchInstalled = async () => {
@@ -197,7 +198,14 @@ export default function Profile() {
             return (
               <ModInstallContext.Provider value={{ profile: profileId(), installed, refetchInstalled }}>
                 <TabRenderer
-                  styles={{ tabs: { container: styles.tabs, list: styles.tabs__list, list__item: styles.tabs__tab, list__itemActive: styles.tab__active } }}
+                  styles={{
+                    tabs: {
+                      container: styles.tabs,
+                      list: styles.tabs__list,
+                      list__item: styles.tabs__tab,
+                      list__itemActive: styles.tab__active,
+                    },
+                  }}
                   tabs={[
                     {
                       id: "mod-list",
@@ -237,7 +245,11 @@ export default function Profile() {
   );
 }
 
-function NoSelectedProfileContent(props: { gameId: string; profiles: () => ProfileWithId[]; refetchProfiles: Refetcher<ProfileWithId[]> }) {
+function NoSelectedProfileContent(props: {
+  gameId: string;
+  profiles: () => ProfileWithId[];
+  refetchProfiles: Refetcher<ProfileWithId[]>;
+}) {
   const [name, setName] = createSignal("");
 
   const navigate = useNavigate();
@@ -254,7 +266,11 @@ function NoSelectedProfileContent(props: { gameId: string; profiles: () => Profi
 
   return (
     <>
-      <p>{props.profiles().length !== 0 ? "Select a profile from the sidebar or create a new one" : "Create a new profile"}</p>
+      <p>
+        {props.profiles().length !== 0
+          ? "Select a profile from the sidebar or create a new one"
+          : "Create a new profile"}
+      </p>
       <form on:submit={submit}>
         <label for={nameId}>Name</label>
         <input id={nameId} value={name()} on:input={(e) => setName(e.target.value)} use:autofocus />
@@ -268,15 +284,12 @@ function InstalledModsList(props: { game: string }) {
   const context = useContext(ModInstallContext)!;
 
   return (
-    <Show
-      when={context.installed.latest.length !== 0}
-      fallback={<p>Looks like you haven't installed any mods yet.</p>}
-    >
+    <Show when={context.installed.latest.length !== 0} fallback={<p>Looks like you haven't installed any mods yet.</p>}>
       <ModList
         // kinda gross
         mods={(() => {
           const data = context.installed();
-          return async (page) => page === 0 ? data : [];
+          return async (page) => (page === 0 ? data : []);
         })()}
       />
     </Show>
@@ -297,9 +310,7 @@ function SidebarProfileComponent(props: {
 
   return (
     <li class={sidebarStyles.profileList__item}>
-      <A href={`/profile/${props.gameId}/${props.profileId}`}>
-        {props.profileName}
-      </A>
+      <A href={`/profile/${props.gameId}/${props.profileId}`}>{props.profileName}</A>
       <div class={sidebarStyles.profileItem__options}>
         <button data-pin title="Pin">
           <Fa icon={faThumbTack} rotate={90} />

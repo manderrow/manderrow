@@ -42,17 +42,11 @@ export default function ModSearch(props: { game: string }) {
     async (game, info: ResourceFetcherInfo<boolean, never>) => {
       await fetchModIndex(game, { refresh: info.refetching }, setProgress);
       return true;
-    }
+    },
   );
 
   const [queriedMods] = createResource(
-    () =>
-      [props.game, query(), sort(), loadStatus.loading] as [
-        string,
-        string,
-        SortOption[],
-        true | undefined
-      ],
+    () => [props.game, query(), sort(), loadStatus.loading] as [string, string, SortOption[], true | undefined],
     async ([game, query, sort]) => {
       const { count } = await queryModIndex(game, query, sort, {
         limit: 0,
@@ -68,7 +62,7 @@ export default function ModSearch(props: { game: string }) {
           ).mods,
       };
     },
-    { initialValue: { mods: async (_: number) => [], count: 0 } }
+    { initialValue: { mods: async (_: number) => [], count: 0 } },
   );
 
   const installContext = useContext(ModInstallContext);
@@ -77,7 +71,12 @@ export default function ModSearch(props: { game: string }) {
     <div class={styles.modSearch}>
       <form class={styles.modSearch__form}>
         <div class={styles.modSearch__searchBar}>
-          <input type="mod-search" placeholder="Search for mods" value={query()} on:input={(e) => setQuery(e.target.value)} />
+          <input
+            type="mod-search"
+            placeholder="Search for mods"
+            value={query()}
+            on:input={(e) => setQuery(e.target.value)}
+          />
           <label for="mod-search" class="phantom">
             Mod search
           </label>
@@ -98,7 +97,11 @@ export default function ModSearch(props: { game: string }) {
                               id={id}
                               checked={option.descending}
                               on:change={(e) =>
-                                setSort([...sort().slice(0, i), { column: option.column, descending: e.target.checked }, ...sort().slice(i + 1)])
+                                setSort([
+                                  ...sort().slice(0, i),
+                                  { column: option.column, descending: e.target.checked },
+                                  ...sort().slice(i + 1),
+                                ])
                               }
                             />
                             <label for={id}>{option.descending ? "Descending" : "Ascending"}</label>
@@ -117,21 +120,14 @@ export default function ModSearch(props: { game: string }) {
       <Show when={loadStatus.loading}>
         <div class={styles.progressLine}>
           <p>Fetching mods</p>
-          <progress
-            value={
-              progress.total == null ? 0 : progress.completed / progress.total
-            }
-          />
+          <progress value={progress.total == null ? 0 : progress.completed / progress.total} />
         </div>
       </Show>
 
       <Show when={queriedMods.latest} fallback={<p>Querying mods...</p>}>
         <div class={styles.discoveredLine}>
           Discovered {numberFormatter.format(queriedMods()!.count)} mods
-          <button
-            class={styles.refreshButton}
-            on:click={() => refetchModIndex()}
-          >
+          <button class={styles.refreshButton} on:click={() => refetchModIndex()}>
             <Fa icon={faRefresh} />
           </button>
         </div>

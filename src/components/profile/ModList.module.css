@@ -41,7 +41,10 @@
       text-align: left;
       flex-grow: 1;
       background-color: var(--clr-neutral-9);
-      transition: background-color 0.1s ease-in-out, border-color 0.1s ease-in-out, border-radius 0.3s ease-out;
+      transition:
+        background-color 0.1s ease-in-out,
+        border-color 0.1s ease-in-out,
+        border-radius 0.3s ease-out;
 
       &:hover {
         background-color: var(--clr-neutral-8);

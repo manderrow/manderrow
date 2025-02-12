@@ -32,7 +32,9 @@ export default function Dropdown(options: DropdownOptions) {
 
   function checkVisibility() {
     const delta =
-      Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0) - VIEWPORT_PADDING - dropdownElement.getBoundingClientRect().right;
+      Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0) -
+      VIEWPORT_PADDING -
+      dropdownElement.getBoundingClientRect().right;
     cutoffX = Math.min(cutoffX + delta - VIEWPORT_PADDING, 0);
 
     setOffsetX(cutoffX);

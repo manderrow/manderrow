@@ -58,7 +58,13 @@ export const t = i18n.translator(dict, i18n.resolveTemplate);
 
 // Workaround for Typescript static analysis bug
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never;
-type JoinPath<A, B> = A extends string | number ? (B extends string | number ? `${A}.${B}` : A) : B extends string | number ? B : "";
+type JoinPath<A, B> = A extends string | number
+  ? B extends string | number
+    ? `${A}.${B}`
+    : A
+  : B extends string | number
+    ? B
+    : "";
 type Flatten<T extends BaseDict, P = {}> = UnionToIntersection<
   {
     [K in keyof T]: T[K] extends BaseDict ? Flatten<T[K], JoinPath<P, K>> : never;

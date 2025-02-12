@@ -92,7 +92,7 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
         return undefined;
       }
     },
-    { initialValue: getInitialValue(mod()) }
+    { initialValue: getInitialValue(mod()) },
   );
 
   const [selectedVersion, setSelectedVersion] = createSignal<string>();
@@ -103,17 +103,20 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
       if (mod == null) return undefined;
 
       // mod is a ModPackage if it has the version field, otherwise it is a ModListing
-      const version = "version" in mod ? mod.version.version_number : selectedVersion ?? mod.versions[0].version_number;
+      const version =
+        "version" in mod ? mod.version.version_number : (selectedVersion ?? mod.versions[0].version_number);
 
       try {
-        const request = await fetch(`https://thunderstore.io/api/experimental/package/${mod.owner}/${mod.name}/${version}/readme/`);
+        const request = await fetch(
+          `https://thunderstore.io/api/experimental/package/${mod.owner}/${mod.name}/${version}/readme/`,
+        );
         return (await request.json()) as { markdown: string };
       } catch (error) {
         // TODO: error handling
         console.error(error);
         return undefined;
       }
-    }
+    },
   );
 
   return (
@@ -147,7 +150,9 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
                     </a>
                   </Show>
                 </p>
-                <Show when={modListing.latest}>{(modListing) => <p class={styles.description}>{modListing().versions[0].description}</p>}</Show>
+                <Show when={modListing.latest}>
+                  {(modListing) => <p class={styles.description}>{modListing().versions[0].description}</p>}
+                </Show>
               </div>
 
               <Show when={modReadme()} fallback={<p>Fallback</p>}>
@@ -244,7 +249,10 @@ function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) 
             </p>
             <p class={styles.downloads}>
               <Show when={"versions" in props.mod}>
-                <Fa icon={faDownload} /> {roundedNumberFormatter.format((props.mod as ModListing).versions.map((v) => v.downloads).reduce((acc, x) => acc + x))}
+                <Fa icon={faDownload} />{" "}
+                {roundedNumberFormatter.format(
+                  (props.mod as ModListing).versions.map((v) => v.downloads).reduce((acc, x) => acc + x),
+                )}
               </Show>
             </p>
             <p class={styles.description}>{displayVersion().description}</p>
@@ -301,7 +309,10 @@ function InstallButton(props: { mod: ModListing; installContext: NonNullable<typ
   );
 }
 
-function UninstallButton(props: { mod: ModPackage; installContext: NonNullable<typeof ModInstallContext.defaultValue> }) {
+function UninstallButton(props: {
+  mod: ModPackage;
+  installContext: NonNullable<typeof ModInstallContext.defaultValue>;
+}) {
   const reportErr = useContext(ErrorContext);
   const [busy, setBusy] = createSignal(false);
   return (

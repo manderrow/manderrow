@@ -25,5 +25,5 @@ export const [profiles, { refetch: refetchProfiles }] = createResource(
     profiles.sort((a, b) => a.name.localeCompare(b.name));
     return profiles;
   },
-  { initialValue: [] }
+  { initialValue: [] },
 );

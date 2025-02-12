@@ -166,15 +166,25 @@ function DoctorDialog(props: { report: DoctorReport; onDismiss: () => void }) {
       <div class={dialogStyles.dialog__container}>
         <h2 class={dialogStyles.dialog__title}>Uh oh!</h2>
         <p class={styles.dialog__message}>
-          {translateUnchecked(props.report.message ?? `doctor.${props.report.translation_key}.message`, props.report.message_args)}
+          {translateUnchecked(
+            props.report.message ?? `doctor.${props.report.translation_key}.message`,
+            props.report.message_args,
+          )}
         </p>
 
         <ul>
           <For each={props.report.fixes}>
             {(fix) => (
               <li>
-                <div>{translateUnchecked(`doctor.${props.report.translation_key}.fixes.${fix.id}.label`, fix.label)}</div>
-                <div>{translateUnchecked(`doctor.${props.report.translation_key}.fixes.${fix.id}.description`, fix.description)}</div>
+                <div>
+                  {translateUnchecked(`doctor.${props.report.translation_key}.fixes.${fix.id}.label`, fix.label)}
+                </div>
+                <div>
+                  {translateUnchecked(
+                    `doctor.${props.report.translation_key}.fixes.${fix.id}.description`,
+                    fix.description,
+                  )}
+                </div>
                 <button
                   on:click={async () => {
                     try {
@@ -192,7 +202,10 @@ function DoctorDialog(props: { report: DoctorReport; onDismiss: () => void }) {
                     }
                   }}
                 >
-                  {translateUnchecked(`doctor.${props.report.translation_key}.fixes.${fix.id}.confirm_label`, fix.confirm_label)}
+                  {translateUnchecked(
+                    `doctor.${props.report.translation_key}.fixes.${fix.id}.confirm_label`,
+                    fix.confirm_label,
+                  )}
                 </button>
               </li>
             )}

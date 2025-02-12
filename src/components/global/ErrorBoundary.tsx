@@ -18,7 +18,7 @@ export const ErrorContext = createContext<(err: any) => void>(
     // rethrow
     throw e;
   },
-  { name: "Error" }
+  { name: "Error" },
 );
 
 export default function ErrorBoundary(props: { children: JSX.Element }) {
@@ -29,9 +29,7 @@ export default function ErrorBoundary(props: { children: JSX.Element }) {
     setError(e);
   }
   return (
-    <SolidErrorBoundary
-      fallback={(err, reset) => <Error err={err} reset={reset} />}
-    >
+    <SolidErrorBoundary fallback={(err, reset) => <Error err={err} reset={reset} />}>
       <ErrorContext.Provider value={onError}>
         <Show when={error()} fallback={props.children}>
           {(err) => <Error err={err()} reset={() => setError(undefined)} />}
@@ -51,9 +49,7 @@ function Error(props: { err: any; reset: () => void }) {
         <div class={styles.report}>
           <Switch fallback={<p>{props.err}</p>}>
             <Match when={props.err instanceof NativeError}>
-              <For each={props.err.messages}>
-                {(msg) => <p>{msg}</p>}
-              </For>
+              <For each={props.err.messages}>{(msg) => <p>{msg}</p>}</For>
               <details class={styles.spoiler}>
                 <summary>
                   <h3>Native Stack Trace:</h3>
@@ -79,9 +75,8 @@ function Error(props: { err: any; reset: () => void }) {
         </div>
 
         <p>
-          We're not perfect. That's why we invite you to{" "}
-          <button class={styles.inlineButton}>report</button> this error to us
-          if you think we could do better.
+          We're not perfect. That's why we invite you to <button class={styles.inlineButton}>report</button> this error
+          to us if you think we could do better.
         </p>
 
         <p>

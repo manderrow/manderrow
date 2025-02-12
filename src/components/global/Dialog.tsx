@@ -44,7 +44,10 @@ export function PromptDialog({ options }: { options: PromptDialogOptions }) {
         </Show>
         <p class={styles.dialog__message}>{options.question}</p>
         <div class={styles.dialog__btns}>
-          <button on:click={options?.btns?.ok?.callback} classList={{ [styles.dialog__btnsBtn]: true, [getBtnTypeClass(options?.btns?.ok?.type)]: true }}>
+          <button
+            on:click={options?.btns?.ok?.callback}
+            classList={{ [styles.dialog__btnsBtn]: true, [getBtnTypeClass(options?.btns?.ok?.type)]: true }}
+          >
             {options?.btns?.ok?.text ?? "Confirm"}
           </button>
           <button

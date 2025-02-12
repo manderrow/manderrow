@@ -16,7 +16,7 @@
   background-image: -webkit-radial-gradient(45px 45px, circle cover, yellow 0%, red 97%, orange 100%);
   background-image: radial-gradient(45px 45px 45deg, circle cover, yellow 0%, red 97%, orange 100%);
 
-  &[data-connected='true'] {
+  &[data-connected="true"] {
     background-image: -moz-radial-gradient(45px 45px 45deg, circle cover, lightGreen 0%, green 95%, blue 100%);
     background-image: -webkit-radial-gradient(45px 45px, circle cover, lightGreen 0%, green 95%, blue 100%);
     background-image: radial-gradient(45px 45px 45deg, circle cover, lightGreen 0%, green 95%, blue 100%);

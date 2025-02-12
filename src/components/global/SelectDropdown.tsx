@@ -31,7 +31,9 @@ export default function SelectDropdown<T>(options: SelectDropdownOptions<T>) {
   const [open, setOpen] = createSignal(false);
   const [selected, setSelected] = createStore(options.options);
   const [labelValue, setLabelValue] = createSignal(
-    options.label.labelText === "preset" ? options.label.preset : Object.entries(options.options).find(([key, value]) => value.selected)?.[0] ?? "Select..."
+    options.label.labelText === "preset"
+      ? options.label.preset
+      : (Object.entries(options.options).find(([key, value]) => value.selected)?.[0] ?? "Select..."),
   );
 
   return (
@@ -39,7 +41,13 @@ export default function SelectDropdown<T>(options: SelectDropdownOptions<T>) {
       <label for={id} class={styles.label} data-btn>
         <Fa icon={faCaretDown} rotate={open() ? 180 : 0} />
         {labelValue()}
-        <input type="checkbox" name="Toggle" id={id} class="phantom" onInput={(event) => setOpen(event.target.checked)} />
+        <input
+          type="checkbox"
+          name="Toggle"
+          id={id}
+          class="phantom"
+          onInput={(event) => setOpen(event.target.checked)}
+        />
       </label>
       <Show when={open()}>
         <Dropdown align={options.align} class={styles.dropdown}>

@@ -80,7 +80,10 @@ export default function GameSelect() {
             type="button"
             on:click={() => setDisplayType((prev) => (prev * -1) as DisplayType)}
             title={t("game_select.search.display_type_btn", {
-              type: displayType() === DisplayType.Card ? t("game_select.search.card_display_type") : t("game_select.search.list_display_type"),
+              type:
+                displayType() === DisplayType.Card
+                  ? t("game_select.search.card_display_type")
+                  : t("game_select.search.list_display_type"),
             })}
           >
             {displayType() === DisplayType.Card ? <Fa icon={faList} /> : <Fa icon={faTableCellsLarge} />}

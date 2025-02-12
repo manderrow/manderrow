@@ -83,7 +83,12 @@
 
 .sidebar__mainActions button[data-modded] {
   background-color: var(--clr-primary-4);
-  background-image: linear-gradient(20deg, var(--clr-primary-3) 10%, var(--clr-primary-4) 80%, var(--clr-primary-5) 100%);
+  background-image: linear-gradient(
+    20deg,
+    var(--clr-primary-3) 10%,
+    var(--clr-primary-4) 80%,
+    var(--clr-primary-5) 100%
+  );
   border: 2px solid hsl(var(--clr-primary-hs), 70%, 20%);
 }
 

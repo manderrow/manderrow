@@ -44,7 +44,9 @@ export default function TabRenderer({
         <ul class={styles.tabs.list}>
           <For each={tabs}>
             {(tab) => (
-              <li classList={{ [styles.tabs.list__item]: true, [styles.tabs.list__itemActive]: currentTab() === tab.id }}>
+              <li
+                classList={{ [styles.tabs.list__item]: true, [styles.tabs.list__itemActive]: currentTab() === tab.id }}
+              >
                 <A href={`${rootUrl ?? ""}?tab=${tab.id}`}>{tab.name}</A>
               </li>
             )}
