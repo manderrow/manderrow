@@ -18,6 +18,7 @@ import { createStore } from "solid-js/store";
 import Fa from "solid-fa";
 import { faDownload, faDownLong, faExternalLink, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { faHeart } from "@fortawesome/free-regular-svg-icons";
+import { fetch } from "@tauri-apps/plugin-http";
 
 import { Mod, ModListing, ModPackage } from "../../types";
 import { numberFormatter, roundedNumberFormatter } from "../../utils";
@@ -26,6 +27,7 @@ import { InitialProgress, ProgressData } from "./ModSearch";
 import { fetchModIndex, installProfileMod, queryModIndex, uninstallProfileMod } from "../../api";
 
 import styles from "./ModList.module.css";
+import Markdown from "../global/Markdown";
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   month: "short",
@@ -93,19 +95,30 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
     { initialValue: getInitialValue(mod()) }
   );
 
-  // const [modReadme] = createResource(selectedMod, async (data) => {
-  //   if (data == null) return undefined;
+  const [selectedVersion, setSelectedVersion] = createSignal<string>();
 
-  //   const request = await fetch(`https://thunderstore.io/api/experimental/package/${data.mod.owner}/${data.mod.name}/${data.version}/readme/`);
+  const [modReadme] = createResource(
+    () => ({ mod: mod(), selectedVersion: selectedVersion() }),
+    async ({ mod, selectedVersion }) => {
+      if (mod == null) return undefined;
 
-  //   return await request.text();
-  // });
+      // mod is a ModPackage if it has the version field, otherwise it is a ModListing
+      const version = "version" in mod ? mod.version.version_number : selectedVersion ?? mod.versions[0].version_number;
 
-  // createEffect(() => console.log(modReadme));
+      try {
+        const request = await fetch(`https://thunderstore.io/api/experimental/package/${mod.owner}/${mod.name}/${version}/readme/`);
+        return (await request.json()) as { markdown: string };
+      } catch (error) {
+        // TODO: error handling
+        console.error(error);
+        return undefined;
+      }
+    }
+  );
 
   return (
     <div class={styles.scrollOuter}>
-      <div class={`${styles.modView} ${styles.scrollInner}`}>
+      <div class={`${styles.scrollInner} ${styles.modView}`}>
         <Show
           when={mod()}
           fallback={
@@ -118,13 +131,31 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
           {(mod) => (
             <>
               <div>
-                <h2 class={styles.name}>{mod().name}</h2>
-                <p class={styles.description}>{mod().owner}</p>
+                <h2 class={styles.name}>
+                  {mod().name}
+                  <Show when={mod().package_url != null}>
+                    <a href={mod().package_url} target="_blank" rel="noopener noreferrer">
+                      <Fa icon={faExternalLink} /> Website
+                    </a>
+                  </Show>
+                </h2>
+                <p class={styles.description}>
+                  {mod().owner}
+                  <Show when={mod().donation_link != null}>
+                    <a href={mod().donation_link} target="_blank" rel="noopener noreferrer">
+                      <Fa icon={faHeart} /> Donate
+                    </a>
+                  </Show>
+                </p>
                 <Show when={modListing.latest}>{(modListing) => <p class={styles.description}>{modListing().versions[0].description}</p>}</Show>
               </div>
 
+              <Show when={modReadme()} fallback={<p>Fallback</p>}>
+                {(modReadme) => <Markdown source={modReadme().markdown} div={{ class: styles.modView__content }} />}
+              </Show>
+
               <form class={styles.modView__downloader} action="#">
-                <select class={styles.versions}>
+                <select class={styles.versions} onInput={(event) => setSelectedVersion(event.target.value)}>
                   {/* This entire thing is temporary anyway, it will be removed in a later commit */}
                   <For each={modListing.latest?.versions}>
                     {(version, i) => {
@@ -138,36 +169,6 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
                 </select>
                 <button>Download</button>
               </form>
-
-              <div>
-                <h4>Links</h4>
-                <ul>
-                  <li>
-                    <Show when={mod().package_url != null}>
-                      <a href={mod().package_url} target="_blank" rel="noopener noreferrer">
-                        <Fa icon={faExternalLink} /> Website
-                      </a>
-                    </Show>
-                  </li>
-                  <li>
-                    <Show when={mod().donation_link != null}>
-                      <a href={mod().donation_link} target="_blank" rel="noopener noreferrer">
-                        <Fa icon={faHeart} /> Donate
-                      </a>
-                    </Show>
-                  </li>
-                </ul>
-
-                {/* <span class={styles.version}>{version.version_number}</span>
-                <span> - </span>
-                <span class={styles.timestamp} title={version.date_created}>
-                  {dateFormatter.format(new Date(version.date_created))}
-                </span> */}
-                {/* <p class={styles.downloads}>
-                  <span class={styles.label}>Downloads: </span>
-                  <span class={styles.value}>{numberFormatter.format(version.downloads)}</span>
-                </p> */}
-              </div>
             </>
           )}
         </Show>

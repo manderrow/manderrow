@@ -189,8 +189,8 @@
 .modView {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding-inline: 0.5em;
+  padding-left: 0.5em;
+  padding-right: 0;
   margin-right: -1em;
 
   .nothingMsg {
@@ -231,7 +231,13 @@
   }
 }
 
+.modView__content {
+  overflow: auto;
+  flex-grow: 1;
+}
+
 .modView__downloader {
   display: flex;
   align-items: center;
+  padding-block: 0.5em;
 }
