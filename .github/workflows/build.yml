@@ -1,8 +1,8 @@
 name: 'build'
 
 on:
-  release
-  workflow_dispatch
+  release:
+  workflow_dispatch:
 
 jobs:
   build:
