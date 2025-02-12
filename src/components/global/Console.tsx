@@ -54,88 +54,96 @@ export default function Console({ channel }: { channel: Accessor<Channel<C2SMess
     if (channel() != null) clearChannelHandler();
   });
 
-  return (<>
-    <h2 class={styles.heading}>{connected() ? "Connected" : "Disconnected"} <span class={styles.statusIndicator} data-connected={connected()}></span></h2>
-    <div class={styles.console}>
-      <For each={events()} fallback={<p>Game not running.</p>}>
-        {(event) => {
-          if ("Output" in event) {
-            let line: string;
-            if ("Unicode" in event.Output.line) {
-              line = event.Output.line.Unicode;
-            } else if ("Bytes" in event.Output.line) {
-              line = JSON.stringify(event.Output.line.Bytes);
-            } else {
-              throw Error();
-            }
-            return (
-              <p>
-                <span class={styles.event__type}>
-                  <Switch>
-                    <Match when={event.Output.channel === "Out"}>[LOG]</Match>
-                    <Match when={event.Output.channel === "Err"}>[ERR]</Match>
+  return (
+    <>
+      <h2 class={styles.heading}>
+        <span class={styles.statusIndicator} data-connected={connected()}></span>
+        {connected() ? "Connected" : "Disconnected"}{" "}
+      </h2>
+      <div class={styles.console}>
+        <For each={events()} fallback={<p>Game not running.</p>}>
+          {(event) => {
+            if ("Output" in event) {
+              let line: string;
+              if ("Unicode" in event.Output.line) {
+                line = event.Output.line.Unicode;
+              } else if ("Bytes" in event.Output.line) {
+                line = JSON.stringify(event.Output.line.Bytes);
+              } else {
+                throw Error();
+              }
+              return (
+                <p>
+                  <span class={styles.event__type}>
+                    <Switch>
+                      <Match when={event.Output.channel === "Out"}>[LOG]</Match>
+                      <Match when={event.Output.channel === "Err"}>[ERR]</Match>
+                    </Switch>
+                  </span>{" "}
+                  {line}
+                </p>
+              );
+            } else if ("Log" in event) {
+              return (
+                <p>
+                  <span class={styles.event__type}>[{event.Log.level}]</span> <span>{event.Log.message}</span>
+                </p>
+              );
+            } else if ("Connect" in event) {
+              return (
+                <p>
+                  <span class={styles.event__type}>[CONNECT]</span>
+                  {" Wrapper connected to Manderrow"}
+                </p>
+              );
+            } else if ("Start" in event) {
+              return (
+                <p>
+                  <span class={styles.event__type}>[START]</span> <DisplaySafeOsString string={event.Start.command} />
+                  <For each={event.Start.args}>
+                    {(arg) => (
+                      <>
+                        {" "}
+                        <DisplaySafeOsString string={arg} />
+                      </>
+                    )}
+                  </For>
+                </p>
+              );
+            } else if ("Exit" in event) {
+              return (
+                <p>
+                  <span class={styles.event__type}>{Object.keys(event)[0]}</span>{" "}
+                  <Switch fallback={JSON.stringify(Object.values(event)[0])}>
+                    <Match when={event.Exit}>{event.Exit.code}</Match>
                   </Switch>
-                </span>{" "}
-                {line}
-              </p>
-            );
-          } else if ("Log" in event) {
-            return (
-              <p>
-                <span class={styles.event__type}>[{event.Log.level}]</span>{" "}
-                <span>{event.Log.message}</span>
-              </p>
-            );
-          } else if ("Connect" in event) {
-            return (
-              <p>
-                <span class={styles.event__type}>[CONNECT]</span>{" Wrapper connected to Manderrow"}
-              </p>
-            );
-          } else if ("Start" in event) {
-            return (
-              <p>
-                <span class={styles.event__type}>[START]</span>{" "}
-                <DisplaySafeOsString string={event.Start.command} />
-                <For each={event.Start.args}>
-                  {(arg) => (
-                    <>
-                      {" "}
-                      <DisplaySafeOsString string={arg} />
-                    </>
-                  )}
-                </For>
-              </p>
-            );
-          } else if ("Exit" in event) {
-            return (
-              <p>
-                <span class={styles.event__type}>{Object.keys(event)[0]}</span>{" "}
-                <Switch fallback={JSON.stringify(Object.values(event)[0])}>
-                  <Match when={event.Exit}>{event.Exit.code}</Match>
-                </Switch>
-              </p>
-            );
-          } else if ("Crash" in event) {
-            return (
-              <p>
-                <span class={styles.event__type}>[CRASH]</span>{" "}
-                <span>{event.Crash.error}</span>
-              </p>
-            );
-          }
-        }}
-      </For>
+                </p>
+              );
+            } else if ("Crash" in event) {
+              return (
+                <p>
+                  <span class={styles.event__type}>[CRASH]</span> <span>{event.Crash.error}</span>
+                </p>
+              );
+            }
+          }}
+        </For>
 
-      <For each={doctorReports()}>
-        {(report, i) => <DoctorDialog report={report} onDismiss={() => {
-          setDoctorReports((reports) => {
-            return [...reports.slice(0, i()), ...reports.slice(i() + 1)];
-          });
-        }} />}
-      </For>
-    </div>
-  </>);
+        <For each={doctorReports()}>
+          {(report, i) => (
+            <DoctorDialog
+              report={report}
+              onDismiss={() => {
+                setDoctorReports((reports) => {
+                  return [...reports.slice(0, i()), ...reports.slice(i() + 1)];
+                });
+              }}
+            />
+          )}
+        </For>
+      </div>
+    </>
+  );
 }
 
 function DisplaySafeOsString(props: { string: SafeOsString }) {
@@ -158,28 +166,15 @@ function DoctorDialog(props: { report: DoctorReport; onDismiss: () => void }) {
       <div class={dialogStyles.dialog__container}>
         <h2 class={dialogStyles.dialog__title}>Uh oh!</h2>
         <p class={styles.dialog__message}>
-          {translateUnchecked(
-            props.report.message ?? `doctor.${props.report.translation_key}.message`,
-            props.report.message_args
-          )}
+          {translateUnchecked(props.report.message ?? `doctor.${props.report.translation_key}.message`, props.report.message_args)}
         </p>
 
         <ul>
           <For each={props.report.fixes}>
             {(fix) => (
               <li>
-                <div>
-                  {translateUnchecked(
-                    `doctor.${props.report.translation_key}.fixes.${fix.id}.label`,
-                    fix.label
-                  )}
-                </div>
-                <div>
-                  {translateUnchecked(
-                    `doctor.${props.report.translation_key}.fixes.${fix.id}.description`,
-                    fix.description
-                  )}
-                </div>
+                <div>{translateUnchecked(`doctor.${props.report.translation_key}.fixes.${fix.id}.label`, fix.label)}</div>
+                <div>{translateUnchecked(`doctor.${props.report.translation_key}.fixes.${fix.id}.description`, fix.description)}</div>
                 <button
                   on:click={async () => {
                     try {
@@ -197,10 +192,7 @@ function DoctorDialog(props: { report: DoctorReport; onDismiss: () => void }) {
                     }
                   }}
                 >
-                  {translateUnchecked(
-                    `doctor.${props.report.translation_key}.fixes.${fix.id}.confirm_label`,
-                    fix.confirm_label
-                  )}
+                  {translateUnchecked(`doctor.${props.report.translation_key}.fixes.${fix.id}.confirm_label`, fix.confirm_label)}
                 </button>
               </li>
             )}
