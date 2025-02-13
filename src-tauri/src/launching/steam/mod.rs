@@ -3,8 +3,6 @@ pub mod proton;
 
 use std::io::Write as _;
 use std::ops::BitOrAssign;
-use std::process::Stdio;
-use std::time::Duration;
 
 use anyhow::{anyhow, bail, Context as _, Result};
 use paths::get_steam_exe;
@@ -138,6 +136,9 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
         let output = String::from_utf8(output.stdout)?;
         #[cfg(target_os = "macos")]
         {
+            use std::process::Stdio;
+            use std::time::Duration;
+
             for pid in output.lines() {
                 info!(log, "Waiting for Steam process {pid} to shut down");
                 // could use https://man.freebsd.org/cgi/man.cgi?query=kvm_getprocs

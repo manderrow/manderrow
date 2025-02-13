@@ -129,14 +129,26 @@ export async function uninstallProfileMod(id: string, modName: string): Promise<
   return await wrapInvoke(() => invoke("uninstall_profile_mod", { id, modName }));
 }
 
-export type ModSpec = {
+export interface ModSpec {
   type: "Online";
   url: string;
-};
+}
+
+export interface PathDiff {
+  path: string;
+  diff: Diff;
+}
+
+export enum Diff {
+  Created = "Created",
+  Deleted = "Deleted",
+  Modified = "Modified",
+}
 
 export interface Modpack {
   name: string;
   mods: ModSpec[];
+  diff: PathDiff[];
 }
 
 export async function previewImportModpackFromThunderstoreCode(

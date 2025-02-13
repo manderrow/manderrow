@@ -148,7 +148,9 @@ pub struct ProfileMod {
     pub enabled: bool,
 }
 
-const PROFILE_DATA_PREFIX: &str = "#r2modman\n";
+const R2_PROFILE_DATA_PREFIX: &str = "#r2modman\n";
+
+pub const R2_PROFILE_MANIFEST_FILE_NAME: &str = "export.r2x";
 
 pub async fn lookup_profile(client: &Reqwest, id: Uuid) -> Result<Profile> {
     let mut rdr = fetch_as_blocking(client.get(format!(
@@ -158,11 +160,11 @@ pub async fn lookup_profile(client: &Reqwest, id: Uuid) -> Result<Profile> {
 
     tokio::task::block_in_place(move || {
         {
-            const BUF_LEN: usize = PROFILE_DATA_PREFIX.len();
+            const BUF_LEN: usize = R2_PROFILE_DATA_PREFIX.len();
             let mut buf = [0u8; BUF_LEN];
             rdr.read_exact(&mut buf)?;
             ensure!(
-                buf == PROFILE_DATA_PREFIX.as_bytes(),
+                buf == R2_PROFILE_DATA_PREFIX.as_bytes(),
                 "Invalid profile data"
             );
         }

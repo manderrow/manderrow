@@ -4,8 +4,6 @@ use anyhow::Result;
 use bytes::{Buf, Bytes};
 use tokio::sync::mpsc::Receiver;
 
-use crate::Reqwest;
-
 pub struct StreamReadable {
     rx: Receiver<Result<Bytes, std::io::Error>>,
     bytes: Bytes,

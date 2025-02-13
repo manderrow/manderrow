@@ -214,9 +214,9 @@ pub async fn launch_profile(
             } else {
                 return Err(anyhow!("Unsupported platform for Steam").into());
             };
-            command.arg("-applaunch").arg(store_identifier);
+            command.arg("-applaunch").arg(&**store_identifier);
         }
-        _ => return Err(anyhow!("Unsupported game store").into()),
+        _ => return Err(anyhow!("Unsupported game store: {store_metadata:?}").into()),
     }
 
     let (c2s_rx, c2s_tx) = ipc_channel::ipc::IpcOneShotServer::<C2SMessage>::new()

@@ -1,7 +1,7 @@
 use crate::games::{Game, GAMES};
 
 #[tauri::command]
-pub async fn get_games() -> &'static [Game] {
+pub async fn get_games() -> &'static [Game<'static>] {
     &*GAMES
 }
 

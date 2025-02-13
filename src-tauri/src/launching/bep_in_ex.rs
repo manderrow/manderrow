@@ -31,19 +31,10 @@ fn get_url_and_hash(uses_proton: bool) -> Result<(&'static str, &'static str)> {
     })
 }
 
-fn get_steam_id(game: &Game) -> Option<&str> {
+fn get_steam_id<'a>(game: &'a Game) -> Option<&'a str> {
     game.store_platform_metadata
         .iter()
-        .find_map(|m| match m {
-            crate::games::StorePlatformMetadata::Steam { store_identifier } => {
-                Some(store_identifier)
-            }
-            crate::games::StorePlatformMetadata::SteamDirect { store_identifier } => {
-                Some(store_identifier)
-            }
-            _ => None,
-        })
-        .map(String::as_str)
+        .find_map(|m| m.steam_or_direct())
 }
 
 pub const BEP_IN_EX_FOLDER: &str = "BepInEx";

@@ -5,6 +5,7 @@
 #![feature(os_string_truncate)]
 #![feature(path_add_extension)]
 #![feature(type_changing_struct_update)]
+#![feature(vec_push_within_capacity)]
 
 mod commands;
 mod error;

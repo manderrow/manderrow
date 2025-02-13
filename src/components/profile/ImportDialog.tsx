@@ -66,8 +66,14 @@ function PreviewPage(props: { modpack: Modpack; actions: Actions }) {
       </h2>
       <div class={styles.preview}>
         <OverlayScrollbarsComponent defer options={{ scrollbars: { autoHide: "leave" } }}>
+          <h3>Mods</h3>
           <ul>
             <For each={props.modpack.mods}>{(mod) => <ModEntry mod={mod} />}</For>
+          </ul>
+
+          <h3>Files</h3>
+          <ul>
+            <For each={props.modpack.diff}>{(diff) => <li><strong>[{diff.diff}]</strong> {diff.path}</li>}</For>
           </ul>
         </OverlayScrollbarsComponent>
       </div>

@@ -13,7 +13,7 @@ use std::{
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use itertools::Itertools;
-use rkyv::{rend::u16_le, vec::ArchivedVec};
+use rkyv::vec::ArchivedVec;
 use slog::{debug, trace};
 use tempfile::TempDir;
 use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
@@ -64,7 +64,7 @@ struct ArchivedNativePathComponents<'a> {
     #[cfg(unix)]
     iter: std::slice::Iter<'a, ArchivedVec<u8>>,
     #[cfg(windows)]
-    iter: std::slice::Iter<'a, ArchivedVec<u16_le>>,
+    iter: std::slice::Iter<'a, ArchivedVec<rkyv::rend::u16_le>>,
 }
 
 impl<'a> Iterator for ArchivedNativePathComponents<'a> {
