@@ -6,14 +6,14 @@ import { platform } from "@tauri-apps/plugin-os";
 import { open } from "@tauri-apps/plugin-shell";
 import { Resource, Show, createEffect, createSignal, onCleanup, onMount } from "solid-js";
 
-import { gamesPopularityResource, gamesResource } from "./globals";
+import { gamesModDownloadsResource, gamesPopularityResource, gamesResource } from "./globals";
 
 import ErrorPage from "./pages/error/Error";
 import GameSelect from "./pages/game_select/GameSelect";
 import Profile from "./pages/profile/Profile";
 import ErrorBoundary from "./components/global/ErrorBoundary";
 
-const resources: Resource<any>[] = [gamesResource, gamesPopularityResource];
+const resources: Resource<any>[] = [gamesResource, gamesPopularityResource, gamesModDownloadsResource];
 
 export default function App() {
   const [loaded, setLoaded] = createSignal(false);

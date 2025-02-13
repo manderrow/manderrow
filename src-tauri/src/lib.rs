@@ -8,7 +8,6 @@
 
 mod commands;
 mod error;
-mod game_reviews;
 mod games;
 mod http;
 mod importing;
@@ -66,6 +65,7 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
             commands::close_splashscreen::close_splashscreen,
             commands::games::get_games,
             commands::games::get_games_popularity,
+            commands::games::get_game_mods_downloads,
             commands::i18n::get_preferred_locales,
             commands::import::preview_import_modpack_from_thunderstore_code,
             commands::ipc::send_s2c_message,

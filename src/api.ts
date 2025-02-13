@@ -49,7 +49,11 @@ export async function getGames(): Promise<Game[]> {
 }
 
 export async function getGamesPopularity(): Promise<{ [key: string]: number }> {
-  return await wrapInvoke(() => invoke("get_games_popularity", {}));
+  return JSON.parse(await wrapInvoke<string>(() => invoke("get_games_popularity", {})));
+}
+
+export async function getGameModDownloads(): Promise<{ [key: string]: number }> {
+  return JSON.parse(await wrapInvoke<string>(() => invoke("get_game_mods_downloads", {})));
 }
 
 export type FetchEvent = { type: "Progress"; completed: number; total: number };

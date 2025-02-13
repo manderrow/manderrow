@@ -13,13 +13,9 @@ export interface Game {
   id: string;
   name: string;
   data_folder_name: string;
-  display_mode: number;
-  exclusions_url: string;
   exe_names: string[];
-  game_image: string;
   instance_type: "Game" | "Server";
   package_loader: PackageLoader;
-  settings_identifier: string;
   steam_folder_name: string;
   store_platform_metadata: StorePlatformMetadata[];
   thunderstore_url: string;
@@ -39,14 +35,14 @@ export enum PackageLoader {
 
 export type StorePlatformMetadata =
   | ((
-      | { _storePlatform: "Steam" }
-      | { _storePlatform: "SteamDirect" }
-      | { _storePlatform: "Epic" }
-      | { _storePlatform: "Xbox" }
-    ) & { store_identifier: string })
-  | { _storePlatform: "Oculus" }
-  | { _storePlatform: "Origin" }
-  | { _storePlatform: "Other" };
+      | { storePlatform: "Steam" }
+      | { storePlatform: "SteamDirect" }
+      | { storePlatform: "Epic" }
+      | { storePlatform: "Xbox" }
+    ) & { storeIdentifier: string })
+  | { storePlatform: "Oculus" }
+  | { storePlatform: "Origin" }
+  | { storePlatform: "Other" };
 
 export type Mod = ModListing | ModPackage;
 

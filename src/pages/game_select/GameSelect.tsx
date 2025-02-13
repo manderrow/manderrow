@@ -4,8 +4,8 @@ import { A } from "@solidjs/router";
 import Fa from "solid-fa";
 import { createSignal, For, onCleanup, onMount } from "solid-js";
 
-import { ListSortType } from "../../enums/ListSortOrder";
-import { games, gamesPopularity } from "../../globals";
+import { GameListSortType } from "../../enums/ListSortOrder";
+import { games, gamesModDownloads, gamesPopularity } from "../../globals";
 import { Locale, localeNamesMap, setLocale, locale, t } from "../../i18n/i18n";
 import { Game } from "../../types";
 import { autofocus } from "../../components/global/Directives";
@@ -22,7 +22,7 @@ enum DisplayType {
 export default function GameSelect() {
   const [displayType, setDisplayType] = createSignal<DisplayType>(DisplayType.Card);
   const [search, setSearch] = createSignal("");
-  const [sort, setSort] = createSignal<ListSortType>(ListSortType.Popularity);
+  const [sort, setSort] = createSignal<GameListSortType>(GameListSortType.ModCount);
 
   onMount(() => {
     document.body.classList.add(styles.body);
@@ -31,6 +31,30 @@ export default function GameSelect() {
   onCleanup(() => {
     document.body.classList.remove(styles.body);
   });
+
+  function getComparator(): (a: Game, b: Game) => number {
+    switch (sort()) {
+      case GameListSortType.ModCount:
+        const modDownloads = gamesModDownloads();
+        return (a, b) => {
+          const aModDownloads = modDownloads[a.id];
+          const bModDownloads = modDownloads[b.id];
+
+          if (aModDownloads == null) {
+            return bModDownloads == null ? 0 : 1;
+          } else if (bModDownloads == null) {
+            return -1;
+          }
+
+          return bModDownloads - aModDownloads;
+        };
+      case GameListSortType.Alphabetical:
+        return (a, b) => 0;
+      case GameListSortType.Popularity:
+        const gamesPopularityCache = gamesPopularity();
+        return (a, b) => gamesPopularityCache[b.id] - gamesPopularityCache[a.id];
+    }
+  }
 
   return (
     <>
@@ -72,9 +96,12 @@ export default function GameSelect() {
             use:autofocus
             on:input={(e) => setSearch(e.target.value)}
           />
-          <select name="sort-type" id="sort-type" on:input={(e) => setSort(e.target.value as ListSortType)}>
-            <option value={ListSortType.Popularity}>{t("global.list_sort_type.popularity")}</option>
-            <option value={ListSortType.Alphabetical}>{t("global.list_sort_type.alphabetical")}</option>
+          <select name="sort-type" id="sort-type" on:input={(e) => setSort(e.target.value as GameListSortType)}>
+            <option value={GameListSortType.ModCount} selected>
+              Mod count
+            </option>
+            <option value={GameListSortType.Popularity}>{t("global.list_sort_type.popularity")}</option>
+            <option value={GameListSortType.Alphabetical}>{t("global.list_sort_type.alphabetical")}</option>
           </select>
           <button
             type="button"
@@ -100,14 +127,7 @@ export default function GameSelect() {
           <For
             each={games()
               .filter((game) => game.name.toLowerCase().includes(search().toLowerCase()))
-              .sort((a, b) => {
-                switch (sort()) {
-                  case ListSortType.Alphabetical:
-                    return 0;
-                  case ListSortType.Popularity:
-                    return gamesPopularity()[b.id] - gamesPopularity()[a.id];
-                }
-              })}
+              .sort(getComparator())}
             fallback={
               <li class={gameListStyles.gameList__empty}>
                 <p>{t("game_select.no_games_msg")}</p>
@@ -123,7 +143,7 @@ export default function GameSelect() {
 }
 
 function GameComponent(props: { game: Game }) {
-  const url = `/img/game_covers/${props.game.game_image}`;
+  const url = `/img/game_covers/${props.game.id}.webp`;
 
   return (
     <li class={gameListStyles.gameList__game} style={`--img-src: url("${url}")`}>
