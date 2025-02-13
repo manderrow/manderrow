@@ -67,6 +67,7 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
             commands::games::get_games,
             commands::games::get_games_popularity,
             commands::i18n::get_preferred_locales,
+            commands::import::preview_import_modpack_from_thunderstore_code,
             commands::ipc::send_s2c_message,
             commands::mod_index::fetch_mod_index,
             commands::mod_index::query_mod_index,

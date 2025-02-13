@@ -159,7 +159,7 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
                 {(modReadme) => <Markdown source={modReadme().markdown} div={{ class: styles.modView__content }} />}
               </Show>
 
-              <form class={styles.modView__downloader} action="#">
+              <form on:submit={(e) => e.preventDefault()} class={styles.modView__downloader}>
                 <select class={styles.versions} onInput={(event) => setSelectedVersion(event.target.value)}>
                   {/* This entire thing is temporary anyway, it will be removed in a later commit */}
                   <For each={modListing.latest?.versions}>

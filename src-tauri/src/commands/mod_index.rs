@@ -238,32 +238,34 @@ pub async fn query_mod_index(
                 })
         })
         .collect::<Vec<_>>();
-    buf.sort_unstable_by(|(m1, score1), (m2, score2)| {
-        let mut ordering = std::cmp::Ordering::Equal;
-        for &SortOption { column, descending } in &sort {
-            ordering = match column {
-                SortColumn::Relevance => score1.total_cmp(score2),
-                SortColumn::Name => m1.name.cmp(&m2.name),
-                SortColumn::Owner => m1.owner.cmp(&m2.owner),
-                SortColumn::Downloads => {
-                    let sum_downloads = |m: &ArchivedMod| {
-                        m.versions
-                            .iter()
-                            .map(|v| u64::from(v.downloads))
-                            .sum::<u64>()
-                    };
-                    sum_downloads(m1).cmp(&sum_downloads(m2))
+    if !sort.is_empty() {
+        buf.sort_unstable_by(|(m1, score1), (m2, score2)| {
+            let mut ordering = std::cmp::Ordering::Equal;
+            for &SortOption { column, descending } in &sort {
+                ordering = match column {
+                    SortColumn::Relevance => score1.total_cmp(score2),
+                    SortColumn::Name => m1.name.cmp(&m2.name),
+                    SortColumn::Owner => m1.owner.cmp(&m2.owner),
+                    SortColumn::Downloads => {
+                        let sum_downloads = |m: &ArchivedMod| {
+                            m.versions
+                                .iter()
+                                .map(|v| u64::from(v.downloads))
+                                .sum::<u64>()
+                        };
+                        sum_downloads(m1).cmp(&sum_downloads(m2))
+                    }
+                };
+                if descending {
+                    ordering = ordering.reverse();
                 }
-            };
-            if descending {
-                ordering = ordering.reverse();
+                if ordering.is_ne() {
+                    break;
+                }
             }
-            if ordering.is_ne() {
-                break;
-            }
-        }
-        ordering
-    });
+            ordering
+        });
+    }
 
     let count = buf.len();
 

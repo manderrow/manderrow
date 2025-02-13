@@ -47,7 +47,7 @@ function Error(props: { err: any; reset: () => void }) {
         <p>An error occurred, but don't worry, we caught it for you.</p>
 
         <div class={styles.report}>
-          <Switch fallback={<p>{props.err}</p>}>
+          <Switch fallback={<p>{props.err.toString()}</p>}>
             <Match when={props.err instanceof NativeError}>
               <For each={props.err.messages}>{(msg) => <p>{msg}</p>}</For>
               <details class={styles.spoiler}>

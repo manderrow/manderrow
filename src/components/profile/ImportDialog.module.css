@@ -1,0 +1,10 @@
+.preview {
+  max-height: 70vh;
+  overflow: hidden;
+  display: flex;
+}
+
+.buttonRow {
+  display: flex;
+  justify-content: space-between;
+}

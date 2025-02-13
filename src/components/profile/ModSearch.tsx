@@ -69,7 +69,7 @@ export default function ModSearch(props: { game: string }) {
 
   return (
     <div class={styles.modSearch}>
-      <form class={styles.modSearch__form}>
+      <form on:submit={(e) => e.preventDefault()} class={styles.modSearch__form}>
         <div class={styles.modSearch__searchBar}>
           <input
             type="mod-search"

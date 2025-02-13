@@ -35,6 +35,8 @@ function getBtnTypeClass(type?: BtnType) {
   }
 }
 
+export type DismissCallback = () => void;
+
 export function PromptDialog({ options }: { options: PromptDialogOptions }) {
   return (
     <Dialog>
@@ -62,10 +64,10 @@ export function PromptDialog({ options }: { options: PromptDialogOptions }) {
   );
 }
 
-export function DefaultDialog(props: { children: JSX.Element }) {
+export function DefaultDialog(props: { onDismiss?: DismissCallback, children: JSX.Element }) {
   return (
-    <Dialog>
-      <div></div>
+    <Dialog onDismiss={props.onDismiss}>
+      <div class={styles.dialog__container}>{props.children}</div>
     </Dialog>
   );
 }
@@ -84,11 +86,17 @@ export function InfoDialog({ title, message }: { title: string | null; message: 
   );
 }
 
-export default function Dialog(props: { children: JSX.Element }) {
+export default function Dialog(props: { onDismiss?: DismissCallback, children: JSX.Element }) {
+  function onClick(e: MouseEvent) {
+    if (e.eventPhase !== Event.BUBBLING_PHASE) {
+      props.onDismiss!();
+    }
+  }
+
   return (
     <Portal>
       <div class={styles.dialog}>
-        <div>{props.children}</div>
+        <div on:click={props.onDismiss && onClick}>{props.children}</div>
       </div>
     </Portal>
   );

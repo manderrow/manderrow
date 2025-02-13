@@ -1,6 +1,6 @@
 import { Channel, invoke } from "@tauri-apps/api/core";
-import { Game, ModListing, ModPackage } from "./types";
 import { C2SChannel } from "./components/global/Console";
+import { Game, ModListing, ModPackage } from "./types";
 
 /**
  * An error thrown from native code.
@@ -36,7 +36,7 @@ export async function wrapInvoke<T>(f: () => Promise<T>): Promise<T> {
   } catch (e: any) {
     if (e === "Aborted") {
       throw new AbortedError();
-    } else if ("Error" in e) {
+    } else if (e instanceof Object && "Error" in e) {
       throw new NativeError(e.Error.messages, e.Error.backtrace);
     } else {
       throw new Error(e.toString());
@@ -114,13 +114,30 @@ export async function launchProfile(id: string, channel: C2SChannel, options: { 
 }
 
 export async function getProfileMods(id: string): Promise<ModPackage[]> {
-  return await wrapInvoke(async () => await invoke("get_profile_mods", { id }));
+  return await wrapInvoke(() => invoke("get_profile_mods", { id }));
 }
 
 export async function installProfileMod(id: string, mod: ModListing, version: number): Promise<void> {
-  return await wrapInvoke(async () => await invoke("install_profile_mod", { id, mod, version }));
+  return await wrapInvoke(() => invoke("install_profile_mod", { id, mod, version }));
 }
 
 export async function uninstallProfileMod(id: string, modName: string): Promise<void> {
-  return await wrapInvoke(async () => await invoke("uninstall_profile_mod", { id, modName }));
+  return await wrapInvoke(() => invoke("uninstall_profile_mod", { id, modName }));
+}
+
+export type ModSpec = {
+  type: "Online";
+  url: string;
+};
+
+export interface Modpack {
+  name: string;
+  mods: ModSpec[];
+}
+
+export async function previewImportModpackFromThunderstoreCode(
+  thunderstoreId: string,
+  profileId?: string,
+): Promise<Modpack> {
+  return await wrapInvoke(() => invoke("preview_import_modpack_from_thunderstore_code", { thunderstoreId, profileId }));
 }
