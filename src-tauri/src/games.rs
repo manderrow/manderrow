@@ -19,20 +19,12 @@ pub struct Game {
     pub thunderstore_url: String,
     #[serde(alias = "steamFolderName")]
     pub steam_folder_name: String,
-    #[serde(alias = "settingsIdentifier")]
-    pub settings_identifier: String,
     #[serde(alias = "exeName")]
     pub exe_names: Vec<String>,
     #[serde(alias = "dataFolderName")]
     pub data_folder_name: String,
-    #[serde(alias = "exclusionsUrl")]
-    pub exclusions_url: String,
     #[serde(alias = "storePlatformMetadata")]
     pub store_platform_metadata: Vec<StorePlatformMetadata>,
-    #[serde(alias = "gameImage")]
-    pub game_image: String,
-    #[serde(alias = "displayMode")]
-    pub display_mode: usize,
     #[serde(alias = "instanceType")]
     pub instance_type: InstanceType,
     #[serde(alias = "packageLoader")]
@@ -41,24 +33,24 @@ pub struct Game {
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
-#[serde(tag = "_storePlatform")]
+#[serde(tag = "storePlatform")]
 pub enum StorePlatformMetadata {
     Steam {
-        #[serde(alias = "_storeIdentifier")]
+        #[serde(alias = "storeIdentifier")]
         store_identifier: String,
     },
     SteamDirect {
-        #[serde(alias = "_storeIdentifier")]
+        #[serde(alias = "storeIdentifier")]
         store_identifier: String,
     },
     #[serde(alias = "Epic Games Store")]
     Epic {
-        #[serde(alias = "_storeIdentifier")]
+        #[serde(alias = "storeIdentifier")]
         store_identifier: String,
     },
     #[serde(alias = "Xbox Game Pass")]
     Xbox {
-        #[serde(alias = "_storeIdentifier")]
+        #[serde(alias = "storeIdentifier")]
         store_identifier: String,
     },
     #[serde(alias = "Oculus Store")]

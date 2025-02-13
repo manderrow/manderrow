@@ -1,9 +1,4 @@
-use std::collections::HashMap;
-
-use crate::{
-    game_reviews::GAME_REVIEWS,
-    games::{Game, GAMES},
-};
+use crate::games::{Game, GAMES};
 
 #[tauri::command]
 pub async fn get_games() -> &'static [Game] {
@@ -11,6 +6,11 @@ pub async fn get_games() -> &'static [Game] {
 }
 
 #[tauri::command]
-pub async fn get_games_popularity() -> &'static HashMap<String, i64> {
-    &*GAME_REVIEWS
+pub async fn get_games_popularity() -> &'static str {
+    include_str!("../gameReviews.json")
+}
+
+#[tauri::command]
+pub async fn get_game_mods_downloads() -> &'static str {
+    include_str!("../gameModDownloads.json")
 }

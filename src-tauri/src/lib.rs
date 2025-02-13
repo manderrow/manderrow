@@ -8,7 +8,6 @@
 
 mod commands;
 mod error;
-mod game_reviews;
 mod games;
 mod http;
 mod installing;
@@ -65,6 +64,7 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
             commands::close_splashscreen::close_splashscreen,
             commands::games::get_games,
             commands::games::get_games_popularity,
+            commands::games::get_game_mods_downloads,
             commands::i18n::get_preferred_locales,
             commands::ipc::send_s2c_message,
             commands::mod_index::fetch_mod_index,
