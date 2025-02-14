@@ -1,8 +1,9 @@
 .container {
   position: relative;
+  display: flex;
 }
 
-.label {
+.toggle {
   padding: 0.25em;
   display: flex;
   align-items: center;
@@ -11,11 +12,19 @@
   -webkit-user-select: none;
 }
 
-.label:hover {
+.toggle:hover {
   cursor: pointer;
 }
 
-.labelDefault {
+.toggle__icon {
+  transition: rotate 0.2s ease;
+}
+
+.toggle[aria-checked="true"] .toggle__icon {
+  rotate: 180deg;
+}
+
+.toggleDefault {
   background-color: var(--clr-neutral-7);
   border-radius: 4px;
 }

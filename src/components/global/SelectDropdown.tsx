@@ -27,28 +27,37 @@ interface SelectDropdownOptions<T> extends Omit<DropdownOptions, "children"> {
 }
 
 export default function SelectDropdown<T>(options: SelectDropdownOptions<T>) {
-  const id = createUniqueId();
   const [open, setOpen] = createSignal(false);
   const [selected, setSelected] = createStore(options.options);
   const [labelValue, setLabelValue] = createSignal(
     options.label.labelText === "preset"
       ? options.label.preset
-      : (Object.entries(options.options).find(([key, value]) => value.selected)?.[0] ?? "Select..."),
+      : Object.entries(options.options).find(([key, value]) => value.selected)?.[0] ?? "Select...",
   );
 
   return (
-    <div classList={{ [styles.container]: true, [options.class || ""]: true }}>
-      <label for={id} class={styles.label} data-btn>
-        <Fa icon={faCaretDown} rotate={open() ? 180 : 0} />
+    <div
+      classList={{ [styles.container]: true, [options.class || ""]: true }}
+      on:focusout={(event) => {
+        console.log(event);
+        if (event.relatedTarget != null) {
+          if (!(event.relatedTarget instanceof HTMLElement)) return;
+          if (event.relatedTarget.closest("." + styles.container) != null) return;
+        }
+        setOpen(false);
+      }}
+    >
+      <button
+        type="button"
+        class={styles.toggle}
+        data-btn
+        role="checkbox"
+        aria-checked={open()}
+        on:click={() => setOpen((checked) => !checked)}
+      >
+        <Fa icon={faCaretDown} class={styles.toggle__icon} />
         {labelValue()}
-        <input
-          type="checkbox"
-          name="Toggle"
-          id={id}
-          class="phantom"
-          onInput={(event) => setOpen(event.target.checked)}
-        />
-      </label>
+      </button>
       <Show when={open()}>
         <Dropdown align={options.align} class={styles.dropdown}>
           <ul class={styles.options}>
