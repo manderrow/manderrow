@@ -140,7 +140,7 @@
   overflow: hidden;
 }
 
-.tabs__tab a {
+.tabs__tab button {
   padding: 0.5em 1em;
   border-right: 1px solid var(--clr-neutral-7);
   color: var(--clr-neutral-4);
@@ -148,19 +148,20 @@
   font-size: 1.1rem;
   user-select: none;
   -webkit-user-select: none;
+  background-color: transparent;
 }
 
-.tabs__tab a:hover {
+.tabs__tab button:hover {
   color: var(--clr-neutral-2);
 }
 
-.tab__active.tabs__tab a {
+.tab__active.tabs__tab button {
   border-color: var(--clr-primary-4);
   background-color: var(--clr-primary-4);
   color: white;
 }
 
-.tabs__tab:has(+ .tab__active) a {
+.tabs__tab:has(+ .tab__active) button {
   border-right-color: transparent;
 }
 
