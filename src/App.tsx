@@ -1,4 +1,5 @@
-import "./App.css";
+import "./styles/App.css";
+import "./styles/Markdown.css";
 
 import { Route, Router } from "@solidjs/router";
 import { invoke } from "@tauri-apps/api/core";
@@ -26,7 +27,7 @@ export default function App() {
 
   function onLinkClick(event: MouseEvent) {
     const link = getLink(event);
-    if (link == null) return;
+    if (link == null || link.target === "_blank") return;
 
     if (link.href.startsWith(`${location.protocol}//${location.host}`)) return;
 
@@ -39,6 +40,10 @@ export default function App() {
     if (link == null) return;
 
     event.preventDefault();
+    if (link.target === "_blank" && event.button !== 2) {
+      // Link is to open in external browser and not right clicked
+      open(link.href).catch(() => alert(`Failed to open link: ${link.href}`));
+    }
   }
 
   onMount(async () => {

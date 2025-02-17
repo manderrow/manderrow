@@ -17,17 +17,19 @@ import {
 import { createStore } from "solid-js/store";
 import Fa from "solid-fa";
 import { faDownload, faDownLong, faExternalLink, faTrash } from "@fortawesome/free-solid-svg-icons";
-import { faHeart } from "@fortawesome/free-regular-svg-icons";
+import { faHardDrive, faHeart, faThumbsUp } from "@fortawesome/free-regular-svg-icons";
 import { fetch } from "@tauri-apps/plugin-http";
 
 import { Mod, ModListing, ModPackage } from "../../types";
-import { numberFormatter, roundedNumberFormatter } from "../../utils";
+import { humanizeFileSize, numberFormatter, roundedNumberFormatter } from "../../utils";
 import ErrorBoundary, { ErrorContext } from "../global/ErrorBoundary";
 import { InitialProgress, ProgressData } from "./ModSearch";
 import { fetchModIndex, installProfileMod, queryModIndex, uninstallProfileMod } from "../../api";
 
 import styles from "./ModList.module.css";
 import Markdown from "../global/Markdown";
+import TabRenderer, { Tab, TabContent } from "../global/TabRenderer";
+import { useParams } from "@solidjs/router";
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   month: "short",
@@ -95,20 +97,20 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
     { initialValue: getInitialValue(mod()) },
   );
 
-  const [selectedVersion, setSelectedVersion] = createSignal<string>();
+  const [selectedVersion, setSelectedVersion] = createSignal<[string, number]>();
 
-  const [modReadme] = createResource(
-    () => ({ mod: mod(), selectedVersion: selectedVersion() }),
-    async ({ mod, selectedVersion }) => {
+  const modData = () => ({ mod: mod(), selectedVersion: selectedVersion() });
+  function onModSelect(endpoint: string) {
+    return async ({ mod, selectedVersion }: { mod?: Mod; selectedVersion?: [string, number] }) => {
       if (mod == null) return undefined;
 
       // mod is a ModPackage if it has the version field, otherwise it is a ModListing
       const version =
-        "version" in mod ? mod.version.version_number : (selectedVersion ?? mod.versions[0].version_number);
+        "version" in mod ? mod.version.version_number : selectedVersion?.[0] ?? mod.versions[0].version_number;
 
       try {
         const request = await fetch(
-          `https://thunderstore.io/api/experimental/package/${mod.owner}/${mod.name}/${version}/readme/`,
+          `https://thunderstore.io/api/experimental/package/${mod.owner}/${mod.name}/${version}/${endpoint}/`,
         );
         return (await request.json()) as { markdown: string };
       } catch (error) {
@@ -116,8 +118,47 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
         console.error(error);
         return undefined;
       }
+    };
+  }
+
+  const [modReadme] = createResource(modData, onModSelect("readme"));
+  const [modChangelog] = createResource(modData, onModSelect("changelog"));
+
+  const tabs: Tab[] = [
+    {
+      id: "overview",
+      name: "Overview",
+      component: (
+        <Show when={modReadme()} fallback={<p>Loading</p>}>
+          {(modReadme) => <Markdown source={modReadme().markdown} div={{ class: "markdown" }} />}
+        </Show>
+      ),
     },
-  );
+    {
+      id: "dependencies",
+      name: "Dependencies",
+      component: () => {
+        const modConstant = mod()!;
+        const modVersionData =
+          "versions" in modConstant ? modConstant.versions[selectedVersion()?.[1] ?? 0] : modConstant.version;
+
+        return <For each={modVersionData.dependencies}>{(dependency) => <p>{dependency}</p>}</For>;
+      },
+    },
+    {
+      id: "changelog",
+      name: "Changelog",
+      component: (
+        <Show when={modChangelog()?.markdown} fallback={<p>Loading</p>}>
+          {(modChangelog) => <Markdown source={modChangelog()} div={{ class: "markdown" }} />}
+        </Show>
+      ),
+    },
+  ];
+
+  const [currentTab, setCurrentTab] = createSignal(tabs[0]);
+
+  const params = useParams();
 
   return (
     <div class={styles.scrollOuter}>
@@ -131,51 +172,114 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
             </div>
           }
         >
-          {(mod) => (
-            <>
-              <div>
-                <h2 class={styles.name}>
-                  {mod().name}
-                  <Show when={mod().package_url != null}>
-                    <a href={mod().package_url} target="_blank" rel="noopener noreferrer">
-                      <Fa icon={faExternalLink} /> Website
-                    </a>
-                  </Show>
-                </h2>
-                <p class={styles.description}>
-                  {mod().owner}
-                  <Show when={mod().donation_link != null}>
-                    <a href={mod().donation_link} target="_blank" rel="noopener noreferrer">
-                      <Fa icon={faHeart} /> Donate
-                    </a>
-                  </Show>
-                </p>
-                <Show when={modListing.latest}>
-                  {(modListing) => <p class={styles.description}>{modListing().versions[0].description}</p>}
-                </Show>
-              </div>
+          {(mod) => {
+            const modVersionData = () => {
+              const modConstant = mod();
 
-              <Show when={modReadme()} fallback={<p>Fallback</p>}>
-                {(modReadme) => <Markdown source={modReadme().markdown} div={{ class: styles.modView__content }} />}
-              </Show>
+              return "versions" in modConstant
+                ? modConstant.versions[selectedVersion()?.[1] ?? 0]
+                : modConstant.version;
+            };
 
-              <form class={styles.modView__downloader} action="#">
-                <select class={styles.versions} onInput={(event) => setSelectedVersion(event.target.value)}>
-                  {/* This entire thing is temporary anyway, it will be removed in a later commit */}
-                  <For each={modListing.latest?.versions}>
-                    {(version, i) => {
-                      return (
-                        <option value={version.uuid4}>
-                          v{version.version_number} {i() === 0 ? "(latest)" : ""}
-                        </option>
-                      );
+            return (
+              <>
+                <div class={styles.modSticky}>
+                  <div class={styles.modMeta}>
+                    {/* TODO: For local mod with no package URL, remove link */}
+                    <div style={{ "grid-area": "name" }}>
+                      <a
+                        href={mod().package_url ?? ""}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class={styles.modMetaLink}
+                      >
+                        <h2 class={styles.name}>{mod().name}</h2>
+                        <Fa icon={faExternalLink} />
+                      </a>
+                    </div>
+                    <div style={{ "grid-area": "owner" }}>
+                      <a
+                        href={`https://thunderstore.io/c/${params.gameId}/p/${mod().owner}/`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class={styles.modMetaLink}
+                      >
+                        {mod().owner}
+                        <Fa icon={faExternalLink} />
+                      </a>
+                    </div>
+                    <ul class={styles.modMetadata}>
+                      <li class={styles.metadata__field}>
+                        <Fa icon={faThumbsUp} /> {roundedNumberFormatter.format(mod().rating_score)}
+                      </li>
+                      <li class={styles.metadata__field}>
+                        <Fa icon={faDownload} /> {roundedNumberFormatter.format(modVersionData().downloads)}
+                      </li>
+                      <li class={styles.metadata__field}>
+                        <Fa icon={faHardDrive} /> {humanizeFileSize(modVersionData().file_size)}
+                      </li>
+                    </ul>
+
+                    <Show when={mod().donation_link != null}>
+                      <a
+                        class={styles.modMeta__donate}
+                        href={mod().donation_link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Fa icon={faHeart} class={styles.donate__icon} />
+                        <br /> Donate
+                      </a>
+                    </Show>
+                  </div>
+
+                  <TabRenderer
+                    id="mod-view"
+                    tabs={tabs}
+                    styles={{
+                      tabs: {
+                        container: styles.tabs,
+                        list: styles.tabs__list,
+                        list__item: styles.tabs__tab,
+                        list__itemActive: styles.tab__active,
+                      },
                     }}
-                  </For>
-                </select>
-                <button>Download</button>
-              </form>
-            </>
-          )}
+                    setter={setCurrentTab}
+                  />
+                </div>
+
+                <div class={styles.modView__content}>
+                  <TabContent currentTab={currentTab} tabs={tabs} />
+                </div>
+
+                <form class={styles.modView__form} action="#">
+                  <div class={styles.modView__downloader}>
+                    <select
+                      class={styles.modView__versions}
+                      onInput={(event) =>
+                        setSelectedVersion([
+                          event.target.value,
+                          parseInt(event.target.selectedOptions[0].dataset.index!),
+                        ])
+                      }
+                    >
+                      {/* This entire thing is temporary anyway, it will be removed in a later commit */}
+                      <For each={modListing.latest?.versions}>
+                        {(version, i) => {
+                          return (
+                            <option value={version.version_number} data-index={i()}>
+                              v{version.version_number} {i() === 0 ? "(latest)" : ""}
+                            </option>
+                          );
+                        }}
+                      </For>
+                    </select>
+                    <button class={styles.modView__downloadBtn}>Download</button>
+                  </div>
+                </form>
+              </>
+            );
+          }}
         </Show>
       </div>
     </div>
@@ -249,7 +353,7 @@ function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) 
             </p>
             <p class={styles.downloads}>
               <Show when={"versions" in props.mod}>
-                <Fa icon={faDownload} />{" "}
+                <Fa icon={faDownload} />
                 {roundedNumberFormatter.format(
                   (props.mod as ModListing).versions.map((v) => v.downloads).reduce((acc, x) => acc + x),
                 )}
