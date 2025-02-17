@@ -6,7 +6,7 @@ import { createSignal, For, onCleanup, onMount } from "solid-js";
 
 import { GameListSortType } from "../../enums/ListSortOrder";
 import { games, gamesModDownloads, gamesPopularity } from "../../globals";
-import { Locale, localeNamesMap, setLocale, locale, t } from "../../i18n/i18n";
+import { Locale, localeNamesMap, setLocale, locale, t, RAW_LOCALES } from "../../i18n/i18n";
 import { Game } from "../../types";
 import { autofocus } from "../../components/global/Directives";
 
@@ -70,10 +70,10 @@ export default function GameSelect() {
             <Fa icon={faGlobe} />
           </label>
           <select name="language" id="language" on:change={(e) => setLocale(e.target.value as Locale)}>
-            <For each={Object.entries(localeNamesMap)}>
-              {([loc, name]) => (
+            <For each={RAW_LOCALES}>
+              {(loc) => (
                 <option value={loc} selected={locale() === loc}>
-                  {name}
+                  {localeNamesMap[loc]}
                 </option>
               )}
             </For>
