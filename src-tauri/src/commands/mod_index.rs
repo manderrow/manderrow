@@ -1,24 +1,22 @@
 mod memory;
 
-use std::{
-    collections::{HashMap, HashSet},
-    io::Read as _,
-    sync::{atomic::AtomicU64, LazyLock},
-};
+use std::collections::{HashMap, HashSet};
+use std::sync::LazyLock;
 
 use anyhow::{Context as _, Result};
+use async_compression::tokio::bufread::GzipDecoder;
 use drop_guard::ext::tokio1::JoinHandleExt;
-use flate2::bufread::GzDecoder;
 use slog::debug;
 use tauri::{ipc::Channel, AppHandle, Manager};
+use tokio::io::AsyncReadExt;
 use tokio::sync::{Mutex, RwLock};
+use url::Url;
 
-use crate::{
-    games::{GAMES, GAMES_BY_ID},
-    http::{fetch_as_blocking, StreamReadable},
-    mods::{ArchivedMod, Mod, ModRef, ModVersionRef},
-    CommandError, Reqwest,
-};
+use crate::games::{GAMES, GAMES_BY_ID};
+use crate::mods::{ArchivedMod, Mod, ModMetadataRef, ModRef, ModVersionRef};
+use crate::util::http::ResponseExt;
+use crate::util::Progress;
+use crate::{CommandError, Reqwest};
 
 use memory::MemoryModIndex;
 
@@ -26,29 +24,7 @@ use memory::MemoryModIndex;
 struct ModIndex {
     data: RwLock<Vec<MemoryModIndex>>,
     refresh_lock: Mutex<()>,
-    progress: AtomicU64,
-    progress_updates: event_listener::Event,
-}
-
-impl ModIndex {
-    pub fn progress(&self) -> (u32, u32) {
-        let v = self.progress.load(std::sync::atomic::Ordering::Acquire);
-        (v as u32, (v >> 32) as u32)
-    }
-
-    pub fn set_progress(&self, complete: u32, total: u32) {
-        self.progress.store(
-            (complete as u64) | ((total as u64) << 32),
-            std::sync::atomic::Ordering::Release,
-        );
-        _ = self.progress_updates.notify(usize::MAX);
-    }
-
-    pub fn inc_progress(&self) {
-        self.progress
-            .fetch_add(1, std::sync::atomic::Ordering::AcqRel);
-        _ = self.progress_updates.notify(usize::MAX);
-    }
+    pub progress: Progress,
 }
 
 static MOD_INDEXES: LazyLock<HashMap<&'static str, ModIndex>> = LazyLock::new(|| {
@@ -57,11 +33,6 @@ static MOD_INDEXES: LazyLock<HashMap<&'static str, ModIndex>> = LazyLock::new(||
         .map(|game| (&*game.thunderstore_url, ModIndex::default()))
         .collect()
 });
-
-async fn fetch_gzipped(reqwest: &Reqwest, url: &str) -> Result<GzDecoder<StreamReadable>> {
-    let rdr = fetch_as_blocking(reqwest.get(url)).await?;
-    Ok(tokio::task::block_in_place(move || GzDecoder::new(rdr)))
-}
 
 #[derive(Clone, serde::Serialize)]
 #[serde(tag = "type")]
@@ -92,14 +63,14 @@ pub async fn fetch_mod_index(
 
         let _guard = tokio::task::spawn(async move {
             loop {
-                event_listener::listener!(mod_index.progress_updates => listener);
+                event_listener::listener!(mod_index.progress.updates() => listener);
 
-                let (completed, total) = mod_index.progress();
+                let (completed, total) = mod_index.progress.get();
                 _ = on_event.send(FetchEvent::Progress { completed, total });
 
                 listener.await;
 
-                let (completed, total) = mod_index.progress();
+                let (completed, total) = mod_index.progress.get();
                 _ = on_event.send(FetchEvent::Progress { completed, total });
             }
         })
@@ -111,31 +82,62 @@ pub async fn fetch_mod_index(
             return Ok(());
         };
 
-        mod_index.set_progress(0, 1);
+        mod_index.progress.set(0, 1);
+        let mut chunk_urls = Vec::new();
+        GzipDecoder::new(
+            app_handle
+                .state::<Reqwest>()
+                .get(&game.thunderstore_url)
+                .send()
+                .await
+                .context("Failed to fetch chunk URLs from Thunderstore")?
+                .error_for_status()
+                .context("Failed to fetch chunk URLs from Thunderstore")?
+                .reader(),
+        )
+        .read_to_end(&mut chunk_urls)
+        .await
+        .context("Failed to fetch chunk URLs from Thunderstore")?;
         let chunk_urls =
-            fetch_gzipped(&*app_handle.state::<Reqwest>(), &game.thunderstore_url).await?;
-        let chunk_urls =
-            tokio::task::block_in_place(|| serde_json::from_reader::<_, Vec<String>>(chunk_urls))
+            tokio::task::block_in_place(|| simd_json::from_slice::<Vec<Url>>(&mut chunk_urls))
                 .context("Unable to decode chunk URLs from Thunderstore")?;
-        mod_index.set_progress(
+        mod_index.progress.inc(
             1,
-            chunk_urls
-                .len()
-                .checked_add(1)
-                .and_then(|n| n.try_into().ok())
-                .context("too many chunk urls")?,
+            chunk_urls.len().try_into().context("too many chunk urls")?,
         );
 
+        let started_at = std::time::Instant::now();
         let new_mod_index =
             futures::future::try_join_all(chunk_urls.into_iter().map(|url| async {
                 let log = log.clone();
                 let app_handle = app_handle.clone();
                 tokio::task::spawn(async move {
+                    let spawned_at = std::time::Instant::now();
+                    let latency = spawned_at.duration_since(started_at);
                     let mut buf = Vec::new();
-                    let mut rdr = fetch_gzipped(&*app_handle.state::<Reqwest>(), &url).await?;
+                    {
+                        let mut rdr = GzipDecoder::new(
+                            app_handle
+                                .state::<Reqwest>()
+                                .get(url)
+                                .send()
+                                .await
+                                .context("Failed to fetch chunk from Thunderstore")?
+                                .error_for_status()
+                                .context("Failed to fetch chunk from Thunderstore")?
+                                .reader_with_progress(&mod_index.progress),
+                        );
+                        rdr.read_to_end(&mut buf).await?;
+                    }
+                    let fetched_at = std::time::Instant::now();
+                    let fetched_in = fetched_at.duration_since(spawned_at);
                     tokio::task::block_in_place(move || {
-                        rdr.read_to_end(&mut buf)?;
+                        // TODO: decode without cloning
                         let mods = simd_json::from_slice::<Vec<Mod>>(&mut buf)?;
+                        let buf_len = buf.len();
+                        drop(buf);
+                        let decoded_at = std::time::Instant::now();
+                        let decoded_in = decoded_at.duration_since(fetched_at);
                         let mods = rkyv::util::with_arena(|arena| {
                             let mut serializer = rkyv_intern::InterningAdapter::new(
                                 rkyv::ser::Serializer::new(
@@ -151,16 +153,17 @@ pub async fn fetch_mod_index(
                             )?;
                             Ok::<_, rkyv::rancor::Error>(serializer.into_serializer().into_writer())
                         })?;
+                        let encoded_at = std::time::Instant::now();
+                        let encoded_in = encoded_at.duration_since(decoded_at);
                         debug!(
                             log,
-                            "{} bytes of JSON -> {} bytes in memory",
-                            buf.len(),
+                            "{buf_len} bytes of JSON -> {} bytes in memory, {latency:?} spawning, {fetched_in:?} fetching, {decoded_in:?} decoding, {encoded_in:?} encoding",
                             mods.len()
                         );
                         let index = MemoryModIndex::new(mods, |data| {
                             rkyv::access::<_, rkyv::rancor::Error>(data)
                         })?;
-                        mod_index.inc_progress();
+                        mod_index.progress.inc(1, 0);
                         Ok::<_, anyhow::Error>(index)
                     })
                 })
@@ -195,6 +198,12 @@ pub struct SortOption {
 //     count: usize,
 // }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
+pub struct ModId<'a> {
+    owner: &'a str,
+    name: &'a str,
+}
+
 // TODO: use register_asynchronous_uri_scheme_protocol to stream the json back without buffering
 #[tauri::command]
 pub async fn query_mod_index(
@@ -203,7 +212,7 @@ pub async fn query_mod_index(
     sort: Vec<SortOption>,
     skip: Option<usize>,
     limit: Option<usize>,
-    exact: Option<HashSet<&str>>,
+    exact: Option<HashSet<ModId<'_>>>,
 ) -> Result<simd_json::OwnedValue, CommandError> {
     let log = slog_scope::logger();
 
@@ -224,7 +233,10 @@ pub async fn query_mod_index(
                 .iter()
                 .filter(|m| {
                     if let Some(exact) = &exact {
-                        exact.contains(m.full_name.as_str())
+                        exact.contains(&ModId {
+                            owner: m.owner.as_str(),
+                            name: m.name.as_str(),
+                        })
                     } else {
                         true
                     }
@@ -233,7 +245,9 @@ pub async fn query_mod_index(
                     if query.is_empty() {
                         Some((m, 0.0))
                     } else {
-                        rff::match_and_score(&query, &m.full_name).map(|(_, score)| (m, score))
+                        let (_, owner_score) = rff::match_and_score(&query, &m.owner)?;
+                        let (_, name_score) = rff::match_and_score(&query, &m.name)?;
+                        Some((m, owner_score + name_score))
                     }
                 })
         })
@@ -273,29 +287,32 @@ pub async fn query_mod_index(
         it.into_iter()
             .map(|(m, _)| {
                 simd_json::serde::to_owned_value(ModRef {
-                    name: &m.name,
-                    full_name: &m.full_name,
-                    owner: &m.owner,
-                    package_url: m.package_url.as_deref(),
-                    donation_link: m.donation_link.as_deref(),
-                    date_created: &m.date_created,
-                    date_updated: &m.date_updated,
-                    rating_score: m.rating_score.into(),
-                    is_pinned: m.is_pinned,
-                    is_deprecated: m.is_deprecated,
-                    has_nsfw_content: m.has_nsfw_content,
-                    categories: m.categories.iter().map(|s| s.0.as_str()).collect(),
+                    metadata: ModMetadataRef {
+                        name: &m.name,
+                        full_name: Default::default(),
+                        owner: &m.owner,
+                        package_url: Default::default(),
+                        donation_link: m.donation_link.as_deref(),
+                        date_created: &m.date_created,
+                        date_updated: &m.date_updated,
+                        rating_score: m.rating_score.into(),
+                        is_pinned: m.is_pinned,
+                        is_deprecated: m.is_deprecated,
+                        has_nsfw_content: m.has_nsfw_content,
+                        categories: m.categories.iter().map(|s| s.0.as_str()).collect(),
+                        uuid4: m.uuid4,
+                    },
                     versions: m
                         .versions
                         .iter()
                         .map(|v| ModVersionRef {
-                            name: &v.name,
-                            full_name: &v.full_name,
+                            name: Default::default(),
+                            full_name: Default::default(),
                             description: &v.description,
                             icon: &v.icon,
                             version_number: &v.version_number,
                             dependencies: v.dependencies.iter().map(|s| s.0.as_str()).collect(),
-                            download_url: &v.download_url,
+                            download_url: Default::default(),
                             downloads: v.downloads.into(),
                             date_created: &v.date_created,
                             website_url: v.website_url.as_deref(),
@@ -304,7 +321,6 @@ pub async fn query_mod_index(
                             file_size: v.file_size.into(),
                         })
                         .collect(),
-                    uuid4: m.uuid4,
                 })
                 .unwrap()
             })

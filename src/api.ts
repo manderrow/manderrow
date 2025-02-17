@@ -80,7 +80,7 @@ export async function queryModIndex(
   game: string,
   query: string,
   sort: SortOption[],
-  options: { skip?: number; limit?: number; exact?: string[] },
+  options: { skip?: number; limit?: number; exact?: { owner: string; name: string }[] },
 ): Promise<{
   mods: ModListing[];
   count: number;
@@ -125,6 +125,6 @@ export async function installProfileMod(id: string, mod: ModListing, version: nu
   return await wrapInvoke(async () => await invoke("install_profile_mod", { id, mod, version }));
 }
 
-export async function uninstallProfileMod(id: string, modName: string): Promise<void> {
-  return await wrapInvoke(async () => await invoke("uninstall_profile_mod", { id, modName }));
+export async function uninstallProfileMod(id: string, owner: string, name: string): Promise<void> {
+  return await wrapInvoke(async () => await invoke("uninstall_profile_mod", { id, owner, name }));
 }

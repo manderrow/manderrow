@@ -84,7 +84,7 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
     async (mod, info: ResourceFetcherInfo<ModListing | undefined, never>) => {
       if ("game" in mod) {
         await fetchModIndex(mod.game, { refresh: info.refetching }, setProgress);
-        return (await queryModIndex(mod.game, "", [], { exact: [mod.full_name] })).mods[0];
+        return (await queryModIndex(mod.game, "", [], { exact: [{owner: mod.owner, name: mod.name}] })).mods[0];
       } else if ("versions" in mod) {
         setProgress({ completed: null, total: null });
         return mod;
@@ -136,11 +136,9 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
               <div>
                 <h2 class={styles.name}>
                   {mod().name}
-                  <Show when={mod().package_url != null}>
-                    <a href={mod().package_url} target="_blank" rel="noopener noreferrer">
-                      <Fa icon={faExternalLink} /> Website
-                    </a>
-                  </Show>
+                  <a href={`https://thunderstore.io/package/${mod().owner}/${mod().name}/`} target="_blank" rel="noopener noreferrer">
+                    <Fa icon={faExternalLink} /> Website
+                  </a>
                 </h2>
                 <p class={styles.description}>
                   {mod().owner}
@@ -189,7 +187,7 @@ function ModListMods(props: { mods: Fetcher; selectedMod: Signal<Mod | undefined
   });
   const paginatedMods = () => infiniteScroll()[0]();
   // idk why we're passing props here
-  const infiniteScrollLoader = (el: Element, props: Accessor<true>) => infiniteScroll()[1](el, props);
+  const infiniteScrollLoader = (el: Element) => infiniteScroll()[1](el);
   const end = () => infiniteScroll()[2].end();
 
   return (
@@ -241,7 +239,7 @@ function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) 
         <div class={styles.mod__content}>
           <div class={styles.left}>
             <p class={styles.info}>
-              <span class={styles.name}>{displayVersion().name}</span>
+              <span class={styles.name}>{props.mod.name}</span>
               <span class={styles.separator} aria-hidden>
                 &bull;
               </span>
@@ -323,7 +321,7 @@ function UninstallButton(props: {
         e.stopPropagation();
         setBusy(true);
         try {
-          await uninstallProfileMod(props.installContext.profile, props.mod.full_name);
+          await uninstallProfileMod(props.installContext.profile, props.mod.owner, props.mod.name);
           await props.installContext.refetchInstalled();
         } catch (e) {
           reportErr(e);

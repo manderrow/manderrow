@@ -4,12 +4,12 @@
 #![feature(extend_one)]
 #![feature(os_string_truncate)]
 #![feature(path_add_extension)]
+#![feature(type_alias_impl_trait)]
 #![feature(type_changing_struct_update)]
 
 mod commands;
 mod error;
 mod games;
-mod http;
 mod installing;
 mod ipc;
 mod launching;

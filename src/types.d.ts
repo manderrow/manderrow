@@ -47,9 +47,7 @@ export type Mod = ModListing | ModPackage;
 
 export interface ModMetadata {
   name: string;
-  full_name: string;
   owner: string;
-  package_url?: string;
   donation_link?: string;
   date_created: string;
   date_updated: string;
@@ -77,13 +75,10 @@ export interface ModPackage extends ModMetadata {
 }
 
 export interface ModVersion {
-  name: string;
-  full_name: string;
   description: string;
   icon: string;
   version_number: string;
   dependencies: string[];
-  download_url: string;
   downloads: number;
   date_created: string;
   website_url?: string;

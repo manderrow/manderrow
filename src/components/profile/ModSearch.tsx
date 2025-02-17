@@ -9,6 +9,7 @@ import { numberFormatter } from "../../utils";
 import { createStore } from "solid-js/store";
 import Dropdown from "../global/Dropdown";
 import TogglableDropdown from "../global/TogglableDropdown";
+import { ErrorContext } from "../global/ErrorBoundary";
 
 export interface ProgressData {
   completed: number;
@@ -37,10 +38,17 @@ export default function ModSearch(props: { game: string }) {
     total: null,
   });
 
+  const reportErr = useContext(ErrorContext)!;
+
   const [loadStatus, { refetch: refetchModIndex }] = createResource(
     () => props.game,
     async (game, info: ResourceFetcherInfo<boolean, never>) => {
-      await fetchModIndex(game, { refresh: info.refetching }, setProgress);
+      try {
+        await fetchModIndex(game, { refresh: info.refetching }, setProgress);
+      } catch (e) {
+        reportErr(e);
+        throw e;
+      }
       return true;
     },
   );

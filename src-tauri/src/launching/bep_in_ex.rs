@@ -5,7 +5,7 @@ use anyhow::{anyhow, bail, Context as _, Result};
 use uuid::Uuid;
 
 use crate::commands::profiles::read_profile;
-use crate::games::{Game, GAMES_BY_ID};
+use crate::games::GAMES_BY_ID;
 use crate::installing::install_zip;
 use crate::Reqwest;
 
@@ -29,21 +29,6 @@ fn get_url_and_hash(uses_proton: bool) -> Result<(&'static str, &'static str)> {
         ("windows", "x86", false) => ("https://github.com/BepInEx/BepInEx/releases/download/v5.4.23.2/BepInEx_win_x86_5.4.23.2.zip", "db8b95c4dca085d20ce5fc7447f6cf9b18469a5d983e535ac8ea5ae8eea828f3"),
         (os, arch, uses_proton) => bail!("Unsupported platform combo: (os: {os:?}, arch: {arch:?}, uses_proton: {uses_proton})"),
     })
-}
-
-fn get_steam_id(game: &Game) -> Option<&str> {
-    game.store_platform_metadata
-        .iter()
-        .find_map(|m| match m {
-            crate::games::StorePlatformMetadata::Steam { store_identifier } => {
-                Some(store_identifier)
-            }
-            crate::games::StorePlatformMetadata::SteamDirect { store_identifier } => {
-                Some(store_identifier)
-            }
-            _ => None,
-        })
-        .map(String::as_str)
 }
 
 pub const BEP_IN_EX_FOLDER: &str = "BepInEx";

@@ -347,11 +347,18 @@ pub async fn install_profile_mod(
                 .await
                 .context("Failed to create BepInEx plugins directory")?;
 
-            path.push(&mod_with_version.r#mod.full_name);
+            path.push(&mod_with_version.r#mod.owner);
+            path.as_mut_os_string().push("-");
+            path.as_mut_os_string().push(&mod_with_version.r#mod.name);
             let staged = install_zip(
                 &log,
                 &*reqwest,
-                &mod_with_version.version.download_url,
+                &format!(
+                    "https://thunderstore.io/package/download/{}/{}/{}/",
+                    mod_with_version.r#mod.owner,
+                    mod_with_version.r#mod.name,
+                    mod_with_version.version.version_number
+                ),
                 None,
                 &path,
             )
@@ -376,7 +383,7 @@ pub async fn install_profile_mod(
 }
 
 #[tauri::command]
-pub async fn uninstall_profile_mod(id: Uuid, mod_name: &str) -> Result<(), CommandError> {
+pub async fn uninstall_profile_mod(id: Uuid, owner: &str, name: &str) -> Result<(), CommandError> {
     let log = slog_scope::logger();
 
     let mut path = profile_path(id);
@@ -393,7 +400,9 @@ pub async fn uninstall_profile_mod(id: Uuid, mod_name: &str) -> Result<(), Comma
             path.push(BEP_IN_EX_FOLDER);
             path.push("BepInEx");
             path.push("plugins");
-            path.push(mod_name);
+            path.push(owner);
+            path.as_mut_os_string().push("-");
+            path.as_mut_os_string().push(name);
 
             // remove the manifest so it isn't left over after uninstalling the package
             path.push(MANIFEST_FILE_NAME);
