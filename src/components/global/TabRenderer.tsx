@@ -1,13 +1,19 @@
 import { useSearchParams } from "@solidjs/router";
 import { Accessor, createEffect, For, JSX, Match, Setter, Switch } from "solid-js";
 
-export interface Tab {
+export interface PlainTab {
   id: string;
   name: string;
   // fallback?: JSX.Element;
   selected?: boolean;
   component: JSX.Element;
 }
+
+export interface DynamicTab extends Omit<PlainTab, "component"> {
+  component: (data: any) => JSX.Element;
+}
+
+export type Tab = PlainTab | DynamicTab;
 
 interface TabStyles {
   tabs: {

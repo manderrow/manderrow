@@ -7,11 +7,10 @@ import localeNames from "./locales/localeNames.json";
 
 import { getPreferredLocales } from "../api";
 
-const rawLocales = ["en-CA", "en-US", "es", "fr-FR"] as const; // fully translated locales
+export const RAW_LOCALES = ["en-CA", "en-US", "es", "fr-FR"] as const; // fully translated locales
+const DEFAULT_LOCALE = RAW_LOCALES[0];
 
-const DEFAULT_LOCALE = rawLocales[0];
-
-export type Locale = (typeof rawLocales)[number];
+export type Locale = (typeof RAW_LOCALES)[number];
 export type RawDictionary = typeof en_ca;
 export type Dictionary = i18n.Flatten<RawDictionary>;
 export const localeNamesMap: { [key in Locale]: string } = Object.freeze(localeNames);
@@ -40,13 +39,13 @@ export const t = i18n.translator(dict, i18n.resolveTemplate);
     const lang = preferredLocale.slice(0, 2);
     let found = false;
 
-    for (const locale of rawLocales) {
-      if (locale.startsWith(lang)) {
-        finalLocale = locale;
-        if (locale === preferredLocale) {
-          found = true;
-          break;
-        }
+    for (const locale of RAW_LOCALES) {
+      if (!locale.startsWith(lang)) continue;
+
+      finalLocale = locale;
+      if (locale === preferredLocale) {
+        found = true;
+        break;
       }
     }
 
@@ -63,8 +62,8 @@ type JoinPath<A, B> = A extends string | number
     ? `${A}.${B}`
     : A
   : B extends string | number
-    ? B
-    : "";
+  ? B
+  : "";
 type Flatten<T extends BaseDict, P = {}> = UnionToIntersection<
   {
     [K in keyof T]: T[K] extends BaseDict ? Flatten<T[K], JoinPath<P, K>> : never;

@@ -30,6 +30,7 @@
     "@thisbeyond/solid-dnd": "0.7.5",
     "dompurify": "^3.2.4",
     "marked": "^15.0.7",
+    "marked-alert": "^2.1.2",
     "overlayscrollbars": "^2.10.1",
     "overlayscrollbars-solid": "^0.5.6",
     "solid-fa": "^0.2.0",

@@ -17,18 +17,29 @@ export default function TogglableDropdown(options: TogglableDropdownOptions) {
   const [open, setOpen] = createSignal(false);
 
   return (
-    <div class={styles.container}>
-      <label for={id} classList={{ [styles.label]: true, [options.labelClass || styles.labelDefault]: true }}>
-        <Fa icon={faCaretDown} rotate={open() ? 180 : 0} />
+    <div
+      id={id}
+      classList={{ [styles.container]: true, [options.class || ""]: true }}
+      on:focusout={(event) => {
+        if (event.relatedTarget != null) {
+          if (!(event.relatedTarget instanceof HTMLElement)) return;
+          if (event.relatedTarget.closest("#" + id) != null) return;
+        }
+        setOpen(false);
+      }}
+    >
+      <button
+        type="button"
+        class={styles.toggle}
+        data-btn
+        classList={{ [styles.label]: true, [options.labelClass || styles.labelDefault]: true }}
+        role="checkbox"
+        aria-checked={open()}
+        on:click={() => setOpen((checked) => !checked)}
+      >
+        <Fa icon={faCaretDown} class={styles.toggle__icon} />
         {options.label}
-        <input
-          type="checkbox"
-          name="Toggle"
-          id={id}
-          class="phantom"
-          onInput={(event) => setOpen(event.target.checked)}
-        />
-      </label>
+      </button>
       <Show when={open()}>
         <Dropdown align={options.align}>{options.children}</Dropdown>
       </Show>

@@ -54,6 +54,12 @@ impl Deref for Reqwest {
 fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
     let _guard = slog_envlogger::init()?;
     tauri::Builder::default()
+        // .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
+        //     let _ = app
+        //         .get_webview_window("main")
+        //         .expect("no main window")
+        //         .set_focus();
+        // }))
         .manage(IpcState::default())
         .manage(Reqwest(reqwest::Client::builder().build()?))
         .plugin(tauri_plugin_clipboard_manager::init())

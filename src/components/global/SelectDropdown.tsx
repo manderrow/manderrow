@@ -23,10 +23,12 @@ interface SelectDropdownOptions<T> extends Omit<DropdownOptions, "children"> {
   label: LabelText;
   options: Record<string, Option<T>>;
   onChanged: (value: T, selected: boolean) => void;
+  nullable?: boolean;
   multiselect?: boolean;
 }
 
 export default function SelectDropdown<T>(options: SelectDropdownOptions<T>) {
+  const id = createUniqueId();
   const [open, setOpen] = createSignal(false);
   const [selected, setSelected] = createStore(options.options);
   const [labelValue, setLabelValue] = createSignal(
@@ -37,12 +39,12 @@ export default function SelectDropdown<T>(options: SelectDropdownOptions<T>) {
 
   return (
     <div
+      id={id}
       classList={{ [styles.container]: true, [options.class || ""]: true }}
       on:focusout={(event) => {
-        console.log(event);
         if (event.relatedTarget != null) {
           if (!(event.relatedTarget instanceof HTMLElement)) return;
-          if (event.relatedTarget.closest("." + styles.container) != null) return;
+          if (event.relatedTarget.closest("#" + id) != null) return;
         }
         setOpen(false);
       }}
@@ -69,10 +71,13 @@ export default function SelectDropdown<T>(options: SelectDropdownOptions<T>) {
                   // use the cached value here, so the action performed by the
                   // UI is **never** out of sync with the displayed value.
                   const isSelected = ref.ariaChecked! !== "true";
+
+                  if (!isSelected && !options.nullable) return;
+
                   setSelected(key, "selected", isSelected);
                   options.onChanged(option.value, isSelected);
 
-                  if (!options.multiselect && isSelected) {
+                  if (options.multiselect !== true && isSelected) {
                     for (const other in options.options) {
                       if (options.options[other].value !== option.value) {
                         setSelected(other, "selected", false);
