@@ -76,7 +76,6 @@ export interface ModPackage extends ModMetadata {
 
 export interface ModVersion {
   description: string;
-  icon: string;
   version_number: string;
   dependencies: string[];
   downloads: number;

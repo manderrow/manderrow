@@ -202,6 +202,10 @@ function ModListMods(props: { mods: Fetcher; selectedMod: Signal<Mod | undefined
   );
 }
 
+function getIconUrl(owner: string, name: string, version: string) {
+  return `https://gcdn.thunderstore.io/live/repository/icons/${owner}-${name}-${version}.png`;
+}
+
 function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) {
   const displayVersion = createMemo(() => {
     if ("version" in props.mod) return props.mod.version;
@@ -235,7 +239,7 @@ function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) 
         aria-pressed={props.selectedMod[0]() === props.mod}
         tabIndex={0}
       >
-        <img class={styles.icon} src={displayVersion().icon} />
+        <img class={styles.icon} src={getIconUrl(props.mod.owner, props.mod.name, displayVersion().version_number)} />
         <div class={styles.mod__content}>
           <div class={styles.left}>
             <p class={styles.info}>

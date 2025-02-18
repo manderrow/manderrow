@@ -9,3 +9,6 @@ clean:
 	cargo clean --manifest-path src-tauri/Cargo.toml
 	cargo clean --manifest-path crates/Cargo.toml
 
+test:
+	cargo test --manifest-path src-tauri/Cargo.toml
+

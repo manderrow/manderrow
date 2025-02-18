@@ -6,6 +6,7 @@
 #![feature(path_add_extension)]
 #![feature(type_alias_impl_trait)]
 #![feature(type_changing_struct_update)]
+#![feature(unbounded_shifts)]
 
 mod commands;
 mod error;

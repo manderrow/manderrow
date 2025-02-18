@@ -7,6 +7,7 @@ use anyhow::{Context as _, Result};
 use async_compression::tokio::bufread::GzipDecoder;
 use drop_guard::ext::tokio1::JoinHandleExt;
 use slog::debug;
+use smol_str::SmolStr;
 use tauri::{ipc::Channel, AppHandle, Manager};
 use tokio::io::AsyncReadExt;
 use tokio::sync::{Mutex, RwLock};
@@ -145,7 +146,7 @@ pub async fn fetch_mod_index(
                                     arena.acquire(),
                                     rkyv::ser::sharing::Share::new(),
                                 ),
-                                rkyv_intern::Interner::<String>::default(),
+                                rkyv_intern::Interner::<SmolStr>::default(),
                             );
                             rkyv::api::serialize_using::<_, rkyv::rancor::Error>(
                                 &mods,
@@ -157,11 +158,17 @@ pub async fn fetch_mod_index(
                         let encoded_in = encoded_at.duration_since(decoded_at);
                         debug!(
                             log,
-                            "{buf_len} bytes of JSON -> {} bytes in memory, {latency:?} spawning, {fetched_in:?} fetching, {decoded_in:?} decoding, {encoded_in:?} encoding",
-                            mods.len()
+                            "{buf_len} bytes of JSON -> {} bytes in memory ({:.2}%), {latency:?} spawning, {fetched_in:?} fetching, {decoded_in:?} decoding, {encoded_in:?} encoding",
+                            mods.len(),
+                            (mods.len() as f64 / buf_len as f64) * 100.0
                         );
                         let index = MemoryModIndex::new(mods, |data| {
-                            rkyv::access::<_, rkyv::rancor::Error>(data)
+                            if cfg!(debug_assertions) {
+                                rkyv::access::<_, rkyv::rancor::Error>(data)
+                            } else{
+                                // SAFETY: rkyv just gave us this data. We trust it.
+                                Ok(unsafe { rkyv::access_unchecked(data) })
+                            }
                         })?;
                         mod_index.progress.inc(1, 0);
                         Ok::<_, anyhow::Error>(index)
@@ -309,8 +316,8 @@ pub async fn query_mod_index(
                             name: Default::default(),
                             full_name: Default::default(),
                             description: &v.description,
-                            icon: &v.icon,
-                            version_number: &v.version_number,
+                            icon: Default::default(),
+                            version_number: v.version_number.into(),
                             dependencies: v.dependencies.iter().map(|s| s.0.as_str()).collect(),
                             download_url: Default::default(),
                             downloads: v.downloads.into(),

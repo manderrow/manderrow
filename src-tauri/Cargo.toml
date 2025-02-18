@@ -31,7 +31,7 @@ simd-json = "0.14.3"
 
 bincode = "2.0.0-rc.3"
 bincode_1 = { package = "bincode", version = "1" }
-rkyv = { version = "0.8.10", features = ["pointer_width_16", "uuid-1"] }
+rkyv = { version = "0.8.10", features = ["smol_str-0_3", "uuid-1"] }
 rkyv_intern = { git = "https://github.com/rkyv/rkyv_intern", version = "0.1.0" }
 
 vdf = { git = "https://git.pfaff.dev/michael/vdf.rs" }
@@ -57,6 +57,7 @@ rff = { git = "https://github.com/mpfaff/rff.git" }
 slog = "2.7.0"
 slog-envlogger = "2.2.0"
 slog-scope = "4.4.0"
+smol_str = { version = "0.3.2", features = ["serde"] }
 strum = { version = "0.26.3", features = ["derive"] }
 tempfile = "3.14.0"
 thiserror = "2.0.11"
@@ -88,7 +89,7 @@ opt-level = 0
 debug-assertions = true
 
 [profile.dev.package."*"]
-opt-level = 2
+opt-level = 1
 
 [profile.dev.build-override]
 opt-level = 2

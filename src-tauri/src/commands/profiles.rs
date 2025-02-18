@@ -6,6 +6,7 @@ use anyhow::{anyhow, Context as _, Result};
 use futures::stream::FuturesOrdered;
 use futures::StreamExt as _;
 use slog::{error, info, o};
+use smol_str::SmolStr;
 use tauri::ipc::Channel;
 use tauri::{AppHandle, State};
 use tokio::process::Command;
@@ -24,8 +25,8 @@ pub static PROFILES_DIR: LazyLock<PathBuf> = LazyLock::new(|| local_data_dir().j
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct Profile {
-    pub name: String,
-    pub game: String,
+    pub name: SmolStr,
+    pub game: SmolStr,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -103,7 +104,7 @@ pub async fn get_profiles() -> Result<Vec<ProfileWithId>, CommandError> {
 }
 
 #[tauri::command]
-pub async fn create_profile(game: String, name: String) -> Result<Uuid, CommandError> {
+pub async fn create_profile(game: SmolStr, name: SmolStr) -> Result<Uuid, CommandError> {
     tokio::fs::create_dir_all(&*PROFILES_DIR)
         .await
         .context("Failed to create profiles directory")?;
