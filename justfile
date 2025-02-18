@@ -1,5 +1,5 @@
-run:
-	RUST_BACKTRACE=1 RUST_LOG=debug deno run tauri dev
+run *ARGS:
+	RUST_BACKTRACE=1 RUST_LOG=debug deno run tauri dev {{ARGS}}
 
 fmt:
 	cargo fmt --manifest-path src-tauri/Cargo.toml
