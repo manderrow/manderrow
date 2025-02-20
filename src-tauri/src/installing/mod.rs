@@ -708,6 +708,7 @@ pub async fn install_zip<'a>(
     let target_parent = target
         .parent()
         .context("Target must not be a filesystem root")?;
+    tokio::fs::create_dir_all(target_parent).await?;
 
     let mut changes = Vec::new();
     let changes = match scan_installed_package_for_changes(log, target, &mut changes).await {
@@ -740,7 +741,15 @@ pub async fn install_zip<'a>(
             while let Some(chunk) = resp.chunk().await? {
                 wtr.write_all(&chunk).await?;
             }
+            let hash_on_disk = {
+                let mut hsr = blake3::Hasher::new();
+                hsr.update_mmap(&path)?;
+                hsr.finalize()
+            };
             debug!(log, "Cached zip at {path:?}");
+            if hash_on_disk != hash {
+                bail!("Hash of downloaded zip does not match hash provided to install_zip: expected {hash}, found {hash_on_disk}");
+            }
         } else {
             debug!(log, "Zip is cached at {path:?}");
         }

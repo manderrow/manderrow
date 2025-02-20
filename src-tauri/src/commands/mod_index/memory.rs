@@ -3,17 +3,17 @@ use std::ptr::NonNull;
 use rkyv::util::AlignedVec;
 use rkyv::vec::ArchivedVec;
 
-use crate::mods::ArchivedMod;
+use crate::mods::ArchivedModRef;
 
 pub struct MemoryModIndex {
     data: NonNull<[u8]>,
-    mods: &'static ArchivedVec<ArchivedMod>,
+    mods: &'static ArchivedVec<ArchivedModRef<'static>>,
 }
 
 impl MemoryModIndex {
     pub fn new<F, E>(mut data: AlignedVec<16>, mods_constructor: F) -> Result<Self, E>
     where
-        F: for<'a> FnOnce(&'a [u8]) -> Result<&'a ArchivedVec<ArchivedMod>, E>,
+        F: for<'a> FnOnce(&'a [u8]) -> Result<&'a ArchivedVec<ArchivedModRef<'a>>, E>,
     {
         data.shrink_to_fit();
         let data_ptr = NonNull::from(data.as_mut_slice());
@@ -26,8 +26,9 @@ impl MemoryModIndex {
 }
 
 impl MemoryModIndex {
-    pub fn mods(&self) -> &ArchivedVec<ArchivedMod> {
-        &self.mods
+    pub fn mods(&self) -> &ArchivedVec<ArchivedModRef> {
+        // SAFETY: i have a hunch the lifetime issue is a non-issue
+        unsafe { NonNull::from(self.mods).cast().as_ref() }
     }
 }
 

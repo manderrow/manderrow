@@ -22,6 +22,8 @@ mod private {
 
 pub use private::ReqwestBytesStream;
 
+use crate::util::progress::Step;
+
 use super::Progress;
 
 pub trait ResponseExt {
@@ -40,13 +42,14 @@ impl ResponseExt for Response {
         if expected.is_none() {
             slog_scope::warn!("No progress available for HTTP response, because no content length was provided by the server");
         }
+        let mut step = progress.step();
         ProgressReader {
             reader: self.reader(),
             progress: expected
                 .and_then(|n| u32::try_from(n).ok())
                 .map(move |expected| {
-                    progress.inc(0, expected);
-                    progress
+                    step.add(0, expected);
+                    step
                 }),
         }
     }
@@ -56,7 +59,7 @@ pin_project! {
     pub struct ProgressReader<'a, R> {
         #[pin]
         reader: R,
-        progress: Option<&'a Progress>,
+        progress: Option<Step<'a>>,
     }
 }
 
@@ -70,7 +73,7 @@ impl<'a, R: AsyncRead> AsyncRead for ProgressReader<'a, R> {
         let initial_filled = buf.filled().len();
         this.reader.poll_read(cx, buf).map_ok(|()| {
             if let Some(progress) = this.progress {
-                progress.inc(
+                progress.add(
                     (buf.filled().len() - initial_filled)
                         .try_into()
                         .unwrap_or(u32::MAX),
@@ -95,7 +98,7 @@ impl<'a, R: AsyncBufRead> AsyncBufRead for ProgressReader<'a, R> {
         let this = self.project();
         this.reader.consume(amt);
         if let Some(progress) = this.progress {
-            progress.inc(amt.try_into().unwrap_or(u32::MAX), 0);
+            progress.add(amt.try_into().unwrap_or(u32::MAX), 0);
         }
     }
 }

@@ -1,10 +1,13 @@
 use std::ops::Deref;
 
-use rkyv_intern::Intern;
+use rkyv::with::InlineAsBox;
+use rkyv_intern::{DerefIntern, Intern};
 use smol_str::SmolStr;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+use crate::util::serde::IgnoredAny;
+
+#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ModRef<'a> {
     #[serde(borrow, flatten)]
@@ -46,20 +49,26 @@ impl<'a> Deref for ModRef<'a> {
     }
 }
 
+impl<'a> Deref for ArchivedModRef<'a> {
+    type Target = ArchivedModMetadataRef<'a>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.metadata
+    }
+}
+
 #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, serde::Deserialize, serde::Serialize)]
 #[rkyv(derive(Debug))]
 #[serde(deny_unknown_fields)]
 pub struct ModMetadata {
     #[rkyv(with = Intern)]
     pub name: SmolStr,
-    #[rkyv(with = rkyv::with::Skip)]
     #[serde(skip_serializing)]
-    pub full_name: serde::de::IgnoredAny,
+    pub full_name: IgnoredAny,
     #[rkyv(with = Intern)]
     pub owner: SmolStr,
-    #[rkyv(with = rkyv::with::Skip)]
     #[serde(skip_serializing)]
-    pub package_url: serde::de::IgnoredAny,
+    pub package_url: IgnoredAny,
     pub donation_link: Option<String>,
     pub date_created: SmolStr,
     pub date_updated: SmolStr,
@@ -71,45 +80,75 @@ pub struct ModMetadata {
     pub uuid4: Uuid,
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ModMetadataRef<'a> {
+    #[rkyv(with = DerefIntern)]
     pub name: &'a str,
     #[serde(skip_serializing)]
-    pub full_name: serde::de::IgnoredAny,
+    pub full_name: IgnoredAny,
+    #[rkyv(with = DerefIntern)]
     pub owner: &'a str,
     #[serde(skip_serializing)]
-    pub package_url: serde::de::IgnoredAny,
-    pub donation_link: Option<&'a str>,
+    pub package_url: IgnoredAny,
+    pub donation_link: Option<InlineStringRef<'a>>,
+    #[rkyv(with = InlineAsBox)]
     pub date_created: &'a str,
+    #[rkyv(with = InlineAsBox)]
     pub date_updated: &'a str,
     pub rating_score: u32,
     pub is_pinned: bool,
     pub is_deprecated: bool,
     pub has_nsfw_content: bool,
-    pub categories: Vec<&'a str>,
+    pub categories: Vec<InternedStringRef<'a>>,
     pub uuid4: Uuid,
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, serde::Deserialize, serde::Serialize)]
+#[rkyv(derive(Debug))]
+#[serde(deny_unknown_fields)]
+pub struct ModVersion {
+    #[serde(skip_serializing)]
+    pub name: IgnoredAny,
+    #[serde(skip_serializing)]
+    pub full_name: IgnoredAny,
+    #[rkyv(with = Intern)]
+    pub description: SmolStr,
+    #[serde(skip_serializing)]
+    pub icon: IgnoredAny,
+    pub version_number: Version,
+    pub dependencies: Vec<InternedString>,
+    #[serde(skip_serializing)]
+    pub download_url: IgnoredAny,
+    pub downloads: u64,
+    pub date_created: SmolStr,
+    pub website_url: Option<InternedString>,
+    pub is_active: bool,
+    pub uuid4: Uuid,
+    pub file_size: u64,
+}
+
+#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ModVersionRef<'a> {
     #[serde(skip_serializing)]
-    pub name: serde::de::IgnoredAny,
+    pub name: IgnoredAny,
     #[serde(skip_serializing)]
-    pub full_name: serde::de::IgnoredAny,
+    pub full_name: IgnoredAny,
+    #[rkyv(with = DerefIntern)]
     pub description: &'a str,
     #[serde(skip_serializing)]
-    pub icon: serde::de::IgnoredAny,
+    pub icon: IgnoredAny,
     pub version_number: Version,
     #[serde(borrow)]
-    pub dependencies: Vec<&'a str>,
+    pub dependencies: Vec<InternedStringRef<'a>>,
     #[serde(skip_serializing)]
-    pub download_url: serde::de::IgnoredAny,
+    pub download_url: IgnoredAny,
     pub downloads: u64,
+    #[rkyv(with = InlineAsBox)]
     pub date_created: &'a str,
     #[serde(borrow)]
-    pub website_url: Option<&'a str>,
+    pub website_url: Option<InternedStringRef<'a>>,
     pub is_active: bool,
     pub uuid4: Uuid,
     pub file_size: u64,
@@ -249,34 +288,6 @@ impl std::fmt::Debug for ArchivedVersion {
     }
 }
 
-#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, serde::Deserialize, serde::Serialize)]
-#[rkyv(derive(Debug))]
-#[serde(deny_unknown_fields)]
-pub struct ModVersion {
-    #[rkyv(with = rkyv::with::Skip)]
-    #[serde(skip_serializing)]
-    pub name: serde::de::IgnoredAny,
-    #[rkyv(with = rkyv::with::Skip)]
-    #[serde(skip_serializing)]
-    pub full_name: serde::de::IgnoredAny,
-    #[rkyv(with = Intern)]
-    pub description: SmolStr,
-    #[rkyv(with = rkyv::with::Skip)]
-    #[serde(skip_serializing)]
-    pub icon: serde::de::IgnoredAny,
-    pub version_number: Version,
-    pub dependencies: Vec<InternedString>,
-    #[rkyv(with = rkyv::with::Skip)]
-    #[serde(skip_serializing)]
-    pub download_url: serde::de::IgnoredAny,
-    pub downloads: u64,
-    pub date_created: SmolStr,
-    pub website_url: Option<InternedString>,
-    pub is_active: bool,
-    pub uuid4: Uuid,
-    pub file_size: u64,
-}
-
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ModAndVersion {
@@ -296,6 +307,30 @@ impl Deref for ArchivedInternedString {
 
     fn deref(&self) -> &Self::Target {
         self.0.as_str()
+    }
+}
+
+#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, serde::Deserialize, serde::Serialize)]
+#[serde(transparent)]
+pub struct InternedStringRef<'a>(#[rkyv(with = DerefIntern)] pub &'a str);
+
+impl<'a> Deref for ArchivedInternedStringRef<'a> {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &*self.0
+    }
+}
+
+#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, serde::Deserialize, serde::Serialize)]
+#[serde(transparent)]
+pub struct InlineStringRef<'a>(#[rkyv(with = InlineAsBox)] pub &'a str);
+
+impl<'a> Deref for ArchivedInlineStringRef<'a> {
+    type Target = str;
+
+    fn deref(&self) -> &Self::Target {
+        &*self.0
     }
 }
 

@@ -7,14 +7,15 @@ use anyhow::{Context as _, Result};
 use async_compression::tokio::bufread::GzipDecoder;
 use drop_guard::ext::tokio1::JoinHandleExt;
 use slog::debug;
-use smol_str::SmolStr;
 use tauri::{ipc::Channel, AppHandle, Manager};
 use tokio::io::AsyncReadExt;
 use tokio::sync::{Mutex, RwLock};
 use url::Url;
 
 use crate::games::{GAMES, GAMES_BY_ID};
-use crate::mods::{ArchivedMod, Mod, ModMetadataRef, ModRef, ModVersionRef};
+use crate::mods::{
+    ArchivedModRef, InlineStringRef, InternedStringRef, ModMetadataRef, ModRef, ModVersionRef
+};
 use crate::util::http::ResponseExt;
 use crate::util::Progress;
 use crate::{CommandError, Reqwest};
@@ -38,7 +39,11 @@ static MOD_INDEXES: LazyLock<HashMap<&'static str, ModIndex>> = LazyLock::new(||
 #[derive(Clone, serde::Serialize)]
 #[serde(tag = "type")]
 pub enum FetchEvent {
-    Progress { completed: u32, total: u32 },
+    Progress {
+        completed_steps: u32,
+        total_steps: u32,
+        progress: f64,
+    },
 }
 
 #[tauri::command]
@@ -64,15 +69,19 @@ pub async fn fetch_mod_index(
 
         let _guard = tokio::task::spawn(async move {
             loop {
-                event_listener::listener!(mod_index.progress.updates() => listener);
+                let (completed_steps, total_steps) = mod_index.progress.get_steps();
+                let (completed_progress, total_progress) = mod_index.progress.get_progress();
+                _ = on_event.send(FetchEvent::Progress {
+                    completed_steps,
+                    total_steps,
+                    progress: if total_progress == 0 {
+                        0.0
+                    } else {
+                        completed_progress as f64 / total_progress as f64
+                    },
+                });
 
-                let (completed, total) = mod_index.progress.get();
-                _ = on_event.send(FetchEvent::Progress { completed, total });
-
-                listener.await;
-
-                let (completed, total) = mod_index.progress.get();
-                _ = on_event.send(FetchEvent::Progress { completed, total });
+                mod_index.progress.updates().notified().await;
             }
         })
         .abort_on_drop();
@@ -83,7 +92,8 @@ pub async fn fetch_mod_index(
             return Ok(());
         };
 
-        mod_index.progress.set(0, 1);
+        mod_index.progress.reset();
+
         let mut chunk_urls = Vec::new();
         GzipDecoder::new(
             app_handle
@@ -94,7 +104,7 @@ pub async fn fetch_mod_index(
                 .context("Failed to fetch chunk URLs from Thunderstore")?
                 .error_for_status()
                 .context("Failed to fetch chunk URLs from Thunderstore")?
-                .reader(),
+                .reader_with_progress(&mod_index.progress),
         )
         .read_to_end(&mut chunk_urls)
         .await
@@ -102,10 +112,6 @@ pub async fn fetch_mod_index(
         let chunk_urls =
             tokio::task::block_in_place(|| simd_json::from_slice::<Vec<Url>>(&mut chunk_urls))
                 .context("Unable to decode chunk URLs from Thunderstore")?;
-        mod_index.progress.inc(
-            1,
-            chunk_urls.len().try_into().context("too many chunk urls")?,
-        );
 
         let started_at = std::time::Instant::now();
         let new_mod_index =
@@ -117,6 +123,7 @@ pub async fn fetch_mod_index(
                     let latency = spawned_at.duration_since(started_at);
                     let mut buf = Vec::new();
                     {
+                        let _step = mod_index.progress.step();
                         let mut rdr = GzipDecoder::new(
                             app_handle
                                 .state::<Reqwest>()
@@ -132,17 +139,16 @@ pub async fn fetch_mod_index(
                     }
                     let fetched_at = std::time::Instant::now();
                     let fetched_in = fetched_at.duration_since(spawned_at);
+                    let _step = mod_index.progress.step();
                     tokio::task::block_in_place(move || {
-                        // TODO: decode without cloning
-                        let mods = simd_json::from_slice::<Vec<Mod>>(&mut buf)?;
                         let buf_len = buf.len();
-                        drop(buf);
+                        let mods = simd_json::from_slice::<Vec<ModRef>>(&mut buf)?;
                         let decoded_at = std::time::Instant::now();
                         let decoded_in = decoded_at.duration_since(fetched_at);
                         let mods = rkyv::util::with_arena(|arena| {
                             let mut serializer = rkyv_intern::InterningAdapter::new(
                                 rkyv::ser::Serializer::new(
-                                    rkyv::util::AlignedVec::<16>::new(),
+                                    rkyv::util::AlignedVec::<16>::with_capacity(buf_len / 4),
                                     arena.acquire(),
                                     rkyv::ser::sharing::Share::new(),
                                 ),
@@ -170,7 +176,6 @@ pub async fn fetch_mod_index(
                                 Ok(unsafe { rkyv::access_unchecked(data) })
                             }
                         })?;
-                        mod_index.progress.inc(1, 0);
                         Ok::<_, anyhow::Error>(index)
                     })
                 })
@@ -241,8 +246,8 @@ pub async fn query_mod_index(
                 .filter(|m| {
                     if let Some(exact) = &exact {
                         exact.contains(&ModId {
-                            owner: m.owner.as_str(),
-                            name: m.name.as_str(),
+                            owner: &*m.owner,
+                            name: &*m.name,
                         })
                     } else {
                         true
@@ -267,7 +272,7 @@ pub async fn query_mod_index(
                 SortColumn::Name => m1.name.cmp(&m2.name),
                 SortColumn::Owner => m1.owner.cmp(&m2.owner),
                 SortColumn::Downloads => {
-                    let sum_downloads = |m: &ArchivedMod| {
+                    let sum_downloads = |m: &ArchivedModRef| {
                         m.versions
                             .iter()
                             .map(|v| u64::from(v.downloads))
@@ -289,7 +294,7 @@ pub async fn query_mod_index(
     let count = buf.len();
 
     fn map_to_json<'a>(
-        it: impl IntoIterator<Item = (&'a ArchivedMod, f64)>,
+        it: impl IntoIterator<Item = (&'a ArchivedModRef<'a>, f64)>,
     ) -> Vec<simd_json::OwnedValue> {
         it.into_iter()
             .map(|(m, _)| {
@@ -299,14 +304,18 @@ pub async fn query_mod_index(
                         full_name: Default::default(),
                         owner: &m.owner,
                         package_url: Default::default(),
-                        donation_link: m.donation_link.as_deref(),
+                        donation_link: m.donation_link.as_deref().map(InlineStringRef),
                         date_created: &m.date_created,
                         date_updated: &m.date_updated,
                         rating_score: m.rating_score.into(),
                         is_pinned: m.is_pinned,
                         is_deprecated: m.is_deprecated,
                         has_nsfw_content: m.has_nsfw_content,
-                        categories: m.categories.iter().map(|s| s.0.as_str()).collect(),
+                        categories: m
+                            .categories
+                            .iter()
+                            .map(|s| InternedStringRef(&*s))
+                            .collect(),
                         uuid4: m.uuid4,
                     },
                     versions: m
@@ -318,11 +327,15 @@ pub async fn query_mod_index(
                             description: &v.description,
                             icon: Default::default(),
                             version_number: v.version_number.into(),
-                            dependencies: v.dependencies.iter().map(|s| s.0.as_str()).collect(),
+                            dependencies: v
+                                .dependencies
+                                .iter()
+                                .map(|s| InternedStringRef(&*s))
+                                .collect(),
                             download_url: Default::default(),
                             downloads: v.downloads.into(),
                             date_created: &v.date_created,
-                            website_url: v.website_url.as_deref(),
+                            website_url: v.website_url.as_deref().map(InternedStringRef),
                             is_active: v.is_active.into(),
                             uuid4: v.uuid4,
                             file_size: v.file_size.into(),

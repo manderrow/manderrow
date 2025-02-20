@@ -90,6 +90,17 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn main() -> anyhow::Result<()> {
+    if cfg!(target_os = "linux") {
+        // Only provide a default value, don't override the user's choice.
+        if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
+            // Fixes an intermitent issue on Wayland where the window freezes after resizing.
+            // Known to occur with NVIDIA proprietary drivers, untested under other conditions.
+            unsafe {
+                std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1");
+            }
+        }
+    }
+
     let ctx = tauri::generate_context!();
     PRODUCT_NAME
         .set(ctx.config().product_name.clone().unwrap())

@@ -1,5 +1,5 @@
 import { createResource, createSignal, ResourceFetcherInfo, Show, useContext } from "solid-js";
-import { fetchModIndex, queryModIndex, SortColumn, SortOption } from "../../api";
+import { FetchEvent, fetchModIndex, queryModIndex, SortColumn, SortOption } from "../../api";
 import { SortableList } from "../global/SortableList";
 import ModList, { ModInstallContext } from "./ModList";
 import styles from "./ModSearch.module.css";
@@ -11,14 +11,10 @@ import Dropdown from "../global/Dropdown";
 import TogglableDropdown from "../global/TogglableDropdown";
 import { ErrorContext } from "../global/ErrorBoundary";
 
-export interface ProgressData {
-  completed: number;
-  total: number;
-}
-
 export interface InitialProgress {
-  completed: null;
-  total: null;
+  completed_steps: null;
+  total_steps: null;
+  progress: null;
 }
 
 const MODS_PER_PAGE = 50;
@@ -33,9 +29,10 @@ export default function ModSearch(props: { game: string }) {
     { column: SortColumn.Owner, descending: false },
   ]);
 
-  const [progress, setProgress] = createStore<InitialProgress | ProgressData>({
-    completed: null,
-    total: null,
+  const [progress, setProgress] = createStore<InitialProgress | FetchEvent>({
+    completed_steps: null,
+    total_steps: null,
+    progress: null,
   });
 
   const reportErr = useContext(ErrorContext)!;
@@ -127,8 +124,8 @@ export default function ModSearch(props: { game: string }) {
 
       <Show when={loadStatus.loading}>
         <div class={styles.progressLine}>
-          <p>Fetching mods</p>
-          <progress value={progress.total == null ? 0 : progress.completed / progress.total} />
+          <p>Fetching mods [{progress.completed_steps}/{progress.total_steps}]</p>
+          <progress value={progress.progress} />
         </div>
       </Show>
 

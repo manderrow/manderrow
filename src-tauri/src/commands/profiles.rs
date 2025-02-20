@@ -15,7 +15,6 @@ use uuid::Uuid;
 use crate::games::{PackageLoader, GAMES_BY_ID};
 use crate::installing::{install_zip, uninstall_package};
 use crate::ipc::{C2SMessage, IpcState};
-use crate::launching::bep_in_ex::BEP_IN_EX_FOLDER;
 use crate::mods::{Mod, ModAndVersion};
 use crate::paths::local_data_dir;
 use crate::util::IoErrorKindExt as _;
@@ -128,6 +127,8 @@ pub async fn delete_profile(id: Uuid) -> Result<(), CommandError> {
         .context("Failed to delete profile directory")?;
     Ok(())
 }
+
+pub const MODS_FOLDER: &str = "mods";
 
 #[tauri::command]
 pub async fn launch_profile(
@@ -270,9 +271,7 @@ pub async fn get_profile_mods(id: Uuid) -> Result<Vec<ModAndVersion>, CommandErr
 
     match game.package_loader {
         PackageLoader::BepInEx => {
-            path.push(BEP_IN_EX_FOLDER);
-            path.push("BepInEx");
-            path.push("plugins");
+            path.push(MODS_FOLDER);
 
             let mut iter = match tokio::fs::read_dir(&path).await {
                 Ok(t) => t,
@@ -340,9 +339,7 @@ pub async fn install_profile_mod(
 
     match game.package_loader {
         PackageLoader::BepInEx => {
-            path.push(BEP_IN_EX_FOLDER);
-            path.push("BepInEx");
-            path.push("plugins");
+            path.push(MODS_FOLDER);
 
             tokio::fs::create_dir_all(&path)
                 .await
@@ -398,9 +395,7 @@ pub async fn uninstall_profile_mod(id: Uuid, owner: &str, name: &str) -> Result<
 
     match game.package_loader {
         PackageLoader::BepInEx => {
-            path.push(BEP_IN_EX_FOLDER);
-            path.push("BepInEx");
-            path.push("plugins");
+            path.push(MODS_FOLDER);
             path.push(owner);
             path.as_mut_os_string().push("-");
             path.as_mut_os_string().push(name);
