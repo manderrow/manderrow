@@ -3,8 +3,6 @@ pub mod proton;
 
 use std::io::Write as _;
 use std::ops::BitOrAssign;
-use std::process::Stdio;
-use std::time::Duration;
 
 use anyhow::{anyhow, bail, Context as _, Result};
 use paths::get_steam_exe;

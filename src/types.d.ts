@@ -56,7 +56,6 @@ export interface ModMetadata {
   is_deprecated: boolean;
   has_nsfw_content: boolean;
   categories: string[];
-  uuid4: string;
 }
 
 /**
@@ -82,6 +81,5 @@ export interface ModVersion {
   date_created: string;
   website_url?: string;
   is_active: boolean;
-  uuid4: string;
   file_size: number;
 }

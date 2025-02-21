@@ -15,7 +15,7 @@ use uuid::Uuid;
 use crate::games::{PackageLoader, GAMES_BY_ID};
 use crate::installing::{install_zip, uninstall_package};
 use crate::ipc::{C2SMessage, IpcState};
-use crate::mods::{Mod, ModAndVersion};
+use crate::mods::{ModAndVersion, ModMetadata, ModVersion};
 use crate::paths::local_data_dir;
 use crate::util::IoErrorKindExt as _;
 use crate::{CommandError, Reqwest};
@@ -313,71 +313,50 @@ pub async fn get_profile_mods(id: Uuid) -> Result<Vec<ModAndVersion>, CommandErr
 pub async fn install_profile_mod(
     reqwest: State<'_, Reqwest>,
     id: Uuid,
-    r#mod: Mod,
-    version: usize,
+    r#mod: ModMetadata,
+    version: ModVersion,
 ) -> Result<(), CommandError> {
     let log = slog_scope::logger();
 
     let mut path = profile_path(id);
-    path.push("profile.json");
-    let metadata = read_profile_file(&path)
+
+    path.push(MODS_FOLDER);
+
+    tokio::fs::create_dir_all(&path)
         .await
-        .context("Failed to read profile")?;
-    path.pop();
+        .context("Failed to create mods directory")?;
 
-    let game = GAMES_BY_ID.get(&*metadata.game).context("No such game")?;
+    path.push(&r#mod.owner);
+    path.as_mut_os_string().push("-");
+    path.as_mut_os_string().push(&r#mod.name);
+    let staged = install_zip(
+        &log,
+        &*reqwest,
+        &format!(
+            "https://thunderstore.io/package/download/{}/{}/{}/",
+            r#mod.owner, r#mod.name, version.version_number
+        ),
+        None,
+        &path,
+    )
+    .await?;
 
-    let mod_with_version = ModAndVersion {
-        r#mod: r#mod.metadata,
-        game: metadata.game,
-        version: r#mod
-            .versions
-            .into_iter()
-            .nth(version)
-            .context("No such version")?,
-    };
+    tokio::task::block_in_place(|| {
+        serde_json::to_writer(
+            std::io::BufWriter::new(std::fs::File::create(
+                staged.path().join(MANIFEST_FILE_NAME),
+            )?),
+            &ModAndVersion {
+                r#mod: r#mod,
+                version,
+            },
+        )?;
+        Ok::<_, anyhow::Error>(())
+    })?;
 
-    match game.package_loader {
-        PackageLoader::BepInEx => {
-            path.push(MODS_FOLDER);
+    staged.finish(&log).await?;
 
-            tokio::fs::create_dir_all(&path)
-                .await
-                .context("Failed to create BepInEx plugins directory")?;
-
-            path.push(&mod_with_version.r#mod.owner);
-            path.as_mut_os_string().push("-");
-            path.as_mut_os_string().push(&mod_with_version.r#mod.name);
-            let staged = install_zip(
-                &log,
-                &*reqwest,
-                &format!(
-                    "https://thunderstore.io/package/download/{}/{}/{}/",
-                    mod_with_version.r#mod.owner,
-                    mod_with_version.r#mod.name,
-                    mod_with_version.version.version_number
-                ),
-                None,
-                &path,
-            )
-            .await?;
-
-            tokio::task::block_in_place(|| {
-                serde_json::to_writer(
-                    std::io::BufWriter::new(std::fs::File::create(
-                        staged.path().join(MANIFEST_FILE_NAME),
-                    )?),
-                    &mod_with_version,
-                )?;
-                Ok::<_, anyhow::Error>(())
-            })?;
-
-            staged.finish(&log).await?;
-
-            Ok(())
-        }
-        _ => Err(anyhow!("Unsupported package loader for mod installation").into()),
-    }
+    Ok(())
 }
 
 #[tauri::command]

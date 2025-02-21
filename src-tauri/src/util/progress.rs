@@ -1,7 +1,5 @@
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use event_listener::Event;
-
 /// Over/underflows in one value will corrupt both values.
 #[derive(Default)]
 struct AtomicU32x2(AtomicU64);

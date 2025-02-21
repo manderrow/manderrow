@@ -13,10 +13,9 @@ use tokio::sync::{Mutex, RwLock};
 use url::Url;
 
 use crate::games::{GAMES, GAMES_BY_ID};
-use crate::mods::{
-    ArchivedModRef, InlineStringRef, InternedStringRef, ModMetadataRef, ModRef, ModVersionRef
-};
+use crate::mods::{ArchivedModRef, InlineString, ModMetadataRef, ModRef, ModVersionRef};
 use crate::util::http::ResponseExt;
+use crate::util::rkyv::{InternedString, Interner};
 use crate::util::Progress;
 use crate::{CommandError, Reqwest};
 
@@ -127,7 +126,7 @@ pub async fn fetch_mod_index(
                         let mut rdr = GzipDecoder::new(
                             app_handle
                                 .state::<Reqwest>()
-                                .get(url)
+                                .get(url.clone())
                                 .send()
                                 .await
                                 .context("Failed to fetch chunk from Thunderstore")?
@@ -145,37 +144,38 @@ pub async fn fetch_mod_index(
                         let mods = simd_json::from_slice::<Vec<ModRef>>(&mut buf)?;
                         let decoded_at = std::time::Instant::now();
                         let decoded_in = decoded_at.duration_since(fetched_at);
-                        let mods = rkyv::util::with_arena(|arena| {
+                        let (buf, interned, interned_bytes) = rkyv::util::with_arena(|arena| {
                             let mut serializer = rkyv_intern::InterningAdapter::new(
                                 rkyv::ser::Serializer::new(
                                     rkyv::util::AlignedVec::<16>::with_capacity(buf_len / 4),
                                     arena.acquire(),
                                     rkyv::ser::sharing::Share::new(),
                                 ),
-                                rkyv_intern::Interner::<SmolStr>::default(),
+                                Interner::<String>::default(),
                             );
                             rkyv::api::serialize_using::<_, rkyv::rancor::Error>(
                                 &mods,
                                 &mut serializer,
                             )?;
-                            Ok::<_, rkyv::rancor::Error>(serializer.into_serializer().into_writer())
+                            let (serializer, interner) = serializer.into_components();
+                            Ok::<_, rkyv::rancor::Error>((serializer.into_writer(), interner.len(), interner.values().map(|s| s.len()).sum::<usize>()))
                         })?;
                         let encoded_at = std::time::Instant::now();
                         let encoded_in = encoded_at.duration_since(decoded_at);
                         debug!(
                             log,
-                            "{buf_len} bytes of JSON -> {} bytes in memory ({:.2}%), {latency:?} spawning, {fetched_in:?} fetching, {decoded_in:?} decoding, {encoded_in:?} encoding",
-                            mods.len(),
-                            (mods.len() as f64 / buf_len as f64) * 100.0
+                            "{buf_len} bytes of JSON -> {} bytes in memory ({:.2}%, {interned} strings interned, {interned_bytes} bytes), {latency:?} spawning, {fetched_in:?} fetching, {decoded_in:?} decoding, {encoded_in:?} encoding",
+                            buf.len(),
+                            (buf.len() as f64 / buf_len as f64) * 100.0
                         );
-                        let index = MemoryModIndex::new(mods, |data| {
+                        let index = MemoryModIndex::new(buf, |data| {
                             if cfg!(debug_assertions) {
                                 rkyv::access::<_, rkyv::rancor::Error>(data)
                             } else{
                                 // SAFETY: rkyv just gave us this data. We trust it.
                                 Ok(unsafe { rkyv::access_unchecked(data) })
                             }
-                        })?;
+                        }).with_context(|| format!("Failed to create mod index from chunk at {url:?}"))?;
                         Ok::<_, anyhow::Error>(index)
                     })
                 })
@@ -304,19 +304,15 @@ pub async fn query_mod_index(
                         full_name: Default::default(),
                         owner: &m.owner,
                         package_url: Default::default(),
-                        donation_link: m.donation_link.as_deref().map(InlineStringRef),
-                        date_created: &m.date_created,
-                        date_updated: &m.date_updated,
+                        donation_link: m.donation_link.as_deref().map(InlineString),
+                        date_created: m.date_created.into(),
+                        date_updated: m.date_updated.into(),
                         rating_score: m.rating_score.into(),
                         is_pinned: m.is_pinned,
                         is_deprecated: m.is_deprecated,
                         has_nsfw_content: m.has_nsfw_content,
-                        categories: m
-                            .categories
-                            .iter()
-                            .map(|s| InternedStringRef(&*s))
-                            .collect(),
-                        uuid4: m.uuid4,
+                        categories: m.categories.iter().map(|s| InternedString(&*s)).collect(),
+                        uuid4: Default::default(),
                     },
                     versions: m
                         .versions
@@ -330,14 +326,14 @@ pub async fn query_mod_index(
                             dependencies: v
                                 .dependencies
                                 .iter()
-                                .map(|s| InternedStringRef(&*s))
+                                .map(|s| InternedString(&*s))
                                 .collect(),
                             download_url: Default::default(),
                             downloads: v.downloads.into(),
-                            date_created: &v.date_created,
-                            website_url: v.website_url.as_deref().map(InternedStringRef),
+                            date_created: v.date_created.into(),
+                            website_url: v.website_url.as_deref().map(InternedString),
                             is_active: v.is_active.into(),
-                            uuid4: v.uuid4,
+                            uuid4: Default::default(),
                             file_size: v.file_size.into(),
                         })
                         .collect(),

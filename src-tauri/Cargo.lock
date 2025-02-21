@@ -2692,6 +2692,7 @@ dependencies = [
  "bincode 2.0.0-rc.3",
  "blake3",
  "bytes",
+ "chrono",
  "dirs 6.0.0",
  "drop-guard",
  "event-listener",

@@ -1,5 +1,6 @@
 pub mod http;
 mod progress;
+pub mod rkyv;
 pub mod serde;
 
 pub use progress::Progress;
