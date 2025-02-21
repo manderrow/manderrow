@@ -6,6 +6,7 @@ use std::sync::LazyLock;
 use anyhow::{Context as _, Result};
 use async_compression::tokio::bufread::GzipDecoder;
 use drop_guard::ext::tokio1::JoinHandleExt;
+use rkyv_intern::Interner;
 use slog::debug;
 use tauri::{ipc::Channel, AppHandle, Manager};
 use tokio::io::AsyncReadExt;
@@ -15,7 +16,7 @@ use url::Url;
 use crate::games::{GAMES, GAMES_BY_ID};
 use crate::mods::{ArchivedModRef, InlineString, ModMetadataRef, ModRef, ModVersionRef};
 use crate::util::http::ResponseExt;
-use crate::util::rkyv::{InternedString, Interner};
+use crate::util::rkyv::InternedString;
 use crate::util::Progress;
 use crate::{CommandError, Reqwest};
 

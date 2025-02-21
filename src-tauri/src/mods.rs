@@ -440,15 +440,15 @@ mod tests {
     use rkyv::validation::shared::SharedValidator;
     use rkyv::validation::Validator;
     use rkyv::with::NicheInto;
+    use rkyv_intern::Interner;
     use smol_str::SmolStr;
     use uuid::Uuid;
 
     use crate::mods::{
         ArchivedModMetadataRef, ArchivedModVersionRef, ArchivedVersion, InlineString,
-        InternedString, ModFlag, ModFlags, ModMetadata, ModMetadataRef, ModRef, ModVersion,
-        ModVersionRef,
+        InternedString, ModMetadata, ModMetadataRef, ModRef, ModVersion, ModVersionRef,
     };
-    use crate::util::rkyv::{ArchivedInternedString, Interner, FE};
+    use crate::util::rkyv::{ArchivedInternedString, FE};
 
     use super::Version;
 

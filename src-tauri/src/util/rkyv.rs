@@ -1,6 +1,6 @@
 mod intern;
 
-pub use intern::{ArchivedInternedString, InternedString, Interner, StringIntern};
+pub use intern::{ArchivedInternedString, InternedString, StringIntern};
 
 use rkyv::niche::niching::Niching;
 use rkyv::rancor::{Fallible, Source};
