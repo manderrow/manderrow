@@ -14,9 +14,8 @@ use tokio::sync::{Mutex, RwLock};
 use url::Url;
 
 use crate::games::{GAMES, GAMES_BY_ID};
-use crate::mods::{ArchivedModRef, InlineString, ModMetadataRef, ModRef, ModVersionRef};
+use crate::mods::{ArchivedModRef, ModRef};
 use crate::util::http::ResponseExt;
-use crate::util::rkyv::InternedString;
 use crate::util::Progress;
 use crate::{CommandError, Reqwest};
 
@@ -145,12 +144,30 @@ pub async fn fetch_mod_index(
                         let mods = simd_json::from_slice::<Vec<ModRef>>(&mut buf)?;
                         let decoded_at = std::time::Instant::now();
                         let decoded_in = decoded_at.duration_since(fetched_at);
-                        let (buf, interned, interned_bytes) = rkyv::util::with_arena(|arena| {
+
+                        #[derive(Default)]
+                        struct Statistics {
+                            values: usize,
+                            total_bytes: usize,
+                            average_uses: f64,
+                            single_use_entries: usize,
+                        }
+                        impl std::fmt::Display for Statistics {
+                            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                                let Statistics { values, total_bytes, average_uses, single_use_entries } = self;
+                                write!(f, "{values} strings interned, {total_bytes} bytes, avg. {average_uses} uses/string, {single_use_entries} single-use strings")
+                            }
+                        }
+
+                        let (buf, stats) = rkyv::util::with_arena(|arena| {
                             let mut serializer = rkyv_intern::InterningAdapter::new(
-                                rkyv::ser::Serializer::new(
-                                    rkyv::util::AlignedVec::<16>::with_capacity(buf_len / 4),
-                                    arena.acquire(),
-                                    rkyv::ser::sharing::Share::new(),
+                                rkyv_intern::InterningAdapter::new(
+                                    rkyv::ser::Serializer::new(
+                                        rkyv::util::AlignedVec::<16>::with_capacity(buf_len / 4),
+                                        arena.acquire(),
+                                        rkyv::ser::sharing::Share::new(),
+                                    ),
+                                    Interner::<ModId<'_>>::default(),
                                 ),
                                 Interner::<String>::default(),
                             );
@@ -159,13 +176,32 @@ pub async fn fetch_mod_index(
                                 &mut serializer,
                             )?;
                             let (serializer, interner) = serializer.into_components();
-                            Ok::<_, rkyv::rancor::Error>((serializer.into_writer(), interner.len(), interner.values().map(|s| s.len()).sum::<usize>()))
+                            #[derive(Default)]
+                            struct StatisticsAccumulator {
+                                total_bytes: usize,
+                                total_uses: usize,
+                                single_use_entries: usize,
+                            }
+                            let stats = interner.iter().map(|(s, e)| (s.len(), e.ref_cnt.get())).fold(StatisticsAccumulator::default(), |mut stats, (len, ref_cnt)| {
+                                stats.total_bytes += len;
+                                stats.total_uses += ref_cnt;
+                                if ref_cnt == 1 {
+                                    stats.single_use_entries += 1;
+                                }
+                                stats
+                            });
+                            Ok::<_, rkyv::rancor::Error>((serializer.into_serializer().into_writer(), Statistics {
+                                values: interner.len(),
+                                total_bytes: stats.total_bytes,
+                                average_uses: stats.total_uses as f64 / interner.len() as f64,
+                                single_use_entries: stats.single_use_entries,
+                            }))
                         })?;
                         let encoded_at = std::time::Instant::now();
                         let encoded_in = encoded_at.duration_since(decoded_at);
                         debug!(
                             log,
-                            "{buf_len} bytes of JSON -> {} bytes in memory ({:.2}%, {interned} strings interned, {interned_bytes} bytes), {latency:?} spawning, {fetched_in:?} fetching, {decoded_in:?} decoding, {encoded_in:?} encoding",
+                            "{buf_len} bytes of JSON -> {} bytes in memory ({:.2}%, {stats}), {latency:?} spawning, {fetched_in:?} fetching, {decoded_in:?} decoding, {encoded_in:?} encoding",
                             buf.len(),
                             (buf.len() as f64 / buf_len as f64) * 100.0
                         );
@@ -217,7 +253,6 @@ pub struct ModId<'a> {
     name: &'a str,
 }
 
-// TODO: use register_asynchronous_uri_scheme_protocol to stream the json back without buffering
 #[tauri::command]
 pub async fn query_mod_index(
     game: &str,
@@ -226,7 +261,7 @@ pub async fn query_mod_index(
     skip: Option<usize>,
     limit: Option<usize>,
     exact: Option<HashSet<ModId<'_>>>,
-) -> Result<simd_json::OwnedValue, CommandError> {
+) -> Result<tauri::ipc::Response, CommandError> {
     let log = slog_scope::logger();
 
     let game = *GAMES_BY_ID.get(game).context("No such game")?;
@@ -294,67 +329,29 @@ pub async fn query_mod_index(
 
     let count = buf.len();
 
-    fn map_to_json<'a>(
-        it: impl IntoIterator<Item = (&'a ArchivedModRef<'a>, f64)>,
-    ) -> Vec<simd_json::OwnedValue> {
-        it.into_iter()
-            .map(|(m, _)| {
-                simd_json::serde::to_owned_value(ModRef {
-                    metadata: ModMetadataRef {
-                        name: &m.name,
-                        full_name: Default::default(),
-                        owner: &m.owner,
-                        package_url: Default::default(),
-                        donation_link: m.donation_link.as_deref().map(InlineString),
-                        date_created: m.date_created.into(),
-                        date_updated: m.date_updated.into(),
-                        rating_score: m.rating_score.into(),
-                        is_pinned: m.is_pinned,
-                        is_deprecated: m.is_deprecated,
-                        has_nsfw_content: m.has_nsfw_content,
-                        categories: m.categories.iter().map(|s| InternedString(&*s)).collect(),
-                        uuid4: Default::default(),
-                    },
-                    versions: m
-                        .versions
-                        .iter()
-                        .map(|v| ModVersionRef {
-                            name: Default::default(),
-                            full_name: Default::default(),
-                            description: &v.description,
-                            icon: Default::default(),
-                            version_number: v.version_number.into(),
-                            dependencies: v
-                                .dependencies
-                                .iter()
-                                .map(|s| InternedString(&*s))
-                                .collect(),
-                            download_url: Default::default(),
-                            downloads: v.downloads.into(),
-                            date_created: v.date_created.into(),
-                            website_url: v.website_url.as_deref().map(InternedString),
-                            is_active: v.is_active.into(),
-                            uuid4: Default::default(),
-                            file_size: v.file_size.into(),
-                        })
-                        .collect(),
-                })
-                .unwrap()
-            })
-            .collect::<Vec<_>>()
+    fn map_to_json<'a>(buf: &mut Vec<u8>, it: impl Iterator<Item = &'a ArchivedModRef<'a>>) {
+        let mut it = it.peekable();
+        while let Some(m) = it.next() {
+            simd_json::serde::to_writer(&mut *buf, m).unwrap();
+            if it.peek().is_some() {
+                buf.push(b',');
+            }
+        }
     }
 
-    let mut map = simd_json::owned::Object::with_capacity(2);
-    map.insert_nocheck("count".to_owned(), simd_json::OwnedValue::from(count));
-    let buf = match (skip, limit) {
-        (Some(skip), Some(limit)) => map_to_json(buf.into_iter().skip(skip).take(limit)),
-        (None, Some(limit)) => map_to_json(buf.into_iter().take(limit)),
-        (Some(skip), None) => map_to_json(buf.into_iter().skip(skip)),
-        (None, None) => map_to_json(buf),
+    let mut out_buf = br#"{"count":"#.as_slice().to_owned();
+    simd_json::serde::to_writer(&mut out_buf, &count).unwrap();
+    out_buf.extend(br#","mods":["#);
+    let mods = buf.into_iter().map(|(m, _)| m);
+    match (skip, limit) {
+        (Some(skip), Some(limit)) => map_to_json(&mut out_buf, mods.skip(skip).take(limit)),
+        (None, Some(limit)) => map_to_json(&mut out_buf, mods.take(limit)),
+        (Some(skip), None) => map_to_json(&mut out_buf, mods.skip(skip)),
+        (None, None) => map_to_json(&mut out_buf, mods),
     };
-    map.insert_nocheck(
-        "mods".to_owned(),
-        simd_json::OwnedValue::Array(Box::new(buf)),
-    );
-    Ok(simd_json::OwnedValue::Object(Box::new(map)))
+    out_buf.extend(b"]}");
+    // SAFETY: simd_json only writes valid UTF-8
+    Ok(tauri::ipc::Response::new(unsafe {
+        String::from_utf8_unchecked(out_buf)
+    }))
 }

@@ -12,7 +12,7 @@ use tauri::{AppHandle, State};
 use tokio::process::Command;
 use uuid::Uuid;
 
-use crate::games::{PackageLoader, GAMES_BY_ID};
+use crate::games::GAMES_BY_ID;
 use crate::installing::{install_zip, uninstall_package};
 use crate::ipc::{C2SMessage, IpcState};
 use crate::mods::{ModAndVersion, ModMetadata, ModVersion};
@@ -259,62 +259,56 @@ pub async fn launch_profile(
 const MANIFEST_FILE_NAME: &str = "manderrow_mod.json";
 
 #[tauri::command]
-pub async fn get_profile_mods(id: Uuid) -> Result<Vec<ModAndVersion>, CommandError> {
+pub async fn get_profile_mods(id: Uuid) -> Result<tauri::ipc::Response, CommandError> {
     let mut path = profile_path(id);
-    path.push("profile.json");
-    let metadata = read_profile_file(&path)
-        .await
-        .context("Failed to read profile")?;
-    path.pop();
 
-    let game = GAMES_BY_ID.get(&*metadata.game).context("No such game")?;
+    path.push(MODS_FOLDER);
 
-    match game.package_loader {
-        PackageLoader::BepInEx => {
-            path.push(MODS_FOLDER);
-
-            let mut iter = match tokio::fs::read_dir(&path).await {
-                Ok(t) => t,
-                Err(e) if e.is_not_found() => return Ok(Vec::new()),
-                Err(e) => return Err(anyhow::Error::from(e).into()),
-            };
-            let mut tasks = FuturesOrdered::new();
-            while let Some(e) = iter.next_entry().await.map_err(anyhow::Error::from)? {
-                if e.file_type().await.map_err(anyhow::Error::from)?.is_dir() {
-                    let mut path = path.clone();
-                    tasks.push_back(tokio::task::spawn(async move {
-                        path.push(e.file_name());
-                        path.push(MANIFEST_FILE_NAME);
-                        tokio::task::block_in_place(|| {
-                            Ok::<_, anyhow::Error>(Some(serde_json::from_reader(
-                                std::io::BufReader::new(match std::fs::File::open(&path) {
-                                    Ok(t) => t,
-                                    Err(e) if e.is_not_found() => return Ok(None),
-                                    Err(e) => return Err(e.into()),
-                                }),
-                            )?))
-                        })
-                    }));
+    let mut iter = match tokio::fs::read_dir(&path).await {
+        Ok(t) => t,
+        Err(e) if e.is_not_found() => return Ok(tauri::ipc::Response::new("[]".to_owned())),
+        Err(e) => return Err(anyhow::Error::from(e).into()),
+    };
+    let mut tasks = FuturesOrdered::new();
+    while let Some(e) = iter.next_entry().await.map_err(anyhow::Error::from)? {
+        if e.file_type().await.map_err(anyhow::Error::from)?.is_dir() {
+            let mut path = path.clone();
+            tasks.push_back(tokio::task::spawn(async move {
+                path.push(e.file_name());
+                path.push(MANIFEST_FILE_NAME);
+                match tokio::fs::read_to_string(&path).await {
+                    Ok(t) => Ok(Some(t)),
+                    Err(e) if e.is_not_found() => return Ok(None),
+                    Err(e) => {
+                        return Err(anyhow::Error::from(e)
+                            .context(format!("Failed to read mod manifest {path:?}")))
+                    }
                 }
-            }
-            let mut buf = Vec::new();
-            while let Some(r) = tasks.next().await {
-                if let Some(m) = r.map_err(anyhow::Error::from)?? {
-                    buf.push(m);
-                }
-            }
-            Ok(buf)
+            }));
         }
-        _ => Ok(Vec::new()),
     }
+    let mut buf = "[".to_owned();
+    let mut first = true;
+    while let Some(r) = tasks.next().await {
+        if let Some(m) = r.map_err(anyhow::Error::from)?? {
+            if first {
+                first = false;
+            } else {
+                buf.push(',');
+            }
+            buf.push_str(&m);
+        }
+    }
+    buf.push(']');
+    Ok(tauri::ipc::Response::new(buf))
 }
 
 #[tauri::command]
 pub async fn install_profile_mod(
     reqwest: State<'_, Reqwest>,
     id: Uuid,
-    r#mod: ModMetadata,
-    version: ModVersion,
+    r#mod: ModMetadata<'_>,
+    version: ModVersion<'_>,
 ) -> Result<(), CommandError> {
     let log = slog_scope::logger();
 
@@ -364,33 +358,21 @@ pub async fn uninstall_profile_mod(id: Uuid, owner: &str, name: &str) -> Result<
     let log = slog_scope::logger();
 
     let mut path = profile_path(id);
-    path.push("profile.json");
-    let metadata = read_profile_file(&path)
+
+    path.push(MODS_FOLDER);
+    path.push(owner);
+    path.as_mut_os_string().push("-");
+    path.as_mut_os_string().push(name);
+
+    // remove the manifest so it isn't left over after uninstalling the package
+    path.push(MANIFEST_FILE_NAME);
+    tokio::fs::remove_file(&path)
         .await
-        .context("Failed to read profile")?;
+        .context("Failed to remove manifest file")?;
     path.pop();
 
-    let game = GAMES_BY_ID.get(&*metadata.game).context("No such game")?;
-
-    match game.package_loader {
-        PackageLoader::BepInEx => {
-            path.push(MODS_FOLDER);
-            path.push(owner);
-            path.as_mut_os_string().push("-");
-            path.as_mut_os_string().push(name);
-
-            // remove the manifest so it isn't left over after uninstalling the package
-            path.push(MANIFEST_FILE_NAME);
-            tokio::fs::remove_file(&path)
-                .await
-                .context("Failed to remove manifest file")?;
-            path.pop();
-
-            // keep_changes is true so that configs and any other changes are
-            // preserved. Zero-risk uninstallation!
-            uninstall_package(&log, &path, true).await?;
-            Ok(())
-        }
-        _ => Err(anyhow!("Unsupported package loader for mod installation").into()),
-    }
+    // keep_changes is true so that configs and any other changes are
+    // preserved. Zero-risk uninstallation!
+    uninstall_package(&log, &path, true).await?;
+    Ok(())
 }

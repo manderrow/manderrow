@@ -36,11 +36,23 @@ impl<'a> Deref for InternedString<'a> {
     }
 }
 
+impl<'a> AsRef<str> for InternedString<'a> {
+    fn as_ref(&self) -> &str {
+        self
+    }
+}
+
 impl Deref for ArchivedInternedString {
     type Target = str;
 
     fn deref(&self) -> &Self::Target {
         self.repr.as_str()
+    }
+}
+
+impl<'a> From<&'a ArchivedInternedString> for InternedString<'a> {
+    fn from(value: &'a ArchivedInternedString) -> Self {
+        Self(value)
     }
 }
 
@@ -68,6 +80,15 @@ where
 #[repr(transparent)]
 pub struct ArchivedInternedString {
     repr: ArchivedStringRepr,
+}
+
+impl serde::Serialize for ArchivedInternedString {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self)
+    }
 }
 
 unsafe impl<C> Verify<C> for ArchivedInternedString

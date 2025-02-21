@@ -1,21 +1,24 @@
+mod spec;
+mod timestamp;
+
+pub use spec::*;
+pub use timestamp::*;
+
 use std::num::ParseIntError;
 use std::ops::Deref;
-use std::str::FromStr;
 
-use chrono::{DateTime, Utc};
-use rkyv::rancor::{Fallible, Source};
-use rkyv::rend::i64_le;
 use rkyv::string::{ArchivedString, StringResolver};
 use rkyv::with::NicheInto;
+use serde::ser::{SerializeMap, SerializeStruct};
 use smol_str::SmolStr;
 
 use crate::util::rkyv::{InternedString, StringIntern, FE};
-use crate::util::serde::IgnoredAny;
+use crate::util::serde::{empty_string_as_none, IgnoredAny, SerializeArchivedVec};
 
 #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ModRef<'a> {
-    #[serde(borrow, flatten)]
+    #[serde(flatten)]
     pub metadata: ModMetadataRef<'a>,
     #[serde(borrow)]
     pub versions: Vec<ModVersionRef<'a>>,
@@ -37,16 +40,32 @@ impl<'a> Deref for ArchivedModRef<'a> {
     }
 }
 
+impl<'a> serde::Serialize for ArchivedModRef<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut ser = serializer.serialize_map(Some(11))?;
+        self.metadata
+            .serialize(serde::__private::ser::FlatMapSerializer(&mut ser))?;
+        ser.serialize_entry("versions", &SerializeArchivedVec(&self.versions))?;
+        ser.end()
+    }
+}
+
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
-pub struct ModMetadata {
-    pub name: SmolStr,
+pub struct ModMetadata<'a> {
+    pub name: &'a str,
+    #[allow(unused)]
     #[serde(skip_serializing)]
     pub full_name: IgnoredAny,
-    pub owner: SmolStr,
+    pub owner: &'a str,
+    #[allow(unused)]
     #[serde(skip_serializing)]
     pub package_url: IgnoredAny,
-    pub donation_link: Option<String>,
+    #[serde(deserialize_with = "empty_string_as_none")]
+    pub donation_link: Option<SmolStr>,
     pub date_created: Timestamp,
     pub date_updated: Timestamp,
     pub rating_score: u32,
@@ -54,6 +73,7 @@ pub struct ModMetadata {
     pub is_deprecated: bool,
     pub has_nsfw_content: bool,
     pub categories: Vec<SmolStr>,
+    #[allow(unused)]
     #[serde(skip_serializing)]
     pub uuid4: IgnoredAny,
 }
@@ -63,14 +83,17 @@ pub struct ModMetadata {
 pub struct ModMetadataRef<'a> {
     #[rkyv(with = StringIntern)]
     pub name: &'a str,
+    #[allow(unused)]
     #[serde(skip_serializing)]
     pub full_name: IgnoredAny,
     #[rkyv(with = StringIntern)]
     pub owner: &'a str,
+    #[allow(unused)]
     #[serde(skip_serializing)]
     pub package_url: IgnoredAny,
     #[rkyv(with = NicheInto<FE>)]
-    pub donation_link: Option<InlineString<'a>>,
+    #[serde(deserialize_with = "empty_string_as_none")]
+    pub donation_link: Option<InternedString<'a>>,
     pub date_created: Timestamp,
     pub date_updated: Timestamp,
     pub rating_score: u32,
@@ -78,28 +101,56 @@ pub struct ModMetadataRef<'a> {
     pub is_deprecated: bool,
     pub has_nsfw_content: bool,
     pub categories: Vec<InternedString<'a>>,
+    #[allow(unused)]
     #[serde(skip_serializing)]
     pub uuid4: IgnoredAny,
 }
 
+impl<'a> serde::Serialize for ArchivedModMetadataRef<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut ser = serializer.serialize_struct("ModMetadataRef", 10)?;
+        ser.serialize_field("name", &self.name)?;
+        ser.serialize_field("owner", &self.owner)?;
+        ser.serialize_field("donation_link", &self.donation_link.as_deref())?;
+        ser.serialize_field("date_created", &Timestamp::from(self.date_created))?;
+        ser.serialize_field("date_updated", &Timestamp::from(self.date_updated))?;
+        ser.serialize_field("rating_score", &self.rating_score.to_native())?;
+        ser.serialize_field("is_pinned", &self.is_pinned)?;
+        ser.serialize_field("is_deprecated", &self.is_deprecated)?;
+        ser.serialize_field("has_nsfw_content", &self.has_nsfw_content)?;
+        ser.serialize_field("categories", &SerializeArchivedVec(&self.categories))?;
+        ser.end()
+    }
+}
+
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
-pub struct ModVersion {
+pub struct ModVersion<'a> {
+    #[allow(unused)]
     #[serde(skip_serializing)]
     pub name: IgnoredAny,
+    #[allow(unused)]
     #[serde(skip_serializing)]
     pub full_name: IgnoredAny,
     pub description: SmolStr,
+    #[allow(unused)]
     #[serde(skip_serializing)]
     pub icon: IgnoredAny,
     pub version_number: Version,
-    pub dependencies: Vec<SmolStr>,
+    #[serde(borrow)]
+    pub dependencies: Vec<ModSpec<'a>>,
+    #[allow(unused)]
     #[serde(skip_serializing)]
     pub download_url: IgnoredAny,
     pub downloads: u64,
     pub date_created: Timestamp,
+    #[serde(deserialize_with = "empty_string_as_none")]
     pub website_url: Option<SmolStr>,
     pub is_active: bool,
+    #[allow(unused)]
     #[serde(skip_serializing)]
     pub uuid4: IgnoredAny,
     pub file_size: u64,
@@ -108,28 +159,51 @@ pub struct ModVersion {
 #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ModVersionRef<'a> {
+    #[allow(unused)]
     #[serde(skip_serializing)]
     pub name: IgnoredAny,
+    #[allow(unused)]
     #[serde(skip_serializing)]
     pub full_name: IgnoredAny,
     #[rkyv(with = StringIntern)]
     pub description: &'a str,
+    #[allow(unused)]
     #[serde(skip_serializing)]
     pub icon: IgnoredAny,
     pub version_number: Version,
     #[serde(borrow)]
-    pub dependencies: Vec<InternedString<'a>>,
+    pub dependencies: Vec<ModSpec<'a>>,
+    #[allow(unused)]
     #[serde(skip_serializing)]
     pub download_url: IgnoredAny,
     pub downloads: u64,
     pub date_created: Timestamp,
     #[rkyv(with = NicheInto<FE>)]
-    #[serde(borrow)]
+    #[serde(deserialize_with = "empty_string_as_none")]
     pub website_url: Option<InternedString<'a>>,
     pub is_active: bool,
+    #[allow(unused)]
     #[serde(skip_serializing)]
     pub uuid4: IgnoredAny,
     pub file_size: u64,
+}
+
+impl<'a> serde::Serialize for ArchivedModVersionRef<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let mut ser = serializer.serialize_struct("ModVersionRef", 8)?;
+        ser.serialize_field("description", &self.description)?;
+        ser.serialize_field("version_number", &Version::from(self.version_number))?;
+        ser.serialize_field("dependencies", &SerializeArchivedVec(&self.dependencies))?;
+        ser.serialize_field("downloads", &self.downloads.to_native())?;
+        ser.serialize_field("date_created", &Timestamp::from(self.date_created))?;
+        ser.serialize_field("website_url", &self.website_url.as_ref())?;
+        ser.serialize_field("is_active", &self.is_active)?;
+        ser.serialize_field("file_size", &self.file_size.to_native())?;
+        ser.end()
+    }
 }
 
 /// See https://github.com/thunderstore-io/Thunderstore/blob/a4146daa5db13344be647a87f0206c1eb19eb90e/django/thunderstore/repository/consts.py#L4.
@@ -294,12 +368,12 @@ impl std::fmt::Debug for ArchivedVersion {
     }
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
 #[serde(deny_unknown_fields)]
-pub struct ModAndVersion {
+pub struct ModAndVersion<'a> {
     #[serde(flatten)]
-    pub r#mod: ModMetadata,
-    pub version: ModVersion,
+    pub r#mod: ModMetadata<'a>,
+    pub version: ModVersion<'a>,
 }
 
 #[derive(Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
@@ -338,92 +412,6 @@ where
 {
     fn serialize(&self, serializer: &mut S) -> Result<Self::Resolver, S::Error> {
         ArchivedString::serialize_from_str(self.0, serializer)
-    }
-}
-
-#[derive(Debug, Clone, Copy)]
-#[repr(transparent)]
-pub struct Timestamp(i64);
-
-impl Timestamp {
-    pub fn get(self) -> DateTime<Utc> {
-        unsafe { DateTime::<Utc>::from_timestamp_micros(self.0).unwrap_unchecked() }
-    }
-}
-
-impl From<DateTime<Utc>> for Timestamp {
-    fn from(value: DateTime<Utc>) -> Self {
-        Self(value.timestamp_micros())
-    }
-}
-
-impl FromStr for Timestamp {
-    type Err = <DateTime<Utc> as FromStr>::Err;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        s.parse::<DateTime<Utc>>().map(Self::from)
-    }
-}
-
-#[derive(Debug, Clone, Copy, rkyv::Portable)]
-#[repr(transparent)]
-pub struct ArchivedTimestamp(i64_le);
-
-impl From<ArchivedTimestamp> for Timestamp {
-    fn from(value: ArchivedTimestamp) -> Self {
-        Timestamp(value.0.into())
-    }
-}
-
-unsafe impl<C: Fallible + ?Sized> rkyv::bytecheck::CheckBytes<C> for ArchivedTimestamp
-where
-    C::Error: Source,
-{
-    unsafe fn check_bytes(value: *const Self, _: &mut C) -> Result<(), C::Error> {
-        let value = value.read().0.to_native();
-        match DateTime::<Utc>::from_timestamp_micros(value) {
-            Some(_) => Ok(()),
-            None => {
-                #[derive(Debug, thiserror::Error)]
-                #[error("Timestamp value is out of bounds: {0}")]
-                struct Error(i64);
-                Err(C::Error::new(Error(value)))
-            }
-        }
-    }
-}
-
-impl rkyv::Archive for Timestamp {
-    type Archived = ArchivedTimestamp;
-
-    type Resolver = ();
-
-    fn resolve(&self, (): Self::Resolver, out: rkyv::Place<Self::Archived>) {
-        unsafe { out.write_unchecked(ArchivedTimestamp(self.0.into())) }
-    }
-}
-
-impl<S: Fallible + ?Sized> rkyv::Serialize<S> for Timestamp {
-    fn serialize(&self, _: &mut S) -> Result<Self::Resolver, S::Error> {
-        Ok(())
-    }
-}
-
-impl<'de> serde::Deserialize<'de> for Timestamp {
-    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
-    where
-        D: serde::Deserializer<'de>,
-    {
-        DateTime::<Utc>::deserialize(deserializer).map(Timestamp::from)
-    }
-}
-
-impl serde::Serialize for Timestamp {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: serde::Serializer,
-    {
-        self.get().serialize(serializer)
     }
 }
 

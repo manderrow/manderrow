@@ -4069,7 +4069,7 @@ dependencies = [
 [[package]]
 name = "rkyv_intern"
 version = "0.1.0"
-source = "git+https://github.com/mpfaff/rkyv_intern#adb93bc155e2c61ee1c66623929ec4986d9a26ea"
+source = "git+https://github.com/mpfaff/rkyv_intern#5d8459452ef178135daf512c8ddb9ecc59534c44"
 dependencies = [
  "hashbrown 0.15.2",
  "rkyv",
