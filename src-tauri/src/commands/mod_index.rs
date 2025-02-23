@@ -13,7 +13,7 @@ use rkyv::ser::{Positional, Writer, WriterExt};
 use rkyv::vec::ArchivedVec;
 use rkyv::Place;
 use rkyv_intern::Interner;
-use slog::debug;
+use slog::{debug, info};
 use tauri::{ipc::Channel, AppHandle, Manager};
 use tokio::io::AsyncReadExt;
 use tokio::sync::{Mutex, RwLock};
@@ -71,7 +71,7 @@ pub async fn fetch_mod_index(
             .map(|data| data.is_empty())
             .unwrap_or(true)
     {
-        debug!(log, "Fetching mods");
+        info!(log, "Fetching mods");
 
         let _guard = tokio::task::spawn(async move {
             loop {
@@ -145,7 +145,7 @@ pub async fn fetch_mod_index(
                     }
                     let fetched_at = Instant::now();
                     let fetched_in = fetched_at.duration_since(spawned_at);
-                    debug!(
+                    info!(
                         log,
                         "{} bytes of JSON, {latency:?} spawning, {fetched_in:?} fetching",
                         buf.len()
@@ -255,7 +255,7 @@ pub async fn fetch_mod_index(
             })?;
             let encoded_at = Instant::now();
             let encoded_in = encoded_at.duration_since(decoded_at);
-            debug!(
+            info!(
                 log,
                 "{buf_len} bytes of JSON -> {} bytes in memory ({:.2}%, {stats}), {decoded_in:?} decoding, {encoded_in:?} encoding",
                 buf.len(),
@@ -274,7 +274,7 @@ pub async fn fetch_mod_index(
         })?;
         *mod_index.data.write().await = Box::new([new_mod_index]);
 
-        debug!(log, "Finished fetching mods");
+        info!(log, "Finished fetching mods");
     }
 
     Ok(())
