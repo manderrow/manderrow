@@ -59,8 +59,7 @@ impl<'a> ModSpec<'a> {
         };
         let version = Version::from_str(version)
             .map_err(|error| ModSpecParseError::InvalidVersion { value, error })?;
-        ModId::from_str(rem)
-                .map_err(|error| ModSpecParseError::InvalidId { value, error })?;
+        ModId::from_str(rem).map_err(|error| ModSpecParseError::InvalidId { value, error })?;
         Ok(Self {
             id: rem.into(),
             version,

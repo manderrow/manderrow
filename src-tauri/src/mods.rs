@@ -12,7 +12,7 @@ use rkyv::with::NicheInto;
 use serde::ser::{SerializeMap, SerializeStruct};
 use smol_str::SmolStr;
 
-use crate::util::rkyv::{InternedString, StringIntern, FE};
+use crate::util::rkyv::{InternedString, InternedStringNiche, StringIntern, FE};
 use crate::util::serde::{empty_string_as_none, IgnoredAny, SerializeArchivedVec};
 
 #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, serde::Deserialize, serde::Serialize)]
@@ -91,7 +91,7 @@ pub struct ModMetadataRef<'a> {
     #[allow(unused)]
     #[serde(skip_serializing)]
     pub package_url: IgnoredAny,
-    #[rkyv(with = NicheInto<FE>)]
+    #[rkyv(with = NicheInto<InternedStringNiche>)]
     #[serde(deserialize_with = "empty_string_as_none")]
     pub donation_link: Option<InternedString<'a>>,
     pub date_created: Timestamp,
@@ -141,7 +141,7 @@ pub struct ModVersion<'a> {
     pub icon: IgnoredAny,
     pub version_number: Version,
     #[serde(borrow)]
-    pub dependencies: Vec<ModSpec<'a>>,
+    pub dependencies: Vec<InternedString<'a>>,
     #[allow(unused)]
     #[serde(skip_serializing)]
     pub download_url: IgnoredAny,
@@ -172,13 +172,13 @@ pub struct ModVersionRef<'a> {
     pub icon: IgnoredAny,
     pub version_number: Version,
     #[serde(borrow)]
-    pub dependencies: Vec<ModSpec<'a>>,
+    pub dependencies: Vec<InternedString<'a>>,
     #[allow(unused)]
     #[serde(skip_serializing)]
     pub download_url: IgnoredAny,
     pub downloads: u64,
     pub date_created: Timestamp,
-    #[rkyv(with = NicheInto<FE>)]
+    #[rkyv(with = NicheInto<InternedStringNiche>)]
     #[serde(deserialize_with = "empty_string_as_none")]
     pub website_url: Option<InternedString<'a>>,
     pub is_active: bool,

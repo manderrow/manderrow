@@ -1,6 +1,8 @@
 use rkyv::vec::ArchivedVec;
 use serde::{ser::SerializeSeq, Deserialize, Deserializer};
 
+use super::rkyv::ArchivedInternedString;
+
 #[derive(Copy, Clone, Debug, Default, PartialEq, Eq, rkyv::Archive, rkyv::Serialize)]
 #[rkyv(derive(Copy, Clone, Debug, Default, PartialEq, Eq))]
 pub struct IgnoredAny;
@@ -29,11 +31,16 @@ impl<T: serde::Serialize> serde::Serialize for SerializeArchivedVec<'_, T> {
     }
 }
 
-pub fn empty_string_as_none<
-    'de,
-    D: Deserializer<'de>,
-    T: AsRef<str> + Deserialize<'de>,
->(
+impl serde::Serialize for ArchivedInternedString {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        serializer.serialize_str(self)
+    }
+}
+
+pub fn empty_string_as_none<'de, D: Deserializer<'de>, T: AsRef<str> + Deserialize<'de>>(
     d: D,
 ) -> Result<Option<T>, D::Error> {
     let o: Option<T> = Option::deserialize(d)?;
