@@ -436,7 +436,7 @@ mod tests {
         ArchivedModMetadataRef, ArchivedModVersionRef, ArchivedVersion, InlineString,
         InternedString, ModMetadata, ModMetadataRef, ModRef, ModVersion, ModVersionRef,
     };
-    use crate::util::rkyv::{ArchivedInternedString, FE};
+    use crate::util::rkyv::{ArchivedInternedString, InternedStringNiche, FE};
 
     use super::Version;
 
@@ -489,7 +489,7 @@ mod tests {
         .unwrap();
 
         if let Err(e) = rkyv::access::<T::Archived, rkyv::rancor::Error>(&buf) {
-            panic!("{e}\n{buf:?}")
+            panic!("{e}\n{buf:?}\n{buf:x?}")
         }
 
         buf
@@ -499,21 +499,32 @@ mod tests {
     fn test_sizes() {
         assert_eq!(size_of::<ArchivedVersion>(), size_of::<u64>());
         assert_eq!(size_of::<ArchivedString>(), size_of::<usize>());
-        assert_eq!(
-            size_of::<ArchivedInternedString>(),
-            size_of::<FixedIsize>() + size_of::<FixedUsize>()
-        );
-        assert_eq!(size_of::<ArchivedModMetadataRef>(), 56);
-        assert_eq!(size_of::<ArchivedModVersionRef>(), 64);
+        assert_eq!(size_of::<ArchivedInternedString>(), size_of::<FixedIsize>());
+        assert_eq!(size_of::<ArchivedModMetadataRef>(), 48);
+        assert_eq!(size_of::<ArchivedModVersionRef>(), 56);
+    }
+
+    #[test]
+    fn test_inline_string_encoding() {
+        #[derive(rkyv::Archive, rkyv::Serialize)]
+        struct NichedFEOption<T: rkyv::Archive>(#[rkyv(with = NicheInto<FE>)] Option<T>)
+        where
+            FE: Niching<T::Archived>;
+
+        impl<T: rkyv::Archive> NichedFEOption<T>
+        where
+            FE: Niching<T::Archived>,
+        {
+            pub fn some(t: T) -> Self {
+                Self(Some(t))
+            }
+
+            pub fn none() -> Self {
+                Self(None)
+            }
+        }
 
         let buf = serialize::<_, String>(&InlineString("BepInEx"));
-        assert_eq!(
-            buf.as_slice(),
-            b"BepInEx\xff",
-            "Short string should be serialized inline"
-        );
-
-        let buf = serialize::<_, String>(&InternedString("BepInEx"));
         assert_eq!(
             buf.as_slice(),
             b"BepInEx\xff",
@@ -527,23 +538,23 @@ mod tests {
             "Long string should be serialized out-of-line"
         );
 
-        let buf = serialize::<_, String>(&InternedString("BepInExPack"));
+        let buf = serialize::<_, String>(&NichedFEOption::some(InlineString("BepInExPack")));
         assert_eq!(
             buf.as_slice(),
             b"BepInExPack\0\x8b\0\0\0\xf4\xff\xff\xff",
-            "Long string should be serialized out-of-line"
+            "Option<_> should be serialized correctly, zero overhead"
+        );
+    }
+
+    #[test]
+    fn test_interned_string_encoding() {
+        #[derive(rkyv::Archive, rkyv::Serialize)]
+        struct OptionInternedString<'a>(
+            #[rkyv(with = NicheInto<InternedStringNiche>)] Option<InternedString<'a>>,
         );
 
-        #[derive(rkyv::Archive, rkyv::Serialize)]
-        struct NichedOption<T: rkyv::Archive>(#[rkyv(with = NicheInto<FE>)] Option<T>)
-        where
-            FE: Niching<T::Archived>;
-
-        impl<T: rkyv::Archive> NichedOption<T>
-        where
-            FE: Niching<T::Archived>,
-        {
-            pub fn some(t: T) -> Self {
+        impl<'a> OptionInternedString<'a> {
+            pub fn some(t: InternedString<'a>) -> Self {
                 Self(Some(t))
             }
 
@@ -552,32 +563,69 @@ mod tests {
             }
         }
 
-        let buf = serialize::<_, String>(&NichedOption::some(InlineString("BepInExPack")));
+        let buf = serialize::<_, String>(&InternedString("Abcd"));
         assert_eq!(
             buf.as_slice(),
-            b"BepInExPack\0\x8b\0\0\0\xf4\xff\xff\xff",
-            "Option<InlineString> should be zero overhead"
+            b"Abcd",
+            "Tiny string should be serialized inline"
         );
 
-        let buf = serialize::<_, String>(&NichedOption::some(InternedString("BepInExPack")));
+        let buf = serialize::<_, String>(&InternedString("Ab"));
         assert_eq!(
             buf.as_slice(),
-            b"BepInExPack\0\x8b\0\0\0\xf4\xff\xff\xff",
-            "Option<InternedString> should be zero overhead"
+            b"Ab\xff\x00",
+            "Tiny string should be serialized inline"
         );
 
-        let buf = serialize::<_, String>(&NichedOption::some(InternedString("")));
+        let buf = serialize::<_, String>(&InternedString("BepInEx"));
         assert_eq!(
             buf.as_slice(),
-            b"\xff\xff\xff\xff\xff\xff\xff\xff",
-            "Empty Option<InternedString> should encode correctly"
+            b"\x07\0\0\0BepInEx\0\xb7\xff\xff\xff",
+            "Short string should be serialized out-of-line"
+        );
+
+        let buf = serialize::<_, String>(&InternedString("BepInExPack"));
+        assert_eq!(
+            buf.as_slice(),
+            b"\x0b\0\0\0BepInExPack\0\xb3\xff\xff\xff",
+            "Long string should be serialized out-of-line"
+        );
+
+        let buf = serialize::<_, String>(&OptionInternedString::none());
+        assert_eq!(
+            buf.as_slice(),
+            b"\xc0\0\0\0",
+            "None should be serialized correctly"
+        );
+
+        let buf =
+            serialize::<_, String>(&OptionInternedString::some(InternedString("Abcd")));
+        assert_eq!(
+            buf.as_slice(),
+            b"Abcd",
+            "Some(...) with inline string be serialized correctly, zero overhead"
+        );
+
+        let buf =
+            serialize::<_, String>(&OptionInternedString::some(InternedString("BepInExPack")));
+        assert_eq!(
+            buf.as_slice(),
+            b"\x0b\0\0\0BepInExPack\0\xb3\xff\xff\xff",
+            "Some(...) with out-of-line string be serialized correctly, zero overhead"
+        );
+
+        let buf = serialize::<_, String>(&InternedString(""));
+        assert_eq!(
+            buf.as_slice(),
+            b"\xff\0\0\0",
+            "Empty string should be serialized correctly, zero overhead"
         );
 
         let buf = serialize::<_, String>(&InternedString("https://github.com/ebkr/r2modmanPlus"));
         assert_eq!(
             buf.as_slice(),
-            b"https://github.com/ebkr/r2modmanPlus\xa4\0\0\0\xdc\xff\xff\xff",
-            "This url should encode correctly"
+            b"\x24\0\0\0https://github.com/ebkr/r2modmanPlus\x9b\xff\xff\xff",
+            "This url should be serialized correctly"
         );
 
         let buf = serialize::<_, String>(&[
@@ -586,10 +634,13 @@ mod tests {
         ]);
         assert_eq!(
             buf.as_slice(),
-            b"https://github.com/ebkr/r2modmanPlus\xa4\0\0\0\xdc\xff\xff\xff\xa4\0\0\0\xd4\xff\xff\xff",
-            "Interned strings repeated should encode correctly"
+            b"\x24\0\0\0https://github.com/ebkr/r2modmanPlus\x9b\xff\xff\xff\x97\xff\xff\xff",
+            "Repeated interned strings should be serialized correctly"
         );
+    }
 
+    #[test]
+    fn test_encoding() {
         let buf = serialize::<_, String>(&[ModRef {
             metadata: ModMetadataRef {
                 name: "BepInExPack",
@@ -622,6 +673,6 @@ mod tests {
                 file_size: 0,
             }],
         }]);
-        assert_eq!(buf.len(), 264);
+        assert_eq!(buf.len(), 272);
     }
 }
