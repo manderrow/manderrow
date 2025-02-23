@@ -1,6 +1,4 @@
-use std::{fmt, ops::Deref};
-
-use rkyv_intern::Intern;
+use std::fmt;
 
 use crate::util::rkyv::InternedString;
 
@@ -80,7 +78,7 @@ impl<'a> From<&'a ArchivedModSpec<'_>> for ModSpec<'a> {
     fn from(value: &'a ArchivedModSpec<'_>) -> Self {
         Self {
             id: (&value.id).into(),
-            version: value.version.into(),
+            version: value.version.get(),
         }
     }
 }

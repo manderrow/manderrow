@@ -196,7 +196,7 @@ impl<'a> serde::Serialize for ArchivedModVersionRef<'a> {
     {
         let mut ser = serializer.serialize_struct("ModVersionRef", 8)?;
         ser.serialize_field("description", &self.description)?;
-        ser.serialize_field("version_number", &Version::from(self.version_number))?;
+        ser.serialize_field("version_number", &self.version_number.get())?;
         ser.serialize_field("dependencies", &SerializeArchivedVec(&self.dependencies))?;
         ser.serialize_field("downloads", &self.downloads.to_native())?;
         ser.serialize_field("date_created", &Timestamp::from(self.date_created))?;
@@ -279,19 +279,6 @@ mod tests {
 
     use super::Version;
 
-    #[test]
-    fn test_version() {
-        #[track_caller]
-        fn case(major: u64, minor: u64, patch: u64) {
-            let version = Version::new(major, minor, patch).unwrap();
-            assert_eq!(version.major(), major, "major version mismatch");
-            assert_eq!(version.minor(), minor, "minor version mismatch");
-            assert_eq!(version.patch(), patch, "patch version mismatch");
-        }
-        case(31251241231, 0, 0);
-        case(69, 201, 131125);
-    }
-
     type Serializer<'a, I> = rkyv::rancor::Strategy<
         rkyv_intern::InterningAdapter<
             rkyv::ser::Serializer<
@@ -336,11 +323,11 @@ mod tests {
 
     #[test]
     fn test_sizes() {
-        assert_eq!(size_of::<ArchivedVersion>(), size_of::<u64>());
+        assert_eq!(size_of::<ArchivedVersion>(), size_of::<u32>());
         assert_eq!(size_of::<ArchivedString>(), size_of::<usize>());
         assert_eq!(size_of::<ArchivedInternedString>(), size_of::<FixedIsize>());
         assert_eq!(size_of::<ArchivedModMetadataRef>(), 48);
-        assert_eq!(size_of::<ArchivedModVersionRef>(), 56);
+        assert_eq!(size_of::<ArchivedModVersionRef>(), 48);
     }
 
     #[test]
@@ -512,6 +499,6 @@ mod tests {
                 file_size: 0,
             }],
         }]);
-        assert_eq!(buf.len(), 272);
+        assert_eq!(buf.len(), 264);
     }
 }

@@ -1,53 +1,258 @@
-use std::{fmt::{self, Formatter}, num::ParseIntError};
+use std::{
+    fmt::{self, Formatter},
+    mem::ManuallyDrop,
+    num::ParseIntError,
+};
+
+use rkyv::{
+    bytecheck::CheckBytes,
+    munge::munge,
+    primitive::{ArchivedU32, ArchivedU64, FixedUsize},
+    rancor::{fail, Fallible, Source},
+    ser::Writer,
+    Portable, RelPtr, SerializeUnsized,
+};
+
+/// Returns the minimum number of bits required to store the value.
+fn bit_len(value: u64) -> u32 {
+    u64::BITS - value.leading_zeros()
+}
+
+#[derive(Debug, thiserror::Error)]
+#[error("Too many bits in version")]
+pub struct TooManyBitsError;
+
+struct Components {
+    digits: u64,
+    minor_exp: u32,
+    major_exp: u32,
+}
+
+impl Components {
+    #[inline]
+    pub fn new(major: u64, minor: u64, patch: u64) -> Self {
+        let minor_exp = patch.checked_ilog10().unwrap_or(0) + 1;
+        let major_exp = minor.checked_ilog10().unwrap_or(0) + 1;
+
+        let minor_mul = 10u64.pow(minor_exp);
+        let major_mul = 10u64.pow(major_exp);
+
+        Self {
+            digits: patch + minor * minor_mul + major * minor_mul * major_mul,
+            minor_exp,
+            major_exp,
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+struct Packer {
+    digit_bits: u32,
+    index_bits: u32,
+    digits_mask: u64,
+    index_mask: u8,
+}
+
+impl Packer {
+    #[inline]
+    pub fn pack(&self, components: Components) -> Result<u64, TooManyBitsError> {
+        let Components {
+            digits,
+            minor_exp,
+            major_exp,
+        } = components;
+
+        if bit_len(digits) > self.digit_bits {
+            return Err(TooManyBitsError);
+        }
+
+        debug_assert!(bit_len(minor_exp.into()) <= self.index_bits);
+        debug_assert!(bit_len(major_exp.into()) <= self.index_bits);
+
+        // println!("{major_exp:b} {minor_exp:b} {digits:b}");
+
+        Ok(digits << 2
+            | (u64::from(major_exp) << (2 + self.digit_bits + self.index_bits))
+            | (u64::from(minor_exp) << (2 + self.digit_bits)))
+    }
+
+    #[inline]
+    pub fn unpack(self, value: u64) -> (u64, u64, u64) {
+        // discard marker
+        let value = value >> 2;
+
+        let minor_exp = (((value >> self.digit_bits) as u8) & self.index_mask) as u32;
+        let major_exp =
+            (((value >> (self.digit_bits + self.index_bits)) as u8) & self.index_mask) as u32;
+        let digits = value & self.digits_mask;
+
+        let minor_mul = 10u64.pow(minor_exp);
+        let major_mul = 10u64.pow(major_exp);
+
+        // println!("{major_exp:b} {minor_exp:b} {digits:b}");
+
+        (
+            digits / minor_mul / major_mul,
+            (digits / minor_mul) % major_mul,
+            digits % minor_mul,
+        )
+    }
+}
+
+const INLINE_MARKER: u8 = 0b01;
+
+const INLINE_PACKER: Packer = Packer {
+    digit_bits: 24,
+    index_bits: 3,
+    digits_mask: 0xff_ff_ff,
+    index_mask: 0b111,
+};
+
+const OUT_OF_LINE_PACKER: Packer = Packer {
+    digit_bits: 47,
+    index_bits: 4,
+    digits_mask: 0x7f_ff_ff_ff_ff_ff,
+    index_mask: 0b1111,
+};
 
 /// See https://github.com/thunderstore-io/Thunderstore/blob/a4146daa5db13344be647a87f0206c1eb19eb90e/django/thunderstore/repository/consts.py#L4.
 /// and https://github.com/thunderstore-io/Thunderstore/blob/a4146daa5db13344be647a87f0206c1eb19eb90e/django/thunderstore/repository/models/package_version.py#L101-L103
-#[derive(Clone, Copy, rkyv::Archive, rkyv::Serialize)]
-#[rkyv(derive(Clone, Copy))]
+#[derive(Clone, Copy)]
 pub struct Version(u64);
 
 impl Version {
     const MAX_LEN: u32 = 16;
 
-    pub fn new(major: u64, minor: u64, patch: u64) -> Option<Self> {
-        let minor_shift = u64::BITS - patch.leading_zeros();
-        let major_shift = minor_shift + u64::BITS - minor.leading_zeros();
-        let len = major_shift + u64::BITS - major.leading_zeros();
-        const MAX_DIGITS: u32 = Version::MAX_LEN - 2;
-        // can't be const yet
-        // const MAX_BITS: u32 = ((((MAX_DIGITS as f64) / 3.0) / 2.0f64.log10()).ceil() as u32) * 3;
-        const MAX_BITS: u32 = 48;
-        if len > MAX_BITS {
-            // upper bound should be 47 bits
-            return None;
+    pub fn new(major: u64, minor: u64, patch: u64) -> Result<Self, TooManyBitsError> {
+        let components = Components::new(major, minor, patch);
+        if bit_len(components.digits) <= INLINE_PACKER.digit_bits {
+            Ok(Self(
+                INLINE_PACKER.pack(components).unwrap() | u64::from(INLINE_MARKER),
+            ))
+        } else {
+            Ok(Self(OUT_OF_LINE_PACKER.pack(components)?))
         }
-        Some(Self(
-            (major << major_shift)
-                | (minor << minor_shift)
-                | patch
-                | (u64::from(major_shift) << (MAX_BITS + u8::BITS))
-                | (u64::from(minor_shift) << MAX_BITS),
-        ))
+    }
+
+    fn is_inline(self) -> bool {
+        self.0 & u64::from(INLINE_MARKER) != 0
+    }
+
+    pub fn components(self) -> (u64, u64, u64) {
+        if self.is_inline() {
+            INLINE_PACKER.unpack(self.0)
+        } else {
+            OUT_OF_LINE_PACKER.unpack(self.0)
+        }
     }
 
     pub fn major(self) -> u64 {
-        let major_shift = (self.0 >> 56) as u32;
-        (self.0 & 0xFFFF_FFFF_FFFF).unbounded_shr(major_shift)
+        let (major, _, _) = self.components();
+        major
     }
 
     pub fn minor(self) -> u64 {
-        let major_shift = (self.0 >> 56) as u32;
-        let minor_shift = ((self.0 >> 48) & 0xFF) as u32;
-        self.0
-            .unbounded_shl(64 - major_shift)
-            .unbounded_shr(64 - major_shift + minor_shift)
+        let (_, minor, _) = self.components();
+        minor
     }
 
     pub fn patch(self) -> u64 {
-        let minor_shift = ((self.0 >> 48) & 0xFF) as u32;
-        self.0
-            .unbounded_shl(64 - minor_shift)
-            .unbounded_shr(64 - minor_shift)
+        let (_, _, patch) = self.components();
+        patch
+    }
+}
+
+pub struct VersionResolver {
+    pos: FixedUsize,
+}
+
+impl rkyv::Archive for Version {
+    type Archived = ArchivedVersion;
+
+    type Resolver = VersionResolver;
+
+    fn resolve(&self, resolver: Self::Resolver, out: rkyv::Place<Self::Archived>) {
+        if self.is_inline() {
+            unsafe {
+                out.write_unchecked(ArchivedVersion {
+                    repr: ArchivedVersionRepr {
+                        inline: ArchivedU32::from_native(self.0 as u32),
+                    },
+                })
+            };
+        } else {
+            munge!(let ArchivedVersion { repr: ArchivedVersionRepr { out_of_line } } = out);
+            let out_of_line = unsafe { out_of_line.cast_unchecked::<RelPtr<ArchivedU64>>() };
+            RelPtr::emplace(resolver.pos as usize, out_of_line);
+        }
+    }
+}
+
+impl<S: Fallible + Writer + ?Sized> rkyv::Serialize<S> for Version {
+    fn serialize(&self, serializer: &mut S) -> Result<Self::Resolver, S::Error> {
+        if self.is_inline() {
+            Ok(VersionResolver { pos: 0 })
+        } else {
+            Ok(VersionResolver {
+                pos: self.0.serialize_unsized(serializer)?.try_into().unwrap(),
+            })
+        }
+    }
+}
+
+#[derive(Portable)]
+#[repr(C)]
+pub struct ArchivedVersion {
+    repr: ArchivedVersionRepr,
+}
+
+#[derive(Portable)]
+#[repr(C)]
+union ArchivedVersionRepr {
+    inline: ArchivedU32,
+    out_of_line: ManuallyDrop<RelPtr<ArchivedU64>>,
+}
+
+impl ArchivedVersion {
+    pub fn is_inline(&self) -> bool {
+        (unsafe { self.repr.inline } & ArchivedU32::from_native(u32::from(INLINE_MARKER))) != 0
+    }
+
+    pub fn get(&self) -> Version {
+        if self.is_inline() {
+            Version(unsafe { self.repr.inline.to_native().into() })
+        } else {
+            Version(unsafe { (*self.repr.out_of_line.as_ptr_wrapping()).to_native() })
+        }
+    }
+}
+
+unsafe impl<C> CheckBytes<C> for ArchivedVersion
+where
+    C: Fallible + ?Sized,
+    C::Error: Source,
+{
+    unsafe fn check_bytes(value: *const Self, _: &mut C) -> Result<(), <C as Fallible>::Error> {
+        let value = &*value;
+        if value.is_inline() {
+            if (value.repr.inline.to_native() & 0b10) != 0 {
+                #[derive(Debug, thiserror::Error)]
+                #[error("illegal bit {0} set in version")]
+                struct IllegalBitError(usize);
+
+                fail!(IllegalBitError(1))
+            }
+            Ok(())
+        } else {
+            if !value.repr.out_of_line.as_ptr_wrapping().is_aligned() {
+                #[derive(Debug, thiserror::Error)]
+                #[error("misaligned out-of-line pointer in version")]
+                struct MisalignedError;
+
+                fail!(MisalignedError)
+            }
+            Ok(())
+        }
     }
 }
 
@@ -93,12 +298,6 @@ impl Version {
         let minor = parse(value, minor)?;
         let patch = parse(value, patch)?;
         Ok(Version::new(major, minor, patch).unwrap())
-    }
-}
-
-impl From<ArchivedVersion> for Version {
-    fn from(value: ArchivedVersion) -> Self {
-        Self(value.0.into())
     }
 }
 
@@ -152,12 +351,74 @@ impl fmt::Debug for Version {
 
 impl fmt::Display for ArchivedVersion {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        fmt::Display::fmt(&Version::from(*self), f)
+        fmt::Display::fmt(&self.get(), f)
     }
 }
 
 impl fmt::Debug for ArchivedVersion {
     fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
         fmt::Display::fmt(self, f)
+    }
+}
+
+impl fmt::Binary for Version {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        write!(f, "{:b}", self.0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::marker::PhantomData;
+
+    use rkyv::niche::niching::Niching;
+    use rkyv::primitive::{FixedIsize, FixedUsize};
+    use rkyv::rancor::Strategy;
+    use rkyv::string::ArchivedString;
+    use rkyv::util::AlignedVec;
+    use rkyv::validation::archive::ArchiveValidator;
+    use rkyv::validation::shared::SharedValidator;
+    use rkyv::validation::Validator;
+    use rkyv::with::NicheInto;
+    use rkyv_intern::Interner;
+    use smol_str::SmolStr;
+    use uuid::Uuid;
+
+    use crate::mods::{
+        ArchivedModMetadataRef, ArchivedModVersionRef, ArchivedVersion, InlineString,
+        InternedString, ModMetadata, ModMetadataRef, ModRef, ModVersion, ModVersionRef,
+    };
+    use crate::util::rkyv::{ArchivedInternedString, InternedStringNiche, FE};
+
+    use super::Version;
+
+    #[test]
+    fn test_version() {
+        #[track_caller]
+        fn case(major: u64, minor: u64, patch: u64) {
+            let version = Version::new(major, minor, patch).unwrap();
+            assert_eq!(
+                version.major(),
+                major,
+                "major version mismatch: {version:b}"
+            );
+            assert_eq!(
+                version.minor(),
+                minor,
+                "minor version mismatch: {version:b}"
+            );
+            assert_eq!(
+                version.patch(),
+                patch,
+                "patch version mismatch: {version:b}"
+            );
+        }
+        case(0, 0, 0);
+        case(1, 0, 0);
+        case(1, 1, 1);
+        case(1, 0, 1);
+        case(69, 4, 2);
+        case(31251241231, 0, 0);
+        case(69, 201, 131125);
     }
 }
