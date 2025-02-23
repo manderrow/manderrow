@@ -1,6 +1,7 @@
 mod spec;
 mod timestamp;
 
+pub use spec::*;
 pub use timestamp::*;
 
 use std::num::ParseIntError;
@@ -11,7 +12,7 @@ use rkyv::with::NicheInto;
 use serde::ser::{SerializeMap, SerializeStruct};
 use smol_str::SmolStr;
 
-use crate::util::rkyv::{InternedString, InternedStringNiche, StringIntern};
+use crate::util::rkyv::{InternedString, InternedStringNiche, StringIntern, FE};
 use crate::util::serde::{empty_string_as_none, IgnoredAny, SerializeArchivedVec};
 
 #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, serde::Deserialize, serde::Serialize)]

@@ -1,17 +1,11 @@
 mod memory;
 
 use std::collections::{HashMap, HashSet};
-use std::mem::MaybeUninit;
 use std::sync::LazyLock;
-use std::time::Instant;
 
-use anyhow::{anyhow, Context as _, Result};
+use anyhow::{Context as _, Result};
 use async_compression::tokio::bufread::GzipDecoder;
 use drop_guard::ext::tokio1::JoinHandleExt;
-use rkyv::rancor::Strategy;
-use rkyv::ser::{Positional, Writer, WriterExt};
-use rkyv::vec::ArchivedVec;
-use rkyv::Place;
 use rkyv_intern::Interner;
 use slog::{debug, info};
 use tauri::{ipc::Channel, AppHandle, Manager};
@@ -22,7 +16,6 @@ use url::Url;
 use crate::games::{GAMES, GAMES_BY_ID};
 use crate::mods::{ArchivedModRef, ModRef};
 use crate::util::http::ResponseExt;
-use crate::util::iter::FlattenSlice;
 use crate::util::Progress;
 use crate::{CommandError, Reqwest};
 
@@ -30,7 +23,7 @@ use memory::MemoryModIndex;
 
 #[derive(Default)]
 struct ModIndex {
-    data: RwLock<Box<[MemoryModIndex]>>,
+    data: RwLock<Vec<MemoryModIndex>>,
     refresh_lock: Mutex<()>,
     pub progress: Progress,
 }
@@ -119,13 +112,13 @@ pub async fn fetch_mod_index(
             tokio::task::block_in_place(|| simd_json::from_slice::<Vec<Url>>(&mut chunk_urls))
                 .context("Unable to decode chunk URLs from Thunderstore")?;
 
-        let started_at = Instant::now();
-        let mut new_mod_index =
+        let started_at = std::time::Instant::now();
+        let new_mod_index =
             futures::future::try_join_all(chunk_urls.into_iter().map(|url| async {
                 let log = log.clone();
                 let app_handle = app_handle.clone();
                 tokio::task::spawn(async move {
-                    let spawned_at = Instant::now();
+                    let spawned_at = std::time::Instant::now();
                     let latency = spawned_at.duration_since(started_at);
                     let mut buf = Vec::new();
                     {
@@ -143,136 +136,90 @@ pub async fn fetch_mod_index(
                         );
                         rdr.read_to_end(&mut buf).await?;
                     }
-                    let fetched_at = Instant::now();
+                    let fetched_at = std::time::Instant::now();
                     let fetched_in = fetched_at.duration_since(spawned_at);
-                    info!(
-                        log,
-                        "{} bytes of JSON, {latency:?} spawning, {fetched_in:?} fetching",
-                        buf.len()
-                    );
-                    Ok::<_, anyhow::Error>(buf)
+                    let _step = mod_index.progress.step();
+                    tokio::task::block_in_place(move || {
+                        let buf_len = buf.len();
+                        let mods = simd_json::from_slice::<Vec<ModRef>>(&mut buf)?;
+                        let decoded_at = std::time::Instant::now();
+                        let decoded_in = decoded_at.duration_since(fetched_at);
+
+                        #[derive(Default)]
+                        struct Statistics {
+                            values: usize,
+                            total_bytes: usize,
+                            average_uses: f64,
+                            single_use_entries: usize,
+                        }
+                        impl std::fmt::Display for Statistics {
+                            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                                let Statistics { values, total_bytes, average_uses, single_use_entries } = self;
+                                write!(f, "{values} strings interned, {total_bytes} bytes, avg. {average_uses} uses/string, {single_use_entries} single-use strings")
+                            }
+                        }
+
+                        let (buf, stats) = rkyv::util::with_arena(|arena| {
+                            let mut serializer = rkyv_intern::InterningAdapter::new(
+                                rkyv_intern::InterningAdapter::new(
+                                    rkyv::ser::Serializer::new(
+                                        rkyv::util::AlignedVec::<16>::with_capacity(buf_len / 4),
+                                        arena.acquire(),
+                                        rkyv::ser::sharing::Share::new(),
+                                    ),
+                                    Interner::<ModId<'_>>::default(),
+                                ),
+                                Interner::<String>::default(),
+                            );
+                            rkyv::api::serialize_using::<_, rkyv::rancor::Error>(
+                                &mods,
+                                &mut serializer,
+                            )?;
+                            let (serializer, interner) = serializer.into_components();
+                            #[derive(Default)]
+                            struct StatisticsAccumulator {
+                                total_bytes: usize,
+                                total_uses: usize,
+                                single_use_entries: usize,
+                            }
+                            let stats = interner.iter().map(|(s, e)| (s.len(), e.ref_cnt.get())).fold(StatisticsAccumulator::default(), |mut stats, (len, ref_cnt)| {
+                                stats.total_bytes += len;
+                                stats.total_uses += ref_cnt;
+                                if ref_cnt == 1 {
+                                    stats.single_use_entries += 1;
+                                }
+                                stats
+                            });
+                            Ok::<_, rkyv::rancor::Error>((serializer.into_serializer().into_writer(), Statistics {
+                                values: interner.len(),
+                                total_bytes: stats.total_bytes,
+                                average_uses: stats.total_uses as f64 / interner.len() as f64,
+                                single_use_entries: stats.single_use_entries,
+                            }))
+                        })?;
+                        let encoded_at = std::time::Instant::now();
+                        let encoded_in = encoded_at.duration_since(decoded_at);
+                        info!(
+                            log,
+                            "{buf_len} bytes of JSON -> {} bytes in memory ({:.2}%, {stats}), {latency:?} spawning, {fetched_in:?} fetching, {decoded_in:?} decoding, {encoded_in:?} encoding",
+                            buf.len(),
+                            (buf.len() as f64 / buf_len as f64) * 100.0
+                        );
+                        let index = MemoryModIndex::new(buf, |data| {
+                            if cfg!(debug_assertions) {
+                                rkyv::access::<_, rkyv::rancor::Error>(data)
+                            } else{
+                                // SAFETY: rkyv just gave us this data. We trust it.
+                                Ok(unsafe { rkyv::access_unchecked(data) })
+                            }
+                        }).with_context(|| format!("Failed to create mod index from chunk at {url:?}"))?;
+                        Ok::<_, anyhow::Error>(index)
+                    })
                 })
                 .await?
             }))
             .await?;
-        let _step = mod_index.progress.step();
-        let new_mod_index = tokio::task::block_in_place(|| {
-            let started_at = Instant::now();
-            let buf_len = new_mod_index.iter().map(|buf| buf.len()).sum::<usize>();
-            let mods = std::thread::scope(|scope| {
-                new_mod_index
-                    .iter_mut()
-                    .map(|buf| {
-                        scope.spawn(|| simd_json::from_slice::<Vec<ModRef>>(buf.as_mut_slice()))
-                    })
-                    .collect::<Vec<_>>()
-                    .into_iter()
-                    .map(|thread| {
-                        thread
-                            .join()
-                            .map_err(|e| anyhow!("{e:?}"))
-                            .and_then(|r| r.map_err(anyhow::Error::from))
-                    })
-                    .collect::<Result<Vec<_>, _>>()
-            })?;
-            let decoded_at = Instant::now();
-            let decoded_in = decoded_at.duration_since(started_at);
-
-            #[derive(Default)]
-            struct Statistics {
-                values: usize,
-                total_bytes: usize,
-                average_uses: f64,
-                single_use_entries: usize,
-            }
-            impl std::fmt::Display for Statistics {
-                fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                    let Statistics {
-                        values,
-                        total_bytes,
-                        average_uses,
-                        single_use_entries,
-                    } = self;
-                    write!(f, "{values} strings interned, {total_bytes} bytes, avg. {average_uses} uses/string, {single_use_entries} single-use strings")
-                }
-            }
-
-            let (buf, stats) = rkyv::util::with_arena(|arena| {
-                let mut serializer = rkyv_intern::InterningAdapter::new(
-                    rkyv_intern::InterningAdapter::new(
-                        rkyv::ser::Serializer::new(
-                            rkyv::util::AlignedVec::<16>::with_capacity(buf_len / 4),
-                            arena.acquire(),
-                            rkyv::ser::sharing::Share::new(),
-                        ),
-                        Interner::<ModId<'_>>::default(),
-                    ),
-                    Interner::<String>::default(),
-                );
-                let strat_serializer = Strategy::<_, rkyv::rancor::Error>::wrap(&mut serializer);
-                let iter = FlattenSlice::new(&mods);
-                let len = iter.len();
-                let resolver = rkyv::vec::ArchivedVec::serialize_from_iter::<ModRef, _, _>(
-                    iter,
-                    strat_serializer,
-                )?;
-                strat_serializer.align_for::<ArchivedVec<ModRef>>()?;
-                let mut resolved = MaybeUninit::<ArchivedVec<ModRef>>::zeroed();
-                let out =
-                    unsafe { Place::new_unchecked(strat_serializer.pos(), resolved.as_mut_ptr()) };
-                rkyv::vec::ArchivedVec::resolve_from_len(len, resolver, out);
-                strat_serializer.write(out.as_slice())?;
-                let (serializer, interner) = serializer.into_components();
-                #[derive(Default)]
-                struct StatisticsAccumulator {
-                    total_bytes: usize,
-                    total_uses: usize,
-                    single_use_entries: usize,
-                }
-                let stats = interner
-                    .iter()
-                    .map(|(s, e)| (s.len(), e.ref_cnt.get()))
-                    .fold(
-                        StatisticsAccumulator::default(),
-                        |mut stats, (len, ref_cnt)| {
-                            stats.total_bytes += len;
-                            stats.total_uses += ref_cnt;
-                            if ref_cnt == 1 {
-                                stats.single_use_entries += 1;
-                            }
-                            stats
-                        },
-                    );
-                Ok::<_, rkyv::rancor::Error>((
-                    serializer.into_serializer().into_writer(),
-                    Statistics {
-                        values: interner.len(),
-                        total_bytes: stats.total_bytes,
-                        average_uses: stats.total_uses as f64 / interner.len() as f64,
-                        single_use_entries: stats.single_use_entries,
-                    },
-                ))
-            })?;
-            let encoded_at = Instant::now();
-            let encoded_in = encoded_at.duration_since(decoded_at);
-            info!(
-                log,
-                "{buf_len} bytes of JSON -> {} bytes in memory ({:.2}%, {stats}), {decoded_in:?} decoding, {encoded_in:?} encoding",
-                buf.len(),
-                (buf.len() as f64 / buf_len as f64) * 100.0
-            );
-            let index = MemoryModIndex::new(buf, |data| {
-                if cfg!(debug_assertions) {
-                    rkyv::access::<_, rkyv::rancor::Error>(data)
-                } else {
-                    // SAFETY: rkyv just gave us this data. We trust it.
-                    Ok(unsafe { rkyv::access_unchecked(data) })
-                }
-            })
-            .context("Failed to create mod index")?;
-            Ok::<_, anyhow::Error>(index)
-        })?;
-        *mod_index.data.write().await = Box::new([new_mod_index]);
+        *mod_index.data.write().await = new_mod_index;
 
         info!(log, "Finished fetching mods");
     }

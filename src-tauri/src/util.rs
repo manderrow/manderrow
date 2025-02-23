@@ -1,5 +1,4 @@
 pub mod http;
-pub mod iter;
 mod progress;
 pub mod rkyv;
 pub mod serde;
