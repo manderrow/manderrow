@@ -1,7 +1,7 @@
 use std::any::TypeId;
 use std::mem::ManuallyDrop;
 use std::ops::Deref;
-use std::ptr::{addr_of, NonNull};
+use std::ptr::addr_of;
 
 use rkyv::bytecheck::{CheckBytes, Verify};
 use rkyv::munge::munge;
@@ -9,11 +9,10 @@ use rkyv::niche::niching::Niching;
 use rkyv::primitive::{ArchivedIsize, ArchivedUsize, FixedIsize, FixedUsize};
 use rkyv::rancor::{Fallible, Panic, ResultExt, Source};
 use rkyv::rel_ptr::Offset;
-use rkyv::rend::u32_le;
 use rkyv::ser::{Writer, WriterExt};
 use rkyv::validation::{ArchiveContext, SharedContext};
 use rkyv::with::{ArchiveWith, SerializeWith};
-use rkyv::{Archive, Place, RelPtr, Serialize, SerializeUnsized};
+use rkyv::{Archive, Place, Serialize, SerializeUnsized};
 use rkyv_intern::{Interning, InterningState};
 
 #[derive(Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
@@ -250,10 +249,12 @@ where
     unsafe fn check_bytes(value: *const Self, context: &mut C) -> Result<(), C::Error> {
         if (*value).is_inline() {
             let inline = addr_of!((*value).inline);
-            Inline::check_bytes(inline.cast(), context).trace("while checking inline interned string")
+            Inline::check_bytes(inline.cast(), context)
+                .trace("while checking inline interned string")
         } else {
             let out_of_line = addr_of!((*value).out_of_line);
-            OutOfLine::check_bytes(out_of_line.cast(), context).trace("while checking out-of-line interned string")
+            OutOfLine::check_bytes(out_of_line.cast(), context)
+                .trace("while checking out-of-line interned string")
         }
     }
 }

@@ -424,8 +424,7 @@ mod tests {
             "None should be serialized correctly"
         );
 
-        let buf =
-            serialize::<_, String>(&OptionInternedString::some(InternedString("Abcd")));
+        let buf = serialize::<_, String>(&OptionInternedString::some(InternedString("Abcd")));
         assert_eq!(
             buf.as_slice(),
             b"Abcd",

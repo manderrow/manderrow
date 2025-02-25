@@ -2,6 +2,7 @@ use std::{
     fmt::{self, Formatter},
     mem::ManuallyDrop,
     num::ParseIntError,
+    sync::atomic::AtomicU32,
 };
 
 use rkyv::{
@@ -188,11 +189,34 @@ impl rkyv::Archive for Version {
     }
 }
 
+#[cfg(feature = "statistics")]
+static INLINE_COUNT: AtomicU32 = AtomicU32::new(0);
+#[cfg(feature = "statistics")]
+static OUT_OF_LINE_COUNT: AtomicU32 = AtomicU32::new(0);
+
+#[cfg(feature = "statistics")]
+pub fn reset_version_repr_stats() {
+    INLINE_COUNT.store(0, std::sync::atomic::Ordering::Relaxed);
+    OUT_OF_LINE_COUNT.store(0, std::sync::atomic::Ordering::Relaxed);
+}
+
+#[cfg(feature = "statistics")]
+pub fn get_version_repr_stats() -> (u32, u32) {
+    (
+        INLINE_COUNT.load(std::sync::atomic::Ordering::Relaxed),
+        OUT_OF_LINE_COUNT.load(std::sync::atomic::Ordering::Relaxed),
+    )
+}
+
 impl<S: Fallible + Writer + ?Sized> rkyv::Serialize<S> for Version {
     fn serialize(&self, serializer: &mut S) -> Result<Self::Resolver, S::Error> {
         if self.is_inline() {
+            #[cfg(feature = "statistics")]
+            INLINE_COUNT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
             Ok(VersionResolver { pos: 0 })
         } else {
+            #[cfg(feature = "statistics")]
+            OUT_OF_LINE_COUNT.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
             Ok(VersionResolver {
                 pos: self.0.serialize_unsized(serializer)?.try_into().unwrap(),
             })

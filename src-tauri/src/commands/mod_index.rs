@@ -91,6 +91,9 @@ pub async fn fetch_mod_index(
             return Ok(());
         };
 
+        #[cfg(feature = "statistics")]
+        crate::mods::reset_version_repr_stats();
+
         mod_index.progress.reset();
 
         let mut chunk_urls = Vec::new();
@@ -182,6 +185,7 @@ pub async fn fetch_mod_index(
                                 total_uses: usize,
                                 single_use_entries: usize,
                             }
+                            #[cfg(feature = "statistics")]
                             let stats = interner.iter().map(|(s, e)| (s.len(), e.ref_cnt.get())).fold(StatisticsAccumulator::default(), |mut stats, (len, ref_cnt)| {
                                 stats.total_bytes += len;
                                 stats.total_uses += ref_cnt;
@@ -190,18 +194,30 @@ pub async fn fetch_mod_index(
                                 }
                                 stats
                             });
-                            Ok::<_, rkyv::rancor::Error>((serializer.into_serializer().into_writer(), Statistics {
-                                values: interner.len(),
-                                total_bytes: stats.total_bytes,
-                                average_uses: stats.total_uses as f64 / interner.len() as f64,
-                                single_use_entries: stats.single_use_entries,
+                            Ok::<_, rkyv::rancor::Error>((serializer.into_serializer().into_writer(), {
+                                #[cfg(feature = "statistics")]
+                                {
+                                    Statistics {
+                                        values: interner.len(),
+                                        total_bytes: stats.total_bytes,
+                                        average_uses: stats.total_uses as f64 / interner.len() as f64,
+                                        single_use_entries: stats.single_use_entries,
+                                    }
+                                }
+                                #[cfg(not(feature = "statistics"))]
+                                {
+                                    ()
+                                }
                             }))
                         })?;
                         let encoded_at = std::time::Instant::now();
                         let encoded_in = encoded_at.duration_since(decoded_at);
+                        let stats_prefix = if cfg!(feature = "statistics") { ", " } else { "" };
+                        #[cfg(not(feature = "statistics"))]
+                        let stats = "";
                         info!(
                             log,
-                            "{buf_len} bytes of JSON -> {} bytes in memory ({:.2}%, {stats}), {latency:?} spawning, {fetched_in:?} fetching, {decoded_in:?} decoding, {encoded_in:?} encoding",
+                            "{buf_len} bytes of JSON -> {} bytes in memory ({:.2}%{stats_prefix}{stats}), {latency:?} spawning, {fetched_in:?} fetching, {decoded_in:?} decoding, {encoded_in:?} encoding",
                             buf.len(),
                             (buf.len() as f64 / buf_len as f64) * 100.0
                         );
@@ -221,7 +237,12 @@ pub async fn fetch_mod_index(
             .await?;
         *mod_index.data.write().await = new_mod_index;
 
-        info!(log, "Finished fetching mods");
+        #[cfg(feature = "statistics")]
+        let (inline_version_count, out_of_line_version_count) =
+            crate::mods::get_version_repr_stats();
+        #[cfg(not(feature = "statistics"))]
+        let (inline_version_count, out_of_line_version_count) = (None::<u32>, None::<u32>);
+        info!(log, "Finished fetching mods"; "inline_version_count" => inline_version_count, "out_of_line_version_count" => out_of_line_version_count);
     }
 
     Ok(())
