@@ -11,4 +11,5 @@ name = "generate-loader"
 name = "version-packing-calculator"
 
 [dependencies]
+euclid = "0.22.11"
 sailfish = "0.9.0"

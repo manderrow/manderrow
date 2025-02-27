@@ -3,44 +3,44 @@
 //! [dependencies]
 //! sailfish = "0.9.0"
 //! ```
-use std::f64::consts::PI;
 use std::io::Write;
 
+use euclid::{Point2D, Vector2D};
 use sailfish::{runtime::Render, TemplateSimple};
 
-struct Point<T = f64> {
-    x: T,
-    y: T,
-}
+struct CanvasSpace;
+
+type Point<T = f64> = Point2D<T, CanvasSpace>;
+type Vector<T = f64> = Vector2D<T, CanvasSpace>;
+type Angle = euclid::Angle<f64>;
 
 fn p<T>(x: T, y: T) -> Point<T> {
-    Point { x, y }
+    Point::new(x, y)
 }
 
-fn calculate_light_clip(angle: f64, radius: f64) -> ([f64; 2], f64) {
-    let circumference = 2.0 * PI * radius;
-
-    // 3. First, 1/4 of circumfence of 90 degrees. To start from top of the view,
-    //    we must rotate it by 90 degrees. By default circle will start on the right.
-    //    Stroke offset effectively rotates the circle.
-    // 4. Second, calculate dash array. We need dash array containing only two parts -
-    //    visible dash, and invisible dash.
-    //    Visible dash should have length of the chosen angle. Full circle is 360 degrees,
-    //    and this 360 degrees does also equal the entire circumference. We want just a part of
-    //    this entire circle to be visible - (angle / 360 degrees) returns a percentage value
-    //    (between 0.0 and 1.0) of how much circumference should be visible.
-    //    Hence, we then multiply (angle / 360) times the entire circumference.
-    let stroke_offset = ((90.0 + angle) / 2.0 / 360.0) * circumference;
-    let stroke_dasharray = (angle / 360.0) * circumference;
-
-    (
-        [stroke_dasharray, circumference - stroke_dasharray],
-        stroke_offset,
-    )
+fn v<T>(x: T, y: T) -> Vector<T> {
+    Vector::new(x, y)
 }
 
-//M 25 1.5 a  1    1   0 0 0   0   47
-//M 25 1.5 a 23.5 23.5 0 0 0 -23.5 23.5
+struct PathCoords<T>(T);
+
+impl Render for PathCoords<Point> {
+    fn render(&self, b: &mut sailfish::runtime::Buffer) -> Result<(), sailfish::RenderError> {
+        self.0.x.render(b)?;
+        b.push(' ');
+        self.0.y.render(b)
+    }
+}
+
+trait AsPathCoords: Sized {
+    fn as_path_coords(self) -> PathCoords<Self>;
+}
+
+impl<T> AsPathCoords for T where PathCoords<T>: Render {
+    fn as_path_coords(self) -> PathCoords<Self> {
+        PathCoords(self)
+    }
+}
 
 struct KeySplines<'a>(&'a str);
 
@@ -61,12 +61,9 @@ struct LightChannel<'a> {
 
 #[derive(Clone, Copy)]
 struct LightProps {
-    padding: f64,
-    diameter: f64,
+    thickness: f64,
     radius: f64,
-    dasharray: [f64; 2],
-    dashoffset: f64,
-    channel_multiplier: f64,
+    channel_angle: Angle,
 }
 
 #[derive(TemplateSimple)]
@@ -93,6 +90,9 @@ struct LoaderTemplate<'a> {
     slider_mid_start: f64,
     vertical_end: Point<[f64; 2]>,
     horizontal_end: Point<[f64; 2]>,
+
+    enable_handle: bool,
+    enable_handle_extra: bool,
 }
 
 pub fn main() {
@@ -155,19 +155,10 @@ pub fn main() {
         )
     };
 
-    let light_diameter = 36.0;
-    let light_padding: f64 = (canvas_size - light_diameter) / 2.0;
-    let light_radius = light_diameter / 2.0;
-
-    let (light_dasharray, light_dashoffset) = calculate_light_clip(40.0, light_radius);
-
     let light = LightProps {
-        padding: light_padding,
-        diameter: light_diameter,
-        radius: light_radius,
-        dasharray: light_dasharray,
-        dashoffset: light_dashoffset,
-        channel_multiplier: 0.6,
+        radius: 17.0,
+        thickness: 3.0,
+        channel_angle: Angle::degrees(40.0),
     };
 
     std::io::stdout()
@@ -192,6 +183,9 @@ pub fn main() {
                 slider_mid_start,
                 vertical_end,
                 horizontal_end,
+
+                enable_handle: false,
+                enable_handle_extra: false,
             }
             .render_once()
             .unwrap()
