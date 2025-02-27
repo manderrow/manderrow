@@ -1,0 +1,4 @@
+<use class="<%- class %>" href="#light-channel" transform="scale( 1  1)" transform-origin="50% 50%" />
+<use class="<%- class %>" href="#light-channel" transform="scale( 1 -1)" transform-origin="50% 50%" />
+<use class="<%- class %>" href="#light-channel" transform="scale(-1  1)" transform-origin="50% 50%" />
+<use class="<%- class %>" href="#light-channel" transform="scale(-1 -1)" transform-origin="50% 50%" />

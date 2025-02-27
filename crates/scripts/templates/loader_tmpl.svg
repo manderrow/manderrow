@@ -1,9 +1,12 @@
-<svg viewBox="0 0 <%- canvas_width %> <%- canvas_height %>" xmlns="http://www.w3.org/2000/svg" style="width: 75px;">
+<svg viewBox="0 0 <%- canvas_size + padding.x * 2.0 %> <%- canvas_size + padding.y * 2.0 %>" xmlns="http://www.w3.org/2000/svg" style="width: 75px;">
 	<style>
     .axis {
       stroke-linecap: round;
-      stroke: #c5d1e0;
       stroke-width: <%- axis_thickness %>;
+    }
+
+    .axis, .light-channel-background {
+      stroke: #c5d1e0;
       filter: url(#inset-shadow);
     }
 
@@ -17,6 +20,10 @@
 
     .light {
       filter: url(#glow);
+    }
+
+    .light-channel-clip {
+      stroke: white;
     }
 	</style>
 
@@ -78,7 +85,7 @@
     />
     <!-- Cut colour inside shadow -->
     <feFlood
-      flood-color='#b5b3da'
+      flood-color='#484767'
       flood-opacity='.95'
       result='color'
     />
@@ -96,7 +103,34 @@
     />
   </filter>
 
-  <g transform="translate(<%- padding_x %> <%- padding_y %>)">
+  <defs>
+    <% let angle = 45.0f64.to_radians(); let thickness = 2.0; %>
+    <% let outer = p((light.radius*2.0) / 2.0f64.sqrt(), (light.radius*2.0) / 2.0f64.sqrt()); %>
+    <% let inner = p((light.radius*2.0) / 2.0f64.sqrt(), (light.radius*2.0) / 2.0f64.sqrt()); %>
+    <path id="light-channel" stroke-width="2" stroke-linecap="round" d="M <%- hcanvas_size - (hcanvas_size - light.padding) * light.channel_multiplier.sqrt() / 2.0 + 1.0f64 %> <%- light.padding + 1.0f64 %> a <%- hcanvas_size - light.padding %> <%- hcanvas_size - light.padding %> 0 0 0 -<%- (hcanvas_size - light.padding) * light.channel_multiplier %> <%- (hcanvas_size - light.padding) * light.channel_multiplier %>" />
+    <% if false { %>
+    <path id="light-channel" fill="black" d="M <%- hcanvas_size - outer.x %> <%- hcanvas_size - outer.y %> l <%- angle.sin() * 2.0 %> <%- angle.cos() * 2.0 %> l <%- angle.cos() * 6.0 %> -<%- angle.sin() * 6.0 %> Z" />
+    <% } %>
+    <% if false { %>
+    <path id="light-channel" fill="black" d="
+      M <%- outer.x %> <%- outer.y - light.radius %>
+      a <%- light.radius %> <%- light.radius %>
+      0 0 0
+      -<%- light.radius %> <%- light.radius %>
+      l 0 <%- thickness %>
+      a <%- light.radius - thickness %> <%- light.radius - thickness %>
+      0 0 0
+      -<%- light.radius - thickness %> <%- light.radius - thickness %>
+      l 0 -<%- thickness %>" />
+    <path fill="white" d="
+      M <%- inner.x %> <%- inner.y - (light.radius - thickness) %>
+      a <%- light.radius - thickness %> <%- light.radius - thickness %>
+      0 0 0
+      -<%- light.radius - thickness %> <%- light.radius - thickness %>" />
+    <% } %>
+  </defs>
+
+  <g transform="translate(<%- padding.x %> <%- padding.y %>)">
     <circle cx="25" cy="25" r="25" fill="#f4f9ff" />
 
     <!-- Axes -->
@@ -154,53 +188,54 @@
 
     <mask id="light-clip" x="0" y="0" width="100%" maskUnits="userSpaceOnUse">
       <% if false { %>
-      <circle cx="<%- hcanvas_size %>" cy="<%- hcanvas_size %>" r="18" stroke="black" stroke-linecap="round" stroke-width="2" stroke-dasharray="<%- light_dasharray[0] %>,<%- light_dasharray[1] %>" stroke-dashoffset="<%- light_dashoffset %>" />
+      <circle cx="<%- hcanvas_size %>" cy="<%- hcanvas_size %>" r="18" stroke="black" stroke-linecap="round" stroke-width="2" stroke-dasharray="<%- light.dasharray[0] %>,<%- light.dasharray[1] %>" stroke-dashoffset="<%- light.dashoffset %>" />
       <% } %>
       <% if false { %>
-      <rect x="0" y="0" width="<%- canvas_width %>" height="<%- canvas_height %>" fill="red" />
+      <rect x="0" y="0" width="<%- canvas_size %>" height="<%- canvas_size %>" fill="red" />
       <% } %>
-      <% include!("./light_clip.svg"); %>
+      <%+ LightChannel { class: "light-channel-clip" } %>
     </mask>
 
     <% if false { %>
-    <rect x="0" y="0" width="<%- canvas_width %>" height="<%- canvas_height %>" fill="white" mask="url(#light-clip)" />
+    <rect x="0" y="0" width="<%- canvas_size %>" height="<%- canvas_size %>" fill="white" mask="url(#light-clip)" />
     <% } %>
 
-    <g fill="none" fill-rule="evenodd" class="light">
+    <g fill="none" fill-rule="evenodd">
       <% if false { %>
-      <path stroke="yellow" stroke-width="2" d="M <%- hcanvas_size %> <%- light_padding %> a <%- hcanvas_size - light_padding %> <%- hcanvas_size - light_padding %> 0 0 0 -<%- hcanvas_size - light_padding %> <%- hcanvas_size - light_padding %>" />
+      <path stroke="yellow" stroke-width="2" d="M <%- hcanvas_size %> <%- light.padding %> a <%- hcanvas_size - light.padding %> <%- hcanvas_size - light.padding %> 0 0 0 -<%- hcanvas_size - light.padding %> <%- hcanvas_size - light.padding %>" />
       <!-- translate(<%- hcanvas_size %>, <%- hcanvas_size %>) -->
       <% } %>
-      <g mask="url(#light-clip)">
-        <%# include!("./light_clip.svg"); %>
-
-        <% if false { %>
-        <circle cx="<%- hcanvas_size %>" cy="<%- hcanvas_size %>" r="18" stroke="black" stroke-linecap="round" stroke-width="2" stroke-dasharray="<%- light_dasharray[0] %>,<%- light_dasharray[1] %>" stroke-dashoffset="<%- light_dashoffset %>" />
-        <% } %>
-        <g transform="translate(<%- light_padding %> <%- light_padding %>)">
-          <path stroke="url(#light-gradient)" stroke-width="2" d="M <%- light_diameter %> <%- light_radius %> a <%- light_radius %> <%- light_radius %> 0 0 0 -<%- light_radius %> -<%- light_radius %>" >
-            <animateTransform
-              attributeName="transform"
-              type="rotate"
-              from="0 <%- light_radius %> <%- light_radius %>"
-              to="360 <%- light_radius %> <%- light_radius %>"
-              dur="0.8s"
-              repeatCount="indefinite"
-            />
-          </path>
-          <circle fill="#fff" cx="<%- light_diameter %>" cy="<%- light_radius %>" r="1">
-            <animateTransform
-              attributeName="transform"
-              type="rotate"
-              from="0 <%- light_radius %> <%- light_radius %>"
-              to="360 <%- light_radius %> <%- light_radius %>"
-              dur="0.8s"
-              repeatCount="indefinite"
-            />
-          </circle>
+      <%+ LightChannel { class: "light-channel-background" } %>
+      <g class="light">
+        <g mask="url(#light-clip)">
           <% if false { %>
-          <path d="M<%- light_diameter %> <%- light_radius %> c0 -13.253 -10.746 -<%- light_radius %> -<%- light_radius %> -<%- light_radius %>" stroke="black" stroke-width="2" />
+          <circle cx="<%- hcanvas_size %>" cy="<%- hcanvas_size %>" r="18" stroke="black" stroke-linecap="round" stroke-width="2" stroke-dasharray="<%- light.dasharray[0] %>,<%- light.dasharray[1] %>" stroke-dashoffset="<%- light.dashoffset %>" />
           <% } %>
+          <g transform="translate(<%- light.padding %> <%- light.padding %>)">
+            <path stroke="url(#light-gradient)" stroke-width="2" d="M <%- light.diameter %> <%- light.radius %> a <%- light.radius %> <%- light.radius %> 0 0 0 -<%- light.radius %> -<%- light.radius %>" >
+              <animateTransform
+                attributeName="transform"
+                type="rotate"
+                from="0 <%- light.radius %> <%- light.radius %>"
+                to="360 <%- light.radius %> <%- light.radius %>"
+                dur="0.8s"
+                repeatCount="indefinite"
+              />
+            </path>
+            <circle fill="#fff" cx="<%- light.diameter %>" cy="<%- light.radius %>" r="1">
+              <animateTransform
+                attributeName="transform"
+                type="rotate"
+                from="0 <%- light.radius %> <%- light.radius %>"
+                to="360 <%- light.radius %> <%- light.radius %>"
+                dur="0.8s"
+                repeatCount="indefinite"
+              />
+            </circle>
+            <% if false { %>
+            <path d="M<%- light.diameter %> <%- light.radius %> c0 -13.253 -10.746 -<%- light.radius %> -<%- light.radius %> -<%- light.radius %>" stroke="black" stroke-width="2" />
+            <% } %>
+          </g>
         </g>
       </g>
     </g>

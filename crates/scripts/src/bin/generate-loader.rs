@@ -5,21 +5,12 @@
 //! ```
 use std::f64::consts::PI;
 use std::io::Write;
-use std::ops::Add;
 
 use sailfish::{runtime::Render, TemplateSimple};
 
 struct Point<T = f64> {
     x: T,
     y: T,
-}
-
-impl<T: Add> Add for Point<T> {
-    type Output = Point<T::Output>;
-
-    fn add(self, other: Self) -> Self::Output {
-        p(self.x + other.x, self.y + other.y)
-    }
 }
 
 fn p<T>(x: T, y: T) -> Point<T> {
@@ -63,19 +54,29 @@ impl Render for KeySplines<'_> {
 }
 
 #[derive(TemplateSimple)]
+#[template(path = "light_channel.svg", escape = false, rm_whitespace = true)]
+struct LightChannel<'a> {
+    class: &'a str,
+}
+
+#[derive(Clone, Copy)]
+struct LightProps {
+    padding: f64,
+    diameter: f64,
+    radius: f64,
+    dasharray: [f64; 2],
+    dashoffset: f64,
+    channel_multiplier: f64,
+}
+
+#[derive(TemplateSimple)]
 #[template(path = "loader_tmpl.svg", escape = false, rm_whitespace = true)]
 struct LoaderTemplate<'a> {
-    canvas_width: f64,
-    canvas_height: f64,
+    canvas_size: f64,
 
-    light_padding: f64,
-    light_diameter: f64,
-    light_radius: f64,
-    light_dasharray: [f64; 2],
-    light_dashoffset: f64,
+    light: LightProps,
 
-    padding_x: f64,
-    padding_y: f64,
+    padding: Point,
     hcanvas_size: f64,
     slider_length: f64,
     slider_pos_start: f64,
@@ -121,10 +122,10 @@ pub fn main() {
     let horizontal_outset: f64 = 0.0;
     let vertical_outset: f64 = 0.0;
 
-    let padding_x: f64 =
-        (horizontal_outset - (slider_length / 2.0 - handle_thickness / 2.0)).max(0.0);
-    let padding_y: f64 =
-        (vertical_outset - (slider_length / 2.0 - handle_thickness / 2.0)).max(0.0);
+    let padding = p(
+        (horizontal_outset - (slider_length / 2.0 - handle_thickness / 2.0)).max(0.0),
+        (vertical_outset - (slider_length / 2.0 - handle_thickness / 2.0)).max(0.0)
+    );
 
     let (vertical_end, horizontal_end) = {
         let handle_start = p::<f64>(slider_pos_start + slider_length / 2.0, hcanvas_size);
@@ -154,26 +155,27 @@ pub fn main() {
         )
     };
 
-    let light_padding: f64 = 7.0;
-    let light_diameter = canvas_size - light_padding * 2.0;
+    let light_diameter = 36.0;
+    let light_padding: f64 = (canvas_size - light_diameter) / 2.0;
     let light_radius = light_diameter / 2.0;
 
     let (light_dasharray, light_dashoffset) = calculate_light_clip(40.0, light_radius);
 
+    let light = LightProps {
+        padding: light_padding,
+        diameter: light_diameter,
+        radius: light_radius,
+        dasharray: light_dasharray,
+        dashoffset: light_dashoffset,
+        channel_multiplier: 0.6,
+    };
+
     std::io::stdout()
         .write_all(
             LoaderTemplate {
-                canvas_width: canvas_size + padding_x * 2.0,
-                canvas_height: canvas_size + padding_y * 2.0,
-
-                light_padding,
-                light_diameter,
-                light_radius,
-                light_dasharray,
-                light_dashoffset,
-
-                padding_x,
-                padding_y,
+                canvas_size,
+                light,
+                padding,
                 hcanvas_size,
                 slider_length,
                 slider_pos_start,
