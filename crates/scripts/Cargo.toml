@@ -1,0 +1,14 @@
+[package]
+name = "manderrow-scripts"
+version = "0.1.0"
+authors = ["Jack Huang", "Michael Pfaff"]
+edition = "2024"
+
+[[bin]]
+name = "generate-loader"
+
+[[bin]]
+name = "version-packing-calculator"
+
+[dependencies]
+sailfish = "0.9.0"

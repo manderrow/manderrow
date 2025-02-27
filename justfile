@@ -12,3 +12,6 @@ clean:
 test:
 	cargo test --manifest-path src-tauri/Cargo.toml
 
+run-script BIN *ARGS:
+	cargo run --manifest-path crates/Cargo.toml --bin {{BIN}} -- {{ARGS}}
+

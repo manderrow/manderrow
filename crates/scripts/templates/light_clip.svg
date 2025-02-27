@@ -1,0 +1,28 @@
+<% let light_m: f64 = 0.6; %>
+<path id="light-channel" stroke="white" stroke-width="2" stroke-linecap="round" d="M <%- hcanvas_size - (hcanvas_size - light_padding) * light_m.sqrt() / 2.0 + 1.0f64 %> <%- light_padding + 1.0f64 %> a <%- hcanvas_size - light_padding %> <%- hcanvas_size - light_padding %> 0 0 0 -<%- (hcanvas_size - light_padding) * light_m %> <%- (hcanvas_size - light_padding) * light_m %>" />
+<% let angle = 45.0f64.to_radians(); let thickness = 2.0; %>
+<% let outer = p((light_radius*2.0) / 2.0f64.sqrt(), (light_radius*2.0) / 2.0f64.sqrt()); %>
+<% let inner = p((light_radius*2.0) / 2.0f64.sqrt(), (light_radius*2.0) / 2.0f64.sqrt()); %>
+<% if false { %>
+<path id="light-channel" fill="black" d="M <%- hcanvas_size - outer.x %> <%- hcanvas_size - outer.y %> l <%- angle.sin() * 2.0 %> <%- angle.cos() * 2.0 %> l <%- angle.cos() * 6.0 %> -<%- angle.sin() * 6.0 %> Z" />
+<% } %>
+<% if false { %>
+<path id="light-channel" fill="black" d="
+	M <%- outer.x %> <%- outer.y - light_radius %>
+	a <%- light_radius %> <%- light_radius %>
+	0 0 0
+	-<%- light_radius %> <%- light_radius %>
+	l 0 <%- thickness %>
+	a <%- light_radius - thickness %> <%- light_radius - thickness %>
+	0 0 0
+	-<%- light_radius - thickness %> <%- light_radius - thickness %>
+	l 0 -<%- thickness %>" />
+<path fill="white" d="
+	M <%- inner.x %> <%- inner.y - (light_radius - thickness) %>
+	a <%- light_radius - thickness %> <%- light_radius - thickness %>
+	0 0 0
+	-<%- light_radius - thickness %> <%- light_radius - thickness %>" />
+<% } %>
+<use href="#light-channel" transform="scale( 1 -1)" transform-origin="50% 50%" />
+<use href="#light-channel" transform="scale(-1  1)" transform-origin="50% 50%" />
+<use href="#light-channel" transform="scale(-1 -1)" transform-origin="50% 50%" />
