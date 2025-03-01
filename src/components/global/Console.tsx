@@ -13,8 +13,8 @@ const [events, setEvents] = createSignal<C2SMessage[]>([]);
 
 export type C2SChannel = Channel<C2SMessage>;
 
-export function createC2SChannel() {
-  return new Channel();
+export function createC2SChannel<T>() {
+  return new Channel<T>();
 }
 
 export function clearConsole() {
@@ -32,7 +32,6 @@ export default function Console({ channel }: { channel: Accessor<Channel<C2SMess
     } else if ("Disconnect" in event) {
       setConnected(false);
     } else if ("DoctorReport" in event) {
-      console.log(event.DoctorReport);
       setDoctorReports((reports) => [...reports, event.DoctorReport]);
     } else {
       setEvents((events) => [...events, event]);

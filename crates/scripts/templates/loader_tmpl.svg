@@ -1,0 +1,198 @@
+<svg viewBox="0 0 <%- canvas_size + padding.x * 2.0 %> <%- canvas_size + padding.y * 2.0 %>" xmlns="http://www.w3.org/2000/svg" style="width: 75px;">
+	<style>
+    .axis {
+      stroke-linecap: round;
+      stroke-width: <%- axis_thickness %>;
+    }
+
+    .axis, .light-channel-background {
+      stroke: #c5d1e0;
+      filter: url(#inset-shadow);
+    }
+
+    .slider {
+      fill: #7facff;
+    }
+
+    .handle {
+      filter: drop-shadow(3px 3px 2px rgba(0, 0, 0, .7));
+    }
+
+    .light {
+      filter: url(#glow);
+    }
+
+    .light-channel-clip {
+      stroke: white;
+    }
+	</style>
+
+  <filter id="inset-shadow" filterUnits="userSpaceOnUse">
+    <!-- Shadow offset -->
+    <feOffset
+      dx='0'
+      dy='0'
+    />
+    <!-- Shadow blur -->
+    <feGaussianBlur
+      stdDeviation='1'
+      result='offset-blur'
+    />
+    <!-- Invert drop shadow to make an inset shadow-->
+    <feComposite
+      operator='out'
+      in='SourceGraphic'
+      in2='offset-blur'
+      result='inverse'
+    />
+    <!-- Cut colour inside shadow -->
+    <feFlood
+      flood-color='black'
+      flood-opacity='.95'
+      result='color'
+    />
+    <feComposite
+      operator='in'
+      in='color'
+      in2='inverse'
+      result='shadow'
+    />
+    <!-- Placing shadow over element -->
+    <feComposite
+      operator='over'
+      in='shadow'
+      in2='SourceGraphic'
+    />
+  </filter>
+
+  <filter id="glow" filterUnits="userSpaceOnUse">
+    <!-- Shadow offset -->
+    <feOffset
+      dx='0'
+      dy='0'
+    />
+    <!-- Shadow blur -->
+    <feGaussianBlur
+      stdDeviation='1'
+      result='offset-blur'
+    />
+    <!-- Invert drop shadow to make an inset shadow-->
+    <feComposite
+      operator='out'
+      in='offset-blur'
+      in2='SourceGraphic'
+      result='inverse'
+    />
+    <!-- Cut colour inside shadow -->
+    <feFlood
+      flood-color='#484767'
+      flood-opacity='.95'
+      result='color'
+    />
+    <feComposite
+      operator='in'
+      in='color'
+      in2='inverse'
+      result='shadow'
+    />
+    <!-- Placing shadow over element -->
+    <feComposite
+      operator='over'
+      in='shadow'
+      in2='SourceGraphic'
+    />
+  </filter>
+
+  <g transform="translate(<%- padding.x %> <%- padding.y %>)">
+    <circle cx="25" cy="25" r="25" fill="#f4f9ff" />
+
+    <%# Axes %>
+    <path d="M<%- axis_start %> <%- hcanvas_size %> H<%- axis_end %> M<%- hcanvas_size %> <%- axis_start %> V<%- axis_end %>" class="axis" />
+
+    <%# X-axis Slider %>
+    <rect y="<%- slider_mid_start %>" width="<%- slider_length %>" height="<%- slider_thickness %>" rx="<%- hslider_thickness %>" class="slider">
+      <animate attributeName="x" values="<%- slider_pos_start %>;<%- slider_pos_end %>;<%- slider_pos_start %>" keyTimes="0;0.5;1" dur="<%- duration %>s" begin="-<%- qduration %>s" calcMode="spline" keySplines="<%- key_splines %>" repeatCount="indefinite"/>
+    </rect>
+
+    <%# Y-axis Slider %>
+    <rect x="<%- slider_mid_start %>" width="<%- slider_thickness %>" height="<%- slider_length %>" rx="<%- hslider_thickness %>" class="slider">
+      <animate attributeName="y" values="<%- slider_pos_start %>;<%- slider_pos_end %>;<%- slider_pos_start %>" keyTimes="0;0.5;1" dur="<%- duration %>s" begin="0s" calcMode="spline" keySplines="<%- key_splines %>" repeatCount="indefinite"/>
+    </rect>
+
+    <%# Handle %>
+    <% if enable_handle { %>
+    <line stroke="#45196a" stroke-width="<%- handle_thickness %>" stroke-linecap="round" class="handle">
+      <animate attributeName="y1" values="<%- vertical_end.x[0] %>;<%- vertical_end.x[1] %>;<%- vertical_end.x[0] %>" keyTimes="0;0.5;1" dur="<%- duration %>s" begin="0s" calcMode="spline" keySplines="<%- key_splines %>" repeatCount="indefinite"/>
+      <animate attributeName="x1" values="<%- vertical_end.y[0] %>;<%- vertical_end.y[1] %>;<%- vertical_end.y[0] %>" keyTimes="0;0.5;1" dur="<%- duration %>s" begin="-<%- qduration %>s" calcMode="spline" keySplines="<%- key_splines %>" repeatCount="indefinite"/>
+
+      <animate attributeName="y2" values="<%- horizontal_end.y[0] %>;<%- horizontal_end.y[1] %>;<%- horizontal_end.y[0] %>" keyTimes="0;0.5;1" dur="<%- duration %>s" begin="0s" calcMode="spline" keySplines="<%- key_splines %>" repeatCount="indefinite"/>
+      <animate attributeName="x2" values="<%- horizontal_end.x[0] %>;<%- horizontal_end.x[1] %>;<%- horizontal_end.x[0] %>" keyTimes="0;0.5;1" dur="<%- duration %>s" begin="-<%- qduration %>s" calcMode="spline" keySplines="<%- key_splines %>" repeatCount="indefinite"/>
+    </line>
+
+    <%# kinda broken right now %>
+    <% if enable_handle_extra { %>
+    <circle cx="<%- hcanvas_size %>" r="1" fill="blue">
+      <animate attributeName="cy" values="8;42;8" keyTimes="0;0.5;1" dur="<%- duration %>s" begin="0s" calcMode="spline" keySplines="<%- key_splines %>" repeatCount="indefinite"/>
+    </circle>
+
+    <circle cy="<%- hcanvas_size %>" r="1" fill="red">
+      <animate attributeName="cx" values="8;42;8" keyTimes="0;0.5;1" dur="<%- duration %>" begin="-<%- qduration %>s" calcMode="spline" keySplines="<%- key_splines %>" repeatCount="indefinite"/>
+    </circle>
+
+    <circle r="1" fill="white">
+      <animate attributeName="cx" values="16.5;33.5;16.5" keyTimes="0;0.5;1" dur="1.6s" begin="0s" calcMode="spline" keySplines="<%- key_splines %>" repeatCount="indefinite"/>
+      <animate attributeName="cy" values="16.5;33.5;16.5" keyTimes="0;0.5;1" dur="1.6s" begin="-0.4s" calcMode="spline" keySplines="<%- key_splines %>" repeatCount="indefinite"/>
+    </circle>
+
+    <circle cx="<%- hcanvas_size %>" cy="<%- hcanvas_size %>" r="8.5" stroke="green" stroke-width="0.25" fill="none" />
+    <% } %>
+
+    <circle r="2" fill="white">
+      <animate attributeName="cy" values="<%- horizontal_end.y[0] %>;<%- horizontal_end.y[1] %>;<%- horizontal_end.y[0] %>" keyTimes="0;0.5;1" dur="<%- duration %>s" begin="0s" calcMode="spline" keySplines="<%- key_splines %>" repeatCount="indefinite"/>
+      <animate attributeName="cx" values="<%- horizontal_end.x[0] %>;<%- horizontal_end.x[1] %>;<%- horizontal_end.x[0] %>" keyTimes="0;0.5;1" dur="<%- duration %>s" begin="-<%- qduration %>s" calcMode="spline" keySplines="<%- key_splines %>" repeatCount="indefinite"/>
+    </circle>
+    <% } %>
+
+    <%# Light %>
+    <defs>
+      <% let light_angle_padding = (Angle::frac_pi_2() - light.channel_angle) / 2.0; %>
+      <path id="light-channel" stroke-width="<%- light.thickness %>" stroke-linecap="round" d="
+        M <%- (Vector::from_angle_and_length(light.channel_angle + light_angle_padding, light.radius).to_point() + v(hcanvas_size, hcanvas_size)).as_path_coords() %>
+        A <%- light.radius %> <%- light.radius %>
+          0 0 0
+          <%- (Vector::from_angle_and_length(light_angle_padding, light.radius).to_point() + v(hcanvas_size, hcanvas_size)).as_path_coords() %>" />
+    </defs>
+
+    <linearGradient x1="8.042%" y1="0%" x2="65.682%" y2="23.865%" id="light-gradient">
+      <stop stop-color="#eee" stop-opacity="0" offset="0%" />
+      <stop stop-color="#eee" stop-opacity=".631" offset="63.146%" />
+      <stop stop-color="#eee" offset="100%" />
+    </linearGradient>
+
+    <mask id="light-clip" x="0" y="0" width="100%" maskUnits="userSpaceOnUse">
+      <%+ LightChannel { class: "light-channel-clip" } %>
+    </mask>
+
+    <g fill="none" fill-rule="evenodd">
+      <%+ LightChannel { class: "light-channel-background" } %>
+      <g class="light">
+        <g mask="url(#light-clip)">
+          <g transform="translate(<%- hcanvas_size - light.radius %> <%- hcanvas_size - light.radius %>)">
+            <g>
+              <animateTransform
+                attributeName="transform"
+                type="rotate"
+                from="0 <%- light.radius %> <%- light.radius %>"
+                to="360 <%- light.radius %> <%- light.radius %>"
+                dur="0.8s"
+                repeatCount="indefinite"
+              />
+              <path stroke="url(#light-gradient)" stroke-width="<%- light.thickness %>" d="M <%- light.radius * 2.0 %> <%- light.radius %> a <%- light.radius %> <%- light.radius %> 0 0 0 -<%- light.radius %> -<%- light.radius %>" />
+              <circle fill="#fff" cx="<%- light.radius * 2.0 %>" cy="<%- light.radius %>" r="<%- light.thickness / 2.0 %>" />
+            </g>
+          </g>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

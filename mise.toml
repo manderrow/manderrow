@@ -1,3 +1,4 @@
 [tools]
 deno = "latest"
+just = "latest"
 rust = "nightly"

@@ -23,6 +23,7 @@ interface SelectDropdownOptions<T> extends Omit<DropdownOptions, "children"> {
   label: LabelText;
   options: Record<string, Option<T>>;
   onChanged: (value: T, selected: boolean) => void;
+  nullable?: boolean;
   multiselect?: boolean;
 }
 
@@ -33,22 +34,32 @@ export default function SelectDropdown<T>(options: SelectDropdownOptions<T>) {
   const [labelValue, setLabelValue] = createSignal(
     options.label.labelText === "preset"
       ? options.label.preset
-      : (Object.entries(options.options).find(([key, value]) => value.selected)?.[0] ?? "Select..."),
+      : Object.entries(options.options).find(([key, value]) => value.selected)?.[0] ?? "Select...",
   );
 
   return (
-    <div classList={{ [styles.container]: true, [options.class || ""]: true }}>
-      <label for={id} class={styles.label} data-btn>
-        <Fa icon={faCaretDown} rotate={open() ? 180 : 0} />
+    <div
+      id={id}
+      classList={{ [styles.container]: true, [options.class || ""]: true }}
+      on:focusout={(event) => {
+        if (event.relatedTarget != null) {
+          if (!(event.relatedTarget instanceof HTMLElement)) return;
+          if (event.relatedTarget.closest("#" + id) != null) return;
+        }
+        setOpen(false);
+      }}
+    >
+      <button
+        type="button"
+        class={styles.toggle}
+        data-btn
+        role="checkbox"
+        aria-checked={open()}
+        on:click={() => setOpen((checked) => !checked)}
+      >
+        <Fa icon={faCaretDown} class={styles.toggle__icon} />
         {labelValue()}
-        <input
-          type="checkbox"
-          name="Toggle"
-          id={id}
-          class="phantom"
-          onInput={(event) => setOpen(event.target.checked)}
-        />
-      </label>
+      </button>
       <Show when={open()}>
         <Dropdown align={options.align} class={styles.dropdown}>
           <ul class={styles.options}>
@@ -60,10 +71,13 @@ export default function SelectDropdown<T>(options: SelectDropdownOptions<T>) {
                   // use the cached value here, so the action performed by the
                   // UI is **never** out of sync with the displayed value.
                   const isSelected = ref.ariaChecked! !== "true";
+
+                  if (!isSelected && !options.nullable) return;
+
                   setSelected(key, "selected", isSelected);
                   options.onChanged(option.value, isSelected);
 
-                  if (!options.multiselect && isSelected) {
+                  if (options.multiselect !== true && isSelected) {
                     for (const other in options.options) {
                       if (options.options[other].value !== option.value) {
                         setSelected(other, "selected", false);

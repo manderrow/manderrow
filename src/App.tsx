@@ -1,4 +1,5 @@
-import "./App.css";
+import "./styles/App.css";
+import "./styles/Markdown.css";
 
 import { Route, Router } from "@solidjs/router";
 import { invoke } from "@tauri-apps/api/core";
@@ -19,12 +20,30 @@ export default function App() {
   const [loaded, setLoaded] = createSignal(false);
   const [ready, setReady] = createSignal(false);
 
+  function getLink(event: MouseEvent) {
+    if (!(event.target instanceof HTMLElement)) return;
+    return event.target.closest("a");
+  }
+
   function onLinkClick(event: MouseEvent) {
-    if (!(event.target instanceof HTMLAnchorElement)) return;
-    if (event.target.href.startsWith(`${window.location.protocol}//${window.location.host}`)) return;
+    const link = getLink(event);
+    if (link == null || link.target === "_blank") return;
+
+    if (link.href.startsWith(`${location.protocol}//${location.host}`)) return;
 
     event.preventDefault();
-    open(event.target.href);
+    open(link.href).catch(() => alert(`Failed to open link: ${link.href}`));
+  }
+
+  function onLinkAuxClick(event: MouseEvent) {
+    const link = getLink(event);
+    if (link == null) return;
+
+    event.preventDefault();
+    if (link.target === "_blank" && event.button !== 2) {
+      // Link is to open in external browser and not right clicked
+      open(link.href).catch(() => alert(`Failed to open link: ${link.href}`));
+    }
   }
 
   onMount(async () => {
@@ -49,11 +68,13 @@ export default function App() {
     document.body.dataset.webview = platformName === "macos" || platformName === "ios" ? "safari" : platformName;
 
     document.addEventListener("click", onLinkClick);
+    document.addEventListener("auxclick", onLinkAuxClick);
   });
 
   onCleanup(() => {
     delete document.body.dataset.webview;
     document.removeEventListener("click", onLinkClick);
+    document.removeEventListener("auxclick", onLinkAuxClick);
   });
 
   return (

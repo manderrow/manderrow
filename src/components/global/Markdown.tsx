@@ -1,6 +1,9 @@
-import { parse } from "marked";
+import { parse, marked } from "marked";
 import dompurify from "dompurify";
 import { JSX } from "solid-js";
+import markedAlert from "marked-alert";
+
+marked.use(markedAlert());
 
 interface MarkdownComponentOptions {
   source: string;
@@ -8,7 +11,7 @@ interface MarkdownComponentOptions {
 }
 
 export default function Markdown(options: MarkdownComponentOptions) {
-  const escapedResult = dompurify.sanitize(parse(options.source, { async: false }));
+  const escapedResult = () => dompurify.sanitize(parse(options.source, { async: false }));
 
-  return <div innerHTML={escapedResult} {...options.div}></div>;
+  return <div innerHTML={escapedResult()} {...options.div}></div>;
 }

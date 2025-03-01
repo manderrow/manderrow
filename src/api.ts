@@ -34,6 +34,7 @@ export async function wrapInvoke<T>(f: () => Promise<T>): Promise<T> {
   try {
     return await f();
   } catch (e: any) {
+    console.error("Error in invoke", e);
     if (e === "Aborted") {
       throw new AbortedError();
     } else if (e instanceof Object && "Error" in e) {
@@ -56,7 +57,7 @@ export async function getGameModDownloads(): Promise<{ [key: string]: number }> 
   return JSON.parse(await wrapInvoke<string>(() => invoke("get_game_mods_downloads", {})));
 }
 
-export type FetchEvent = { type: "Progress"; completed: number; total: number };
+export type FetchEvent = { type: "Progress"; completed_steps: number; total_steps: number; progress: number };
 
 export async function fetchModIndex(game: string, options: { refresh: boolean }, onEvent: (event: FetchEvent) => void) {
   const channel = new Channel<FetchEvent>();
@@ -80,7 +81,7 @@ export async function queryModIndex(
   game: string,
   query: string,
   sort: SortOption[],
-  options: { skip?: number; limit?: number; exact?: string[] },
+  options: { skip?: number; limit?: number; exact?: { owner: string; name: string }[] },
 ): Promise<{
   mods: ModListing[];
   count: number;
@@ -125,8 +126,8 @@ export async function installProfileMod(id: string, mod: ModListing, version: nu
   return await wrapInvoke(() => invoke("install_profile_mod", { id, mod, version }));
 }
 
-export async function uninstallProfileMod(id: string, modName: string): Promise<void> {
-  return await wrapInvoke(() => invoke("uninstall_profile_mod", { id, modName }));
+export async function uninstallProfileMod(id: string, owner: string, name: string): Promise<void> {
+  return await wrapInvoke(() => invoke("uninstall_profile_mod", { id, owner, name }));
 }
 
 export interface ModSpec {

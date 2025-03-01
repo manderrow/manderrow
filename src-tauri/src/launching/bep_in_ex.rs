@@ -2,10 +2,11 @@ use std::ffi::{OsStr, OsString};
 use std::path::PathBuf;
 
 use anyhow::{anyhow, bail, Context as _, Result};
+use tempfile::tempdir;
 use uuid::Uuid;
 
-use crate::commands::profiles::read_profile;
-use crate::games::{Game, GAMES_BY_ID};
+use crate::commands::profiles::{profile_path, read_profile, MODS_FOLDER};
+use crate::games::GAMES_BY_ID;
 use crate::installing::install_zip;
 use crate::Reqwest;
 
@@ -19,30 +20,42 @@ pub trait CommandBuilder {
 }
 
 fn get_url_and_hash(uses_proton: bool) -> Result<(&'static str, &'static str)> {
+    macro_rules! artifact_url {
+        ($target:literal) => {
+            concat!(
+                "https://github.com/mpfaff/BepInEx/releases/download/v5.4.23.2%2Bbuild.14/BepInEx_",
+                $target,
+                "_5.4.23.2.zip"
+            )
+        };
+    }
+
     Ok(match (std::env::consts::OS, std::env::consts::ARCH, uses_proton) {
-        ("macos", "x86_64", false) => ("https://github.com/BepInEx/BepInEx/releases/download/v5.4.23.2/BepInEx_macos_x64_5.4.23.2.zip", "f90cb47010b52e8d2da1fff4b39b4e95f89dc1de9dddca945b685b9bf8e3ef81"),
-        ("linux", "x86_64", true) => ("https://github.com/BepInEx/BepInEx/releases/download/v5.4.23.2/BepInEx_win_x64_5.4.23.2.zip", "d11015bf224343bdc429fbf5ac99bd12fffe115bfa5baf0df4ee81759887a116"),
-        ("linux", "x86_64", false) => ("https://github.com/BepInEx/BepInEx/releases/download/v5.4.23.2/BepInEx_linux_x64_5.4.23.2.zip", "d655acbbb18dc5202c1ba5f6b87288372307868cc62843e3a78a25abf7a50ad3"),
-        ("linux", "x86", true) => ("https://github.com/BepInEx/BepInEx/releases/download/v5.4.23.2/BepInEx_win_x86_5.4.23.2.zip", "db8b95c4dca085d20ce5fc7447f6cf9b18469a5d983e535ac8ea5ae8eea828f3"),
-        ("linux", "x86", false) => ("https://github.com/BepInEx/BepInEx/releases/download/v5.4.23.2/BepInEx_linux_x86_5.4.23.2.zip", "99ba36a0d36e6a05db035fd1ac17d9e76740b4e230c598512c07622278222c30"),
-        ("windows", "x86_64", false) => ("https://github.com/BepInEx/BepInEx/releases/download/v5.4.23.2/BepInEx_win_x64_5.4.23.2.zip", "d11015bf224343bdc429fbf5ac99bd12fffe115bfa5baf0df4ee81759887a116"),
-        ("windows", "x86", false) => ("https://github.com/BepInEx/BepInEx/releases/download/v5.4.23.2/BepInEx_win_x86_5.4.23.2.zip", "db8b95c4dca085d20ce5fc7447f6cf9b18469a5d983e535ac8ea5ae8eea828f3"),
+        ("linux", "x86_64", false) => (artifact_url!("linux_x64"), "337947f8889e57336fc8946832c30ca6eced854e3b2b18f454ca5624d074acf9"),
+        ("linux", "x86", false) => (artifact_url!("linux_x86"), "44d4b3f91242a778af90d11bdadca0227ce5273164cbcf29c252f7efc087483b"),
+        ("macos", "x86_64", false) => (artifact_url!("macos_x64"), "93710bcc2fa45a41bf2d58f8b2eebfd3f4efe5a7e69f6f535985e757c9ddaa19"),
+        ("linux", "x86_64", true) | ("windows", "x86_64", false) => (artifact_url!("win_x64"), "fcc1da41089e579268e5ca4a1fc603766eea292a55d5ea1571ff7952af870af8"),
+        ("linux", "x86", true) | ("windows", "x86", false) => (artifact_url!("win_x86"), "4061496bcfb593052ffb89224b055a6b3f52a97d1cc1e29cea68bc653b018680"),
         (os, arch, uses_proton) => bail!("Unsupported platform combo: (os: {os:?}, arch: {arch:?}, uses_proton: {uses_proton})"),
     })
 }
 
-fn get_steam_id<'a>(game: &'a Game) -> Option<&'a str> {
-    game.store_platform_metadata
-        .iter()
-        .find_map(|m| m.steam_or_direct())
-}
+pub async fn get_bep_in_ex_path(log: &slog::Logger, uses_proton: bool) -> Result<PathBuf> {
+    let (url, hash) = get_url_and_hash(uses_proton)?;
+    let path = crate::launching::LOADERS_DIR.join(hash);
 
-pub const BEP_IN_EX_FOLDER: &str = "BepInEx";
+    install_zip(
+        log,
+        &Reqwest(reqwest::Client::new()),
+        url,
+        Some(hash),
+        &path,
+    )
+    .await?
+    .finish(log)
+    .await?;
 
-pub fn get_bep_in_ex_path(profile_id: Uuid) -> PathBuf {
-    let mut p = crate::commands::profiles::profile_path(profile_id);
-    p.push(BEP_IN_EX_FOLDER);
-    p
+    Ok(path)
 }
 
 pub async fn configure_command(
@@ -61,18 +74,14 @@ pub async fn configure_command(
 
     let uses_proton = uses_proton(log, steam_id).await?;
 
-    let (url, hash) = get_url_and_hash(uses_proton)?;
-    let bep_in_ex = get_bep_in_ex_path(profile_id);
-    install_zip(
-        log,
-        &Reqwest(reqwest::Client::new()),
-        url,
-        Some(hash),
-        &bep_in_ex,
-    )
-    .await?
-    .finish(log)
-    .await?;
+    let bep_in_ex = get_bep_in_ex_path(log, uses_proton).await?;
+
+    let profile_path = profile_path(profile_id);
+
+    command.env("BEPINEX_CONFIGS", profile_path.join("config"));
+    command.env("BEPINEX_PLUGINS", profile_path.join(MODS_FOLDER));
+    command.env("BEPINEX_PATCHER_PLUGINS", profile_path.join("patchers"));
+    command.env("BEPINEX_CACHE", tempdir()?.into_path());
 
     if cfg!(windows) || uses_proton {
         command.args(["--doorstop-enable", "true"]);

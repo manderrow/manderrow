@@ -1,5 +1,5 @@
 import { createResource, createSignal, ResourceFetcherInfo, Show, useContext } from "solid-js";
-import { fetchModIndex, queryModIndex, SortColumn, SortOption } from "../../api";
+import { FetchEvent, fetchModIndex, queryModIndex, SortColumn, SortOption } from "../../api";
 import { SortableList } from "../global/SortableList";
 import ModList, { ModInstallContext } from "./ModList";
 import styles from "./ModSearch.module.css";
@@ -9,15 +9,12 @@ import { numberFormatter } from "../../utils";
 import { createStore } from "solid-js/store";
 import Dropdown from "../global/Dropdown";
 import TogglableDropdown from "../global/TogglableDropdown";
-
-export interface ProgressData {
-  completed: number;
-  total: number;
-}
+import { ErrorContext } from "../global/ErrorBoundary";
 
 export interface InitialProgress {
-  completed: null;
-  total: null;
+  completed_steps: null;
+  total_steps: null;
+  progress: null;
 }
 
 const MODS_PER_PAGE = 50;
@@ -32,15 +29,23 @@ export default function ModSearch(props: { game: string }) {
     { column: SortColumn.Owner, descending: false },
   ]);
 
-  const [progress, setProgress] = createStore<InitialProgress | ProgressData>({
-    completed: null,
-    total: null,
+  const [progress, setProgress] = createStore<InitialProgress | FetchEvent>({
+    completed_steps: null,
+    total_steps: null,
+    progress: null,
   });
+
+  const reportErr = useContext(ErrorContext)!;
 
   const [loadStatus, { refetch: refetchModIndex }] = createResource(
     () => props.game,
     async (game, info: ResourceFetcherInfo<boolean, never>) => {
-      await fetchModIndex(game, { refresh: info.refetching }, setProgress);
+      try {
+        await fetchModIndex(game, { refresh: info.refetching }, setProgress);
+      } catch (e) {
+        reportErr(e);
+        throw e;
+      }
       return true;
     },
   );
@@ -119,8 +124,8 @@ export default function ModSearch(props: { game: string }) {
 
       <Show when={loadStatus.loading}>
         <div class={styles.progressLine}>
-          <p>Fetching mods</p>
-          <progress value={progress.total == null ? 0 : progress.completed / progress.total} />
+          <p>Fetching mods [{progress.completed_steps}/{progress.total_steps}]</p>
+          <progress value={progress.progress} />
         </div>
       </Show>
 

@@ -6,16 +6,16 @@ use anyhow::{anyhow, Context as _, Result};
 use futures::stream::FuturesOrdered;
 use futures::StreamExt as _;
 use slog::{error, info, o};
+use smol_str::SmolStr;
 use tauri::ipc::Channel;
 use tauri::{AppHandle, State};
 use tokio::process::Command;
 use uuid::Uuid;
 
-use crate::games::{PackageLoader, GAMES_BY_ID};
+use crate::games::GAMES_BY_ID;
 use crate::installing::{install_zip, uninstall_package};
 use crate::ipc::{C2SMessage, IpcState};
-use crate::launching::bep_in_ex::BEP_IN_EX_FOLDER;
-use crate::mods::{Mod, ModAndVersion};
+use crate::mods::{ModAndVersion, ModMetadata, ModVersion};
 use crate::paths::local_data_dir;
 use crate::util::IoErrorKindExt as _;
 use crate::{CommandError, Reqwest};
@@ -24,8 +24,8 @@ pub static PROFILES_DIR: LazyLock<PathBuf> = LazyLock::new(|| local_data_dir().j
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
 pub struct Profile {
-    pub name: String,
-    pub game: String,
+    pub name: SmolStr,
+    pub game: SmolStr,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -103,7 +103,7 @@ pub async fn get_profiles() -> Result<Vec<ProfileWithId>, CommandError> {
 }
 
 #[tauri::command]
-pub async fn create_profile(game: String, name: String) -> Result<Uuid, CommandError> {
+pub async fn create_profile(game: SmolStr, name: SmolStr) -> Result<Uuid, CommandError> {
     tokio::fs::create_dir_all(&*PROFILES_DIR)
         .await
         .context("Failed to create profiles directory")?;
@@ -127,6 +127,8 @@ pub async fn delete_profile(id: Uuid) -> Result<(), CommandError> {
         .context("Failed to delete profile directory")?;
     Ok(())
 }
+
+pub const MODS_FOLDER: &str = "mods";
 
 #[tauri::command]
 pub async fn launch_profile(
@@ -257,156 +259,120 @@ pub async fn launch_profile(
 const MANIFEST_FILE_NAME: &str = "manderrow_mod.json";
 
 #[tauri::command]
-pub async fn get_profile_mods(id: Uuid) -> Result<Vec<ModAndVersion>, CommandError> {
+pub async fn get_profile_mods(id: Uuid) -> Result<tauri::ipc::Response, CommandError> {
     let mut path = profile_path(id);
-    path.push("profile.json");
-    let metadata = read_profile_file(&path)
-        .await
-        .context("Failed to read profile")?;
-    path.pop();
 
-    let game = GAMES_BY_ID.get(&*metadata.game).context("No such game")?;
+    path.push(MODS_FOLDER);
 
-    match game.package_loader {
-        PackageLoader::BepInEx => {
-            path.push(BEP_IN_EX_FOLDER);
-            path.push("BepInEx");
-            path.push("plugins");
-
-            let mut iter = match tokio::fs::read_dir(&path).await {
-                Ok(t) => t,
-                Err(e) if e.is_not_found() => return Ok(Vec::new()),
-                Err(e) => return Err(anyhow::Error::from(e).into()),
-            };
-            let mut tasks = FuturesOrdered::new();
-            while let Some(e) = iter.next_entry().await.map_err(anyhow::Error::from)? {
-                if e.file_type().await.map_err(anyhow::Error::from)?.is_dir() {
-                    let mut path = path.clone();
-                    tasks.push_back(tokio::task::spawn(async move {
-                        path.push(e.file_name());
-                        path.push(MANIFEST_FILE_NAME);
-                        tokio::task::block_in_place(|| {
-                            Ok::<_, anyhow::Error>(Some(serde_json::from_reader(
-                                std::io::BufReader::new(match std::fs::File::open(&path) {
-                                    Ok(t) => t,
-                                    Err(e) if e.is_not_found() => return Ok(None),
-                                    Err(e) => return Err(e.into()),
-                                }),
-                            )?))
-                        })
-                    }));
+    let mut iter = match tokio::fs::read_dir(&path).await {
+        Ok(t) => t,
+        Err(e) if e.is_not_found() => return Ok(tauri::ipc::Response::new("[]".to_owned())),
+        Err(e) => return Err(anyhow::Error::from(e).into()),
+    };
+    let mut tasks = FuturesOrdered::new();
+    while let Some(e) = iter.next_entry().await.map_err(anyhow::Error::from)? {
+        if e.file_type().await.map_err(anyhow::Error::from)?.is_dir() {
+            let mut path = path.clone();
+            tasks.push_back(tokio::task::spawn(async move {
+                path.push(e.file_name());
+                path.push(MANIFEST_FILE_NAME);
+                match tokio::fs::read_to_string(&path).await {
+                    Ok(t) => Ok(Some(t)),
+                    Err(e) if e.is_not_found() => return Ok(None),
+                    Err(e) => {
+                        return Err(anyhow::Error::from(e)
+                            .context(format!("Failed to read mod manifest {path:?}")))
+                    }
                 }
-            }
-            let mut buf = Vec::new();
-            while let Some(r) = tasks.next().await {
-                if let Some(m) = r.map_err(anyhow::Error::from)?? {
-                    buf.push(m);
-                }
-            }
-            Ok(buf)
+            }));
         }
-        _ => Ok(Vec::new()),
     }
+    let mut buf = "[".to_owned();
+    let mut first = true;
+    while let Some(r) = tasks.next().await {
+        if let Some(m) = r.map_err(anyhow::Error::from)?? {
+            if first {
+                first = false;
+            } else {
+                buf.push(',');
+            }
+            buf.push_str(&m);
+        }
+    }
+    buf.push(']');
+    Ok(tauri::ipc::Response::new(buf))
 }
 
 #[tauri::command]
 pub async fn install_profile_mod(
     reqwest: State<'_, Reqwest>,
     id: Uuid,
-    r#mod: Mod,
-    version: usize,
+    r#mod: ModMetadata<'_>,
+    version: ModVersion<'_>,
 ) -> Result<(), CommandError> {
     let log = slog_scope::logger();
 
     let mut path = profile_path(id);
-    path.push("profile.json");
-    let metadata = read_profile_file(&path)
+
+    path.push(MODS_FOLDER);
+
+    tokio::fs::create_dir_all(&path)
         .await
-        .context("Failed to read profile")?;
-    path.pop();
+        .context("Failed to create mods directory")?;
 
-    let game = GAMES_BY_ID.get(&*metadata.game).context("No such game")?;
+    path.push(&r#mod.owner);
+    path.as_mut_os_string().push("-");
+    path.as_mut_os_string().push(&r#mod.name);
+    let staged = install_zip(
+        &log,
+        &*reqwest,
+        &format!(
+            "https://thunderstore.io/package/download/{}/{}/{}/",
+            r#mod.owner, r#mod.name, version.version_number
+        ),
+        None,
+        &path,
+    )
+    .await?;
 
-    let mod_with_version = ModAndVersion {
-        r#mod: r#mod.metadata,
-        game: metadata.game,
-        version: r#mod
-            .versions
-            .into_iter()
-            .nth(version)
-            .context("No such version")?,
-    };
+    tokio::task::block_in_place(|| {
+        serde_json::to_writer(
+            std::io::BufWriter::new(std::fs::File::create(
+                staged.path().join(MANIFEST_FILE_NAME),
+            )?),
+            &ModAndVersion {
+                r#mod: r#mod,
+                version,
+            },
+        )?;
+        Ok::<_, anyhow::Error>(())
+    })?;
 
-    match game.package_loader {
-        PackageLoader::BepInEx => {
-            path.push(BEP_IN_EX_FOLDER);
-            path.push("BepInEx");
-            path.push("plugins");
+    staged.finish(&log).await?;
 
-            tokio::fs::create_dir_all(&path)
-                .await
-                .context("Failed to create BepInEx plugins directory")?;
-
-            path.push(&mod_with_version.r#mod.full_name);
-            let staged = install_zip(
-                &log,
-                &*reqwest,
-                &mod_with_version.version.download_url,
-                None,
-                &path,
-            )
-            .await?;
-
-            tokio::task::block_in_place(|| {
-                serde_json::to_writer(
-                    std::io::BufWriter::new(std::fs::File::create(
-                        staged.path().join(MANIFEST_FILE_NAME),
-                    )?),
-                    &mod_with_version,
-                )?;
-                Ok::<_, anyhow::Error>(())
-            })?;
-
-            staged.finish(&log).await?;
-
-            Ok(())
-        }
-        _ => Err(anyhow!("Unsupported package loader for mod installation").into()),
-    }
+    Ok(())
 }
 
 #[tauri::command]
-pub async fn uninstall_profile_mod(id: Uuid, mod_name: &str) -> Result<(), CommandError> {
+pub async fn uninstall_profile_mod(id: Uuid, owner: &str, name: &str) -> Result<(), CommandError> {
     let log = slog_scope::logger();
 
     let mut path = profile_path(id);
-    path.push("profile.json");
-    let metadata = read_profile_file(&path)
+
+    path.push(MODS_FOLDER);
+    path.push(owner);
+    path.as_mut_os_string().push("-");
+    path.as_mut_os_string().push(name);
+
+    // remove the manifest so it isn't left over after uninstalling the package
+    path.push(MANIFEST_FILE_NAME);
+    tokio::fs::remove_file(&path)
         .await
-        .context("Failed to read profile")?;
+        .context("Failed to remove manifest file")?;
     path.pop();
 
-    let game = GAMES_BY_ID.get(&*metadata.game).context("No such game")?;
-
-    match game.package_loader {
-        PackageLoader::BepInEx => {
-            path.push(BEP_IN_EX_FOLDER);
-            path.push("BepInEx");
-            path.push("plugins");
-            path.push(mod_name);
-
-            // remove the manifest so it isn't left over after uninstalling the package
-            path.push(MANIFEST_FILE_NAME);
-            tokio::fs::remove_file(&path)
-                .await
-                .context("Failed to remove manifest file")?;
-            path.pop();
-
-            // keep_changes is true so that configs and any other changes are
-            // preserved. Zero-risk uninstallation!
-            uninstall_package(&log, &path, true).await?;
-            Ok(())
-        }
-        _ => Err(anyhow!("Unsupported package loader for mod installation").into()),
-    }
+    // keep_changes is true so that configs and any other changes are
+    // preserved. Zero-risk uninstallation!
+    uninstall_package(&log, &path, true).await?;
+    Ok(())
 }

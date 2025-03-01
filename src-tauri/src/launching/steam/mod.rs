@@ -525,6 +525,47 @@ fn apply_launch_args_inner<R: std::io::BufRead, W: std::io::Write>(
                         *i -= 1;
                     }
                     MatcherState::MatchingGame => {
+                        match flag {
+                            Flag::None => unreachable!(),
+                            Flag::MatchedPath(_) => {
+                                flag = Flag::ModifiedLaunchOptions { overwrote: false };
+                                vdf::write_io(
+                                    Event::GroupStart {
+                                        pre_whitespace: b"\n\t\t\t\t\t",
+                                        key: vdf::Str {
+                                            s: game_id.as_bytes(),
+                                            quoted: true,
+                                        },
+                                        mid_whitespace: b"\n\t\t\t\t\t",
+                                    },
+                                    &mut wtr,
+                                )?;
+                                vdf::write_io(
+                                    Event::Item {
+                                        pre_whitespace,
+                                        key: vdf::Str {
+                                            s: LAUNCH_OPTIONS_KEY.as_bytes(),
+                                            quoted: true,
+                                        },
+                                        mid_whitespace: b"\t\t",
+                                        value: vdf::Str {
+                                            s: launch_options_str.as_bytes(),
+                                            quoted: true,
+                                        },
+                                    },
+                                    &mut wtr,
+                                )?;
+                                vdf::write_io(
+                                    Event::GroupEnd {
+                                        pre_whitespace: b"\n\t\t\t\t\t",
+                                    },
+                                    &mut wtr,
+                                )?;
+                            }
+                            Flag::MatchedGame
+                            | Flag::MatchedLaunchOptions
+                            | Flag::ModifiedLaunchOptions { .. } => {}
+                        }
                         state = MatcherState::MatchingPath(KEY_PATH.len() - 1);
                     }
                     MatcherState::MatchingLaunchOptions => {

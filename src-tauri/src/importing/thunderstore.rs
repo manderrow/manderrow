@@ -2,12 +2,12 @@
 
 use std::{io::Read, ops::Deref};
 
-use anyhow::{ensure, Context, Result};
+use anyhow::{bail, ensure, Context, Result};
 use base64::prelude::BASE64_STANDARD;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::{http::fetch_as_blocking, Reqwest};
+use crate::Reqwest;
 
 #[derive(Clone)]
 pub struct FullName {
@@ -153,24 +153,26 @@ const R2_PROFILE_DATA_PREFIX: &str = "#r2modman\n";
 pub const R2_PROFILE_MANIFEST_FILE_NAME: &str = "export.r2x";
 
 pub async fn lookup_profile(client: &Reqwest, id: Uuid) -> Result<Profile> {
-    let mut rdr = fetch_as_blocking(client.get(format!(
+    let bytes = client.get(format!(
         "https://thunderstore.io/api/experimental/legacyprofile/get/{id}/"
-    )))
+    ))
+    .send()
+    .await?
+    .error_for_status()?
+    .bytes()
     .await?;
 
     tokio::task::block_in_place(move || {
-        {
-            const BUF_LEN: usize = R2_PROFILE_DATA_PREFIX.len();
-            let mut buf = [0u8; BUF_LEN];
-            rdr.read_exact(&mut buf)?;
-            ensure!(
-                buf == R2_PROFILE_DATA_PREFIX.as_bytes(),
-                "Invalid profile data"
-            );
-        }
+        let Some((prefix, bytes)) = bytes.split_at_checked(R2_PROFILE_DATA_PREFIX.len()) else {
+            bail!("Invalid profile data")
+        };
+        ensure!(
+            prefix == R2_PROFILE_DATA_PREFIX.as_bytes(),
+            "Invalid profile data"
+        );
 
         let mut buf = Vec::new();
-        base64::read::DecoderReader::new(rdr, &BASE64_STANDARD)
+        base64::read::DecoderReader::new(std::io::Cursor::new(bytes), &BASE64_STANDARD)
             .read_to_end(&mut buf)
             .context("Failed to decode base64 data")?;
 
