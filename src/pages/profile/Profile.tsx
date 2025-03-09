@@ -247,7 +247,7 @@ export default function Profile() {
       </div>
 
       <Show when={importDialogOpen()}>
-        <ImportDialog onDismiss={() => setImportDialogOpen(false)} profile={params.profileId} />
+        <ImportDialog onDismiss={() => setImportDialogOpen(false)} gameId={params.gameId} />
       </Show>
     </main>
   );

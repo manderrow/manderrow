@@ -26,13 +26,13 @@ pub enum ModSpecParseError<'a> {
     },
 }
 
-#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, rkyv::Archive, rkyv::Serialize)]
 pub struct ModId<'a> {
-    owner: InternedString<'a>,
-    name: InternedString<'a>,
+    pub owner: InternedString<'a>,
+    pub name: InternedString<'a>,
 }
 
-#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize)]
+#[derive(Debug, Clone, Copy, rkyv::Archive, rkyv::Serialize)]
 pub struct ModSpec<'a> {
     id: InternedString<'a>,
     pub version: Version,

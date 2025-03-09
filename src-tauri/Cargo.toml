@@ -69,7 +69,7 @@ strum = { version = "0.26.3", features = ["derive"] }
 tempfile = "3.14.0"
 thiserror = "2.0.11"
 tokio = { version = "1.42.0", features = ["process"] }
-tokio-util = { version = "0.7.13", features = ["io"] }
+tokio-util = { version = "0.7.13", features = ["compat", "io"] }
 trie-rs = "0.4.2"
 url = { version = "2.5.4", features = ["serde"] }
 uuid = { version = "1.11.0", features = ["serde"] }

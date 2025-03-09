@@ -6,7 +6,7 @@
 use std::io::Write;
 
 use euclid::{Point2D, Vector2D};
-use sailfish::{runtime::Render, TemplateSimple};
+use sailfish::{TemplateSimple, runtime::Render};
 
 struct CanvasSpace;
 
@@ -36,7 +36,10 @@ trait AsPathCoords: Sized {
     fn as_path_coords(self) -> PathCoords<Self>;
 }
 
-impl<T> AsPathCoords for T where PathCoords<T>: Render {
+impl<T> AsPathCoords for T
+where
+    PathCoords<T>: Render,
+{
     fn as_path_coords(self) -> PathCoords<Self> {
         PathCoords(self)
     }
@@ -124,7 +127,7 @@ pub fn main() {
 
     let padding = p(
         (horizontal_outset - (slider_length / 2.0 - handle_thickness / 2.0)).max(0.0),
-        (vertical_outset - (slider_length / 2.0 - handle_thickness / 2.0)).max(0.0)
+        (vertical_outset - (slider_length / 2.0 - handle_thickness / 2.0)).max(0.0),
     );
 
     let (vertical_end, horizontal_end) = {

@@ -10,7 +10,7 @@ use rkyv_intern::Interner;
 use slog::{debug, info};
 use tauri::{ipc::Channel, AppHandle, Manager};
 use tokio::io::AsyncReadExt;
-use tokio::sync::{Mutex, RwLock};
+use tokio::sync::{Mutex, RwLock, RwLockReadGuard};
 use url::Url;
 
 use crate::games::{GAMES, GAMES_BY_ID};
@@ -268,10 +268,21 @@ pub struct SortOption {
 //     count: usize,
 // }
 
+// TODO: can we get rid of this and use the other ModId from mods.rs?
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
 pub struct ModId<'a> {
-    owner: &'a str,
-    name: &'a str,
+    pub owner: &'a str,
+    pub name: &'a str,
+}
+
+fn map_to_json<'a>(buf: &mut Vec<u8>, it: impl Iterator<Item = &'a ArchivedModRef<'a>>) {
+    let mut it = it.peekable();
+    while let Some(m) = it.next() {
+        simd_json::serde::to_writer(&mut *buf, m).unwrap();
+        if it.peek().is_some() {
+            buf.push(b',');
+        }
+    }
 }
 
 #[tauri::command]
@@ -281,7 +292,6 @@ pub async fn query_mod_index(
     sort: Vec<SortOption>,
     skip: Option<usize>,
     limit: Option<usize>,
-    exact: Option<HashSet<ModId<'_>>>,
 ) -> Result<tauri::ipc::Response, CommandError> {
     let log = slog_scope::logger();
 
@@ -298,27 +308,15 @@ pub async fn query_mod_index(
     let mut buf = mod_index
         .iter()
         .flat_map(|mi| {
-            mi.mods()
-                .iter()
-                .filter(|m| {
-                    if let Some(exact) = &exact {
-                        exact.contains(&ModId {
-                            owner: &*m.owner,
-                            name: &*m.name,
-                        })
-                    } else {
-                        true
-                    }
-                })
-                .filter_map(|m| {
-                    if query.is_empty() {
-                        Some((m, 0.0))
-                    } else {
-                        let (_, owner_score) = rff::match_and_score(&query, &m.owner)?;
-                        let (_, name_score) = rff::match_and_score(&query, &m.name)?;
-                        Some((m, owner_score + name_score))
-                    }
-                })
+            mi.mods().iter().filter_map(|m| {
+                if query.is_empty() {
+                    Some((m, 0.0))
+                } else {
+                    let (_, owner_score) = rff::match_and_score(&query, &m.owner)?;
+                    let (_, name_score) = rff::match_and_score(&query, &m.name)?;
+                    Some((m, owner_score + name_score))
+                }
+            })
         })
         .collect::<Vec<_>>();
     if !sort.is_empty() {
@@ -352,26 +350,73 @@ pub async fn query_mod_index(
 
     let count = buf.len();
 
-    fn map_to_json<'a>(buf: &mut Vec<u8>, it: impl Iterator<Item = &'a ArchivedModRef<'a>>) {
-        let mut it = it.peekable();
-        while let Some(m) = it.next() {
-            simd_json::serde::to_writer(&mut *buf, m).unwrap();
-            if it.peek().is_some() {
-                buf.push(b',');
-            }
-        }
-    }
-
     let mut out_buf = br#"{"count":"#.as_slice().to_owned();
     simd_json::serde::to_writer(&mut out_buf, &count).unwrap();
     out_buf.extend(br#","mods":["#);
     let mods = buf.into_iter().map(|(m, _)| m);
-    match (skip, limit) {
-        (Some(skip), Some(limit)) => map_to_json(&mut out_buf, mods.skip(skip).take(limit)),
-        (None, Some(limit)) => map_to_json(&mut out_buf, mods.take(limit)),
-        (Some(skip), None) => map_to_json(&mut out_buf, mods.skip(skip)),
-        (None, None) => map_to_json(&mut out_buf, mods),
+    match (skip.unwrap_or(0), limit) {
+        (0, Some(limit)) => map_to_json(&mut out_buf, mods.take(limit)),
+        (0, None) => map_to_json(&mut out_buf, mods),
+        (skip, Some(limit)) => map_to_json(&mut out_buf, mods.skip(skip).take(limit)),
+        (skip, None) => map_to_json(&mut out_buf, mods.skip(skip)),
     };
+    out_buf.extend(b"]}");
+    // SAFETY: simd_json only writes valid UTF-8
+    Ok(tauri::ipc::Response::new(unsafe {
+        String::from_utf8_unchecked(out_buf)
+    }))
+}
+
+pub type ModIndexReadGuard = RwLockReadGuard<'static, Vec<MemoryModIndex>>;
+
+pub async fn read_mod_index(game: &str) -> Result<ModIndexReadGuard> {
+    let game = *GAMES_BY_ID.get(game).context("No such game")?;
+    Ok(MOD_INDEXES
+        .get(&*game.thunderstore_url)
+        .unwrap()
+        .data
+        .read()
+        .await)
+}
+
+pub async fn get_from_mod_index_impl<'a>(
+    mod_index: &'a ModIndexReadGuard,
+    mod_ids: &HashSet<ModId<'_>>,
+) -> Result<Vec<&'a ArchivedModRef<'a>>> {
+    let log = slog_scope::logger();
+
+    debug!(log, "Querying mods");
+
+    let buf = mod_index
+        .iter()
+        .flat_map(|mi| {
+            mi.mods().iter().filter(|m| {
+                mod_ids.contains(&ModId {
+                    owner: &*m.owner,
+                    name: &*m.name,
+                })
+            })
+        })
+        .collect::<Vec<_>>();
+
+    Ok(buf)
+}
+
+#[tauri::command]
+pub async fn get_from_mod_index(
+    game: &str,
+    mod_ids: HashSet<ModId<'_>>,
+) -> Result<tauri::ipc::Response, CommandError> {
+    let mod_index = read_mod_index(game).await?;
+
+    let buf = get_from_mod_index_impl(&mod_index, &mod_ids).await?;
+
+    let count = buf.len();
+
+    let mut out_buf = br#"{"count":"#.as_slice().to_owned();
+    simd_json::serde::to_writer(&mut out_buf, &count).unwrap();
+    out_buf.extend(br#","mods":["#);
+    map_to_json(&mut out_buf, buf.into_iter());
     out_buf.extend(b"]}");
     // SAFETY: simd_json only writes valid UTF-8
     Ok(tauri::ipc::Response::new(unsafe {

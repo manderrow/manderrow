@@ -81,12 +81,22 @@ export async function queryModIndex(
   game: string,
   query: string,
   sort: SortOption[],
-  options: { skip?: number; limit?: number; exact?: { owner: string; name: string }[] },
+  options: { skip?: number; limit?: number },
 ): Promise<{
   mods: ModListing[];
   count: number;
 }> {
   return await wrapInvoke(() => invoke("query_mod_index", { game, query, sort, ...options }));
+}
+
+export async function getFromModIndex(
+  game: string,
+  mod_ids: { owner: string; name: string }[],
+): Promise<{
+  mods: ModListing[];
+  count: number;
+}> {
+  return await wrapInvoke(() => invoke("get_from_mod_index", { game, mod_ids }));
 }
 
 export async function getPreferredLocales(): Promise<string[]> {
@@ -154,7 +164,16 @@ export interface Modpack {
 
 export async function previewImportModpackFromThunderstoreCode(
   thunderstoreId: string,
+  game: string,
   profileId?: string,
 ): Promise<Modpack> {
-  return await wrapInvoke(() => invoke("preview_import_modpack_from_thunderstore_code", { thunderstoreId, profileId }));
+  return await wrapInvoke(() => invoke("preview_import_modpack_from_thunderstore_code", { thunderstoreId, game, profileId }));
+}
+
+export async function importModpackFromThunderstoreCode(
+  thunderstoreId: string,
+  game: string,
+  profileId?: string,
+): Promise<string> {
+  return await wrapInvoke(() => invoke("import_modpack_from_thunderstore_code", { thunderstoreId, game, profileId }));
 }

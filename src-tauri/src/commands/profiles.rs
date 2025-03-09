@@ -327,7 +327,7 @@ pub async fn install_profile_mod(
         &log,
         &*reqwest,
         &format!(
-            "https://thunderstore.io/package/download/{}/{}/{}/",
+            "https://gcdn.thunderstore.io/live/repository/packages/{}-{}-{}.zip",
             r#mod.owner, r#mod.name, version.version_number
         ),
         None,

@@ -15,7 +15,7 @@ use rkyv::with::{ArchiveWith, SerializeWith};
 use rkyv::{Archive, Place, Serialize, SerializeUnsized};
 use rkyv_intern::{Interning, InterningState};
 
-#[derive(Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
 #[serde(transparent)]
 #[repr(transparent)]
 pub struct InternedString<'a>(pub &'a str);

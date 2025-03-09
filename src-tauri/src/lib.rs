@@ -33,6 +33,7 @@ use anyhow::{anyhow, Context};
 use ipc::IpcState;
 
 pub use error::{CommandError, Error};
+use tauri::Manager;
 
 static PRODUCT_NAME: OnceLock<String> = OnceLock::new();
 static IDENTIFIER: OnceLock<String> = OnceLock::new();
@@ -64,6 +65,13 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
         //         .expect("no main window")
         //         .set_focus();
         // }))
+        // .setup(|app| {
+        //     if cfg!(debug_assertions) {
+        //         let window = app.get_webview_window("main").context("no main window")?;
+        //         window.open_devtools();
+        //     }
+        //     Ok(())
+        // })
         .manage(IpcState::default())
         .manage(Reqwest(reqwest::Client::builder().build()?))
         .plugin(tauri_plugin_clipboard_manager::init())
@@ -78,9 +86,11 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
             commands::games::get_game_mods_downloads,
             commands::i18n::get_preferred_locales,
             commands::import::preview_import_modpack_from_thunderstore_code,
+            commands::import::import_modpack_from_thunderstore_code,
             commands::ipc::send_s2c_message,
             commands::mod_index::fetch_mod_index,
             commands::mod_index::query_mod_index,
+            commands::mod_index::get_from_mod_index,
             commands::profiles::get_profiles,
             commands::profiles::create_profile,
             commands::profiles::delete_profile,
