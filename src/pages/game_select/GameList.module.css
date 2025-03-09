@@ -25,8 +25,10 @@
 }
 
 .gameList__gameCard .gameList__game {
-  width: 14rem;
-  aspect-ratio: 3 / 4;
+  --width: 14rem;
+  width: var(--width);
+  /* this works around a bug in GTK WebView when using aspect-ratio */
+  height: calc(var(--width) * 4 / 3);
   position: relative;
   z-index: 1;
   --padding: 5px;
