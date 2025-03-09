@@ -12,9 +12,9 @@
 #![feature(unbounded_shifts)]
 #![feature(vec_push_within_capacity)]
 
-mod commands;
 mod error;
 mod games;
+mod i18n;
 mod importing;
 mod installing;
 mod ipc;
@@ -23,12 +23,10 @@ mod mod_index;
 mod mods;
 mod paths;
 mod profiles;
-pub mod util;
+mod splashscreen;
+mod util;
 mod window_state;
 mod wrap;
-
-#[cfg(windows)]
-mod windows_util;
 
 use std::{ops::Deref, sync::OnceLock};
 
@@ -86,14 +84,15 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
         .plugin(tauri_plugin_shell::init())
         .plugin(window_state::init())
         .invoke_handler(tauri::generate_handler![
-            commands::close_splashscreen::close_splashscreen,
-            commands::games::get_games,
-            commands::games::get_games_popularity,
-            commands::games::get_game_mods_downloads,
-            commands::i18n::get_preferred_locales,
-            commands::ipc::send_s2c_message,
+            splashscreen::close_splashscreen,
+            games::commands::get_games,
+            games::commands::get_games_popularity,
+            games::commands::get_game_mods_downloads,
+            i18n::get_preferred_locales,
             importing::commands::preview_import_modpack_from_thunderstore_code,
             importing::commands::import_modpack_from_thunderstore_code,
+            launching::commands::send_s2c_message,
+            launching::commands::launch_profile,
             mod_index::commands::fetch_mod_index,
             mod_index::commands::count_mod_index,
             mod_index::commands::query_mod_index,
@@ -101,7 +100,6 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
             profiles::commands::get_profiles,
             profiles::commands::create_profile,
             profiles::commands::delete_profile,
-            profiles::commands::launch_profile,
             profiles::commands::get_profile_mods,
             profiles::commands::install_profile_mod,
             profiles::commands::uninstall_profile_mod,

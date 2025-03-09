@@ -1,26 +1,20 @@
 pub mod commands;
 
-use std::panic::AssertUnwindSafe;
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 
-use anyhow::{anyhow, Context as _, Result};
+use anyhow::{Context as _, Result};
 use futures::stream::FuturesOrdered;
 use futures::StreamExt as _;
-use slog::{error, info, o};
+use slog::error;
 use smol_str::SmolStr;
-use tauri::ipc::Channel;
-use tauri::{AppHandle, State};
-use tokio::process::Command;
 use uuid::Uuid;
 
-use crate::games::GAMES_BY_ID;
 use crate::installing::{install_zip, uninstall_package};
-use crate::ipc::{C2SMessage, IpcState};
 use crate::mods::{ModAndVersion, ModMetadata, ModVersion};
 use crate::paths::local_data_dir;
-use crate::util::IoErrorKindExt as _;
-use crate::{CommandError, Reqwest};
+use crate::util::{hyphenated_uuid, IoErrorKindExt as _};
+use crate::Reqwest;
 
 pub static PROFILES_DIR: LazyLock<PathBuf> = LazyLock::new(|| local_data_dir().join("profiles"));
 
@@ -37,12 +31,6 @@ pub struct ProfileWithId {
     pub metadata: Profile,
 }
 
-macro_rules! hyphenated_uuid {
-    ($id:expr) => {
-        $id.hyphenated().encode_lower(&mut Uuid::encode_buffer())
-    };
-}
-
 #[derive(Debug, thiserror::Error)]
 pub enum ReadProfileError {
     #[error(transparent)]
@@ -51,7 +39,7 @@ pub enum ReadProfileError {
     Decoding(#[from] serde_json::Error),
 }
 
-async fn read_profile_file(path: &Path) -> Result<Profile, ReadProfileError> {
+pub async fn read_profile_file(path: &Path) -> Result<Profile, ReadProfileError> {
     Ok(serde_json::from_slice(&tokio::fs::read(path).await?)?)
 }
 
@@ -128,131 +116,6 @@ pub async fn delete_profile(id: Uuid) -> Result<()> {
 }
 
 pub const MODS_FOLDER: &str = "mods";
-
-pub async fn launch_profile(
-    app_handle: AppHandle,
-    ipc_state: State<'_, IpcState>,
-    id: Uuid,
-    modded: bool,
-    channel: Channel<C2SMessage>,
-) -> Result<(), CommandError> {
-    struct Logger {
-        c2s_tx: AssertUnwindSafe<Channel<C2SMessage>>,
-    }
-
-    impl slog::Drain for Logger {
-        type Ok = ();
-
-        type Err = slog::Never;
-
-        fn log(
-            &self,
-            record: &slog::Record<'_>,
-            _values: &slog::OwnedKVList,
-        ) -> Result<Self::Ok, Self::Err> {
-            _ = tokio::task::block_in_place(|| {
-                self.c2s_tx.send(C2SMessage::Log {
-                    level: record.level().into(),
-                    message: record.msg().to_string(),
-                })
-            });
-            Ok(())
-        }
-    }
-    let log = slog::Logger::root(
-        Logger {
-            c2s_tx: AssertUnwindSafe(channel.clone()),
-        },
-        o!(),
-    );
-
-    let mut path = profile_path(id);
-    path.push("profile.json");
-    let metadata = read_profile_file(&path)
-        .await
-        .context("Failed to read profile")?;
-    path.pop();
-    let Some(game) = GAMES_BY_ID.get(&*metadata.game).copied() else {
-        return Err(anyhow!("Unrecognized game {:?}", metadata.game).into());
-    };
-    let Some(store_metadata) = game.store_platform_metadata.iter().next() else {
-        return Err(anyhow!("Unable to launch game").into());
-    };
-    let mut command: Command;
-    match store_metadata {
-        crate::games::StorePlatformMetadata::Steam { store_identifier } => {
-            let profile = read_profile(id).await.context("Failed to read profile")?;
-            let steam_id = GAMES_BY_ID
-                .get(&*profile.game)
-                .context("No such game")?
-                .store_platform_metadata
-                .iter()
-                .find_map(|m| m.steam_or_direct())
-                .context("Unsupported store platform")?;
-
-            crate::launching::steam::ensure_launch_args_are_applied(
-                &log,
-                Some(ipc_state.spc(channel.clone())),
-                steam_id,
-            )
-            .await?;
-
-            command = if cfg!(windows) {
-                #[cfg(windows)]
-                {
-                    let mut p =
-                        crate::launching::steam::paths::get_steam_install_path_from_registry()?;
-                    p.push("steam.exe");
-                    Command::new(p)
-                }
-                #[cfg(not(windows))]
-                unreachable!()
-            } else if cfg!(target_os = "macos") {
-                Command::new("/Applications/Steam.app/Contents/MacOS/steam_osx")
-            } else if cfg!(unix) {
-                Command::new("steam")
-            } else {
-                return Err(anyhow!("Unsupported platform for Steam").into());
-            };
-            command.arg("-applaunch").arg(&**store_identifier);
-        }
-        _ => return Err(anyhow!("Unsupported game store: {store_metadata:?}").into()),
-    }
-
-    let (c2s_rx, c2s_tx) = ipc_channel::ipc::IpcOneShotServer::<C2SMessage>::new()
-        .context("Failed to create IPC channel")?;
-
-    command.arg(";");
-    command.arg("--c2s-tx");
-    command.arg(c2s_tx);
-    command.arg("--profile");
-    command.arg(hyphenated_uuid!(id));
-
-    // TODO: use Tauri sidecar
-    if let Some(path) = std::env::var_os("MANDERROW_WRAPPER_STAGE2_PATH") {
-        command.arg("--wrapper-stage2");
-        command.arg(path);
-    }
-
-    if modded {
-        command.arg("--loader");
-        command.arg(game.package_loader.as_str());
-    }
-
-    command.arg(";");
-
-    // TODO: find a way to stop this if the launch fails
-    crate::ipc::spawn_c2s_pipe(log.clone(), app_handle, channel, c2s_rx)?;
-
-    info!(log, "Launching game: {command:?}");
-    let status = command
-        .status()
-        .await
-        .context("Failed to wait for subprocess to exit")?;
-    info!(log, "Launcher exited with status code {status}");
-
-    Ok(())
-}
 
 const MANIFEST_FILE_NAME: &str = "manderrow_mod.json";
 

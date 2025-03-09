@@ -3,6 +3,9 @@ mod progress;
 pub mod rkyv;
 pub mod serde;
 
+#[cfg(windows)]
+pub mod windows;
+
 pub use progress::Progress;
 
 use std::io;
@@ -22,3 +25,10 @@ impl IoErrorKindExt for io::Error {
         self.kind().is_not_found()
     }
 }
+
+macro_rules! hyphenated_uuid {
+    ($id:expr) => {
+        $id.hyphenated().encode_lower(&mut Uuid::encode_buffer())
+    };
+}
+pub(crate) use hyphenated_uuid;

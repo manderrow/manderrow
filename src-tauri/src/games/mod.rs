@@ -1,3 +1,5 @@
+pub mod commands;
+
 use std::{borrow::Cow, collections::HashMap, sync::LazyLock};
 
 pub static GAMES: LazyLock<Vec<Game>> =

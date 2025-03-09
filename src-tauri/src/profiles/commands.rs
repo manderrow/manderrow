@@ -1,10 +1,8 @@
 use anyhow::Result;
 use smol_str::SmolStr;
-use tauri::ipc::Channel;
-use tauri::{AppHandle, State};
+use tauri::State;
 use uuid::Uuid;
 
-use crate::ipc::{C2SMessage, IpcState};
 use crate::mods::{ModMetadata, ModVersion};
 use crate::{CommandError, Reqwest};
 
@@ -24,23 +22,6 @@ pub async fn create_profile(game: SmolStr, name: SmolStr) -> Result<Uuid, Comman
 pub async fn delete_profile(id: Uuid) -> Result<(), CommandError> {
     super::delete_profile(id).await.map_err(Into::into)
 }
-
-pub const MODS_FOLDER: &str = "mods";
-
-#[tauri::command]
-pub async fn launch_profile(
-    app_handle: AppHandle,
-    ipc_state: State<'_, IpcState>,
-    id: Uuid,
-    modded: bool,
-    channel: Channel<C2SMessage>,
-) -> Result<(), CommandError> {
-    super::launch_profile(app_handle, ipc_state, id, modded, channel)
-        .await
-        .map_err(Into::into)
-}
-
-const MANIFEST_FILE_NAME: &str = "manderrow_mod.json";
 
 #[tauri::command]
 pub async fn get_profile_mods(id: Uuid) -> Result<tauri::ipc::Response, CommandError> {

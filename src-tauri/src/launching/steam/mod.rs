@@ -20,7 +20,7 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
         use slog::warn;
         use windows::Win32::System::Diagnostics::ToolHelp::PROCESSENTRY32;
 
-        use crate::windows_util::Handle;
+        use crate::util::windows::Handle;
 
         let snapshot = unsafe {
             Handle::new(
