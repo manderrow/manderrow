@@ -1,3 +1,5 @@
+pub mod commands;
+
 use std::panic::AssertUnwindSafe;
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
@@ -63,8 +65,7 @@ pub fn profile_path(id: Uuid) -> PathBuf {
     PROFILES_DIR.join(hyphenated_uuid!(id))
 }
 
-#[tauri::command]
-pub async fn get_profiles() -> Result<Vec<ProfileWithId>, CommandError> {
+pub async fn get_profiles() -> Result<Vec<ProfileWithId>> {
     let log = slog_scope::logger();
 
     let mut profiles = Vec::new();
@@ -102,8 +103,7 @@ pub async fn get_profiles() -> Result<Vec<ProfileWithId>, CommandError> {
     Ok(profiles)
 }
 
-#[tauri::command]
-pub async fn create_profile(game: SmolStr, name: SmolStr) -> Result<Uuid, CommandError> {
+pub async fn create_profile(game: SmolStr, name: SmolStr) -> Result<Uuid> {
     tokio::fs::create_dir_all(&*PROFILES_DIR)
         .await
         .context("Failed to create profiles directory")?;
@@ -119,8 +119,7 @@ pub async fn create_profile(game: SmolStr, name: SmolStr) -> Result<Uuid, Comman
     Ok(id)
 }
 
-#[tauri::command]
-pub async fn delete_profile(id: Uuid) -> Result<(), CommandError> {
+pub async fn delete_profile(id: Uuid) -> Result<()> {
     let path = profile_path(id);
     tokio::fs::remove_dir_all(&path)
         .await
@@ -130,7 +129,6 @@ pub async fn delete_profile(id: Uuid) -> Result<(), CommandError> {
 
 pub const MODS_FOLDER: &str = "mods";
 
-#[tauri::command]
 pub async fn launch_profile(
     app_handle: AppHandle,
     ipc_state: State<'_, IpcState>,
@@ -258,8 +256,7 @@ pub async fn launch_profile(
 
 const MANIFEST_FILE_NAME: &str = "manderrow_mod.json";
 
-#[tauri::command]
-pub async fn get_profile_mods(id: Uuid) -> Result<tauri::ipc::Response, CommandError> {
+pub async fn get_profile_mods(id: Uuid) -> Result<tauri::ipc::Response> {
     let mut path = profile_path(id);
 
     path.push(MODS_FOLDER);
@@ -303,13 +300,12 @@ pub async fn get_profile_mods(id: Uuid) -> Result<tauri::ipc::Response, CommandE
     Ok(tauri::ipc::Response::new(buf))
 }
 
-#[tauri::command]
 pub async fn install_profile_mod(
-    reqwest: State<'_, Reqwest>,
+    reqwest: &Reqwest,
     id: Uuid,
     r#mod: ModMetadata<'_>,
     version: ModVersion<'_>,
-) -> Result<(), CommandError> {
+) -> Result<()> {
     let log = slog_scope::logger();
 
     let mut path = profile_path(id);
@@ -325,12 +321,12 @@ pub async fn install_profile_mod(
     path.as_mut_os_string().push(&r#mod.name);
     let staged = install_zip(
         &log,
-        &*reqwest,
+        reqwest,
         &format!(
             "https://gcdn.thunderstore.io/live/repository/packages/{}-{}-{}.zip",
             r#mod.owner, r#mod.name, version.version_number
         ),
-        None,
+        Some(crate::installing::CacheOptions::ByUrl),
         &path,
     )
     .await?;
@@ -353,8 +349,7 @@ pub async fn install_profile_mod(
     Ok(())
 }
 
-#[tauri::command]
-pub async fn uninstall_profile_mod(id: Uuid, owner: &str, name: &str) -> Result<(), CommandError> {
+pub async fn uninstall_profile_mod(id: Uuid, owner: &str, name: &str) -> Result<()> {
     let log = slog_scope::logger();
 
     let mut path = profile_path(id);

@@ -59,11 +59,11 @@ impl<'a> serde::Serialize for ArchivedModRef<'a> {
 pub struct ModMetadata<'a> {
     pub name: &'a str,
     #[allow(unused)]
-    #[serde(skip_serializing)]
+    #[serde(default, skip_serializing)]
     pub full_name: IgnoredAny,
     pub owner: &'a str,
     #[allow(unused)]
-    #[serde(skip_serializing)]
+    #[serde(default, skip_serializing)]
     pub package_url: IgnoredAny,
     #[serde(deserialize_with = "empty_string_as_none")]
     pub donation_link: Option<SmolStr>,
@@ -75,7 +75,7 @@ pub struct ModMetadata<'a> {
     pub has_nsfw_content: bool,
     pub categories: Vec<SmolStr>,
     #[allow(unused)]
-    #[serde(skip_serializing)]
+    #[serde(default, skip_serializing)]
     pub uuid4: IgnoredAny,
 }
 
@@ -131,20 +131,20 @@ impl<'a> serde::Serialize for ArchivedModMetadataRef<'a> {
 #[serde(deny_unknown_fields)]
 pub struct ModVersion<'a> {
     #[allow(unused)]
-    #[serde(skip_serializing)]
+    #[serde(default, skip_serializing)]
     pub name: IgnoredAny,
     #[allow(unused)]
-    #[serde(skip_serializing)]
+    #[serde(default, skip_serializing)]
     pub full_name: IgnoredAny,
     pub description: SmolStr,
     #[allow(unused)]
-    #[serde(skip_serializing)]
+    #[serde(default, skip_serializing)]
     pub icon: IgnoredAny,
     pub version_number: Version,
     #[serde(borrow)]
     pub dependencies: Vec<InternedString<'a>>,
     #[allow(unused)]
-    #[serde(skip_serializing)]
+    #[serde(default, skip_serializing)]
     pub download_url: IgnoredAny,
     pub downloads: u64,
     pub date_created: Timestamp,
@@ -152,7 +152,7 @@ pub struct ModVersion<'a> {
     pub website_url: Option<SmolStr>,
     pub is_active: bool,
     #[allow(unused)]
-    #[serde(skip_serializing)]
+    #[serde(default, skip_serializing)]
     pub uuid4: IgnoredAny,
     pub file_size: u64,
 }

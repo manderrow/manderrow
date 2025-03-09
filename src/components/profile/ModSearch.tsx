@@ -1,5 +1,5 @@
 import { createResource, createSignal, ResourceFetcherInfo, Show, useContext } from "solid-js";
-import { FetchEvent, fetchModIndex, queryModIndex, SortColumn, SortOption } from "../../api";
+import { countModIndex, FetchEvent, fetchModIndex, queryModIndex, SortColumn, SortOption } from "../../api";
 import { SortableList } from "../global/SortableList";
 import ModList, { ModInstallContext } from "./ModList";
 import styles from "./ModSearch.module.css";
@@ -7,7 +7,6 @@ import { faRefresh } from "@fortawesome/free-solid-svg-icons";
 import Fa from "solid-fa";
 import { numberFormatter } from "../../utils";
 import { createStore } from "solid-js/store";
-import Dropdown from "../global/Dropdown";
 import TogglableDropdown from "../global/TogglableDropdown";
 import { ErrorContext } from "../global/ErrorBoundary";
 
@@ -53,9 +52,7 @@ export default function ModSearch(props: { game: string }) {
   const [queriedMods] = createResource(
     () => [props.game, query(), sort(), loadStatus.loading] as [string, string, SortOption[], true | undefined],
     async ([game, query, sort]) => {
-      const { count } = await queryModIndex(game, query, sort, {
-        limit: 0,
-      });
+      const count = await countModIndex(game, query);
       return {
         count,
         mods: async (page: number) =>
@@ -124,7 +121,10 @@ export default function ModSearch(props: { game: string }) {
 
       <Show when={loadStatus.loading}>
         <div class={styles.progressLine}>
-          <p>Fetching mods [{progress.completed_steps}/{progress.total_steps}]</p>
+          <p>
+            Fetching mods [{progress.completed_steps}/{progress.total_steps}]
+          </p>
+          {/* this complains about taking null but expecting undefined, but if we give it undefined it throws an error about the value being non-finite */}
           <progress value={progress.progress} />
         </div>
       </Show>

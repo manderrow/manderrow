@@ -1,3 +1,4 @@
+pub mod commands;
 mod memory;
 
 use std::collections::{HashMap, HashSet};
@@ -14,10 +15,11 @@ use tokio::sync::{Mutex, RwLock, RwLockReadGuard};
 use url::Url;
 
 use crate::games::{GAMES, GAMES_BY_ID};
-use crate::mods::{ArchivedModRef, ModRef};
+use crate::mods::{ArchivedModRef, ModId, ModRef};
 use crate::util::http::ResponseExt;
+use crate::util::rkyv::InternedString;
 use crate::util::Progress;
-use crate::{CommandError, Reqwest};
+use crate::Reqwest;
 
 use memory::MemoryModIndex;
 
@@ -45,13 +47,12 @@ pub enum FetchEvent {
     },
 }
 
-#[tauri::command]
 pub async fn fetch_mod_index(
     app_handle: AppHandle,
     game: &str,
     refresh: bool,
     on_event: Channel<FetchEvent>,
-) -> Result<(), CommandError> {
+) -> Result<()> {
     let log = slog_scope::logger();
 
     let game = *GAMES_BY_ID.get(game).context("No such game")?;
@@ -148,6 +149,7 @@ pub async fn fetch_mod_index(
                         let decoded_at = std::time::Instant::now();
                         let decoded_in = decoded_at.duration_since(fetched_at);
 
+                        #[cfg(feature = "statistics")]
                         #[derive(Default)]
                         struct Statistics {
                             values: usize,
@@ -155,6 +157,7 @@ pub async fn fetch_mod_index(
                             average_uses: f64,
                             single_use_entries: usize,
                         }
+                        #[cfg(feature = "statistics")]
                         impl std::fmt::Display for Statistics {
                             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                                 let Statistics { values, total_bytes, average_uses, single_use_entries } = self;
@@ -179,6 +182,7 @@ pub async fn fetch_mod_index(
                                 &mut serializer,
                             )?;
                             let (serializer, interner) = serializer.into_components();
+                            #[cfg(feature = "statistics")]
                             #[derive(Default)]
                             struct StatisticsAccumulator {
                                 total_bytes: usize,
@@ -262,46 +266,45 @@ pub struct SortOption {
     descending: bool,
 }
 
-// #[derive(serde::Serialize)]
-// pub struct QueryResult<'a> {
-//     mods: Vec<&'a Mod<'a>>,
-//     count: usize,
-// }
+pub type ModIndexReadGuard = RwLockReadGuard<'static, Vec<MemoryModIndex>>;
 
-// TODO: can we get rid of this and use the other ModId from mods.rs?
-#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
-pub struct ModId<'a> {
-    pub owner: &'a str,
-    pub name: &'a str,
-}
-
-fn map_to_json<'a>(buf: &mut Vec<u8>, it: impl Iterator<Item = &'a ArchivedModRef<'a>>) {
-    let mut it = it.peekable();
-    while let Some(m) = it.next() {
-        simd_json::serde::to_writer(&mut *buf, m).unwrap();
-        if it.peek().is_some() {
-            buf.push(b',');
-        }
-    }
-}
-
-#[tauri::command]
-pub async fn query_mod_index(
-    game: &str,
-    query: &str,
-    sort: Vec<SortOption>,
-    skip: Option<usize>,
-    limit: Option<usize>,
-) -> Result<tauri::ipc::Response, CommandError> {
-    let log = slog_scope::logger();
-
+pub async fn read_mod_index(game: &str) -> Result<ModIndexReadGuard> {
     let game = *GAMES_BY_ID.get(game).context("No such game")?;
-    let mod_index = MOD_INDEXES
+    Ok(MOD_INDEXES
         .get(&*game.thunderstore_url)
         .unwrap()
         .data
         .read()
-        .await;
+        .await)
+}
+
+pub async fn count_mod_index<'a>(mod_index: &'a ModIndexReadGuard, query: &str) -> Result<usize> {
+    let log = slog_scope::logger();
+
+    debug!(log, "Counting mods");
+
+    Ok(mod_index
+        .iter()
+        .flat_map(|mi| {
+            mi.mods().iter().filter_map(|m| {
+                if query.is_empty() {
+                    Some((m, 0.0))
+                } else {
+                    let (_, owner_score) = rff::match_and_score(&query, &m.owner)?;
+                    let (_, name_score) = rff::match_and_score(&query, &m.name)?;
+                    Some((m, owner_score + name_score))
+                }
+            })
+        })
+        .count())
+}
+
+pub async fn query_mod_index<'a>(
+    mod_index: &'a ModIndexReadGuard,
+    query: &str,
+    sort: &[SortOption],
+) -> Result<Vec<(&'a ArchivedModRef<'a>, f64)>> {
+    let log = slog_scope::logger();
 
     debug!(log, "Querying mods");
 
@@ -322,7 +325,7 @@ pub async fn query_mod_index(
     if !sort.is_empty() {
         buf.sort_unstable_by(|(m1, score1), (m2, score2)| {
             let mut ordering = std::cmp::Ordering::Equal;
-            for &SortOption { column, descending } in &sort {
+            for &SortOption { column, descending } in sort {
                 ordering = match column {
                     SortColumn::Relevance => score1.total_cmp(score2),
                     SortColumn::Name => m1.name.cmp(&m2.name),
@@ -348,38 +351,10 @@ pub async fn query_mod_index(
         });
     }
 
-    let count = buf.len();
-
-    let mut out_buf = br#"{"count":"#.as_slice().to_owned();
-    simd_json::serde::to_writer(&mut out_buf, &count).unwrap();
-    out_buf.extend(br#","mods":["#);
-    let mods = buf.into_iter().map(|(m, _)| m);
-    match (skip.unwrap_or(0), limit) {
-        (0, Some(limit)) => map_to_json(&mut out_buf, mods.take(limit)),
-        (0, None) => map_to_json(&mut out_buf, mods),
-        (skip, Some(limit)) => map_to_json(&mut out_buf, mods.skip(skip).take(limit)),
-        (skip, None) => map_to_json(&mut out_buf, mods.skip(skip)),
-    };
-    out_buf.extend(b"]}");
-    // SAFETY: simd_json only writes valid UTF-8
-    Ok(tauri::ipc::Response::new(unsafe {
-        String::from_utf8_unchecked(out_buf)
-    }))
+    Ok(buf)
 }
 
-pub type ModIndexReadGuard = RwLockReadGuard<'static, Vec<MemoryModIndex>>;
-
-pub async fn read_mod_index(game: &str) -> Result<ModIndexReadGuard> {
-    let game = *GAMES_BY_ID.get(game).context("No such game")?;
-    Ok(MOD_INDEXES
-        .get(&*game.thunderstore_url)
-        .unwrap()
-        .data
-        .read()
-        .await)
-}
-
-pub async fn get_from_mod_index_impl<'a>(
+pub async fn get_from_mod_index<'a>(
     mod_index: &'a ModIndexReadGuard,
     mod_ids: &HashSet<ModId<'_>>,
 ) -> Result<Vec<&'a ArchivedModRef<'a>>> {
@@ -392,34 +367,12 @@ pub async fn get_from_mod_index_impl<'a>(
         .flat_map(|mi| {
             mi.mods().iter().filter(|m| {
                 mod_ids.contains(&ModId {
-                    owner: &*m.owner,
-                    name: &*m.name,
+                    owner: InternedString(&*m.owner),
+                    name: InternedString(&*m.name),
                 })
             })
         })
         .collect::<Vec<_>>();
 
     Ok(buf)
-}
-
-#[tauri::command]
-pub async fn get_from_mod_index(
-    game: &str,
-    mod_ids: HashSet<ModId<'_>>,
-) -> Result<tauri::ipc::Response, CommandError> {
-    let mod_index = read_mod_index(game).await?;
-
-    let buf = get_from_mod_index_impl(&mod_index, &mod_ids).await?;
-
-    let count = buf.len();
-
-    let mut out_buf = br#"{"count":"#.as_slice().to_owned();
-    simd_json::serde::to_writer(&mut out_buf, &count).unwrap();
-    out_buf.extend(br#","mods":["#);
-    map_to_json(&mut out_buf, buf.into_iter());
-    out_buf.extend(b"]}");
-    // SAFETY: simd_json only writes valid UTF-8
-    Ok(tauri::ipc::Response::new(unsafe {
-        String::from_utf8_unchecked(out_buf)
-    }))
 }

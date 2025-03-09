@@ -26,9 +26,22 @@ pub enum ModSpecParseError<'a> {
     },
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, rkyv::Archive, rkyv::Serialize)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    rkyv::Archive,
+    rkyv::Serialize,
+    serde::Deserialize,
+    serde::Serialize,
+)]
 pub struct ModId<'a> {
+    #[serde(borrow)]
     pub owner: InternedString<'a>,
+    #[serde(borrow)]
     pub name: InternedString<'a>,
 }
 

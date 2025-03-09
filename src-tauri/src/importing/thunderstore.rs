@@ -10,10 +10,12 @@ use std::{
 use anyhow::{bail, ensure, Context, Result};
 use base64::prelude::BASE64_STANDARD;
 use serde::{Deserialize, Serialize};
+use triomphe::Arc;
 use uuid::Uuid;
 use zip::read::ZipFile;
 
-use crate::{commands::profiles::MODS_FOLDER, Reqwest};
+use crate::profiles::MODS_FOLDER;
+use crate::Reqwest;
 
 #[derive(Clone)]
 pub struct FullName {
@@ -146,7 +148,7 @@ impl TryFrom<Version> for crate::mods::Version {
 #[derive(Debug)]
 pub struct Profile {
     pub manifest: ProfileManifest,
-    pub archive: zip::ZipArchive<std::io::Cursor<Vec<u8>>>,
+    pub archive: zip::ZipArchive<std::io::Cursor<Arc<[u8]>>>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -194,7 +196,7 @@ pub async fn lookup_profile(client: &Reqwest, id: Uuid) -> Result<Profile> {
             .read_to_end(&mut buf)
             .context("Failed to decode base64 data")?;
 
-        let mut archive = zip::ZipArchive::new(std::io::Cursor::new(buf))?;
+        let mut archive = zip::ZipArchive::new(std::io::Cursor::new(Arc::from(buf)))?;
 
         let manifest_file = archive
             .by_name("export.r2x")

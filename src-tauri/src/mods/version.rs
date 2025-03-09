@@ -2,8 +2,10 @@ use std::{
     fmt::{self, Formatter},
     mem::ManuallyDrop,
     num::ParseIntError,
-    sync::atomic::AtomicU32,
 };
+
+#[cfg(feature = "statistics")]
+use std::sync::atomic::AtomicU32;
 
 use rkyv::{
     bytecheck::CheckBytes,

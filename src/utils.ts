@@ -7,3 +7,12 @@ export function humanizeFileSize(sizeBytes: number, space = false): string {
   const i = sizeBytes === 0 ? 0 : Math.floor(Math.log(sizeBytes) / Math.log(1000));
   return (sizeBytes / Math.pow(1000, i)).toFixed(1) + (space ? " " : "") + ["B", "KB", "MB", "GB", "TB"][i];
 }
+
+export const removeProperty = <Obj, Prop extends keyof Obj>(
+  obj: Obj,
+  prop: Prop
+): Omit<Obj, Prop> => {
+  const { [prop]: _, ...rest } = obj;
+
+  return rest;
+};

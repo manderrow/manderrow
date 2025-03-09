@@ -2,6 +2,7 @@
 #![feature(error_generic_member_access)]
 #![feature(exit_status_error)]
 #![feature(extend_one)]
+#![feature(file_lock)]
 #![feature(os_string_truncate)]
 #![feature(path_add_extension)]
 #![feature(ptr_as_uninit)]
@@ -18,8 +19,10 @@ mod importing;
 mod installing;
 mod ipc;
 mod launching;
+mod mod_index;
 mod mods;
 mod paths;
+mod profiles;
 pub mod util;
 mod window_state;
 mod wrap;
@@ -65,13 +68,16 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
         //         .expect("no main window")
         //         .set_focus();
         // }))
-        // .setup(|app| {
-        //     if cfg!(debug_assertions) {
-        //         let window = app.get_webview_window("main").context("no main window")?;
-        //         window.open_devtools();
-        //     }
-        //     Ok(())
-        // })
+        .setup(|app| {
+            if !std::env::var_os("TAURI_IMMEDIATE_DEVTOOLS")
+                .unwrap_or_default()
+                .is_empty()
+            {
+                let window = app.get_webview_window("main").context("no main window")?;
+                window.open_devtools();
+            }
+            Ok(())
+        })
         .manage(IpcState::default())
         .manage(Reqwest(reqwest::Client::builder().build()?))
         .plugin(tauri_plugin_clipboard_manager::init())
@@ -85,19 +91,20 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
             commands::games::get_games_popularity,
             commands::games::get_game_mods_downloads,
             commands::i18n::get_preferred_locales,
-            commands::import::preview_import_modpack_from_thunderstore_code,
-            commands::import::import_modpack_from_thunderstore_code,
             commands::ipc::send_s2c_message,
-            commands::mod_index::fetch_mod_index,
-            commands::mod_index::query_mod_index,
-            commands::mod_index::get_from_mod_index,
-            commands::profiles::get_profiles,
-            commands::profiles::create_profile,
-            commands::profiles::delete_profile,
-            commands::profiles::launch_profile,
-            commands::profiles::get_profile_mods,
-            commands::profiles::install_profile_mod,
-            commands::profiles::uninstall_profile_mod,
+            importing::commands::preview_import_modpack_from_thunderstore_code,
+            importing::commands::import_modpack_from_thunderstore_code,
+            mod_index::commands::fetch_mod_index,
+            mod_index::commands::count_mod_index,
+            mod_index::commands::query_mod_index,
+            mod_index::commands::get_from_mod_index,
+            profiles::commands::get_profiles,
+            profiles::commands::create_profile,
+            profiles::commands::delete_profile,
+            profiles::commands::launch_profile,
+            profiles::commands::get_profile_mods,
+            profiles::commands::install_profile_mod,
+            profiles::commands::uninstall_profile_mod,
         ])
         .run(ctx)
         .context("error while running tauri application")

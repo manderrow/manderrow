@@ -1,6 +1,6 @@
 import { Channel, invoke } from "@tauri-apps/api/core";
 import { C2SChannel } from "./components/global/Console";
-import { Game, ModListing, ModPackage } from "./types";
+import { Game, ModListing, ModMetadata, ModPackage, ModVersion } from "./types";
 
 /**
  * An error thrown from native code.
@@ -77,11 +77,18 @@ export interface SortOption {
   descending: boolean;
 }
 
+export async function countModIndex(
+  game: string,
+  query: string,
+): Promise<number> {
+  return await wrapInvoke(() => invoke("count_mod_index", { game, query }));
+}
+
 export async function queryModIndex(
   game: string,
   query: string,
   sort: SortOption[],
-  options: { skip?: number; limit?: number },
+  options: { skip?: number; limit?: Exclude<number, 0> },
 ): Promise<{
   mods: ModListing[];
   count: number;
@@ -132,7 +139,7 @@ export async function getProfileMods(id: string): Promise<ModPackage[]> {
   return await wrapInvoke(() => invoke("get_profile_mods", { id }));
 }
 
-export async function installProfileMod(id: string, mod: ModListing, version: number): Promise<void> {
+export async function installProfileMod(id: string, mod: ModMetadata, version: ModVersion): Promise<void> {
   return await wrapInvoke(() => invoke("install_profile_mod", { id, mod, version }));
 }
 

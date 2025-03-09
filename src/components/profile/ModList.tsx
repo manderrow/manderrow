@@ -21,7 +21,7 @@ import { faHardDrive, faHeart, faThumbsUp } from "@fortawesome/free-regular-svg-
 import { fetch } from "@tauri-apps/plugin-http";
 
 import { Mod, ModListing, ModPackage } from "../../types";
-import { humanizeFileSize, numberFormatter, roundedNumberFormatter } from "../../utils";
+import { humanizeFileSize, numberFormatter, removeProperty, roundedNumberFormatter } from "../../utils";
 import ErrorBoundary, { ErrorContext } from "../global/ErrorBoundary";
 import { InitialProgress } from "./ModSearch";
 import { FetchEvent, fetchModIndex, installProfileMod, queryModIndex, uninstallProfileMod } from "../../api";
@@ -402,7 +402,7 @@ function InstallButton(props: { mod: ModListing; installContext: NonNullable<typ
         e.stopPropagation();
         setBusy(true);
         try {
-          await installProfileMod(props.installContext.profile, props.mod, 0);
+          await installProfileMod(props.installContext.profile, removeProperty(props.mod, 'versions'), props.mod.versions[0]);
           await props.installContext.refetchInstalled();
         } catch (e) {
           reportErr(e);
