@@ -4,7 +4,7 @@ use anyhow::{anyhow, bail, Context};
 use futures::stream::FuturesUnordered;
 use futures::TryStreamExt;
 use serde::Serialize;
-use tauri::State;
+use tauri::{AppHandle, State};
 use tokio_util::compat::FuturesAsyncReadCompatExt;
 use uuid::Uuid;
 
@@ -97,6 +97,7 @@ pub async fn preview_import_modpack_from_thunderstore_code(
 // TODO: don't fetch again
 #[tauri::command]
 pub async fn import_modpack_from_thunderstore_code(
+    app: AppHandle,
     reqwest: State<'_, Reqwest>,
     thunderstore_id: Uuid,
     game: &str,
@@ -117,12 +118,14 @@ pub async fn import_modpack_from_thunderstore_code(
         }
     };
 
+    let app = &app;
+    let reqwest = &*reqwest;
+
     profile
         .manifest
         .mods
         .iter()
         .map(|m| {
-            let reqwest = &*reqwest;
             async move {
                 let version = Version::try_from(m.version).context("Invalid version")?;
 
@@ -153,6 +156,7 @@ pub async fn import_modpack_from_thunderstore_code(
                 };
 
                 crate::profiles::install_profile_mod(
+                    app,
                     reqwest,
                     profile_id,
                     // this is kinda gross

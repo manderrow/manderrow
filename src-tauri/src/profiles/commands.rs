@@ -1,6 +1,6 @@
 use anyhow::Result;
 use smol_str::SmolStr;
-use tauri::State;
+use tauri::{AppHandle, State};
 use uuid::Uuid;
 
 use crate::mods::{ModMetadata, ModVersion};
@@ -30,12 +30,13 @@ pub async fn get_profile_mods(id: Uuid) -> Result<tauri::ipc::Response, CommandE
 
 #[tauri::command]
 pub async fn install_profile_mod(
+    app: AppHandle,
     reqwest: State<'_, Reqwest>,
     id: Uuid,
     r#mod: ModMetadata<'_>,
     version: ModVersion<'_>,
 ) -> Result<(), CommandError> {
-    super::install_profile_mod(&*reqwest, id, r#mod, version)
+    super::install_profile_mod(&app, &*reqwest, id, r#mod, version)
         .await
         .map_err(Into::into)
 }

@@ -34,6 +34,7 @@ import { autofocus } from "../../components/global/Directives";
 import styles from "./Profile.module.css";
 import sidebarStyles from "./SidebarProfiles.module.css";
 import ImportDialog from "../../components/profile/ImportDialog";
+import TasksDialog from "../../components/global/TasksDialog";
 
 interface ProfileParams {
   [key: string]: string | undefined;
@@ -81,6 +82,8 @@ export default function Profile() {
   }
 
   const [importDialogOpen, setImportDialogOpen] = createSignal(false);
+
+  const [tasksDialogOpen, setTasksDialogOpen] = createSignal(false);
 
   return (
     <main class={styles.main}>
@@ -169,13 +172,11 @@ export default function Profile() {
                 Settings
               </button>
             </A>
-            <A href="">
-              <button>
-                <Fa icon={faDownload} class={styles.sidebar__otherGridIcon} />
-                <br />
-                Downloads
-              </button>
-            </A>
+            <button on:click={() => setTasksDialogOpen(true)}>
+              <Fa icon={faDownload} class={styles.sidebar__otherGridIcon} />
+              <br />
+              Downloads
+            </button>
           </div>
         </section>
       </aside>
@@ -248,6 +249,10 @@ export default function Profile() {
 
       <Show when={importDialogOpen()}>
         <ImportDialog onDismiss={() => setImportDialogOpen(false)} gameId={params.gameId} />
+      </Show>
+
+      <Show when={tasksDialogOpen()}>
+        <TasksDialog onDismiss={() => setTasksDialogOpen(false)} />
       </Show>
     </main>
   );

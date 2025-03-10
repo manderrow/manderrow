@@ -8,6 +8,7 @@ use futures::stream::FuturesOrdered;
 use futures::StreamExt as _;
 use slog::error;
 use smol_str::SmolStr;
+use tauri::AppHandle;
 use uuid::Uuid;
 
 use crate::installing::{install_zip, uninstall_package};
@@ -164,6 +165,7 @@ pub async fn get_profile_mods(id: Uuid) -> Result<tauri::ipc::Response> {
 }
 
 pub async fn install_profile_mod(
+    app: &AppHandle,
     reqwest: &Reqwest,
     id: Uuid,
     r#mod: ModMetadata<'_>,
@@ -183,6 +185,7 @@ pub async fn install_profile_mod(
     path.as_mut_os_string().push("-");
     path.as_mut_os_string().push(&r#mod.name);
     let staged = install_zip(
+        Some(app),
         &log,
         reqwest,
         &format!(

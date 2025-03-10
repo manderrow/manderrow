@@ -24,6 +24,7 @@ mod mods;
 mod paths;
 mod profiles;
 mod splashscreen;
+mod tasks;
 mod util;
 mod window_state;
 mod wrap;
@@ -103,6 +104,7 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
             profiles::commands::get_profile_mods,
             profiles::commands::install_profile_mod,
             profiles::commands::uninstall_profile_mod,
+            tasks::commands::cancel_task,
         ])
         .run(ctx)
         .context("error while running tauri application")

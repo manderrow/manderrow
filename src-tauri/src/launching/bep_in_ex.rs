@@ -45,6 +45,8 @@ pub async fn get_bep_in_ex_path(log: &slog::Logger, uses_proton: bool) -> Result
     let path = crate::launching::LOADERS_DIR.join(hash);
 
     install_zip(
+        // TODO: communicate via IPC
+        None,
         log,
         &Reqwest(reqwest::Client::new()),
         url,
