@@ -2,6 +2,7 @@
 //!
 //! Never make changes to `IndexEntryV*` or [`Index`] variants. Make a new version instead.
 
+pub mod commands;
 mod index;
 
 use std::ffi::OsString;
@@ -24,7 +25,8 @@ use trie_rs::TrieBuilder;
 use walkdir::WalkDir;
 use zip::{result::ZipError, ZipArchive};
 
-use crate::tasks::TaskBuilder;
+use crate::tasks::{self, TaskBuilder, TaskHandle};
+use crate::util::UsizeExt;
 use crate::Reqwest;
 use crate::{paths::cache_dir, util::IoErrorKindExt};
 
@@ -464,96 +466,137 @@ pub async fn fetch_resource<'a>(
     reqwest: &Reqwest,
     url: &str,
     cache: Option<CacheOptions<'_>>,
+    task_id: Option<tasks::Id>,
 ) -> anyhow::Result<FetchedResource> {
-    TaskBuilder::new(url.to_owned(), crate::tasks::types::Kind::Download).run(app, async move {
-        debug!(log, "Fetching resource from {url:?}");
+    TaskBuilder::with_id(task_id.unwrap_or_else(tasks::allocate_task), url.to_owned())
+        .kind(tasks::Kind::Download)
+        .progress_unit(tasks::ProgressUnit::Bytes)
+        .run_with_progress(app, |handle| async move {
+            debug!(log, "Fetching resource from {url:?}");
 
-        match cache {
-            Some(CacheOptions::Hash(hash_str)) => {
-                let mut path = cache_dir().join(hash_str);
-                path.as_mut_os_string().push(".zip");
-
-                let hash = blake3::Hash::from_hex(hash_str)?;
-                let hash_on_disk = {
-                    let mut hsr = blake3::Hasher::new();
-                    match hsr.update_mmap(&path) {
-                        Ok(_) => Some(hsr.finalize()),
-                        Err(e) if e.is_not_found() => None,
-                        Err(e) => return Err(e.into()),
-                    }
-                };
-
-                if hash_on_disk.map(|h| h != hash).unwrap_or(true) {
-                    let mut resp = reqwest.get(url).send().await?.error_for_status()?;
-                    // TODO: should this be buffered?
-                    let mut wtr = tokio::fs::File::create(&path).await?;
-                    while let Some(chunk) = resp.chunk().await? {
-                        wtr.write_all(&chunk).await?;
-                    }
-                    let hash_on_disk = {
-                        let mut hsr = blake3::Hasher::new();
-                        hsr.update_mmap(&path)?;
-                        hsr.finalize()
-                    };
-                    debug!(log, "Cached zip at {path:?}");
-                    if hash_on_disk != hash {
-                        bail!("Hash of downloaded zip does not match hash provided to install_zip: expected {hash}, found {hash_on_disk}");
-                    }
-                } else {
-                    debug!(log, "Zip is cached at {path:?}");
+            match cache {
+                Some(CacheOptions::Hash(hash_str)) => {
+                    fetch_resource_cached_by_hash(app, log, reqwest, url, hash_str, handle).await?
                 }
-
-                Ok(FetchedResource::File(path))
-            }
-            Some(CacheOptions::ByUrl) => {
-                let mut path = cache_dir().join("url.");
-                path.as_mut_os_string()
-                    .push(base64::engine::general_purpose::URL_SAFE.encode(url));
-                path.as_mut_os_string().push(".zip");
-
-                if !tokio::fs::try_exists(&path).await? {
-                    let (tmp_file, tmp_path) = tokio::task::block_in_place(|| {
-                        tempfile::NamedTempFile::new_in(
-                            path.parent().context("path must have a parent")?,
-                        )
-                        .map_err(anyhow::Error::from)
-                    })?
-                    .into_parts();
-
-                    let mut resp = reqwest.get(url).send().await?.error_for_status()?;
-
-                    let tmp_file = tokio::fs::File::from_std(tmp_file);
-
-                    if let Some(len) = resp.content_length() {
-                        tmp_file.allocate(len).await?;
-                    }
-
-                    // TODO: should this be buffered?
-                    let mut wtr = tmp_file;
-                    while let Some(chunk) = resp.chunk().await? {
-                        wtr.write_all(&chunk).await?;
-                    }
-
-                    let tmp_path = tmp_path.keep()?;
-                    tokio::fs::rename(&tmp_path, &path)
-                        .await
-                        .context("Failed to move temp file into place")?;
-
-                    debug!(log, "Cached zip at {path:?}");
-                } else {
-                    debug!(log, "Zip is cached at {path:?}");
+                Some(CacheOptions::ByUrl) => {
+                    fetch_resource_cached_by_url(app, log, reqwest, url, handle).await?
                 }
+                None => {
+                    let resp = reqwest::get(url).await?.error_for_status()?;
+                    let bytes = resp.bytes().await?;
 
-                Ok(FetchedResource::File(path))
+                    Ok(FetchedResource::Bytes(bytes))
+                }
             }
-            None => {
-                let resp = reqwest::get(url).await?.error_for_status()?;
-                let bytes = resp.bytes().await?;
+        })
+        .await
+        .map_err(Into::into)
+}
 
-                Ok(FetchedResource::Bytes(bytes))
+async fn fetch_resource_cached_by_hash(
+    app: Option<&AppHandle>,
+    log: &slog::Logger,
+    reqwest: &Reqwest,
+    url: &str,
+    hash_str: &str,
+    handle: TaskHandle,
+) -> Result<std::result::Result<FetchedResource, anyhow::Error>, anyhow::Error> {
+    let mut path = cache_dir().join(hash_str);
+    path.as_mut_os_string().push(".zip");
+    let hash = blake3::Hash::from_hex(hash_str)?;
+    let hash_on_disk = {
+        let mut hsr = blake3::Hasher::new();
+        match hsr.update_mmap(&path) {
+            Ok(_) => Some(hsr.finalize()),
+            Err(e) if e.is_not_found() => None,
+            Err(e) => return Err(e.into()),
+        }
+    };
+    if hash_on_disk.map(|h| h != hash).unwrap_or(true) {
+        let mut resp = reqwest.get(url).send().await?.error_for_status()?;
+        tokio::fs::create_dir_all(cache_dir()).await?;
+        // TODO: should this be buffered?
+        let mut wtr = tokio::fs::File::create(&path).await?;
+        let mut written = 0u64;
+        let len = resp.content_length();
+        if let (Some(app), Some(total)) = (app, len) {
+            handle.send_progress_manually(app, written, total)?;
+        }
+        while let Some(chunk) = resp.chunk().await? {
+            wtr.write_all(&chunk).await?;
+            if let Some(app) = app {
+                written += chunk.len().as_u64();
+                handle.send_progress_manually(app, written, len.unwrap_or(0))?;
             }
         }
-    }).await.map_err(Into::into)
+        let hash_on_disk = {
+            let mut hsr = blake3::Hasher::new();
+            hsr.update_mmap(&path)?;
+            hsr.finalize()
+        };
+        debug!(log, "Cached zip at {path:?}");
+        if hash_on_disk != hash {
+            bail!("Hash of downloaded zip does not match hash provided to install_zip: expected {hash}, found {hash_on_disk}");
+        }
+    } else {
+        debug!(log, "Zip is cached at {path:?}");
+    }
+    Ok(Ok(FetchedResource::File(path)))
+}
+
+async fn fetch_resource_cached_by_url(
+    app: Option<&AppHandle>,
+    log: &slog::Logger,
+    reqwest: &Reqwest,
+    url: &str,
+    handle: TaskHandle,
+) -> Result<std::result::Result<FetchedResource, anyhow::Error>, anyhow::Error> {
+    let mut path = cache_dir().join("url.");
+    path.as_mut_os_string()
+        .push(base64::engine::general_purpose::URL_SAFE.encode(url));
+    path.as_mut_os_string().push(".zip");
+    if !tokio::fs::try_exists(&path).await? {
+        tokio::fs::create_dir_all(cache_dir()).await?;
+
+        let (tmp_file, tmp_path) = tokio::task::block_in_place(|| {
+            tempfile::NamedTempFile::new_in(path.parent().context("path must have a parent")?)
+                .map_err(anyhow::Error::from)
+        })?
+        .into_parts();
+
+        let mut resp = reqwest.get(url).send().await?.error_for_status()?;
+
+        let tmp_file = tokio::fs::File::from_std(tmp_file);
+
+        let len = resp.content_length();
+        if let Some(len) = len {
+            tmp_file.allocate(len).await?;
+        }
+
+        // TODO: should this be buffered?
+        let mut wtr = tmp_file;
+        let mut written = 0u64;
+        if let (Some(app), Some(total)) = (app, len) {
+            handle.send_progress_manually(app, written, total)?;
+        }
+        while let Some(chunk) = resp.chunk().await? {
+            wtr.write_all(&chunk).await?;
+            if let Some(app) = app {
+                written += chunk.len().as_u64();
+                handle.send_progress_manually(app, written, len.unwrap_or(0))?;
+            }
+        }
+
+        let tmp_path = tmp_path.keep()?;
+        tokio::fs::rename(&tmp_path, &path)
+            .await
+            .context("Failed to move temp file into place")?;
+
+        debug!(log, "Cached zip at {path:?}");
+    } else {
+        debug!(log, "Zip is cached at {path:?}");
+    }
+    Ok(Ok(FetchedResource::File(path)))
 }
 
 /// Downloads a zip file from `url` and installs it into the `target`
@@ -566,6 +609,7 @@ pub async fn install_zip<'a>(
     url: &str,
     cache: Option<CacheOptions<'_>>,
     target: &'a Path,
+    task_id: Option<tasks::Id>,
 ) -> anyhow::Result<StagedPackage<'a>> {
     debug!(log, "Installing zip from {url:?} to {target:?}");
 
@@ -590,7 +634,7 @@ pub async fn install_zip<'a>(
     }
 
     let temp_dir: TempDir;
-    match fetch_resource(app, log, reqwest, url, cache).await? {
+    match fetch_resource(app, log, reqwest, url, cache, task_id).await? {
         FetchedResource::Bytes(bytes) => {
             temp_dir = tempfile::tempdir_in(target_parent)?;
             tokio::task::block_in_place(|| {
@@ -777,5 +821,22 @@ async fn merge_paths(log: &slog::Logger, from: &Path, to: &Path) -> Result<()> {
         .await
         .with_context(|| format!("Failed to merge {:?} into {:?}", dir_entry.path(), to))?;
     }
+    Ok(())
+}
+
+pub async fn clear_cache() -> Result<()> {
+    let cache_dir = cache_dir();
+    match tokio::fs::remove_dir_all(&cache_dir).await {
+        Ok(()) => {}
+        Err(e) if e.is_not_found() => {
+            if tokio::fs::try_exists(&cache_dir).await? {
+                // failed on a sub-path
+                return Err(e.into());
+            }
+            // the thing we wanted to delete didn't exist, this is good!
+        }
+        Err(e) => return Err(e.into()),
+    }
+    tokio::fs::create_dir(&cache_dir).await?;
     Ok(())
 }

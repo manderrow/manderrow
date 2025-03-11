@@ -6,7 +6,7 @@
 
 #![cfg(not(any(target_os = "android", target_os = "ios")))]
 
-use slog::error;
+use slog_scope::error;
 use tauri::{
     plugin::{Builder as PluginBuilder, TauriPlugin},
     Manager, Monitor, PhysicalPosition, PhysicalSize, RunEvent, Runtime, Window, WindowEvent,
@@ -19,6 +19,8 @@ use std::{
     fs::{create_dir_all, File},
     sync::{Arc, Mutex},
 };
+
+use crate::util::IoErrorKindExt;
 
 static PATH: OnceLock<PathBuf> = OnceLock::new();
 
@@ -209,24 +211,32 @@ impl<R: Runtime> WindowExt for Window<R> {
     }
 }
 
+fn read_window_state() -> anyhow::Result<Option<HashMap<String, WindowState>>> {
+    let file = match std::fs::File::open(PATH.get().unwrap()) {
+        Ok(t) => t,
+        Err(e) if e.is_not_found() => return Ok(None),
+        Err(e) => return Err(e.into()),
+    };
+    Ok(Some(bincode::decode_from_reader(
+        std::io::BufReader::new(file),
+        BINCODE_CONFIG,
+    )?))
+}
+
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     PluginBuilder::new("window-state")
         .setup(|app, _api| {
             PATH.set(app.path().local_data_dir()?.join("window-state.bin"))
                 .expect("Already set");
 
-            let cache = std::fs::File::open(PATH.get().unwrap())
-                .inspect_err(|e| {
-                    if e.kind() != std::io::ErrorKind::NotFound {
-                        error!(slog_scope::logger(), "Unable to read window state: {e}");
-                    }
-                })
-                .map_err(|_| ())
-                .and_then(|rdr| {
-                    bincode::decode_from_reader(std::io::BufReader::new(rdr), BINCODE_CONFIG)
-                        .map_err(|_| ())
-                })
-                .unwrap_or_default();
+            let cache = match read_window_state() {
+                Ok(Some(t)) => t,
+                Ok(None) => Default::default(),
+                Err(e) => {
+                    error!("Unable to read window state: {e}");
+                    Default::default()
+                }
+            };
             app.manage(WindowStateCache(Arc::new(Mutex::new(cache))));
             app.manage(RestoringWindowState(Mutex::new(())));
             Ok(())

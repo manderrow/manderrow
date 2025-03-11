@@ -190,6 +190,9 @@ pub async fn import_modpack_from_thunderstore_code(
                         uuid4: Default::default(),
                         file_size: version.file_size.into(),
                     },
+                    // TODO: allocate and send IDs back to the frontend via a Channel and then
+                    //       aggregate the progress from there
+                    None,
                 )
                 .await
             }

@@ -4,7 +4,7 @@ use tauri::{AppHandle, State};
 use uuid::Uuid;
 
 use crate::mods::{ModMetadata, ModVersion};
-use crate::{CommandError, Reqwest};
+use crate::{tasks, CommandError, Reqwest};
 
 use super::ProfileWithId;
 
@@ -35,8 +35,9 @@ pub async fn install_profile_mod(
     id: Uuid,
     r#mod: ModMetadata<'_>,
     version: ModVersion<'_>,
+    task_id: tasks::Id,
 ) -> Result<(), CommandError> {
-    super::install_profile_mod(&app, &*reqwest, id, r#mod, version)
+    super::install_profile_mod(&app, &*reqwest, id, r#mod, version, Some(task_id))
         .await
         .map_err(Into::into)
 }

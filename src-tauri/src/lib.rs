@@ -92,6 +92,7 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
             i18n::get_preferred_locales,
             importing::commands::preview_import_modpack_from_thunderstore_code,
             importing::commands::import_modpack_from_thunderstore_code,
+            installing::commands::clear_cache,
             launching::commands::send_s2c_message,
             launching::commands::launch_profile,
             mod_index::commands::fetch_mod_index,
@@ -104,6 +105,7 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
             profiles::commands::get_profile_mods,
             profiles::commands::install_profile_mod,
             profiles::commands::uninstall_profile_mod,
+            tasks::commands::allocate_task,
             tasks::commands::cancel_task,
         ])
         .run(ctx)

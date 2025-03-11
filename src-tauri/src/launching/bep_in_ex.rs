@@ -52,6 +52,7 @@ pub async fn get_bep_in_ex_path(log: &slog::Logger, uses_proton: bool) -> Result
         url,
         Some(crate::installing::CacheOptions::Hash(hash)),
         &path,
+        None,
     )
     .await?
     .finish(log)

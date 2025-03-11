@@ -5,6 +5,11 @@ use crate::CommandError;
 use super::Id;
 
 #[tauri::command]
+pub async fn allocate_task() -> Result<Id, CommandError> {
+    Ok(super::allocate_task())
+}
+
+#[tauri::command]
 pub async fn cancel_task(id: Id) -> Result<(), CommandError> {
     let cancel = {
         let mut tasks = super::TASKS.write().await;

@@ -12,8 +12,7 @@ pub static GAMES_BY_ID: LazyLock<HashMap<&'static str, &'static Game>> =
 #[serde(deny_unknown_fields)]
 pub struct Game<'a> {
     /// Unique internal id for the game.
-    #[serde(borrow)]
-    pub id: Cow<'a, str>,
+    pub id: &'a str,
     /// Display name of the game.
     #[serde(alias = "displayName", borrow)]
     pub name: Cow<'a, str>,

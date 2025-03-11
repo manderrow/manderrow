@@ -1,22 +1,22 @@
 use std::{collections::HashSet, num::NonZeroUsize};
 
-use tauri::{ipc::Channel, AppHandle};
+use tauri::AppHandle;
 
 use crate::{
     mods::{ArchivedModRef, ModId},
-    CommandError,
+    tasks, CommandError,
 };
 
-use super::{read_mod_index, FetchEvent, SortOption};
+use super::{read_mod_index, SortOption};
 
 #[tauri::command]
 pub async fn fetch_mod_index(
     app_handle: AppHandle,
     game: &str,
     refresh: bool,
-    on_event: Channel<FetchEvent>,
+    task_id: tasks::Id,
 ) -> Result<(), CommandError> {
-    super::fetch_mod_index(app_handle, game, refresh, on_event).await?;
+    super::fetch_mod_index(app_handle, game, refresh, Some(task_id)).await?;
 
     Ok(())
 }
@@ -78,13 +78,9 @@ pub async fn get_from_mod_index(
 
     let buf = super::get_from_mod_index(&mod_index, &mod_ids).await?;
 
-    let count = buf.len();
-
-    let mut out_buf = br#"{"count":"#.as_slice().to_owned();
-    simd_json::serde::to_writer(&mut out_buf, &count).unwrap();
-    out_buf.extend(br#","mods":["#);
+    let mut out_buf = br#"["#.as_slice().to_owned();
     map_to_json(&mut out_buf, buf.into_iter());
-    out_buf.extend(b"]}");
+    out_buf.extend(b"]");
     // SAFETY: simd_json only writes valid UTF-8
     Ok(tauri::ipc::Response::new(unsafe {
         String::from_utf8_unchecked(out_buf)

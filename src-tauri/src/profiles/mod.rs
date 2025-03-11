@@ -15,7 +15,7 @@ use crate::installing::{install_zip, uninstall_package};
 use crate::mods::{ModAndVersion, ModMetadata, ModVersion};
 use crate::paths::local_data_dir;
 use crate::util::{hyphenated_uuid, IoErrorKindExt as _};
-use crate::Reqwest;
+use crate::{tasks, Reqwest};
 
 pub static PROFILES_DIR: LazyLock<PathBuf> = LazyLock::new(|| local_data_dir().join("profiles"));
 
@@ -170,6 +170,7 @@ pub async fn install_profile_mod(
     id: Uuid,
     r#mod: ModMetadata<'_>,
     version: ModVersion<'_>,
+    task_id: Option<tasks::Id>,
 ) -> Result<()> {
     let log = slog_scope::logger();
 
@@ -194,6 +195,7 @@ pub async fn install_profile_mod(
         ),
         Some(crate::installing::CacheOptions::ByUrl),
         &path,
+        task_id,
     )
     .await?;
 

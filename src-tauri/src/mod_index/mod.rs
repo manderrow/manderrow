@@ -6,16 +6,17 @@ use std::sync::LazyLock;
 
 use anyhow::{Context as _, Result};
 use async_compression::tokio::bufread::GzipDecoder;
-use drop_guard::ext::tokio1::JoinHandleExt;
 use rkyv_intern::Interner;
 use slog::{debug, info};
-use tauri::{ipc::Channel, AppHandle, Manager};
+use tauri::{AppHandle, Manager};
 use tokio::io::AsyncReadExt;
+use tokio::select;
 use tokio::sync::{Mutex, RwLock, RwLockReadGuard};
 use url::Url;
 
 use crate::games::{GAMES, GAMES_BY_ID};
 use crate::mods::{ArchivedModRef, ModId, ModRef};
+use crate::tasks::{self, TaskBuilder};
 use crate::util::http::ResponseExt;
 use crate::util::rkyv::InternedString;
 use crate::util::Progress;
@@ -37,21 +38,11 @@ static MOD_INDEXES: LazyLock<HashMap<&'static str, ModIndex>> = LazyLock::new(||
         .collect()
 });
 
-#[derive(Clone, serde::Serialize)]
-#[serde(tag = "type")]
-pub enum FetchEvent {
-    Progress {
-        completed_steps: u32,
-        total_steps: u32,
-        progress: f64,
-    },
-}
-
 pub async fn fetch_mod_index(
-    app_handle: AppHandle,
+    app: AppHandle,
     game: &str,
     refresh: bool,
-    on_event: Channel<FetchEvent>,
+    task_id: Option<tasks::Id>,
 ) -> Result<()> {
     let log = slog_scope::logger();
 
@@ -65,191 +56,198 @@ pub async fn fetch_mod_index(
             .map(|data| data.is_empty())
             .unwrap_or(true)
     {
-        info!(log, "Fetching mods");
+        let app = &app;
+        TaskBuilder::with_id(task_id.unwrap_or_else(tasks::allocate_task), format!("Fetch mod index for {}", game.id))
+            .progress_unit(tasks::ProgressUnit::Bytes)
+            .run_with_progress(Some(app), |handle| async move {
+                info!(log, "Fetching mods");
 
-        let _guard = tokio::task::spawn(async move {
-            loop {
-                let (completed_steps, total_steps) = mod_index.progress.get_steps();
-                let (completed_progress, total_progress) = mod_index.progress.get_progress();
-                _ = on_event.send(FetchEvent::Progress {
-                    completed_steps,
-                    total_steps,
-                    progress: if total_progress == 0 {
-                        0.0
-                    } else {
-                        completed_progress as f64 / total_progress as f64
-                    },
-                });
+                let Ok(_lock) = mod_index.refresh_lock.try_lock() else {
+                    // just wait for the current refetch to complete.
+                    _ = mod_index.refresh_lock.lock().await;
+                    return Ok(());
+                };
 
-                mod_index.progress.updates().notified().await;
-            }
-        })
-        .abort_on_drop();
+                #[cfg(feature = "statistics")]
+                crate::mods::reset_version_repr_stats();
 
-        let Ok(_lock) = mod_index.refresh_lock.try_lock() else {
-            // just wait for the current refetch to complete.
-            _ = mod_index.refresh_lock.lock().await;
-            return Ok(());
-        };
+                mod_index.progress.reset();
 
-        #[cfg(feature = "statistics")]
-        crate::mods::reset_version_repr_stats();
+                let progress_updater = async {
+                    loop {
+                        _ = handle.send_progress(app, &mod_index.progress);
 
-        mod_index.progress.reset();
-
-        let mut chunk_urls = Vec::new();
-        GzipDecoder::new(
-            app_handle
-                .state::<Reqwest>()
-                .get(&*game.thunderstore_url)
-                .send()
-                .await
-                .context("Failed to fetch chunk URLs from Thunderstore")?
-                .error_for_status()
-                .context("Failed to fetch chunk URLs from Thunderstore")?
-                .reader_with_progress(&mod_index.progress),
-        )
-        .read_to_end(&mut chunk_urls)
-        .await
-        .context("Failed to fetch chunk URLs from Thunderstore")?;
-        let chunk_urls =
-            tokio::task::block_in_place(|| simd_json::from_slice::<Vec<Url>>(&mut chunk_urls))
-                .context("Unable to decode chunk URLs from Thunderstore")?;
-
-        let started_at = std::time::Instant::now();
-        let new_mod_index =
-            futures::future::try_join_all(chunk_urls.into_iter().map(|url| async {
-                let log = log.clone();
-                let app_handle = app_handle.clone();
-                tokio::task::spawn(async move {
-                    let spawned_at = std::time::Instant::now();
-                    let latency = spawned_at.duration_since(started_at);
-                    let mut buf = Vec::new();
-                    {
-                        let _step = mod_index.progress.step();
-                        let mut rdr = GzipDecoder::new(
-                            app_handle
-                                .state::<Reqwest>()
-                                .get(url.clone())
-                                .send()
-                                .await
-                                .context("Failed to fetch chunk from Thunderstore")?
-                                .error_for_status()
-                                .context("Failed to fetch chunk from Thunderstore")?
-                                .reader_with_progress(&mod_index.progress),
-                        );
-                        rdr.read_to_end(&mut buf).await?;
+                        mod_index.progress.updates().notified().await;
                     }
-                    let fetched_at = std::time::Instant::now();
-                    let fetched_in = fetched_at.duration_since(spawned_at);
-                    let _step = mod_index.progress.step();
-                    tokio::task::block_in_place(move || {
-                        let buf_len = buf.len();
-                        let mods = simd_json::from_slice::<Vec<ModRef>>(&mut buf)?;
-                        let decoded_at = std::time::Instant::now();
-                        let decoded_in = decoded_at.duration_since(fetched_at);
+                };
 
-                        #[cfg(feature = "statistics")]
-                        #[derive(Default)]
-                        struct Statistics {
-                            values: usize,
-                            total_bytes: usize,
-                            average_uses: f64,
-                            single_use_entries: usize,
-                        }
-                        #[cfg(feature = "statistics")]
-                        impl std::fmt::Display for Statistics {
-                            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                                let Statistics { values, total_bytes, average_uses, single_use_entries } = self;
-                                write!(f, "{values} strings interned, {total_bytes} bytes, avg. {average_uses} uses/string, {single_use_entries} single-use strings")
-                            }
-                        }
+                let new_mod_index = async {
+                    let mut chunk_urls = Vec::new();
+                    GzipDecoder::new(
+                        app
+                            .state::<Reqwest>()
+                            .get(&*game.thunderstore_url)
+                            .send()
+                            .await
+                            .context("Failed to fetch chunk URLs from Thunderstore")?
+                            .error_for_status()
+                            .context("Failed to fetch chunk URLs from Thunderstore")?
+                            .reader_with_progress(&mod_index.progress),
+                    )
+                    .read_to_end(&mut chunk_urls)
+                    .await
+                    .context("Failed to fetch chunk URLs from Thunderstore")?;
+                    let chunk_urls =
+                        tokio::task::block_in_place(|| simd_json::from_slice::<Vec<Url>>(&mut chunk_urls))
+                            .context("Unable to decode chunk URLs from Thunderstore")?;
 
-                        let (buf, stats) = rkyv::util::with_arena(|arena| {
-                            let mut serializer = rkyv_intern::InterningAdapter::new(
-                                rkyv_intern::InterningAdapter::new(
-                                    rkyv::ser::Serializer::new(
-                                        rkyv::util::AlignedVec::<16>::with_capacity(buf_len / 4),
-                                        arena.acquire(),
-                                        rkyv::ser::sharing::Share::new(),
-                                    ),
-                                    Interner::<ModId<'_>>::default(),
-                                ),
-                                Interner::<String>::default(),
-                            );
-                            rkyv::api::serialize_using::<_, rkyv::rancor::Error>(
-                                &mods,
-                                &mut serializer,
-                            )?;
-                            let (serializer, interner) = serializer.into_components();
-                            #[cfg(feature = "statistics")]
-                            #[derive(Default)]
-                            struct StatisticsAccumulator {
-                                total_bytes: usize,
-                                total_uses: usize,
-                                single_use_entries: usize,
+                    let started_at = std::time::Instant::now();
+
+                    futures::future::try_join_all(chunk_urls.into_iter().map(|url| async {
+                        let log = log.clone();
+                        let app_handle = app.clone();
+                        tokio::task::spawn(async move {
+                            let spawned_at = std::time::Instant::now();
+                            let latency = spawned_at.duration_since(started_at);
+                            let mut buf = Vec::new();
+                            {
+                                let _step = mod_index.progress.step();
+                                let mut rdr = GzipDecoder::new(
+                                    app_handle
+                                        .state::<Reqwest>()
+                                        .get(url.clone())
+                                        .send()
+                                        .await
+                                        .context("Failed to fetch chunk from Thunderstore")?
+                                        .error_for_status()
+                                        .context("Failed to fetch chunk from Thunderstore")?
+                                        .reader_with_progress(&mod_index.progress),
+                                );
+                                rdr.read_to_end(&mut buf).await?;
                             }
-                            #[cfg(feature = "statistics")]
-                            let stats = interner.iter().map(|(s, e)| (s.len(), e.ref_cnt.get())).fold(StatisticsAccumulator::default(), |mut stats, (len, ref_cnt)| {
-                                stats.total_bytes += len;
-                                stats.total_uses += ref_cnt;
-                                if ref_cnt == 1 {
-                                    stats.single_use_entries += 1;
-                                }
-                                stats
-                            });
-                            Ok::<_, rkyv::rancor::Error>((serializer.into_serializer().into_writer(), {
+                            let fetched_at = std::time::Instant::now();
+                            let fetched_in = fetched_at.duration_since(spawned_at);
+                            let _step = mod_index.progress.step();
+                            tokio::task::block_in_place(move || {
+                                let buf_len = buf.len();
+                                let mods = simd_json::from_slice::<Vec<ModRef>>(&mut buf)?;
+                                let decoded_at = std::time::Instant::now();
+                                let decoded_in = decoded_at.duration_since(fetched_at);
+
                                 #[cfg(feature = "statistics")]
-                                {
-                                    Statistics {
-                                        values: interner.len(),
-                                        total_bytes: stats.total_bytes,
-                                        average_uses: stats.total_uses as f64 / interner.len() as f64,
-                                        single_use_entries: stats.single_use_entries,
+                                #[derive(Default)]
+                                struct Statistics {
+                                    values: usize,
+                                    total_bytes: usize,
+                                    average_uses: f64,
+                                    single_use_entries: usize,
+                                }
+                                #[cfg(feature = "statistics")]
+                                impl std::fmt::Display for Statistics {
+                                    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                                        let Statistics { values, total_bytes, average_uses, single_use_entries } = self;
+                                        write!(f, "{values} strings interned, {total_bytes} bytes, avg. {average_uses} uses/string, {single_use_entries} single-use strings")
                                     }
                                 }
+
+                                let (buf, stats) = rkyv::util::with_arena(|arena| {
+                                    let mut serializer = rkyv_intern::InterningAdapter::new(
+                                        rkyv_intern::InterningAdapter::new(
+                                            rkyv::ser::Serializer::new(
+                                                rkyv::util::AlignedVec::<16>::with_capacity(buf_len / 4),
+                                                arena.acquire(),
+                                                rkyv::ser::sharing::Share::new(),
+                                            ),
+                                            Interner::<ModId<'_>>::default(),
+                                        ),
+                                        Interner::<String>::default(),
+                                    );
+                                    rkyv::api::serialize_using::<_, rkyv::rancor::Error>(
+                                        &mods,
+                                        &mut serializer,
+                                    )?;
+                                    let (serializer, interner) = serializer.into_components();
+                                    #[cfg(feature = "statistics")]
+                                    #[derive(Default)]
+                                    struct StatisticsAccumulator {
+                                        total_bytes: usize,
+                                        total_uses: usize,
+                                        single_use_entries: usize,
+                                    }
+                                    #[cfg(feature = "statistics")]
+                                    let stats = interner.iter().map(|(s, e)| (s.len(), e.ref_cnt.get())).fold(StatisticsAccumulator::default(), |mut stats, (len, ref_cnt)| {
+                                        stats.total_bytes += len;
+                                        stats.total_uses += ref_cnt;
+                                        if ref_cnt == 1 {
+                                            stats.single_use_entries += 1;
+                                        }
+                                        stats
+                                    });
+                                    Ok::<_, rkyv::rancor::Error>((serializer.into_serializer().into_writer(), {
+                                        #[cfg(feature = "statistics")]
+                                        {
+                                            Statistics {
+                                                values: interner.len(),
+                                                total_bytes: stats.total_bytes,
+                                                average_uses: stats.total_uses as f64 / interner.len() as f64,
+                                                single_use_entries: stats.single_use_entries,
+                                            }
+                                        }
+                                        #[cfg(not(feature = "statistics"))]
+                                        {
+                                            ()
+                                        }
+                                    }))
+                                })?;
+                                let encoded_at = std::time::Instant::now();
+                                let encoded_in = encoded_at.duration_since(decoded_at);
+                                let stats_prefix = if cfg!(feature = "statistics") { ", " } else { "" };
                                 #[cfg(not(feature = "statistics"))]
-                                {
-                                    ()
-                                }
-                            }))
-                        })?;
-                        let encoded_at = std::time::Instant::now();
-                        let encoded_in = encoded_at.duration_since(decoded_at);
-                        let stats_prefix = if cfg!(feature = "statistics") { ", " } else { "" };
-                        #[cfg(not(feature = "statistics"))]
-                        let stats = "";
-                        info!(
-                            log,
-                            "{buf_len} bytes of JSON -> {} bytes in memory ({:.2}%{stats_prefix}{stats}), {latency:?} spawning, {fetched_in:?} fetching, {decoded_in:?} decoding, {encoded_in:?} encoding",
-                            buf.len(),
-                            (buf.len() as f64 / buf_len as f64) * 100.0
-                        );
-                        let index = MemoryModIndex::new(buf, |data| {
-                            if cfg!(debug_assertions) {
-                                rkyv::access::<_, rkyv::rancor::Error>(data)
-                            } else{
-                                // SAFETY: rkyv just gave us this data. We trust it.
-                                Ok(unsafe { rkyv::access_unchecked(data) })
-                            }
-                        }).with_context(|| format!("Failed to create mod index from chunk at {url:?}"))?;
-                        Ok::<_, anyhow::Error>(index)
-                    })
-                })
-                .await?
-            }))
-            .await?;
-        *mod_index.data.write().await = new_mod_index;
+                                let stats = "";
+                                info!(
+                                    log,
+                                    "{buf_len} bytes of JSON -> {} bytes in memory ({:.2}%{stats_prefix}{stats}), {latency:?} spawning, {fetched_in:?} fetching, {decoded_in:?} decoding, {encoded_in:?} encoding",
+                                    buf.len(),
+                                    (buf.len() as f64 / buf_len as f64) * 100.0
+                                );
+                                let index = MemoryModIndex::new(buf, |data| {
+                                    if cfg!(debug_assertions) {
+                                        rkyv::access::<_, rkyv::rancor::Error>(data)
+                                    } else{
+                                        // SAFETY: rkyv just gave us this data. We trust it.
+                                        Ok(unsafe { rkyv::access_unchecked(data) })
+                                    }
+                                }).with_context(|| format!("Failed to create mod index from chunk at {url:?}"))?;
+                                Ok::<_, anyhow::Error>(index)
+                            })
+                        })
+                        .await?
+                    })).await
+                };
+                let new_mod_index = select! {
+                    // The "fair" strategy employed by select! should be entirely unnecessary for
+                    // this particular use case. `progress_updater` never polls Ready, so it cannot
+                    // starve new_mod_index.
+                    biased;
+                    _ = progress_updater => unreachable!(),
+                    r = new_mod_index => r?,
+                };
+                *mod_index.data.write().await = new_mod_index;
 
-        #[cfg(feature = "statistics")]
-        let (inline_version_count, out_of_line_version_count) =
-            crate::mods::get_version_repr_stats();
-        #[cfg(not(feature = "statistics"))]
-        let (inline_version_count, out_of_line_version_count) = (None::<u32>, None::<u32>);
-        info!(log, "Finished fetching mods"; "inline_version_count" => inline_version_count, "out_of_line_version_count" => out_of_line_version_count);
+                #[cfg(feature = "statistics")]
+                let (inline_version_count, out_of_line_version_count) =
+                    crate::mods::get_version_repr_stats();
+                #[cfg(not(feature = "statistics"))]
+                let (inline_version_count, out_of_line_version_count) = (None::<u32>, None::<u32>);
+                info!(log, "Finished fetching mods"; "inline_version_count" => inline_version_count, "out_of_line_version_count" => out_of_line_version_count);
+
+                Ok::<_, anyhow::Error>(())
+            })
+            .await
+            .map_err(Into::into)
+    } else {
+        Ok(())
     }
-
-    Ok(())
 }
 
 #[derive(Clone, Copy, serde::Deserialize)]

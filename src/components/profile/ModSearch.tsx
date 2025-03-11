@@ -1,14 +1,15 @@
 import { createResource, createSignal, ResourceFetcherInfo, Show, useContext } from "solid-js";
-import { countModIndex, FetchEvent, fetchModIndex, queryModIndex, SortColumn, SortOption } from "../../api";
+import { countModIndex, fetchModIndex, queryModIndex, SortColumn, SortOption } from "../../api";
 import { SortableList } from "../global/SortableList";
 import ModList, { ModInstallContext } from "./ModList";
 import styles from "./ModSearch.module.css";
 import { faRefresh } from "@fortawesome/free-solid-svg-icons";
 import Fa from "solid-fa";
 import { numberFormatter } from "../../utils";
-import { createStore } from "solid-js/store";
 import TogglableDropdown from "../global/TogglableDropdown";
 import { ErrorContext } from "../global/ErrorBoundary";
+import { createProgressProxyStore } from "../../api/tasks";
+import { SimpleProgressIndicator } from "../global/Progress";
 
 export interface InitialProgress {
   completed_steps: null;
@@ -28,11 +29,7 @@ export default function ModSearch(props: { game: string }) {
     { column: SortColumn.Owner, descending: false },
   ]);
 
-  const [progress, setProgress] = createStore<InitialProgress | FetchEvent>({
-    completed_steps: null,
-    total_steps: null,
-    progress: null,
-  });
+  const [progress, setProgress] = createProgressProxyStore();
 
   const reportErr = useContext(ErrorContext)!;
 
@@ -40,7 +37,11 @@ export default function ModSearch(props: { game: string }) {
     () => props.game,
     async (game, info: ResourceFetcherInfo<boolean, never>) => {
       try {
-        await fetchModIndex(game, { refresh: info.refetching }, setProgress);
+        await fetchModIndex(game, { refresh: info.refetching }, (event) => {
+          if (event.event === "created") {
+            setProgress(event.progress);
+          }
+        });
       } catch (e) {
         reportErr(e);
         throw e;
@@ -124,8 +125,7 @@ export default function ModSearch(props: { game: string }) {
           <p>
             Fetching mods [{progress.completed_steps}/{progress.total_steps}]
           </p>
-          {/* this complains about taking null but expecting undefined, but if we give it undefined it throws an error about the value being non-finite */}
-          <progress value={progress.progress} />
+          <SimpleProgressIndicator progress={progress} />
         </div>
       </Show>
 

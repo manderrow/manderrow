@@ -32,3 +32,14 @@ macro_rules! hyphenated_uuid {
     };
 }
 pub(crate) use hyphenated_uuid;
+
+pub trait UsizeExt {
+    fn as_u64(self) -> u64;
+}
+
+impl UsizeExt for usize {
+    #[inline]
+    fn as_u64(self) -> u64 {
+        self.try_into().expect("how is life with 128-bit computers?")
+    }
+}

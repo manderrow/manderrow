@@ -8,6 +8,7 @@ pub struct Id(pub(super) u64);
 pub struct Metadata {
     pub title: Cow<'static, str>,
     pub kind: Kind,
+    pub progress_unit: ProgressUnit,
 }
 
 #[derive(Debug, Clone, Copy, serde::Serialize)]
@@ -16,29 +17,56 @@ pub enum Kind {
     Other,
 }
 
+#[derive(Debug, Clone, Copy, serde::Serialize)]
+pub enum ProgressUnit {
+    Bytes,
+    Other,
+}
+
 #[derive(Clone, serde::Serialize)]
 pub struct Progress {
     pub completed_steps: u64,
     pub total_steps: u64,
-    pub progress: f64,
+    pub completed_progress: u64,
+    pub total_progress: u64,
+}
+
+#[derive(Clone, serde::Serialize)]
+pub struct TaskEvent<T: TaskEventBody> {
+    pub id: Id,
+    #[serde(flatten)]
+    pub body: T,
+}
+
+pub trait TaskEventBody: Clone + serde::Serialize {
+    const NAME: &str;
 }
 
 #[derive(Clone, serde::Serialize)]
 pub struct TaskCreated {
-    pub id: Id,
     pub metadata: Metadata,
+}
+
+impl TaskEventBody for TaskCreated {
+    const NAME: &str = "task_created";
 }
 
 #[derive(Clone, serde::Serialize)]
 pub struct TaskProgress {
-    pub id: Id,
     pub progress: Progress,
+}
+
+impl TaskEventBody for TaskProgress {
+    const NAME: &str = "task_progress";
 }
 
 #[derive(Clone, serde::Serialize)]
 pub struct TaskDropped {
-    pub id: Id,
     pub status: DropStatus,
+}
+
+impl TaskEventBody for TaskDropped {
+    const NAME: &str = "task_dropped";
 }
 
 #[derive(Clone, serde::Serialize)]
@@ -50,16 +78,4 @@ pub enum DropStatus {
         direct: bool,
     },
     Failed(Cow<'static, str>),
-}
-
-impl TaskCreated {
-    pub const EVENT: &str = "task_created";
-}
-
-impl TaskProgress {
-    pub const EVENT: &str = "task_progress";
-}
-
-impl TaskDropped {
-    pub const EVENT: &str = "task_dropped";
 }

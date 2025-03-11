@@ -24,7 +24,7 @@ pub use private::ReqwestBytesStream;
 
 use crate::util::progress::Step;
 
-use super::Progress;
+use super::{Progress, UsizeExt};
 
 pub trait ResponseExt {
     fn reader(self) -> ResponseReader;
@@ -45,12 +45,10 @@ impl ResponseExt for Response {
         let mut step = progress.step();
         ProgressReader {
             reader: self.reader(),
-            progress: expected
-                .and_then(|n| u32::try_from(n).ok())
-                .map(move |expected| {
-                    step.add(0, expected);
-                    step
-                }),
+            progress: expected.map(move |expected| {
+                step.add(0, expected);
+                step
+            }),
         }
     }
 }
@@ -74,9 +72,7 @@ impl<'a, R: AsyncRead> AsyncRead for ProgressReader<'a, R> {
         this.reader.poll_read(cx, buf).map_ok(|()| {
             if let Some(progress) = this.progress {
                 progress.add(
-                    (buf.filled().len() - initial_filled)
-                        .try_into()
-                        .unwrap_or(u32::MAX),
+                    (buf.filled().len() - initial_filled).as_u64(),
                     0,
                 );
             }
@@ -98,7 +94,10 @@ impl<'a, R: AsyncBufRead> AsyncBufRead for ProgressReader<'a, R> {
         let this = self.project();
         this.reader.consume(amt);
         if let Some(progress) = this.progress {
-            progress.add(amt.try_into().unwrap_or(u32::MAX), 0);
+            progress.add(
+                amt.as_u64(),
+                0,
+            );
         }
     }
 }

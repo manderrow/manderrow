@@ -17,25 +17,24 @@ use std::{
     collections::HashMap,
     future::Future,
     mem::ManuallyDrop,
+    ops::Deref,
     sync::{atomic::AtomicU64, LazyLock},
 };
 
 use anyhow::{anyhow, bail, Result};
-use futures::{
-    future::{Fuse, FusedFuture},
-    FutureExt,
-};
+use futures::FutureExt;
 use tauri::{AppHandle, Emitter};
 use tokio::{
     select,
     sync::{oneshot, RwLock},
 };
 
-use types::*;
+pub use types::*;
 
 const EVENT_TARGET: &str = "main";
 
 pub struct TaskBuilder {
+    id: Id,
     metadata: Metadata,
 }
 
@@ -63,19 +62,68 @@ impl<E: Into<anyhow::Error>> From<TaskError<E>> for anyhow::Error {
     }
 }
 
-// struct TaskHandle<'a> {
-//     app: &'a AppHandle,
-//     id: Id,
-// }
+#[derive(Clone, Copy)]
+pub struct TaskHandle(Option<Id>);
 
 /// You should never drop this struct except by calling [`Self::drop`] with a [status](DropStatus) to ensure that the frontend is informed.
-struct TaskHandleInner<'a> {
+struct OwnedTaskHandleInner<'a> {
     app: &'a AppHandle,
     id: Id,
-    cancelled: Fuse<oneshot::Receiver<()>>,
+    cancelled: oneshot::Receiver<()>,
 }
 
-impl Drop for TaskHandleInner<'_> {
+impl Id {
+    fn emit<T: TaskEventBody>(self, app: &AppHandle, event: T) -> tauri::Result<()> {
+        app.emit_to(
+            EVENT_TARGET,
+            T::NAME,
+            TaskEvent {
+                id: self,
+                body: event,
+            },
+        )
+    }
+}
+
+impl TaskHandle {
+    pub fn send_progress_manually(&self, app: &AppHandle, completed_progress: u64, total_progress: u64) -> Result<()> {
+        if let Some(handle) = self.0 {
+            handle.emit(
+                app,
+                TaskProgress {
+                    progress: Progress {
+                        completed_steps: 0,
+                        total_steps: 1,
+                        completed_progress,
+                        total_progress,
+                    },
+                },
+            )?;
+        }
+        Ok(())
+    }
+
+    pub fn send_progress(&self, app: &AppHandle, progress: &crate::util::Progress) -> Result<()> {
+        if let Some(handle) = self.0 {
+            let steps = progress.get_steps();
+            let (completed_progress, total_progress) = progress.get_progress();
+            handle.emit(
+                app,
+                TaskProgress {
+                    progress: Progress {
+                        completed_steps: steps.0.into(),
+                        total_steps: steps.1.into(),
+                        completed_progress,
+                        total_progress,
+                    },
+                },
+            )?;
+        }
+        Ok(())
+    }
+}
+
+impl Drop for OwnedTaskHandleInner<'_> {
     fn drop(&mut self) {
         tokio::task::block_in_place(|| {
             TASKS.blocking_write().remove(&self.id);
@@ -83,30 +131,35 @@ impl Drop for TaskHandleInner<'_> {
     }
 }
 
-impl TaskHandleInner<'_> {
+impl<'a> Deref for OwnedTaskHandleInner<'a> {
+    type Target = Id;
+
+    fn deref(&self) -> &Self::Target {
+        &self.id
+    }
+}
+
+impl OwnedTaskHandleInner<'_> {
     fn drop(self, status: DropStatus) -> Result<()> {
-        self.app.emit_to(
-            EVENT_TARGET,
-            TaskDropped::EVENT,
-            TaskDropped {
-                id: self.id,
-                status,
-            },
-        )?;
+        self.emit(self.app, TaskDropped { status })?;
         Ok(())
     }
 }
 
-struct TaskHandle<'a> {
-    inner: ManuallyDrop<TaskHandleInner<'a>>,
+struct OwnedTaskHandle<'a> {
+    inner: ManuallyDrop<OwnedTaskHandleInner<'a>>,
 }
 
-impl<'a> TaskHandle<'a> {
+impl<'a> OwnedTaskHandle<'a> {
+    /// Once a future returned by this method completes, subsequent attempts to poll futures
+    /// returned from this method will panic.
     fn cancelled(&mut self) -> CancelledFuture<'_, 'a> {
         CancelledFuture { handle: self }
     }
 
     fn drop(self, status: DropStatus) -> Result<()> {
+        // use ManuallyDrop to avoid calling <TaskHandle as Drop>::drop which exists only to
+        // handle cases where the task Future is dropped
         let mut this = ManuallyDrop::new(self);
         // SAFETY: this will not be dropped
         unsafe { ManuallyDrop::take(&mut this.inner) }.drop(status)
@@ -117,7 +170,7 @@ impl<'a> TaskHandle<'a> {
     }
 }
 
-impl Drop for TaskHandle<'_> {
+impl Drop for OwnedTaskHandle<'_> {
     fn drop(&mut self) {
         // SAFETY: inner has not been dropped yet
         let inner = unsafe { ManuallyDrop::take(&mut self.inner) };
@@ -125,20 +178,39 @@ impl Drop for TaskHandle<'_> {
     }
 }
 
+pub fn allocate_task() -> Id {
+    Id(NEXT_TASK_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
+}
+
 impl TaskBuilder {
-    pub fn new(title: impl Into<Cow<'static, str>>, kind: Kind) -> Self {
+    pub fn new(title: impl Into<Cow<'static, str>>) -> Self {
+        Self::with_id(allocate_task(), title)
+    }
+
+    pub fn with_id(id: Id, title: impl Into<Cow<'static, str>>) -> Self {
         Self {
+            id,
             metadata: Metadata {
                 title: title.into(),
-                kind,
+                kind: Kind::Other,
+                progress_unit: ProgressUnit::Other,
             },
         }
     }
 
-    async fn create<'a>(self, app: &'a AppHandle) -> Result<TaskHandle<'a>> {
-        let id = Id(NEXT_TASK_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed));
+    pub fn kind(mut self, kind: Kind) -> Self {
+        self.metadata.kind = kind;
+        self
+    }
+
+    pub fn progress_unit(mut self, progress_unit: ProgressUnit) -> Self {
+        self.metadata.progress_unit = progress_unit;
+        self
+    }
+
+    async fn create<'a>(self, app: &'a AppHandle) -> Result<OwnedTaskHandle<'a>> {
         let (cancel, cancelled) = oneshot::channel();
-        match TASKS.write().await.entry(id) {
+        match TASKS.write().await.entry(self.id) {
             std::collections::hash_map::Entry::Occupied(_) => {
                 // the NEXT_TASK_ID counter not only wrapped around, but also collided with a task that has not been removed yet.
                 bail!("User never reboots their computer")
@@ -147,19 +219,17 @@ impl TaskBuilder {
                 entry.insert(TaskData {
                     cancel: Some(cancel),
                 });
-                app.emit_to(
-                    EVENT_TARGET,
-                    TaskCreated::EVENT,
+                self.id.emit(
+                    app,
                     TaskCreated {
-                        id,
                         metadata: self.metadata,
                     },
                 )?;
-                Ok(TaskHandle {
-                    inner: ManuallyDrop::new(TaskHandleInner {
+                Ok(OwnedTaskHandle {
+                    inner: ManuallyDrop::new(OwnedTaskHandleInner {
                         app,
-                        id,
-                        cancelled: cancelled.fuse(),
+                        id: self.id,
+                        cancelled,
                     }),
                 })
             }
@@ -174,10 +244,10 @@ impl TaskBuilder {
         self.run_with_progress(app, move |_| fut).await
     }
 
-    pub async fn run_with_progress<F, T, E>(
+    pub async fn run_with_progress<'a, F, T, E>(
         self,
-        app: Option<&AppHandle>,
-        fut: impl FnOnce(()) -> F,
+        app: Option<&'a AppHandle>,
+        fut: impl FnOnce(TaskHandle) -> F,
     ) -> Result<T, TaskError<E>>
     where
         F: Future<Output = Result<T, E>>,
@@ -188,7 +258,7 @@ impl TaskBuilder {
         } else {
             None
         };
-        let fut = fut(());
+        let fut = fut(TaskHandle(handle.as_ref().map(|handle| handle.inner.id)));
         select! {
             () = async { if let Some(handle) = &mut handle { handle.cancelled().await } } => {
                 handle.unwrap().drop(DropStatus::Cancelled { direct: true }).map_err(TaskError::Management)?;
@@ -216,7 +286,7 @@ impl TaskBuilder {
 
 pin_project_lite::pin_project! {
     struct CancelledFuture<'a, 'b> {
-        handle: &'a mut TaskHandle<'b>,
+        handle: &'a mut OwnedTaskHandle<'b>,
     }
 }
 
@@ -228,14 +298,10 @@ impl Future for CancelledFuture<'_, '_> {
         cx: &mut std::task::Context<'_>,
     ) -> std::task::Poll<Self::Output> {
         let this = self.project();
-        if this.handle.inner.cancelled.is_terminated() {
-            std::task::Poll::Ready(())
-        } else {
-            match this.handle.inner.cancelled.poll_unpin(cx) {
-                std::task::Poll::Ready(Ok(())) => std::task::Poll::Ready(()),
-                std::task::Poll::Ready(Err(_)) => panic!("TaskData dropped before TaskHandle"),
-                std::task::Poll::Pending => std::task::Poll::Pending,
-            }
+        match this.handle.inner.cancelled.poll_unpin(cx) {
+            std::task::Poll::Ready(Ok(())) => std::task::Poll::Ready(()),
+            std::task::Poll::Ready(Err(_)) => panic!("TaskData dropped before TaskHandle"),
+            std::task::Poll::Pending => std::task::Poll::Pending,
         }
     }
 }

@@ -30,7 +30,8 @@ impl AtomicU32x2 {
 #[derive(Default)]
 pub struct Progress {
     steps: AtomicU32x2,
-    progress: AtomicU32x2,
+    completed_progress: AtomicU64,
+    total_progress: AtomicU64,
     updates: tokio::sync::Notify,
 }
 
@@ -43,8 +44,11 @@ impl Progress {
         self.steps.get()
     }
 
-    pub fn get_progress(&self) -> (u32, u32) {
-        self.progress.get()
+    pub fn get_progress(&self) -> (u64, u64) {
+        (
+            self.completed_progress.load(Ordering::Acquire),
+            self.total_progress.load(Ordering::Acquire),
+        )
     }
 
     pub fn step(&self) -> Step<'_> {
@@ -52,14 +56,15 @@ impl Progress {
         self.update();
         Step {
             progress: self,
-            complete: 0,
-            total: 0,
+            // complete: 0,
+            // total: 0,
         }
     }
 
     pub fn reset(&self) {
         self.steps.set(0, 0);
-        self.progress.set(0, 0);
+        self.completed_progress.store(0, Ordering::Release);
+        self.total_progress.store(0, Ordering::Release);
         self.update();
     }
 
@@ -70,22 +75,32 @@ impl Progress {
 
 pub struct Step<'a> {
     progress: &'a Progress,
-    complete: u32,
-    total: u32,
+    // complete: u64,
+    // total: u64,
 }
 
 impl<'a> Step<'a> {
-    pub fn add(&mut self, complete: u32, total: u32) {
-        self.complete += complete;
-        self.total += total;
-        self.progress.progress.add(complete, total);
+    pub fn add(&mut self, complete: u64, total: u64) {
+        // self.complete += complete;
+        // self.total += total;
+        self.progress
+            .completed_progress
+            .fetch_add(complete, Ordering::AcqRel);
+        self.progress
+            .total_progress
+            .fetch_add(total, Ordering::AcqRel);
         self.progress.update();
     }
 }
 
 impl<'a> Drop for Step<'a> {
     fn drop(&mut self) {
-        self.progress.progress.sub(self.complete, self.total);
+        // self.progress
+        //     .completed_progress
+        //     .fetch_sub(self.complete, Ordering::AcqRel);
+        // self.progress
+        //     .total_progress
+        //     .fetch_sub(self.total, Ordering::AcqRel);
         self.progress.steps.add(1, 0);
         self.progress.update();
     }
