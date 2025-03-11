@@ -25,10 +25,8 @@ pub enum ProgressUnit {
 
 #[derive(Clone, serde::Serialize)]
 pub struct Progress {
-    pub completed_steps: u64,
-    pub total_steps: u64,
-    pub completed_progress: u64,
-    pub total_progress: u64,
+    pub completed: u64,
+    pub total: u64,
 }
 
 #[derive(Clone, serde::Serialize)]

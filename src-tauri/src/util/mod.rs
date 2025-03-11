@@ -40,6 +40,7 @@ pub trait UsizeExt {
 impl UsizeExt for usize {
     #[inline]
     fn as_u64(self) -> u64 {
-        self.try_into().expect("how is life with 128-bit computers?")
+        self.try_into()
+            .expect("how is life with 128-bit computers?")
     }
 }

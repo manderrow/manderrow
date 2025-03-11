@@ -22,8 +22,6 @@ mod private {
 
 pub use private::ReqwestBytesStream;
 
-use crate::util::progress::Step;
-
 use super::{Progress, UsizeExt};
 
 pub trait ResponseExt {
@@ -42,12 +40,11 @@ impl ResponseExt for Response {
         if expected.is_none() {
             slog_scope::warn!("No progress available for HTTP response, because no content length was provided by the server");
         }
-        let mut step = progress.step();
         ProgressReader {
             reader: self.reader(),
             progress: expected.map(move |expected| {
-                step.add(0, expected);
-                step
+                progress.add(0, expected);
+                progress
             }),
         }
     }
@@ -57,7 +54,7 @@ pin_project! {
     pub struct ProgressReader<'a, R> {
         #[pin]
         reader: R,
-        progress: Option<Step<'a>>,
+        progress: Option<&'a Progress>,
     }
 }
 
@@ -71,10 +68,7 @@ impl<'a, R: AsyncRead> AsyncRead for ProgressReader<'a, R> {
         let initial_filled = buf.filled().len();
         this.reader.poll_read(cx, buf).map_ok(|()| {
             if let Some(progress) = this.progress {
-                progress.add(
-                    (buf.filled().len() - initial_filled).as_u64(),
-                    0,
-                );
+                progress.add((buf.filled().len() - initial_filled).as_u64(), 0);
             }
             ()
         })
@@ -93,11 +87,8 @@ impl<'a, R: AsyncBufRead> AsyncBufRead for ProgressReader<'a, R> {
     fn consume(self: std::pin::Pin<&mut Self>, amt: usize) {
         let this = self.project();
         this.reader.consume(amt);
-        if let Some(progress) = this.progress {
-            progress.add(
-                amt.as_u64(),
-                0,
-            );
+        if let Some(progress) = *this.progress {
+            progress.add(amt.as_u64(), 0);
         }
     }
 }

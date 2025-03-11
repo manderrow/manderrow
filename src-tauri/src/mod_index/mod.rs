@@ -111,7 +111,6 @@ pub async fn fetch_mod_index(
                             let latency = spawned_at.duration_since(started_at);
                             let mut buf = Vec::new();
                             {
-                                let _step = mod_index.progress.step();
                                 let mut rdr = GzipDecoder::new(
                                     app_handle
                                         .state::<Reqwest>()
@@ -127,7 +126,6 @@ pub async fn fetch_mod_index(
                             }
                             let fetched_at = std::time::Instant::now();
                             let fetched_in = fetched_at.duration_since(spawned_at);
-                            let _step = mod_index.progress.step();
                             tokio::task::block_in_place(move || {
                                 let buf_len = buf.len();
                                 let mods = simd_json::from_slice::<Vec<ModRef>>(&mut buf)?;

@@ -20,10 +20,8 @@ export interface Metadata {
 }
 
 export interface Progress {
-  completed_steps: number;
-  total_steps: number;
-  completed_progress: number;
-  total_progress: number;
+  completed: number;
+  total: number;
 }
 
 const SET_METADATA = Symbol();
@@ -32,27 +30,19 @@ const SET_PROGRESS = Symbol();
 
 export function initProgress(): Progress {
   return {
-    completed_steps: 0,
-    total_steps: 0,
-    completed_progress: 0,
-    total_progress: 0,
+    completed: 0,
+    total: 0,
   };
 }
 
 export function createProgressProxyStore(): [Progress, Setter<Store<Progress>>] {
   const [progress, setProgress] = createSignal<Store<Progress>>();
   return [Object.freeze({
-    get completed_steps() {
-      return progress()?.completed_steps ?? 0;
+    get completed() {
+      return progress()?.completed ?? 0;
     },
-    get total_steps() {
-      return progress()?.total_steps ?? 0;
-    },
-    get completed_progress() {
-      return progress()?.completed_progress ?? 0;
-    },
-    get total_progress() {
-      return progress()?.total_progress ?? 0;
+    get total() {
+      return progress()?.total ?? 0;
     },
   }), setProgress as Setter<Store<Progress>>];
 }

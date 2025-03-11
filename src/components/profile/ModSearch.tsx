@@ -1,7 +1,7 @@
 import { createResource, createSignal, ResourceFetcherInfo, Show, useContext } from "solid-js";
 import { countModIndex, fetchModIndex, queryModIndex, SortColumn, SortOption } from "../../api";
 import { SortableList } from "../global/SortableList";
-import ModList, { ModInstallContext } from "./ModList";
+import ModList from "./ModList";
 import styles from "./ModSearch.module.css";
 import { faRefresh } from "@fortawesome/free-solid-svg-icons";
 import Fa from "solid-fa";
@@ -68,8 +68,6 @@ export default function ModSearch(props: { game: string }) {
     { initialValue: { mods: async (_: number) => [], count: 0 } },
   );
 
-  const installContext = useContext(ModInstallContext);
-
   return (
     <div class={styles.modSearch}>
       <form on:submit={(e) => e.preventDefault()} class={styles.modSearch__form}>
@@ -122,9 +120,7 @@ export default function ModSearch(props: { game: string }) {
 
       <Show when={loadStatus.loading}>
         <div class={styles.progressLine}>
-          <p>
-            Fetching mods [{progress.completed_steps}/{progress.total_steps}]
-          </p>
+          <p>Fetching mods</p>
           <SimpleProgressIndicator progress={progress} />
         </div>
       </Show>

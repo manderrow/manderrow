@@ -86,17 +86,17 @@ impl Id {
 }
 
 impl TaskHandle {
-    pub fn send_progress_manually(&self, app: &AppHandle, completed_progress: u64, total_progress: u64) -> Result<()> {
+    pub fn send_progress_manually(
+        &self,
+        app: &AppHandle,
+        completed: u64,
+        total: u64,
+    ) -> Result<()> {
         if let Some(handle) = self.0 {
             handle.emit(
                 app,
                 TaskProgress {
-                    progress: Progress {
-                        completed_steps: 0,
-                        total_steps: 1,
-                        completed_progress,
-                        total_progress,
-                    },
+                    progress: Progress { completed, total },
                 },
             )?;
         }
@@ -105,17 +105,11 @@ impl TaskHandle {
 
     pub fn send_progress(&self, app: &AppHandle, progress: &crate::util::Progress) -> Result<()> {
         if let Some(handle) = self.0 {
-            let steps = progress.get_steps();
-            let (completed_progress, total_progress) = progress.get_progress();
+            let (completed, total) = progress.get();
             handle.emit(
                 app,
                 TaskProgress {
-                    progress: Progress {
-                        completed_steps: steps.0.into(),
-                        total_steps: steps.1.into(),
-                        completed_progress,
-                        total_progress,
-                    },
+                    progress: Progress { completed, total },
                 },
             )?;
         }

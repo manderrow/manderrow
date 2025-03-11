@@ -1,4 +1,8 @@
 .tasks {
+  display: flex;
+  flex-direction: column;
+  width: 70ch;
+  height: 70vh;
 }
 
 .header {

@@ -26,7 +26,6 @@ export default function AsyncButton(props: {
             await f((event) => {
               if (event.event === "created") {
                 setProgress(event.progress);
-                console.log(progress.completed_progress, progress.total_progress);
               }
             });
           } catch (e) {
