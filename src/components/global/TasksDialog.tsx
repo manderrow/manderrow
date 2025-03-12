@@ -1,8 +1,8 @@
-import { createSignal, createUniqueId, For, Show } from "solid-js";
+import { createSignal, createUniqueId, For, JSX, Show } from "solid-js";
 
 import { DefaultDialog, DismissCallback } from "./Dialog";
 import { ProgressUnit, Task, tasks } from "../../api/tasks";
-import { humanizeFileSize } from "../../utils";
+import { humanizeFileSize, roundedNumberFormatter } from "../../utils";
 import { clearCache } from "../../api/installing";
 import { SimpleAsyncButton } from "./AsyncButton";
 
@@ -25,14 +25,26 @@ export default function TasksDialog(props: { onDismiss: DismissCallback }) {
             <SimpleAsyncButton onClick={clearCache}>Clear Cache</SimpleAsyncButton>
           </div>
 
-          <input type="radio" style="display:none" name={radioGroupName} id={activeRadioId} on:change={() => setShowingActive(true)} checked={showingActive()} />
-          <label for={activeRadioId}><h3>Active</h3></label>
+          <TaskSectionHeader
+            radioGroupName={radioGroupName}
+            radioId={activeRadioId}
+            onSelect={() => setShowingActive(true)}
+            selected={showingActive()}
+          >
+            Active
+          </TaskSectionHeader>
           <Show when={showingActive()}>
             <TaskList where={(task) => !task.isComplete} />
           </Show>
 
-          <input type="radio" style="display:none" name={radioGroupName} id={completedRadioId} on:change={() => setShowingActive(false)} checked={!showingActive()} />
-          <label for={completedRadioId}><h3>Completed</h3></label>
+          <TaskSectionHeader
+            radioGroupName={radioGroupName}
+            radioId={completedRadioId}
+            onSelect={() => setShowingActive(false)}
+            selected={!showingActive()}
+          >
+            Completed
+          </TaskSectionHeader>
           <Show when={!showingActive()}>
             <TaskList where={(task) => task.isComplete} />
           </Show>
@@ -41,40 +53,80 @@ export default function TasksDialog(props: { onDismiss: DismissCallback }) {
     </>
   );
 }
+
+function TaskSectionHeader(props: {
+  radioGroupName: string;
+  radioId: string;
+  onSelect: () => void;
+  selected: boolean;
+  children: JSX.Element;
+}) {
+  return (
+    <>
+      <input
+        type="radio"
+        style="display:none"
+        name={props.radioGroupName}
+        id={props.radioId}
+        on:change={props.onSelect}
+        checked={props.selected}
+      />
+      <label class={styles.section} for={props.radioId}>
+        <h3>{props.children}</h3>
+      </label>
+    </>
+  );
+}
+
 function TaskList(props: { where: (task: Task) => boolean }) {
   return (
-    <ul>
+    <ul class={styles.list}>
       <For each={Array.from(tasks.entries())}>
         {(e) => {
           const [id, task] = e;
           return (
             <Show when={task.status.status !== "Unstarted" && props.where(task)}>
               <li>
-                <h4>
-                  <span>{id}</span>. {task.metadata.title}
-                </h4>
-                <p>
-                  Kind: <span>{task.metadata.kind}</span>
-                </p>
-                <p>
-                  Status: <span>{task.status.status}</span>
-                </p>
                 <Show when={!task.isComplete}>
                   <SimpleProgressIndicator progress={task.progress} />
                 </Show>
-                <Show when={task.metadata.progress_unit === ProgressUnit.Bytes}>
-                  <Show
-                    when={task.isComplete && task.progress.completed === task.progress.total}
-                    fallback={
-                      <p>
-                        <span>{humanizeFileSize(task.progress.completed)}</span> /{" "}
-                        <span>{humanizeFileSize(task.progress.total)}</span>
-                      </p>
-                    }
-                  >
-                    <p>{humanizeFileSize(task.progress.completed)}</p>
-                  </Show>
-                </Show>
+                <div>
+                  <div>
+                    <h4>
+                      <Show when={task.metadata.kind === "Download"}>Download</Show> {task.metadata.title}
+                    </h4>
+                    <p>
+                      status=<span>{task.status.status}</span>
+                    </p>
+
+                    <p class={styles.status_line}>
+                      <Show when={task.status.status !== "Running" || task.progress.total === 0}>
+                        <span>{task.status.status}</span>
+                      </Show>
+                      <Show when={!task.isComplete && task.progress.total !== 0}>
+                        <span>
+                          {roundedNumberFormatter.format((task.progress.completed / task.progress.total) * 100)}%
+                        </span>
+                      </Show>
+
+                      <Show when={task.metadata.progress_unit === ProgressUnit.Bytes}>
+                        <span>
+                          <Show
+                            when={task.isComplete && task.progress.completed === task.progress.total}
+                            fallback={
+                              <>
+                                <span>{humanizeFileSize(task.progress.completed)}</span> /{" "}
+                                <span>{humanizeFileSize(task.progress.total)}</span>
+                              </>
+                            }
+                          >
+                            {humanizeFileSize(task.progress.completed)}
+                          </Show>
+                        </span>
+                      </Show>
+                    </p>
+                  </div>
+                </div>
               </li>
             </Show>
           );

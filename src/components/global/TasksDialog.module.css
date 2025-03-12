@@ -3,10 +3,54 @@
   flex-direction: column;
   width: 70ch;
   height: 70vh;
+  overflow-y: auto;
 }
 
 .header {
   display: flex;
   flex-direction: row;
   justify-content: space-between;
+}
+
+.section {
+  border: 2px solid white;
+  padding: 4px 8px;
+  margin: 4px 0;
+}
+
+.list {
+  & > li {
+    display: flex;
+    flex-direction: column;
+
+    padding: 8px 0;
+
+    border-color: white;
+    border-style: solid;
+    border-width: 0;
+
+    &:not(:first-child) {
+      border-top-width: 2px;
+    }
+
+    & progress {
+      width: 100%;
+    }
+
+    & > div {
+      display: flex;
+      flex-direction: row;
+
+      & > div {
+        display: flex;
+        flex-direction: column;
+      }
+    }
+
+    & .status_line {
+      & > span:not(:first-child)::before {
+        content: " · ";
+      }
+    }
+  }
 }
