@@ -1,0 +1,7 @@
+{
+  "tasks": {},
+  "imports": {
+    "@std/cli": "jsr:@std/cli@^1.0.14",
+    "@std/streams": "jsr:@std/streams@^1.0.9"
+  }
+}
