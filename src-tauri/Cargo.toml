@@ -89,7 +89,7 @@ libc = "0.2.169"
 nc = "0.9.5"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
-tauri-plugin-single-instance = "2"
+tauri-plugin-single-instance = "2.2.2"
 
 [profile.dev]
 lto = false
