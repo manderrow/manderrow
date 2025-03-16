@@ -2232,7 +2232,7 @@
   {
     "id": "repo",
     "name": "R.E.P.O.",
-    "thunderstoreUrl": "https://thunderstore.dev/c/repo/api/v1/package-listing-index/",
+    "thunderstoreUrl": "https://thunderstore.io/c/repo/api/v1/package-listing-index/",
     "packageLoader": "BepInEx",
     "dataFolderName": "REPO_Data",
     "steamFolderName": "REPO",
@@ -2248,7 +2248,7 @@
   {
     "id": "dusk",
     "name": "DUSK",
-    "thunderstoreUrl": "https://thunderstore.dev/c/dusk/api/v1/package-listing-index/",
+    "thunderstoreUrl": "https://thunderstore.io/c/dusk/api/v1/package-listing-index/",
     "packageLoader": "BepInEx",
     "dataFolderName": "Dusk_Data",
     "steamFolderName": "DUSK",
@@ -2264,7 +2264,7 @@
   {
     "id": "my-dream-setup",
     "name": "My Dream Setup",
-    "thunderstoreUrl": "https://thunderstore.dev/c/my-dream-setup/api/v1/package-listing-index/",
+    "thunderstoreUrl": "https://thunderstore.io/c/my-dream-setup/api/v1/package-listing-index/",
     "packageLoader": "BepInEx",
     "dataFolderName": "MDS_Data",
     "steamFolderName": "My dream setup/MDS",
@@ -2280,7 +2280,7 @@
   {
     "id": "zort",
     "name": "Zort",
-    "thunderstoreUrl": "https://thunderstore.dev/c/zort/api/v1/package-listing-index/",
+    "thunderstoreUrl": "https://thunderstore.io/c/zort/api/v1/package-listing-index/",
     "packageLoader": "BepInEx",
     "dataFolderName": "Zort_Data",
     "steamFolderName": "Zort",
@@ -2296,7 +2296,7 @@
   {
     "id": "disco-elysium",
     "name": "Disco Elysium",
-    "thunderstoreUrl": "https://thunderstore.dev/c/disco-elysium/api/v1/package-listing-index/",
+    "thunderstoreUrl": "https://thunderstore.io/c/disco-elysium/api/v1/package-listing-index/",
     "packageLoader": "BepInEx",
     "dataFolderName": "disco_Data",
     "steamFolderName": "Disco Elysium",
@@ -2312,7 +2312,7 @@
   {
     "id": "odd-remedy",
     "name": "Odd Remedy",
-    "thunderstoreUrl": "https://thunderstore.dev/c/odd-remedy/api/v1/package-listing-index/",
+    "thunderstoreUrl": "https://thunderstore.io/c/odd-remedy/api/v1/package-listing-index/",
     "packageLoader": "BepInEx",
     "dataFolderName": "OddRemedy_Data",
     "steamFolderName": "OddRemedy",
@@ -2328,7 +2328,7 @@
   {
     "id": "monster-train-2",
     "name": "Monster Train 2",
-    "thunderstoreUrl": "https://thunderstore.dev/c/monster-train-2/api/v1/package-listing-index/",
+    "thunderstoreUrl": "https://thunderstore.io/c/monster-train-2/api/v1/package-listing-index/",
     "packageLoader": "BepInEx",
     "dataFolderName": "MonsterTrain2-Demo_Data",
     "steamFolderName": "Monster Train 2 Demo",
@@ -2344,7 +2344,7 @@
   {
     "id": "subterror",
     "name": "Subterror",
-    "thunderstoreUrl": "https://thunderstore.dev/c/subterror/api/v1/package-listing-index/",
+    "thunderstoreUrl": "https://thunderstore.io/c/subterror/api/v1/package-listing-index/",
     "packageLoader": "BepInEx",
     "dataFolderName": "Subterror_Data",
     "steamFolderName": "Subterror",

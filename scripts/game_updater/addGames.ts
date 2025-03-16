@@ -2,8 +2,8 @@ import { ThunderstoreCommunityApiResponse, ThunderstoreCommunityGame } from "./t
 import { Game, StorePlatformMetadata } from "../../src/types.d.ts";
 import { TextLineStream } from "@std/streams";
 
-const gamesJsonPath = "../../src-tauri/src/games.json";
-import existingGames from "../../src-tauri/src/games.json" with {type: "json"}
+const gamesJsonPath = "../../src-tauri/src/games/games.json";
+import existingGames from "../../src-tauri/src/games/games.json" with {type: "json"}
 
 const THUNDERSTORE_COMMUNITIES_API =
   "https://thunderstore.io/api/cyberstorm/community/?ordering=-aggregated_fields__package_count";
@@ -55,7 +55,7 @@ for (let i = 0; i < diff.length; ) {
   const gameData: Partial<Game> = {
     id: game.identifier,
     name: game.name,
-    thunderstoreUrl: `https://thunderstore.dev/c/${game.identifier}/api/v1/package-listing-index/`,
+    thunderstoreUrl: `https://thunderstore.io/c/${game.identifier}/api/v1/package-listing-index/`,
   };
 
   for (const field of fields) {
