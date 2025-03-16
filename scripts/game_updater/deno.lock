@@ -1,0 +1,28 @@
+{
+  "version": "4",
+  "specifiers": {
+    "jsr:@std/bytes@^1.0.5": "1.0.5",
+    "jsr:@std/cli@^1.0.14": "1.0.14",
+    "jsr:@std/streams@^1.0.9": "1.0.9"
+  },
+  "jsr": {
+    "@std/bytes@1.0.5": {
+      "integrity": "4465dd739d7963d964c809202ebea6d5c6b8e3829ef25c6a224290fbb8a1021e"
+    },
+    "@std/cli@1.0.14": {
+      "integrity": "b09ee9921cd476c0e08185ed2bfce682d45ecf4654f26c31b4aa244a2c5c024e"
+    },
+    "@std/streams@1.0.9": {
+      "integrity": "a9d26b1988cdd7aa7b1f4b51e1c36c1557f3f252880fa6cc5b9f37078b1a5035",
+      "dependencies": [
+        "jsr:@std/bytes"
+      ]
+    }
+  },
+  "workspace": {
+    "dependencies": [
+      "jsr:@std/cli@^1.0.14",
+      "jsr:@std/streams@^1.0.9"
+    ]
+  }
+}

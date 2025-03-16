@@ -61,12 +61,12 @@ impl Deref for Reqwest {
 fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
     let _guard = slog_envlogger::init()?;
     tauri::Builder::default()
-        // .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
-        //     let _ = app
-        //         .get_webview_window("main")
-        //         .expect("no main window")
-        //         .set_focus();
-        // }))
+        .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
+            let window = app.get_webview_window("main").expect("no main window");
+
+            window.unminimize().ok();
+            window.set_focus().ok();
+        }))
         .setup(|app| {
             if !std::env::var_os("TAURI_IMMEDIATE_DEVTOOLS")
                 .unwrap_or_default()

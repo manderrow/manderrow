@@ -12,13 +12,13 @@ export type Refetcher<T, R = unknown> = (info?: R) => T | Promise<T> | undefined
 export interface Game {
   id: string;
   name: string;
-  data_folder_name: string;
-  exe_names: string[];
-  instance_type: "Game" | "Server";
-  package_loader: PackageLoader;
-  steam_folder_name: string;
-  store_platform_metadata: StorePlatformMetadata[];
-  thunderstore_url: string;
+  dataFolderName: string;
+  exeNames: string[];
+  instanceType: "Game" | "Server";
+  packageLoader: PackageLoader;
+  steamFolderName: string;
+  storePlatformMetadata: StorePlatformMetadata[];
+  thunderstoreUrl: string;
 }
 
 export enum PackageLoader {

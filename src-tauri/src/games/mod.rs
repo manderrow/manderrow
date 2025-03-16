@@ -14,23 +14,22 @@ pub struct Game<'a> {
     /// Unique internal id for the game.
     pub id: &'a str,
     /// Display name of the game.
-    #[serde(alias = "displayName", borrow)]
+    #[serde(borrow)]
     pub name: Cow<'a, str>,
     /// URL of the Thunderstore mod index for the game.
-    #[serde(alias = "thunderstoreUrl", borrow)]
+    #[serde(rename = "thunderstoreUrl", borrow)]
     pub thunderstore_url: Cow<'a, str>,
-    #[serde(alias = "steamFolderName", borrow)]
+    #[serde(rename = "steamFolderName", borrow)]
     pub steam_folder_name: Cow<'a, str>,
-    #[serde(alias = "exeName", borrow)]
+    #[serde(rename = "exeNames", borrow)]
     pub exe_names: Vec<Cow<'a, str>>,
-    #[serde(alias = "dataFolderName", borrow)]
+    #[serde(rename = "dataFolderName", borrow)]
     pub data_folder_name: Cow<'a, str>,
-    #[serde(alias = "storePlatformMetadata")]
-    #[serde(borrow)]
+    #[serde(rename = "storePlatformMetadata", borrow)]
     pub store_platform_metadata: Vec<StorePlatformMetadata<'a>>,
-    #[serde(alias = "instanceType")]
+    #[serde(rename = "instanceType")]
     pub instance_type: InstanceType,
-    #[serde(alias = "packageLoader")]
+    #[serde(rename = "packageLoader")]
     pub package_loader: PackageLoader,
 }
 
@@ -39,21 +38,21 @@ pub struct Game<'a> {
 #[serde(tag = "storePlatform")]
 pub enum StorePlatformMetadata<'a> {
     Steam {
-        #[serde(alias = "storeIdentifier", borrow)]
+        #[serde(rename = "storeIdentifier", borrow)]
         store_identifier: Cow<'a, str>,
     },
     SteamDirect {
-        #[serde(alias = "storeIdentifier", borrow)]
+        #[serde(rename = "storeIdentifier", borrow)]
         store_identifier: Cow<'a, str>,
     },
     #[serde(alias = "Epic Games Store")]
     Epic {
-        #[serde(alias = "storeIdentifier", borrow)]
+        #[serde(rename = "storeIdentifier", borrow)]
         store_identifier: Cow<'a, str>,
     },
     #[serde(alias = "Xbox Game Pass")]
     Xbox {
-        #[serde(alias = "storeIdentifier", borrow)]
+        #[serde(rename = "storeIdentifier", borrow)]
         store_identifier: Cow<'a, str>,
     },
     #[serde(alias = "Oculus Store")]
