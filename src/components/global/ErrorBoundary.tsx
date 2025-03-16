@@ -1,19 +1,10 @@
-import {
-  For,
-  JSX,
-  Match,
-  Show,
-  ErrorBoundary as SolidErrorBoundary,
-  Switch,
-  createContext,
-  createSignal,
-} from "solid-js";
+import { For, JSX, Match, Show, Switch, catchError, createContext, createSignal } from "solid-js";
 
 import Dialog from "./Dialog";
 import { AbortedError, NativeError } from "../../api";
 import styles from "./ErrorBoundary.module.css";
 
-export const ErrorContext = createContext<(err: any) => void>(
+export const ErrorContext = createContext<(err: unknown) => void>(
   (e) => {
     // rethrow
     throw e;
@@ -22,24 +13,22 @@ export const ErrorContext = createContext<(err: any) => void>(
 );
 
 export default function ErrorBoundary(props: { children: JSX.Element }) {
-  const [error, setError] = createSignal<Error>();
-  function onError(e: Error) {
+  const [error, setError] = createSignal<unknown>();
+  function onError(e: unknown) {
     if (e instanceof AbortedError) return;
     console.error(e);
     setError(e);
   }
   return (
-    <SolidErrorBoundary fallback={(err, reset) => <Error err={err} reset={reset} />}>
-      <ErrorContext.Provider value={onError}>
-        <Show when={error()} fallback={props.children}>
-          {(err) => <Error err={err()} reset={() => setError(undefined)} />}
-        </Show>
-      </ErrorContext.Provider>
-    </SolidErrorBoundary>
+    <ErrorContext.Provider value={onError}>
+      <Show when={error()} fallback={catchError(() => props.children, onError)}>
+        {(err) => <Error err={err()} reset={() => setError(undefined)} />}
+      </Show>
+    </ErrorContext.Provider>
   );
 }
 
-function Error(props: { err: any; reset: () => void }) {
+export function Error(props: { err: unknown; reset: () => void }) {
   return (
     <Dialog>
       <div class={styles.error}>
@@ -47,20 +36,20 @@ function Error(props: { err: any; reset: () => void }) {
         <p>An error occurred, but don't worry, we caught it for you.</p>
 
         <div class={styles.report}>
-          <Switch fallback={<p>{props.err}</p>}>
+          <Switch fallback={<p>{(props.err as any).toString()}</p>}>
             <Match when={props.err instanceof NativeError}>
-              <For each={props.err.messages}>{(msg) => <p>{msg}</p>}</For>
+              <For each={(props.err as NativeError).messages}>{(msg) => <p>{msg}</p>}</For>
               <details class={styles.spoiler}>
                 <summary>
                   <h3>Native Stack Trace:</h3>
                 </summary>
                 <div class={styles.pre}>
-                  <pre>{props.err.backtrace}</pre>
+                  <pre>{(props.err as NativeError).backtrace}</pre>
                 </div>
               </details>
             </Match>
           </Switch>
-          <Show when={props.err.stack}>
+          <Show when={(props.err as any).stack}>
             {(stack) => (
               <details class={styles.spoiler}>
                 <summary>

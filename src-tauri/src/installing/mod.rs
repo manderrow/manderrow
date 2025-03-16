@@ -2,273 +2,33 @@
 //!
 //! Never make changes to `IndexEntryV*` or [`Index`] variants. Make a new version instead.
 
+pub mod commands;
+mod index;
+
 use std::ffi::OsString;
 use std::{
     borrow::Cow,
     collections::HashMap,
-    ffi::OsStr,
-    hash::Hash,
     path::{Path, PathBuf},
 };
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
-use itertools::Itertools;
-use rkyv::vec::ArchivedVec;
+use base64::Engine;
+use bytes::Bytes;
+use fs4::tokio::AsyncFileExt;
+use index::{ArchivedIndex, ArchivedIndexEntryV1, Index, IndexEntryRef, IndexEntryV1, IndexPath};
 use slog::{debug, trace};
+use tauri::AppHandle;
 use tempfile::TempDir;
 use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
 use trie_rs::TrieBuilder;
 use walkdir::WalkDir;
 use zip::{result::ZipError, ZipArchive};
 
+use crate::tasks::{self, TaskBuilder, TaskHandle};
+use crate::util::UsizeExt;
 use crate::Reqwest;
 use crate::{paths::cache_dir, util::IoErrorKindExt};
-
-#[derive(Debug, Clone, PartialEq, Eq, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize)]
-#[rkyv(derive(Debug, PartialEq, Eq))]
-#[rkyv(compare(PartialEq))]
-enum NativePath {
-    Unix(Vec<Vec<u8>>),
-    Windows(Vec<Vec<u16>>),
-}
-
-impl NativePath {
-    pub fn component_count(&self) -> usize {
-        match self {
-            Self::Unix(vec) => vec.len(),
-            Self::Windows(vec) => vec.len(),
-        }
-    }
-}
-
-impl ArchivedNativePath {
-    pub fn component_count(&self) -> usize {
-        match self {
-            Self::Unix(vec) => vec.len(),
-            Self::Windows(vec) => vec.len(),
-        }
-    }
-
-    pub fn components(&self) -> ArchivedNativePathComponents {
-        match self {
-            #[cfg(unix)]
-            ArchivedNativePath::Unix(vec) => ArchivedNativePathComponents { iter: vec.iter() },
-            #[cfg(windows)]
-            ArchivedNativePath::Windows(vec) => ArchivedNativePathComponents { iter: vec.iter() },
-            _ => panic!("Attempted to use an index across operating systems"),
-        }
-    }
-}
-
-struct ArchivedNativePathComponents<'a> {
-    #[cfg(unix)]
-    iter: std::slice::Iter<'a, ArchivedVec<u8>>,
-    #[cfg(windows)]
-    iter: std::slice::Iter<'a, ArchivedVec<rkyv::rend::u16_le>>,
-}
-
-impl<'a> Iterator for ArchivedNativePathComponents<'a> {
-    type Item = Cow<'a, OsStr>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        #[cfg(unix)]
-        {
-            use std::os::unix::ffi::OsStrExt;
-            self.iter
-                .next()
-                .map(|component| OsStr::from_bytes(component).into())
-        }
-        #[cfg(windows)]
-        {
-            // TODO: if host is little-endian, cast instead of mapping and collecting into an intermediate buffer
-            use std::os::windows::ffi::OsStringExt;
-            self.iter.next().map(|component| {
-                OsString::from_wide(&component.iter().map(|c| c.to_native()).collect::<Vec<_>>())
-                    .into()
-            })
-        }
-    }
-}
-
-impl<T: AsRef<Path>> From<T> for NativePath {
-    fn from(value: T) -> Self {
-        let value = value.as_ref();
-        #[cfg(unix)]
-        {
-            use std::os::unix::ffi::OsStrExt;
-            Self::Unix(
-                value
-                    .components()
-                    .map(|s| s.as_os_str().as_bytes().to_owned())
-                    .collect(),
-            )
-        }
-        #[cfg(windows)]
-        {
-            use std::os::windows::ffi::OsStrExt;
-            Self::Windows(
-                value
-                    .components()
-                    .map(|s| s.as_os_str().encode_wide().collect::<Vec<_>>())
-                    .collect(),
-            )
-        }
-    }
-}
-
-impl Hash for NativePath {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        match self {
-            #[cfg(unix)]
-            Self::Unix(vec) => vec.hash(state),
-            #[cfg(windows)]
-            Self::Windows(vec) => vec.hash(state),
-            _ => panic!("Attempted to use an index across operating systems"),
-        }
-    }
-}
-
-impl Hash for ArchivedNativePath {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        match self {
-            #[cfg(unix)]
-            Self::Unix(vec) => vec.hash(state),
-            #[cfg(windows)]
-            Self::Windows(vec) => vec.hash(state),
-            _ => panic!("Attempted to use an index across operating systems"),
-        }
-    }
-}
-
-#[derive(PartialEq, Eq)]
-struct PathAsNativePath<'a>(&'a Path);
-
-impl<'a> Hash for PathAsNativePath<'a> {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-        #[cfg(unix)]
-        {
-            use std::os::unix::ffi::OsStrExt;
-            self.0.components().count().hash(state);
-            self.0
-                .components()
-                .map(|s| s.as_os_str().as_bytes())
-                .for_each(|component| component.hash(state));
-        }
-        #[cfg(windows)]
-        {
-            use std::os::windows::ffi::OsStrExt;
-            self.0.components().count().hash(state);
-            self.0.components().for_each(|s| {
-                s.as_os_str().encode_wide().count().hash(state);
-                s.as_os_str()
-                    .encode_wide()
-                    .for_each(|element| element.hash(state));
-            });
-        }
-    }
-}
-
-impl<'a> PartialEq<ArchivedNativePath> for Path {
-    fn eq(&self, other: &ArchivedNativePath) -> bool {
-        match other {
-            #[cfg(unix)]
-            ArchivedNativePath::Unix(components) => {
-                use std::os::unix::ffi::OsStrExt;
-                self.components()
-                    .zip_longest(components.iter())
-                    .all(|item| {
-                        item.both()
-                            .map(|(a, b)| a.as_os_str().as_bytes() == b)
-                            .unwrap_or_default()
-                    })
-            }
-            #[cfg(windows)]
-            ArchivedNativePath::Windows(components) => {
-                use std::os::windows::ffi::OsStrExt;
-                self.components()
-                    .zip_longest(components.iter())
-                    .all(|item| {
-                        item.both()
-                            .map(|(a, b)| {
-                                a.as_os_str()
-                                    .encode_wide()
-                                    .zip_longest(b.iter())
-                                    .all(|item| {
-                                        item.both().map(|(a, b)| a == *b).unwrap_or_default()
-                                    })
-                            })
-                            .unwrap_or_default()
-                    })
-            }
-            _ => panic!("Attempted to use an index across operating systems"),
-        }
-    }
-}
-
-/// Index of files that came with the zip.
-#[derive(Debug, Clone, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize)]
-#[rkyv(derive(Debug))]
-enum Index {
-    V1(HashMap<IndexPath, IndexEntryV1>),
-    V2(HashMap<NativePath, IndexEntryV1>),
-}
-
-impl ArchivedIndex {
-    pub fn get<'a>(&'a self, path: &Path) -> Option<IndexEntryRef<'a>> {
-        match self {
-            ArchivedIndex::V1(entries) => entries
-                .get_with(&IndexPath::try_from(path).ok()?, |a, b| a == b)
-                .map(IndexEntryRef::V1),
-            ArchivedIndex::V2(entries) => entries
-                .get_with(&PathAsNativePath(path), |a, b| a.0 == b)
-                .map(IndexEntryRef::V1),
-        }
-    }
-}
-
-#[derive(Debug, Clone)]
-enum IndexEntryRef<'a> {
-    V1(&'a ArchivedIndexEntryV1),
-}
-
-#[derive(Debug, Clone, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize)]
-#[rkyv(derive(Debug))]
-enum IndexEntryV1 {
-    File {
-        hash: [u8; blake3::OUT_LEN],
-    },
-    Symlink {
-        /// This will be relative if it points inside the package directory.
-        target: String,
-    },
-    Directory,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Hash, rkyv::Archive, rkyv::Deserialize, rkyv::Serialize)]
-#[rkyv(derive(Debug, PartialEq, Eq, Hash))]
-#[rkyv(compare(PartialEq))]
-struct IndexPath(Vec<String>);
-
-#[derive(Debug, thiserror::Error)]
-#[error("Path was not valid Unicode")]
-struct IndexPathFromPathError;
-
-impl<'a> TryFrom<&'a Path> for IndexPath {
-    type Error = IndexPathFromPathError;
-
-    fn try_from(value: &'a Path) -> Result<Self, Self::Error> {
-        value
-            .components()
-            .map(|s| {
-                s.as_os_str()
-                    .to_owned()
-                    .into_string()
-                    .map_err(|_| IndexPathFromPathError)
-            })
-            .collect::<Result<_, _>>()
-            .map(IndexPath)
-    }
-}
 
 const INDEX_FILE_NAME: &str = ".manderrow_content_index";
 
@@ -357,8 +117,6 @@ async fn scan_installed_package_for_changes_with_index_buf<'i>(
         None => None,
     };
 
-    // let mut seen = HashSet::new();
-
     let mut iter = WalkDir::new(path).into_iter();
     if iter
         .next()
@@ -379,7 +137,6 @@ async fn scan_installed_package_for_changes_with_index_buf<'i>(
             continue;
         }
         if let Some(entry) = index.and_then(|index| index.get(&rel_path)) {
-            // seen.insert(rel_path.to_owned());
             match entry {
                 IndexEntryRef::V1(ArchivedIndexEntryV1::File { hash }) => {
                     let hash = blake3::Hash::from_bytes(*hash);
@@ -693,22 +450,176 @@ impl StagedPackage<'_> {
     }
 }
 
+pub enum CacheOptions<'a> {
+    Hash(&'a str),
+    ByUrl,
+}
+
+pub enum FetchedResource {
+    File(PathBuf),
+    Bytes(Bytes),
+}
+
+pub async fn fetch_resource<'a>(
+    app: Option<&AppHandle>,
+    log: &slog::Logger,
+    reqwest: &Reqwest,
+    url: &str,
+    cache: Option<CacheOptions<'_>>,
+    task_id: Option<tasks::Id>,
+) -> anyhow::Result<FetchedResource> {
+    TaskBuilder::with_id(task_id.unwrap_or_else(tasks::allocate_task), url.to_owned())
+        .kind(tasks::Kind::Download)
+        .progress_unit(tasks::ProgressUnit::Bytes)
+        .run_with_progress(app, |handle| async move {
+            debug!(log, "Fetching resource from {url:?}");
+
+            match cache {
+                Some(CacheOptions::Hash(hash_str)) => {
+                    fetch_resource_cached_by_hash(app, log, reqwest, url, hash_str, handle).await?
+                }
+                Some(CacheOptions::ByUrl) => {
+                    fetch_resource_cached_by_url(app, log, reqwest, url, handle).await?
+                }
+                None => {
+                    let resp = reqwest::get(url).await?.error_for_status()?;
+                    let bytes = resp.bytes().await?;
+
+                    Ok(FetchedResource::Bytes(bytes))
+                }
+            }
+        })
+        .await
+        .map_err(Into::into)
+}
+
+async fn fetch_resource_cached_by_hash(
+    app: Option<&AppHandle>,
+    log: &slog::Logger,
+    reqwest: &Reqwest,
+    url: &str,
+    hash_str: &str,
+    handle: TaskHandle,
+) -> Result<std::result::Result<FetchedResource, anyhow::Error>, anyhow::Error> {
+    let mut path = cache_dir().join(hash_str);
+    path.as_mut_os_string().push(".zip");
+    let hash = blake3::Hash::from_hex(hash_str)?;
+    let hash_on_disk = {
+        let mut hsr = blake3::Hasher::new();
+        match hsr.update_mmap(&path) {
+            Ok(_) => Some(hsr.finalize()),
+            Err(e) if e.is_not_found() => None,
+            Err(e) => return Err(e.into()),
+        }
+    };
+    if hash_on_disk.map(|h| h != hash).unwrap_or(true) {
+        let mut resp = reqwest.get(url).send().await?.error_for_status()?;
+        tokio::fs::create_dir_all(cache_dir()).await?;
+        // TODO: should this be buffered?
+        let mut wtr = tokio::fs::File::create(&path).await?;
+        let mut written = 0u64;
+        let len = resp.content_length();
+        if let (Some(app), Some(total)) = (app, len) {
+            handle.send_progress_manually(app, written, total)?;
+        }
+        while let Some(chunk) = resp.chunk().await? {
+            wtr.write_all(&chunk).await?;
+            if let Some(app) = app {
+                written += chunk.len().as_u64();
+                handle.send_progress_manually(app, written, len.unwrap_or(0))?;
+            }
+        }
+        let hash_on_disk = {
+            let mut hsr = blake3::Hasher::new();
+            hsr.update_mmap(&path)?;
+            hsr.finalize()
+        };
+        debug!(log, "Cached zip at {path:?}");
+        if hash_on_disk != hash {
+            bail!("Hash of downloaded zip does not match hash provided to install_zip: expected {hash}, found {hash_on_disk}");
+        }
+    } else {
+        debug!(log, "Zip is cached at {path:?}");
+    }
+    Ok(Ok(FetchedResource::File(path)))
+}
+
+async fn fetch_resource_cached_by_url(
+    app: Option<&AppHandle>,
+    log: &slog::Logger,
+    reqwest: &Reqwest,
+    url: &str,
+    handle: TaskHandle,
+) -> Result<std::result::Result<FetchedResource, anyhow::Error>, anyhow::Error> {
+    let mut path = cache_dir().join("url.");
+    path.as_mut_os_string()
+        .push(base64::engine::general_purpose::URL_SAFE.encode(url));
+    path.as_mut_os_string().push(".zip");
+    if !tokio::fs::try_exists(&path).await? {
+        tokio::fs::create_dir_all(cache_dir()).await?;
+
+        let (tmp_file, tmp_path) = tokio::task::block_in_place(|| {
+            tempfile::NamedTempFile::new_in(path.parent().context("path must have a parent")?)
+                .map_err(anyhow::Error::from)
+        })?
+        .into_parts();
+
+        let mut resp = reqwest.get(url).send().await?.error_for_status()?;
+
+        let tmp_file = tokio::fs::File::from_std(tmp_file);
+
+        let len = resp.content_length();
+        if let Some(len) = len {
+            tmp_file.allocate(len).await?;
+        }
+
+        // TODO: should this be buffered?
+        let mut wtr = tmp_file;
+        let mut written = 0u64;
+        if let (Some(app), Some(total)) = (app, len) {
+            handle.send_progress_manually(app, written, total)?;
+        }
+        while let Some(chunk) = resp.chunk().await? {
+            wtr.write_all(&chunk).await?;
+            if let Some(app) = app {
+                written += chunk.len().as_u64();
+                handle.send_progress_manually(app, written, len.unwrap_or(0))?;
+            }
+        }
+
+        let tmp_path = tmp_path.keep()?;
+        tokio::fs::rename(&tmp_path, &path)
+            .await
+            .context("Failed to move temp file into place")?;
+
+        debug!(log, "Cached zip at {path:?}");
+    } else {
+        debug!(log, "Zip is cached at {path:?}");
+    }
+    Ok(Ok(FetchedResource::File(path)))
+}
+
 /// Downloads a zip file from `url` and installs it into the `target`
 /// directory. If `hash_str` is provided, it will be used to cache the zip file
 /// for future reuse.
 pub async fn install_zip<'a>(
+    app: Option<&AppHandle>,
     log: &slog::Logger,
     reqwest: &Reqwest,
     url: &str,
-    hash_str: Option<&str>,
+    cache: Option<CacheOptions<'_>>,
     target: &'a Path,
+    task_id: Option<tasks::Id>,
 ) -> anyhow::Result<StagedPackage<'a>> {
     debug!(log, "Installing zip from {url:?} to {target:?}");
+
+    tokio::fs::create_dir_all(target)
+        .await
+        .context("Failed to create target directory")?;
 
     let target_parent = target
         .parent()
         .context("Target must not be a filesystem root")?;
-    tokio::fs::create_dir_all(target_parent).await?;
 
     let mut changes = Vec::new();
     let changes = match scan_installed_package_for_changes(log, target, &mut changes).await {
@@ -723,55 +634,25 @@ pub async fn install_zip<'a>(
     }
 
     let temp_dir: TempDir;
-    if let Some(hash_str) = hash_str {
-        let path = cache_dir().join(format!("{hash_str}.zip"));
-        let hash = blake3::Hash::from_hex(hash_str)?;
-        let hash_on_disk = {
-            let mut hsr = blake3::Hasher::new();
-            match hsr.update_mmap(&path) {
-                Ok(_) => Some(hsr.finalize()),
-                Err(e) if e.is_not_found() => None,
-                Err(e) => return Err(e.into()),
-            }
-        };
-
-        if hash_on_disk.map(|h| h != hash).unwrap_or(true) {
-            let mut resp = reqwest.get(url).send().await?.error_for_status()?;
-            let mut wtr = tokio::fs::File::create(&path).await?;
-            while let Some(chunk) = resp.chunk().await? {
-                wtr.write_all(&chunk).await?;
-            }
-            let hash_on_disk = {
-                let mut hsr = blake3::Hasher::new();
-                hsr.update_mmap(&path)?;
-                hsr.finalize()
-            };
-            debug!(log, "Cached zip at {path:?}");
-            if hash_on_disk != hash {
-                bail!("Hash of downloaded zip does not match hash provided to install_zip: expected {hash}, found {hash_on_disk}");
-            }
-        } else {
-            debug!(log, "Zip is cached at {path:?}");
+    match fetch_resource(app, log, reqwest, url, cache, task_id).await? {
+        FetchedResource::Bytes(bytes) => {
+            temp_dir = tempfile::tempdir_in(target_parent)?;
+            tokio::task::block_in_place(|| {
+                let mut archive =
+                    ZipArchive::new(std::io::BufReader::new(std::io::Cursor::new(bytes)))?;
+                archive.extract(temp_dir.path())?;
+                Ok::<_, ZipError>(())
+            })?;
         }
-
-        temp_dir = tempfile::tempdir_in(target_parent)?;
-        tokio::task::block_in_place(|| {
-            let mut archive =
-                ZipArchive::new(std::io::BufReader::new(std::fs::File::open(&path)?))?;
-            archive.extract(temp_dir.path())?;
-            Ok::<_, ZipError>(())
-        })?;
-    } else {
-        let resp = reqwest::get(url).await?.error_for_status()?;
-        let bytes = resp.bytes().await?;
-
-        temp_dir = tempfile::tempdir_in(target_parent)?;
-        tokio::task::block_in_place(|| {
-            let mut archive =
-                ZipArchive::new(std::io::BufReader::new(std::io::Cursor::new(bytes)))?;
-            archive.extract(temp_dir.path())?;
-            Ok::<_, ZipError>(())
-        })?;
+        FetchedResource::File(path) => {
+            temp_dir = tempfile::tempdir_in(target_parent)?;
+            tokio::task::block_in_place(|| {
+                let mut archive =
+                    ZipArchive::new(std::io::BufReader::new(std::fs::File::open(&path)?))?;
+                archive.extract(temp_dir.path())?;
+                Ok::<_, ZipError>(())
+            })?;
+        }
     }
 
     generate_package_index(log, temp_dir.path()).await?;
@@ -940,5 +821,22 @@ async fn merge_paths(log: &slog::Logger, from: &Path, to: &Path) -> Result<()> {
         .await
         .with_context(|| format!("Failed to merge {:?} into {:?}", dir_entry.path(), to))?;
     }
+    Ok(())
+}
+
+pub async fn clear_cache() -> Result<()> {
+    let cache_dir = cache_dir();
+    match tokio::fs::remove_dir_all(&cache_dir).await {
+        Ok(()) => {}
+        Err(e) if e.is_not_found() => {
+            if tokio::fs::try_exists(&cache_dir).await? {
+                // failed on a sub-path
+                return Err(e.into());
+            }
+            // the thing we wanted to delete didn't exist, this is good!
+        }
+        Err(e) => return Err(e.into()),
+    }
+    tokio::fs::create_dir(&cache_dir).await?;
     Ok(())
 }

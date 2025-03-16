@@ -1,4 +1,6 @@
-use std::{collections::HashMap, sync::LazyLock};
+pub mod commands;
+
+use std::{borrow::Cow, collections::HashMap, sync::LazyLock};
 
 pub static GAMES: LazyLock<Vec<Game>> =
     LazyLock::new(|| serde_json::from_str(include_str!("games.json")).unwrap());
@@ -8,22 +10,23 @@ pub static GAMES_BY_ID: LazyLock<HashMap<&'static str, &'static Game>> =
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
-pub struct Game {
+pub struct Game<'a> {
     /// Unique internal id for the game.
-    pub id: String,
+    pub id: &'a str,
     /// Display name of the game.
-    pub name: String,
+    #[serde(borrow)]
+    pub name: Cow<'a, str>,
     /// URL of the Thunderstore mod index for the game.
-    #[serde(rename = "thunderstoreUrl")]
-    pub thunderstore_url: String,
-    #[serde(rename = "steamFolderName")]
-    pub steam_folder_name: String,
-    #[serde(rename = "exeNames")]
-    pub exe_names: Vec<String>,
-    #[serde(rename = "dataFolderName")]
-    pub data_folder_name: String,
-    #[serde(rename = "storePlatformMetadata")]
-    pub store_platform_metadata: Vec<StorePlatformMetadata>,
+    #[serde(rename = "thunderstoreUrl", borrow)]
+    pub thunderstore_url: Cow<'a, str>,
+    #[serde(rename = "steamFolderName", borrow)]
+    pub steam_folder_name: Cow<'a, str>,
+    #[serde(rename = "exeNames", borrow)]
+    pub exe_names: Vec<Cow<'a, str>>,
+    #[serde(rename = "dataFolderName", borrow)]
+    pub data_folder_name: Cow<'a, str>,
+    #[serde(rename = "storePlatformMetadata", borrow)]
+    pub store_platform_metadata: Vec<StorePlatformMetadata<'a>>,
     #[serde(rename = "instanceType")]
     pub instance_type: InstanceType,
     #[serde(rename = "packageLoader")]
@@ -33,24 +36,24 @@ pub struct Game {
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 #[serde(tag = "storePlatform")]
-pub enum StorePlatformMetadata {
+pub enum StorePlatformMetadata<'a> {
     Steam {
-        #[serde(rename = "storeIdentifier")]
-        store_identifier: String,
+        #[serde(rename = "storeIdentifier", borrow)]
+        store_identifier: Cow<'a, str>,
     },
     SteamDirect {
-        #[serde(rename = "storeIdentifier")]
-        store_identifier: String,
+        #[serde(rename = "storeIdentifier", borrow)]
+        store_identifier: Cow<'a, str>,
     },
     #[serde(alias = "Epic Games Store")]
     Epic {
-        #[serde(rename = "storeIdentifier")]
-        store_identifier: String,
+        #[serde(rename = "storeIdentifier", borrow)]
+        store_identifier: Cow<'a, str>,
     },
     #[serde(alias = "Xbox Game Pass")]
     Xbox {
-        #[serde(rename = "storeIdentifier")]
-        store_identifier: String,
+        #[serde(rename = "storeIdentifier", borrow)]
+        store_identifier: Cow<'a, str>,
     },
     #[serde(alias = "Oculus Store")]
     Oculus,
@@ -59,7 +62,7 @@ pub enum StorePlatformMetadata {
     Other,
 }
 
-impl StorePlatformMetadata {
+impl<'a> StorePlatformMetadata<'a> {
     pub fn steam_or_direct(&self) -> Option<&str> {
         match self {
             StorePlatformMetadata::Steam { store_identifier }

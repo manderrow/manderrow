@@ -2,6 +2,7 @@ declare module "solid-js" {
   namespace JSX {
     interface Directives {
       autofocus: true;
+      bindValue: Signal<string>;
     }
   }
 }

@@ -3,7 +3,7 @@ run *ARGS:
 
 fmt:
 	cargo fmt --manifest-path src-tauri/Cargo.toml
-	cargo fmt --manifest-path crates/Cargo.toml
+	cargo fmt --manifest-path crates/Cargo.toml --all
 
 clean:
 	cargo clean --manifest-path src-tauri/Cargo.toml
@@ -11,6 +11,11 @@ clean:
 
 test:
 	cargo test --manifest-path src-tauri/Cargo.toml
+	cargo test --manifest-path crates/Cargo.toml
+
+check:
+	cargo check --manifest-path src-tauri/Cargo.toml
+	cargo check --manifest-path crates/Cargo.toml
 
 run-script BIN *ARGS:
 	cargo run --manifest-path crates/Cargo.toml --bin {{BIN}} -- {{ARGS}}

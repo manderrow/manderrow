@@ -2,8 +2,10 @@ use std::{
     fmt::{self, Formatter},
     mem::ManuallyDrop,
     num::ParseIntError,
-    sync::atomic::AtomicU32,
 };
+
+#[cfg(feature = "statistics")]
+use std::sync::atomic::AtomicU32;
 
 use rkyv::{
     bytecheck::CheckBytes,
@@ -118,7 +120,9 @@ const OUT_OF_LINE_PACKER: Packer = Packer {
 
 /// See https://github.com/thunderstore-io/Thunderstore/blob/a4146daa5db13344be647a87f0206c1eb19eb90e/django/thunderstore/repository/consts.py#L4.
 /// and https://github.com/thunderstore-io/Thunderstore/blob/a4146daa5db13344be647a87f0206c1eb19eb90e/django/thunderstore/repository/models/package_version.py#L101-L103
-#[derive(Clone, Copy)]
+///
+/// The [`PartialEq`], [`Eq`], and [`Hash`] trait impls rely on there being a single canonical representation that is always used for a given version.
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Version(u64);
 
 impl Version {

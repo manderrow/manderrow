@@ -1,24 +1,21 @@
-use std::panic::AssertUnwindSafe;
+pub mod commands;
+
 use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 
-use anyhow::{anyhow, Context as _, Result};
+use anyhow::{Context as _, Result};
 use futures::stream::FuturesOrdered;
 use futures::StreamExt as _;
-use slog::{error, info, o};
+use slog::error;
 use smol_str::SmolStr;
-use tauri::ipc::Channel;
-use tauri::{AppHandle, State};
-use tokio::process::Command;
+use tauri::AppHandle;
 use uuid::Uuid;
 
-use crate::games::GAMES_BY_ID;
 use crate::installing::{install_zip, uninstall_package};
-use crate::ipc::{C2SMessage, IpcState};
 use crate::mods::{ModAndVersion, ModMetadata, ModVersion};
 use crate::paths::local_data_dir;
-use crate::util::IoErrorKindExt as _;
-use crate::{CommandError, Reqwest};
+use crate::util::{hyphenated_uuid, IoErrorKindExt as _};
+use crate::{tasks, Reqwest};
 
 pub static PROFILES_DIR: LazyLock<PathBuf> = LazyLock::new(|| local_data_dir().join("profiles"));
 
@@ -35,12 +32,6 @@ pub struct ProfileWithId {
     pub metadata: Profile,
 }
 
-macro_rules! hyphenated_uuid {
-    ($id:expr) => {
-        $id.hyphenated().encode_lower(&mut Uuid::encode_buffer())
-    };
-}
-
 #[derive(Debug, thiserror::Error)]
 pub enum ReadProfileError {
     #[error(transparent)]
@@ -49,7 +40,7 @@ pub enum ReadProfileError {
     Decoding(#[from] serde_json::Error),
 }
 
-async fn read_profile_file(path: &Path) -> Result<Profile, ReadProfileError> {
+pub async fn read_profile_file(path: &Path) -> Result<Profile, ReadProfileError> {
     Ok(serde_json::from_slice(&tokio::fs::read(path).await?)?)
 }
 
@@ -63,8 +54,7 @@ pub fn profile_path(id: Uuid) -> PathBuf {
     PROFILES_DIR.join(hyphenated_uuid!(id))
 }
 
-#[tauri::command]
-pub async fn get_profiles() -> Result<Vec<ProfileWithId>, CommandError> {
+pub async fn get_profiles() -> Result<Vec<ProfileWithId>> {
     let log = slog_scope::logger();
 
     let mut profiles = Vec::new();
@@ -102,8 +92,7 @@ pub async fn get_profiles() -> Result<Vec<ProfileWithId>, CommandError> {
     Ok(profiles)
 }
 
-#[tauri::command]
-pub async fn create_profile(game: SmolStr, name: SmolStr) -> Result<Uuid, CommandError> {
+pub async fn create_profile(game: SmolStr, name: SmolStr) -> Result<Uuid> {
     tokio::fs::create_dir_all(&*PROFILES_DIR)
         .await
         .context("Failed to create profiles directory")?;
@@ -119,8 +108,7 @@ pub async fn create_profile(game: SmolStr, name: SmolStr) -> Result<Uuid, Comman
     Ok(id)
 }
 
-#[tauri::command]
-pub async fn delete_profile(id: Uuid) -> Result<(), CommandError> {
+pub async fn delete_profile(id: Uuid) -> Result<()> {
     let path = profile_path(id);
     tokio::fs::remove_dir_all(&path)
         .await
@@ -130,136 +118,9 @@ pub async fn delete_profile(id: Uuid) -> Result<(), CommandError> {
 
 pub const MODS_FOLDER: &str = "mods";
 
-#[tauri::command]
-pub async fn launch_profile(
-    app_handle: AppHandle,
-    ipc_state: State<'_, IpcState>,
-    id: Uuid,
-    modded: bool,
-    channel: Channel<C2SMessage>,
-) -> Result<(), CommandError> {
-    struct Logger {
-        c2s_tx: AssertUnwindSafe<Channel<C2SMessage>>,
-    }
-
-    impl slog::Drain for Logger {
-        type Ok = ();
-
-        type Err = slog::Never;
-
-        fn log(
-            &self,
-            record: &slog::Record<'_>,
-            _values: &slog::OwnedKVList,
-        ) -> Result<Self::Ok, Self::Err> {
-            _ = tokio::task::block_in_place(|| {
-                self.c2s_tx.send(C2SMessage::Log {
-                    level: record.level().into(),
-                    message: record.msg().to_string(),
-                })
-            });
-            Ok(())
-        }
-    }
-    let log = slog::Logger::root(
-        Logger {
-            c2s_tx: AssertUnwindSafe(channel.clone()),
-        },
-        o!(),
-    );
-
-    let mut path = profile_path(id);
-    path.push("profile.json");
-    let metadata = read_profile_file(&path)
-        .await
-        .context("Failed to read profile")?;
-    path.pop();
-    let Some(game) = GAMES_BY_ID.get(&*metadata.game).copied() else {
-        return Err(anyhow!("Unrecognized game {:?}", metadata.game).into());
-    };
-    let Some(store_metadata) = game.store_platform_metadata.iter().next() else {
-        return Err(anyhow!("Unable to launch game").into());
-    };
-    let mut command: Command;
-    match store_metadata {
-        crate::games::StorePlatformMetadata::Steam { store_identifier } => {
-            let profile = read_profile(id).await.context("Failed to read profile")?;
-            let steam_id = GAMES_BY_ID
-                .get(&*profile.game)
-                .context("No such game")?
-                .store_platform_metadata
-                .iter()
-                .find_map(|m| m.steam_or_direct())
-                .context("Unsupported store platform")?;
-
-            crate::launching::steam::ensure_launch_args_are_applied(
-                &log,
-                Some(ipc_state.spc(channel.clone())),
-                steam_id,
-            )
-            .await?;
-
-            command = if cfg!(windows) {
-                #[cfg(windows)]
-                {
-                    let mut p =
-                        crate::launching::steam::paths::get_steam_install_path_from_registry()?;
-                    p.push("steam.exe");
-                    Command::new(p)
-                }
-                #[cfg(not(windows))]
-                unreachable!()
-            } else if cfg!(target_os = "macos") {
-                Command::new("/Applications/Steam.app/Contents/MacOS/steam_osx")
-            } else if cfg!(unix) {
-                Command::new("steam")
-            } else {
-                return Err(anyhow!("Unsupported platform for Steam").into());
-            };
-            command.arg("-applaunch").arg(store_identifier);
-        }
-        _ => return Err(anyhow!("Unsupported game store").into()),
-    }
-
-    let (c2s_rx, c2s_tx) = ipc_channel::ipc::IpcOneShotServer::<C2SMessage>::new()
-        .context("Failed to create IPC channel")?;
-
-    command.arg(";");
-    command.arg("--c2s-tx");
-    command.arg(c2s_tx);
-    command.arg("--profile");
-    command.arg(hyphenated_uuid!(id));
-
-    // TODO: use Tauri sidecar
-    if let Some(path) = std::env::var_os("MANDERROW_WRAPPER_STAGE2_PATH") {
-        command.arg("--wrapper-stage2");
-        command.arg(path);
-    }
-
-    if modded {
-        command.arg("--loader");
-        command.arg(game.package_loader.as_str());
-    }
-
-    command.arg(";");
-
-    // TODO: find a way to stop this if the launch fails
-    crate::ipc::spawn_c2s_pipe(log.clone(), app_handle, channel, c2s_rx)?;
-
-    info!(log, "Launching game: {command:?}");
-    let status = command
-        .status()
-        .await
-        .context("Failed to wait for subprocess to exit")?;
-    info!(log, "Launcher exited with status code {status}");
-
-    Ok(())
-}
-
 const MANIFEST_FILE_NAME: &str = "manderrow_mod.json";
 
-#[tauri::command]
-pub async fn get_profile_mods(id: Uuid) -> Result<tauri::ipc::Response, CommandError> {
+pub async fn get_profile_mods(id: Uuid) -> Result<tauri::ipc::Response> {
     let mut path = profile_path(id);
 
     path.push(MODS_FOLDER);
@@ -303,13 +164,14 @@ pub async fn get_profile_mods(id: Uuid) -> Result<tauri::ipc::Response, CommandE
     Ok(tauri::ipc::Response::new(buf))
 }
 
-#[tauri::command]
 pub async fn install_profile_mod(
-    reqwest: State<'_, Reqwest>,
+    app: &AppHandle,
+    reqwest: &Reqwest,
     id: Uuid,
     r#mod: ModMetadata<'_>,
     version: ModVersion<'_>,
-) -> Result<(), CommandError> {
+    task_id: Option<tasks::Id>,
+) -> Result<()> {
     let log = slog_scope::logger();
 
     let mut path = profile_path(id);
@@ -324,14 +186,16 @@ pub async fn install_profile_mod(
     path.as_mut_os_string().push("-");
     path.as_mut_os_string().push(&r#mod.name);
     let staged = install_zip(
+        Some(app),
         &log,
-        &*reqwest,
+        reqwest,
         &format!(
-            "https://thunderstore.io/package/download/{}/{}/{}/",
+            "https://gcdn.thunderstore.io/live/repository/packages/{}-{}-{}.zip",
             r#mod.owner, r#mod.name, version.version_number
         ),
-        None,
+        Some(crate::installing::CacheOptions::ByUrl),
         &path,
+        task_id,
     )
     .await?;
 
@@ -353,8 +217,7 @@ pub async fn install_profile_mod(
     Ok(())
 }
 
-#[tauri::command]
-pub async fn uninstall_profile_mod(id: Uuid, owner: &str, name: &str) -> Result<(), CommandError> {
+pub async fn uninstall_profile_mod(id: Uuid, owner: &str, name: &str) -> Result<()> {
     let log = slog_scope::logger();
 
     let mut path = profile_path(id);

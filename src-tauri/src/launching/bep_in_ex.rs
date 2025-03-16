@@ -5,9 +5,9 @@ use anyhow::{anyhow, bail, Context as _, Result};
 use tempfile::tempdir;
 use uuid::Uuid;
 
-use crate::commands::profiles::{profile_path, read_profile, MODS_FOLDER};
 use crate::games::GAMES_BY_ID;
 use crate::installing::install_zip;
+use crate::profiles::{profile_path, read_profile, MODS_FOLDER};
 use crate::Reqwest;
 
 use super::steam::paths::resolve_steam_app_install_directory;
@@ -45,11 +45,14 @@ pub async fn get_bep_in_ex_path(log: &slog::Logger, uses_proton: bool) -> Result
     let path = crate::launching::LOADERS_DIR.join(hash);
 
     install_zip(
+        // TODO: communicate via IPC
+        None,
         log,
         &Reqwest(reqwest::Client::new()),
         url,
-        Some(hash),
+        Some(crate::installing::CacheOptions::Hash(hash)),
         &path,
+        None,
     )
     .await?
     .finish(log)

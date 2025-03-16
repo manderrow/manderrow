@@ -1,6 +1,11 @@
 #!/usr/bin/env rust-script
 fn main() {
-    let max_digits = std::env::args().skip(1).next().expect("Missing argument DIGITS").parse::<u32>().expect("Invalid value for argument DIGITS");
+    let max_digits = std::env::args()
+        .skip(1)
+        .next()
+        .expect("Missing argument DIGITS")
+        .parse::<u32>()
+        .expect("Invalid value for argument DIGITS");
 
     let max_bits = ((((max_digits as f64) / 3.0) / 2.0f64.log10()).ceil() as u32) * 3;
     let index_bits = (max_bits - 1).next_power_of_two().ilog2() + 1;

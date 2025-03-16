@@ -1,15 +1,15 @@
 import { createResource, createSignal, ResourceFetcherInfo, Show, useContext } from "solid-js";
-import { FetchEvent, fetchModIndex, queryModIndex, SortColumn, SortOption } from "../../api";
+import { countModIndex, fetchModIndex, queryModIndex, SortColumn, SortOption } from "../../api";
 import { SortableList } from "../global/SortableList";
-import ModList, { ModInstallContext } from "./ModList";
+import ModList from "./ModList";
 import styles from "./ModSearch.module.css";
 import { faRefresh } from "@fortawesome/free-solid-svg-icons";
 import Fa from "solid-fa";
 import { numberFormatter } from "../../utils";
-import { createStore } from "solid-js/store";
-import Dropdown from "../global/Dropdown";
 import TogglableDropdown from "../global/TogglableDropdown";
 import { ErrorContext } from "../global/ErrorBoundary";
+import { createProgressProxyStore } from "../../api/tasks";
+import { SimpleProgressIndicator } from "../global/Progress";
 
 export interface InitialProgress {
   completed_steps: null;
@@ -29,11 +29,7 @@ export default function ModSearch(props: { game: string }) {
     { column: SortColumn.Owner, descending: false },
   ]);
 
-  const [progress, setProgress] = createStore<InitialProgress | FetchEvent>({
-    completed_steps: null,
-    total_steps: null,
-    progress: null,
-  });
+  const [progress, setProgress] = createProgressProxyStore();
 
   const reportErr = useContext(ErrorContext)!;
 
@@ -41,7 +37,11 @@ export default function ModSearch(props: { game: string }) {
     () => props.game,
     async (game, info: ResourceFetcherInfo<boolean, never>) => {
       try {
-        await fetchModIndex(game, { refresh: info.refetching }, setProgress);
+        await fetchModIndex(game, { refresh: info.refetching }, (event) => {
+          if (event.event === "created") {
+            setProgress(event.progress);
+          }
+        });
       } catch (e) {
         reportErr(e);
         throw e;
@@ -53,9 +53,7 @@ export default function ModSearch(props: { game: string }) {
   const [queriedMods] = createResource(
     () => [props.game, query(), sort(), loadStatus.loading] as [string, string, SortOption[], true | undefined],
     async ([game, query, sort]) => {
-      const { count } = await queryModIndex(game, query, sort, {
-        limit: 0,
-      });
+      const count = await countModIndex(game, query);
       return {
         count,
         mods: async (page: number) =>
@@ -70,11 +68,9 @@ export default function ModSearch(props: { game: string }) {
     { initialValue: { mods: async (_: number) => [], count: 0 } },
   );
 
-  const installContext = useContext(ModInstallContext);
-
   return (
     <div class={styles.modSearch}>
-      <form class={styles.modSearch__form}>
+      <form on:submit={(e) => e.preventDefault()} class={styles.modSearch__form}>
         <div class={styles.modSearch__searchBar}>
           <input
             type="mod-search"
@@ -124,8 +120,8 @@ export default function ModSearch(props: { game: string }) {
 
       <Show when={loadStatus.loading}>
         <div class={styles.progressLine}>
-          <p>Fetching mods [{progress.completed_steps}/{progress.total_steps}]</p>
-          <progress value={progress.progress} />
+          <p>Fetching mods</p>
+          <SimpleProgressIndicator progress={progress} />
         </div>
       </Show>
 

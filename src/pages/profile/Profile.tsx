@@ -33,6 +33,8 @@ import { autofocus } from "../../components/global/Directives";
 
 import styles from "./Profile.module.css";
 import sidebarStyles from "./SidebarProfiles.module.css";
+import ImportDialog from "../../components/profile/ImportDialog";
+import TasksDialog from "../../components/global/TasksDialog";
 
 interface ProfileParams {
   [key: string]: string | undefined;
@@ -79,6 +81,10 @@ export default function Profile() {
     }
   }
 
+  const [importDialogOpen, setImportDialogOpen] = createSignal(false);
+
+  const [tasksDialogOpen, setTasksDialogOpen] = createSignal(false);
+
   return (
     <main class={styles.main}>
       <aside class={styles.sidebar}>
@@ -106,7 +112,7 @@ export default function Profile() {
               <A class={styles.sidebar__profilesActionBtn} href={`/profile/${params.gameId}`}>
                 <Fa icon={faPlus} />
               </A>
-              <button class={styles.sidebar__profilesActionBtn} title="Import">
+              <button class={styles.sidebar__profilesActionBtn} title="Import" on:click={() => setImportDialogOpen(true)}>
                 <Fa icon={faFileImport} class={sidebarStyles.sidebar__profileActionsBtnIcon} />
               </button>
             </div>
@@ -166,13 +172,11 @@ export default function Profile() {
                 Settings
               </button>
             </A>
-            <A href="">
-              <button>
-                <Fa icon={faDownload} class={styles.sidebar__otherGridIcon} />
-                <br />
-                Downloads
-              </button>
-            </A>
+            <button on:click={() => setTasksDialogOpen(true)}>
+              <Fa icon={faDownload} class={styles.sidebar__otherGridIcon} />
+              <br />
+              Downloads
+            </button>
           </div>
         </section>
       </aside>
@@ -242,6 +246,14 @@ export default function Profile() {
           }}
         </Show>
       </div>
+
+      <Show when={importDialogOpen()}>
+        <ImportDialog onDismiss={() => setImportDialogOpen(false)} gameId={params.gameId} />
+      </Show>
+
+      <Show when={tasksDialogOpen()}>
+        <TasksDialog onDismiss={() => setTasksDialogOpen(false)} />
+      </Show>
     </main>
   );
 }

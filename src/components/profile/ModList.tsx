@@ -14,22 +14,23 @@ import {
   Switch,
   useContext,
 } from "solid-js";
-import { createStore } from "solid-js/store";
 import Fa from "solid-fa";
 import { faDownload, faDownLong, faExternalLink, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { faHardDrive, faHeart, faThumbsUp } from "@fortawesome/free-regular-svg-icons";
 import { fetch } from "@tauri-apps/plugin-http";
 
 import { Mod, ModListing, ModPackage } from "../../types";
-import { humanizeFileSize, numberFormatter, roundedNumberFormatter } from "../../utils";
+import { humanizeFileSize, removeProperty, roundedNumberFormatter } from "../../utils";
 import ErrorBoundary, { ErrorContext } from "../global/ErrorBoundary";
-import { InitialProgress, ProgressData } from "./ModSearch";
-import { fetchModIndex, installProfileMod, queryModIndex, uninstallProfileMod } from "../../api";
+import { fetchModIndex, getFromModIndex, installProfileMod, uninstallProfileMod } from "../../api";
 
 import styles from "./ModList.module.css";
 import Markdown from "../global/Markdown";
 import TabRenderer, { Tab, TabContent } from "../global/TabRenderer";
 import { useParams } from "@solidjs/router";
+import { createProgressProxyStore, initProgress } from "../../api/tasks";
+import AsyncButton from "../global/AsyncButton";
+import { SimpleProgressIndicator } from "../global/Progress";
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   month: "short",
@@ -61,10 +62,7 @@ export default function ModList(props: { mods: Fetcher }) {
 }
 
 function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
-  const [progress, setProgress] = createStore<InitialProgress | ProgressData>({
-    completed: null,
-    total: null,
-  });
+  const [progress, setProgress] = createProgressProxyStore();
 
   function getInitialValue(mod: Mod | undefined) {
     if (mod === undefined) return undefined;
@@ -85,10 +83,14 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
     () => (mod() === undefined ? {} : mod()!),
     async (mod, info: ResourceFetcherInfo<ModListing | undefined, never>) => {
       if ("game" in mod) {
-        await fetchModIndex(mod.game, { refresh: info.refetching }, setProgress);
-        return (await queryModIndex(mod.game, "", [], { exact: [{owner: mod.owner, name: mod.name}] })).mods[0];
+        await fetchModIndex(mod.game, { refresh: info.refetching }, (event) => {
+          if (event.event === "created") {
+            setProgress(event.progress);
+          }
+        });
+        return (await getFromModIndex(mod.game, [{ owner: mod.owner, name: mod.name }]))[0];
       } else if ("versions" in mod) {
-        setProgress({ completed: null, total: null });
+        setProgress(initProgress());
         return mod;
       } else {
         return undefined;
@@ -325,7 +327,7 @@ function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) 
     if ("version" in mod) {
       return mod;
     } else {
-      return installContext?.installed.latest.find((pkg) => pkg.uuid4 === mod.uuid4);
+      return installContext?.installed.latest.find((pkg) => pkg.owner === mod.owner && pkg.name === mod.name);
     }
   });
 
@@ -391,29 +393,31 @@ function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) 
 }
 
 function InstallButton(props: { mod: ModListing; installContext: NonNullable<typeof ModInstallContext.defaultValue> }) {
-  const reportErr = useContext(ErrorContext);
-  const [busy, setBusy] = createSignal(false);
   return (
-    <button
-      class={styles.downloadBtn}
-      disabled={busy()}
-      on:click={async (e) => {
-        e.stopPropagation();
-        setBusy(true);
-        try {
-          await installProfileMod(props.installContext.profile, props.mod, 0);
-          await props.installContext.refetchInstalled();
-        } catch (e) {
-          reportErr(e);
-        } finally {
-          setBusy(false);
-        }
-      }}
-    >
-      <Show when={busy()} fallback={<Fa icon={faDownLong} />}>
-        <progress />
-      </Show>
-    </button>
+    <AsyncButton>
+      {(busy, progress, wrapOnClick) => (
+        <button
+          class={styles.downloadBtn}
+          disabled={busy()}
+          on:click={async (e) => {
+            e.stopPropagation();
+            await wrapOnClick(async listener => {
+              await installProfileMod(
+                props.installContext.profile,
+                removeProperty(props.mod, "versions"),
+                props.mod.versions[0],
+                listener,
+              );
+              await props.installContext.refetchInstalled();
+            });
+          }}
+        >
+          <Show when={busy()} fallback={<Fa icon={faDownLong} />}>
+            <SimpleProgressIndicator progress={progress} />
+          </Show>
+        </button>
+      )}
+    </AsyncButton>
   );
 }
 
@@ -421,28 +425,25 @@ function UninstallButton(props: {
   mod: ModPackage;
   installContext: NonNullable<typeof ModInstallContext.defaultValue>;
 }) {
-  const reportErr = useContext(ErrorContext);
-  const [busy, setBusy] = createSignal(false);
   return (
-    <button
-      class={styles.downloadBtn}
-      disabled={busy()}
-      on:click={async (e) => {
-        e.stopPropagation();
-        setBusy(true);
-        try {
-          await uninstallProfileMod(props.installContext.profile, props.mod.owner, props.mod.name);
-          await props.installContext.refetchInstalled();
-        } catch (e) {
-          reportErr(e);
-        } finally {
-          setBusy(false);
-        }
-      }}
-    >
-      <Show when={busy()} fallback={<Fa icon={faTrash} />}>
-        <progress />
-      </Show>
-    </button>
+    <AsyncButton>
+      {(busy, progress, wrapOnClick) => (
+        <button
+          class={styles.downloadBtn}
+          disabled={busy()}
+          on:click={async (e) => {
+            e.stopPropagation();
+            await wrapOnClick(async () => {
+              await uninstallProfileMod(props.installContext.profile, props.mod.owner, props.mod.name);
+              await props.installContext.refetchInstalled();
+            });
+          }}
+        >
+          <Show when={busy()} fallback={<Fa icon={faTrash} />}>
+            <SimpleProgressIndicator progress={progress} />
+          </Show>
+        </button>
+      )}
+    </AsyncButton>
   );
 }

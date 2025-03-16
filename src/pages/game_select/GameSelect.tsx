@@ -65,7 +65,7 @@ export default function GameSelect() {
         <div class={blobStyles.gradientBlob} data-blob-4></div>
       </div>
       <div class={styles.language}>
-        <form action="#" on:submit={(e) => e.preventDefault()}>
+        <form on:submit={(e) => e.preventDefault()}>
           <label for="language" aria-label="Change language">
             <Fa icon={faGlobe} />
           </label>
@@ -85,7 +85,7 @@ export default function GameSelect() {
         <p>{t("game_select.subtitle")}</p>
       </header>
       <main class={styles.main}>
-        <form action="#" class={styles.gameSearch}>
+        <form on:submit={(e) => e.preventDefault()} class={styles.gameSearch}>
           <input
             type="search"
             name="search-game"
