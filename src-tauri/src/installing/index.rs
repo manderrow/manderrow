@@ -60,6 +60,7 @@ impl<'a> Iterator for ArchivedNativePathComponents<'a> {
         #[cfg(windows)]
         {
             // TODO: if host is little-endian, cast instead of mapping and collecting into an intermediate buffer
+            use std::ffi::OsString;
             use std::os::windows::ffi::OsStringExt;
             self.iter.next().map(|component| {
                 OsString::from_wide(&component.iter().map(|c| c.to_native()).collect::<Vec<_>>())
