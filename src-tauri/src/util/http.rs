@@ -15,6 +15,7 @@ mod private {
 
     pub type ReqwestBytesStream = impl Stream<Item = Result<Bytes>>;
 
+    #[define_opaque(ReqwestBytesStream)]
     pub fn bytes_stream(response: Response) -> ReqwestBytesStream {
         response.bytes_stream().map_err(std::io::Error::other)
     }
