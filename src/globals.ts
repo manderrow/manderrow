@@ -1,16 +1,23 @@
 import { createResource } from "solid-js";
 
-import { getGameModDownloads, getGames, getGamesPopularity, getProfiles } from "./api";
+import { GameSortColumn, getGameModDownloads, getGames, getGamesPopularity, getProfiles, searchGames } from "./api";
 import { Game } from "./types";
 
-export const [gamesResource] = createResource<[Game[], Map<string, Game>], unknown>(async () => {
-  const games = await getGames();
-  games.sort((a, b) => a.name.localeCompare(b.name));
+export const [gamesResource] = createResource<[readonly Game[], Map<string, Game>], never>(async () => {
+  const games = Object.freeze(await getGames());
   const byId = new Map(games.map((game) => [game.id, game]));
   return [games, byId];
 });
 export const games = () => gamesResource.latest![0];
 export const gamesById = () => gamesResource.latest![1];
+
+export const [blankSearchGamesResource] = createResource<readonly number[], never>(async () => {
+  return Object.freeze(await searchGames("", [{
+    column: GameSortColumn.ModDownloads,
+    descending: true,
+  }]));
+});
+export const blankSearchGames = () => blankSearchGamesResource.latest!;
 
 export const [gamesPopularityResource] = createResource<{ [key: string]: number }>(async () => {
   const gamesPopularity = await getGamesPopularity();
@@ -34,3 +41,5 @@ export const [profiles, { refetch: refetchProfiles }] = createResource(
   },
   { initialValue: [] },
 );
+
+export const splashScreenResources = Object.freeze([gamesResource, blankSearchGamesResource, gamesPopularityResource, gamesModDownloadsResource, profiles]);

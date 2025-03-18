@@ -87,6 +87,7 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
         .invoke_handler(tauri::generate_handler![
             splashscreen::close_splashscreen,
             games::commands::get_games,
+            games::commands::search_games,
             games::commands::get_games_popularity,
             games::commands::get_game_mods_downloads,
             i18n::get_preferred_locales,

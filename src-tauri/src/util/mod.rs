@@ -1,6 +1,7 @@
 pub mod http;
 mod progress;
 pub mod rkyv;
+pub mod search;
 pub mod serde;
 
 #[cfg(windows)]

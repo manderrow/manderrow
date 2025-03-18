@@ -1,5 +1,5 @@
 import { createResource, createSignal, ResourceFetcherInfo, Show, useContext } from "solid-js";
-import { countModIndex, fetchModIndex, queryModIndex, SortColumn, SortOption } from "../../api";
+import { countModIndex, fetchModIndex, queryModIndex, ModSortColumn, SortOption } from "../../api";
 import { SortableList } from "../global/SortableList";
 import ModList from "./ModList";
 import styles from "./ModSearch.module.css";
@@ -23,10 +23,10 @@ export default function ModSearch(props: { game: string }) {
   const [query, setQuery] = createSignal("");
 
   const [sort, setSort] = createSignal<SortOption[]>([
-    { column: SortColumn.Relevance, descending: true },
-    { column: SortColumn.Downloads, descending: true },
-    { column: SortColumn.Name, descending: false },
-    { column: SortColumn.Owner, descending: false },
+    { column: ModSortColumn.Relevance, descending: true },
+    { column: ModSortColumn.Downloads, descending: true },
+    { column: ModSortColumn.Name, descending: false },
+    { column: ModSortColumn.Owner, descending: false },
   ]);
 
   const [progress, setProgress] = createProgressProxyStore();

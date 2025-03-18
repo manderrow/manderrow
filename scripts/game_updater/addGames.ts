@@ -6,7 +6,7 @@ const gamesJsonPath = "../../src-tauri/src/games/games.json";
 import existingGames from "../../src-tauri/src/games/games.json" with {type: "json"}
 
 const THUNDERSTORE_COMMUNITIES_API =
-  "https://thunderstore.io/api/cyberstorm/community/?ordering=-aggregated_fields__package_count";
+  "https://thunderstore.io/api/cyberstorm/community/";
 
 const gamesRequests = await fetch(THUNDERSTORE_COMMUNITIES_API);
 const { results: thunderstoreGames } = (await gamesRequests.json()) as ThunderstoreCommunityApiResponse;
@@ -16,7 +16,7 @@ const existingGamesMap = new Map(existingGames.map((game) => [game.id, game]));
 const diff: ThunderstoreCommunityGame[] = [];
 
 for (const game of thunderstoreGames) {
-  if (existingGamesMap.get(game.identifier) == null) diff.push(game);
+  if (!existingGamesMap.has(game.identifier)) diff.push(game);
 }
 
 const textEncoder = new TextEncoder();
@@ -54,6 +54,7 @@ for (let i = 0; i < diff.length; ) {
 
   const gameData: Partial<Game> = {
     id: game.identifier,
+    thunderstoreId: game.identifier,
     name: game.name,
     thunderstoreUrl: `https://thunderstore.io/c/${game.identifier}/api/v1/package-listing-index/`,
   };

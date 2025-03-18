@@ -19,7 +19,8 @@ use crate::mods::{ArchivedModRef, ModId, ModRef};
 use crate::tasks::{self, TaskBuilder};
 use crate::util::http::ResponseExt;
 use crate::util::rkyv::InternedString;
-use crate::util::Progress;
+use crate::util::search::{Score, SortOption};
+use crate::util::{search, Progress};
 use crate::Reqwest;
 
 use memory::MemoryModIndex;
@@ -256,12 +257,6 @@ pub enum SortColumn {
     Downloads,
 }
 
-#[derive(Clone, Copy, serde::Deserialize)]
-pub struct SortOption {
-    column: SortColumn,
-    descending: bool,
-}
-
 pub type ModIndexReadGuard = RwLockReadGuard<'static, Vec<MemoryModIndex>>;
 
 pub async fn read_mod_index(game: &str) -> Result<ModIndexReadGuard> {
@@ -282,15 +277,10 @@ pub async fn count_mod_index<'a>(mod_index: &'a ModIndexReadGuard, query: &str) 
     Ok(mod_index
         .iter()
         .flat_map(|mi| {
-            mi.mods().iter().filter_map(|m| {
-                if query.is_empty() {
-                    Some((m, 0.0))
-                } else {
-                    let (_, owner_score) = rff::match_and_score(&query, &m.owner)?;
-                    let (_, name_score) = rff::match_and_score(&query, &m.name)?;
-                    Some((m, owner_score + name_score))
-                }
-            })
+            mi.mods()
+                .iter()
+                .filter_map(|m| score_mod(&log, query, m))
+                .filter(|&(_, score)| search::should_include(score))
         })
         .count())
 }
@@ -298,8 +288,8 @@ pub async fn count_mod_index<'a>(mod_index: &'a ModIndexReadGuard, query: &str) 
 pub async fn query_mod_index<'a>(
     mod_index: &'a ModIndexReadGuard,
     query: &str,
-    sort: &[SortOption],
-) -> Result<Vec<(&'a ArchivedModRef<'a>, f64)>> {
+    sort: &[SortOption<SortColumn>],
+) -> Result<Vec<(&'a ArchivedModRef<'a>, Score)>> {
     let log = slog_scope::logger();
 
     debug!(log, "Querying mods");
@@ -307,15 +297,10 @@ pub async fn query_mod_index<'a>(
     let mut buf = mod_index
         .iter()
         .flat_map(|mi| {
-            mi.mods().iter().filter_map(|m| {
-                if query.is_empty() {
-                    Some((m, 0.0))
-                } else {
-                    let (_, owner_score) = rff::match_and_score(&query, &m.owner)?;
-                    let (_, name_score) = rff::match_and_score(&query, &m.name)?;
-                    Some((m, owner_score + name_score))
-                }
-            })
+            mi.mods()
+                .iter()
+                .filter_map(|m| score_mod(&log, query, m))
+                .filter(|&(_, score)| search::should_include(score))
         })
         .collect::<Vec<_>>();
     if !sort.is_empty() {
@@ -323,7 +308,7 @@ pub async fn query_mod_index<'a>(
             let mut ordering = std::cmp::Ordering::Equal;
             for &SortOption { column, descending } in sort {
                 ordering = match column {
-                    SortColumn::Relevance => score1.total_cmp(score2),
+                    SortColumn::Relevance => score1.cmp(score2),
                     SortColumn::Name => m1.name.cmp(&m2.name),
                     SortColumn::Owner => m1.owner.cmp(&m2.owner),
                     SortColumn::Downloads => {
@@ -348,6 +333,21 @@ pub async fn query_mod_index<'a>(
     }
 
     Ok(buf)
+}
+
+fn score_mod<'a, 'b>(
+    log: &slog::Logger,
+    query: &str,
+    m: &'a ArchivedModRef<'b>,
+) -> Option<(&'a ArchivedModRef<'b>, Score)> {
+    if query.is_empty() {
+        Some((m, Score::MAX))
+    } else {
+        let owner_score = search::score(&query, &m.owner).map(|s| std::cmp::max(s / 8, Score::ZERO));
+        let name_score = search::score(&query, &m.name);
+        let score = search::add_scores(name_score, owner_score)?;
+        Some((m, score))
+    }
 }
 
 pub async fn get_from_mod_index<'a>(

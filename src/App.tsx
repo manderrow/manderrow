@@ -7,14 +7,12 @@ import { platform } from "@tauri-apps/plugin-os";
 import { open } from "@tauri-apps/plugin-shell";
 import { Resource, Show, createEffect, createSignal, onCleanup, onMount } from "solid-js";
 
-import { gamesModDownloadsResource, gamesPopularityResource, gamesResource } from "./globals";
+import { splashScreenResources } from "./globals";
 
 import ErrorPage from "./pages/error/Error";
 import GameSelect from "./pages/game_select/GameSelect";
 import Profile from "./pages/profile/Profile";
 import ErrorBoundary from "./components/global/ErrorBoundary";
-
-const resources: Resource<any>[] = [gamesResource, gamesPopularityResource, gamesModDownloadsResource];
 
 export default function App() {
   const [loaded, setLoaded] = createSignal(false);
@@ -53,7 +51,7 @@ export default function App() {
   });
 
   createEffect(() => {
-    if (resources.every((resource) => resource.latest != null)) setReady(true);
+    if (splashScreenResources.every((resource) => resource.latest != null)) setReady(true);
   });
 
   createEffect(async () => {

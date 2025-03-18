@@ -1,7 +1,6 @@
 {
   "global": {
     "list_sort_type": {
-      "alphabetical": "Alfabético",
       "popularity": "Popularidad"
     }
   },

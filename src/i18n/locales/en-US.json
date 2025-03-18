@@ -1,7 +1,8 @@
 {
   "global": {
     "list_sort_type": {
-      "alphabetical": "Alphabetical",
+      "name": "Name",
+      "mod_downloads": "Mod Downloads",
       "popularity": "Popularity"
     }
   },

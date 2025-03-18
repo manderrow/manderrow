@@ -7,7 +7,7 @@ use crate::{
     tasks, CommandError,
 };
 
-use super::{read_mod_index, SortOption};
+use super::{read_mod_index, SortColumn, SortOption};
 
 #[tauri::command]
 pub async fn fetch_mod_index(
@@ -42,7 +42,7 @@ pub async fn count_mod_index(game: &str, query: &str) -> Result<usize, CommandEr
 pub async fn query_mod_index(
     game: &str,
     query: &str,
-    sort: Vec<SortOption>,
+    sort: Vec<SortOption<SortColumn>>,
     skip: Option<usize>,
     limit: Option<NonZeroUsize>,
 ) -> Result<tauri::ipc::Response, CommandError> {

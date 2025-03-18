@@ -18,6 +18,7 @@ export interface Game {
   packageLoader: PackageLoader;
   steamFolderName: string;
   storePlatformMetadata: StorePlatformMetadata[];
+  thunderstoreId: string;
   thunderstoreUrl: string;
 }
 

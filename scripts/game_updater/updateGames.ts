@@ -1,5 +1,8 @@
 import { parseArgs } from "@std/cli";
-import { ThunderstoreCommunityApiResponse } from "./types.d.ts";
+
+import { ThunderstoreCommunityApiResponse, ThunderstoreCommunityGame } from "./types.d.ts";
+
+import games from "../../src-tauri/src/games/games.json" with {type: "json"}
 
 enum UpdateMode {
   ALL = "all",
@@ -9,7 +12,7 @@ enum UpdateMode {
 }
 
 const THUNDERSTORE_COMMUNITIES_API =
-  "https://thunderstore.io/api/cyberstorm/community/?ordering=-aggregated_fields__package_count";
+  "https://thunderstore.io/api/cyberstorm/community/";
 
 const flags = parseArgs(Deno.args, {
   string: ["mode"],
@@ -20,15 +23,24 @@ const mode = flags.mode.toLowerCase() as UpdateMode;
 
 const textEncoder = new TextEncoder();
 
-const gamesRequests = await fetch(THUNDERSTORE_COMMUNITIES_API);
-const { results: games } = (await gamesRequests.json()) as ThunderstoreCommunityApiResponse;
-
 if (mode === UpdateMode.ALL || mode === UpdateMode.DOWNLOADS) {
-  const sorted: Record<string, number> = {};
-  for (const game of games) {
-    sorted[game.identifier] = game.total_download_count;
+  const sorted: [string, number][] = [];
+  const thunderstoreIds = new Set(games.map(game => game.thunderstoreId));
+  const { results } = await (await fetch(THUNDERSTORE_COMMUNITIES_API)).json() as ThunderstoreCommunityApiResponse;
+  for (const game of results) {
+    sorted.push([game.identifier, game.total_download_count]);
+    thunderstoreIds.delete(game.identifier);
   }
-  Deno.writeFile("../../src-tauri/src/gameModDownloads.json", textEncoder.encode(JSON.stringify(sorted, null, 2)));
+  await Promise.all(Array.from(thunderstoreIds).map(async thunderstoreId => {
+    const resp = await fetch(THUNDERSTORE_COMMUNITIES_API + thunderstoreId);
+    if (resp.status !== 200) {
+      throw new Error(`${thunderstoreId}: ${resp.status} ${resp.statusText}`);
+    }
+    const { total_download_count } = (await resp.json()) as ThunderstoreCommunityGame;
+    sorted.push([thunderstoreId, total_download_count]);
+  }));
+  sorted.sort(([a, _], [b, __]) => a.localeCompare(b));
+  Deno.writeFile("../../src-tauri/src/games/gameModDownloads.json", textEncoder.encode(JSON.stringify(Object.fromEntries(sorted), null, 2)));
 }
 
 async function getImage(url: string) {

@@ -2,10 +2,9 @@ import { faStar } from "@fortawesome/free-regular-svg-icons";
 import { faGlobe, faList, faTableCellsLarge } from "@fortawesome/free-solid-svg-icons";
 import { A } from "@solidjs/router";
 import Fa from "solid-fa";
-import { createSignal, For, onCleanup, onMount } from "solid-js";
+import { createResource, createSignal, For, onCleanup, onMount } from "solid-js";
 
-import { GameListSortType } from "../../enums/ListSortOrder";
-import { games, gamesModDownloads, gamesPopularity } from "../../globals";
+import { games, blankSearchGames } from "../../globals";
 import { Locale, localeNamesMap, setLocale, locale, t, RAW_LOCALES } from "../../i18n/i18n";
 import { Game } from "../../types";
 import { autofocus } from "../../components/global/Directives";
@@ -13,6 +12,7 @@ import { autofocus } from "../../components/global/Directives";
 import blobStyles from "./GameBlobs.module.css";
 import gameListStyles from "./GameList.module.css";
 import styles from "./GameSelect.module.css";
+import { GameSortColumn, searchGames } from "../../api";
 
 enum DisplayType {
   Card = -1,
@@ -22,7 +22,18 @@ enum DisplayType {
 export default function GameSelect() {
   const [displayType, setDisplayType] = createSignal<DisplayType>(DisplayType.Card);
   const [search, setSearch] = createSignal("");
-  const [sort, setSort] = createSignal<GameListSortType>(GameListSortType.ModCount);
+  const [sort, setSort] = createSignal<GameSortColumn>(GameSortColumn.ModDownloads);
+
+  const [filteredGames] = createResource<readonly number[], readonly [string, GameSortColumn], readonly number[]>(
+    () => [search(), sort()],
+    async ([query, sort]) => {
+      return await searchGames(query, [
+        { column: GameSortColumn.Relevance, descending: true },
+        { column: sort, descending: sort !== GameSortColumn.Name },
+      ]);
+    },
+    { initialValue: blankSearchGames() },
+  );
 
   onMount(() => {
     document.body.classList.add(styles.body);
@@ -31,30 +42,6 @@ export default function GameSelect() {
   onCleanup(() => {
     document.body.classList.remove(styles.body);
   });
-
-  function getComparator(): (a: Game, b: Game) => number {
-    switch (sort()) {
-      case GameListSortType.ModCount:
-        const modDownloads = gamesModDownloads();
-        return (a, b) => {
-          const aModDownloads = modDownloads[a.id];
-          const bModDownloads = modDownloads[b.id];
-
-          if (aModDownloads == null) {
-            return bModDownloads == null ? 0 : 1;
-          } else if (bModDownloads == null) {
-            return -1;
-          }
-
-          return bModDownloads - aModDownloads;
-        };
-      case GameListSortType.Alphabetical:
-        return (a, b) => 0;
-      case GameListSortType.Popularity:
-        const gamesPopularityCache = gamesPopularity();
-        return (a, b) => gamesPopularityCache[b.id] - gamesPopularityCache[a.id];
-    }
-  }
 
   return (
     <>
@@ -96,12 +83,10 @@ export default function GameSelect() {
             use:autofocus
             on:input={(e) => setSearch(e.target.value)}
           />
-          <select name="sort-type" id="sort-type" on:input={(e) => setSort(e.target.value as GameListSortType)}>
-            <option value={GameListSortType.ModCount} selected>
-              Mod count
-            </option>
-            <option value={GameListSortType.Popularity}>{t("global.list_sort_type.popularity")}</option>
-            <option value={GameListSortType.Alphabetical}>{t("global.list_sort_type.alphabetical")}</option>
+          <select name="sort-type" id="sort-type" on:input={(e) => setSort(e.target.value as GameSortColumn)}>
+            <option value={GameSortColumn.ModDownloads} selected>{t("global.list_sort_type.mod_downloads")}</option>
+            <option value={GameSortColumn.Popularity}>{t("global.list_sort_type.popularity")}</option>
+            <option value={GameSortColumn.Name}>{t("global.list_sort_type.name")}</option>
           </select>
           <button
             type="button"
@@ -125,16 +110,14 @@ export default function GameSelect() {
           }}
         >
           <For
-            each={games()
-              .filter((game) => game.name.toLowerCase().includes(search().toLowerCase()))
-              .sort(getComparator())}
+            each={Array.from(filteredGames.latest)}
             fallback={
               <li class={gameListStyles.gameList__empty}>
                 <p>{t("game_select.no_games_msg")}</p>
               </li>
             }
           >
-            {(game) => <GameComponent game={game} />}
+            {(game) => <GameComponent game={games()[game]} />}
           </For>
         </ol>
       </main>
@@ -143,7 +126,7 @@ export default function GameSelect() {
 }
 
 function GameComponent(props: { game: Game }) {
-  const url = `/img/game_covers/${props.game.id}.webp`;
+  const url = `/img/game_covers/${props.game.thunderstoreId}.webp`;
 
   return (
     <li class={gameListStyles.gameList__game} style={`--img-src: url("${url}")`}>

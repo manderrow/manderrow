@@ -50,6 +50,17 @@ export async function getGames(): Promise<Game[]> {
   return await wrapInvoke(() => invoke("get_games", {}));
 }
 
+export enum GameSortColumn {
+  Relevance = "Relevance",
+  Name = "Name",
+  Popularity = "Popularity",
+  ModDownloads = "ModDownloads",
+}
+
+export async function searchGames(query: string, sort: readonly SortOption<GameSortColumn>[]): Promise<number[]> {
+  return await wrapInvoke(() => invoke("search_games", { query, sort }));
+}
+
 export async function getGamesPopularity(): Promise<{ [key: string]: number }> {
   return JSON.parse(await wrapInvoke<string>(() => invoke("get_games_popularity", {})));
 }
@@ -62,15 +73,15 @@ export async function fetchModIndex(game: string, options: { refresh: boolean },
   await invokeWithListener(listener, (taskId) => invoke("fetch_mod_index", { game, ...options, taskId }));
 }
 
-export enum SortColumn {
+export enum ModSortColumn {
   Relevance = "Relevance",
   Downloads = "Downloads",
   Name = "Name",
   Owner = "Owner",
 }
 
-export interface SortOption {
-  column: SortColumn;
+export interface SortOption<C> {
+  column: C;
   descending: boolean;
 }
 
@@ -81,7 +92,7 @@ export async function countModIndex(game: string, query: string): Promise<number
 export async function queryModIndex(
   game: string,
   query: string,
-  sort: readonly SortOption[],
+  sort: readonly SortOption<ModSortColumn>[],
   options: { skip?: number; limit?: Exclude<number, 0> },
 ): Promise<{
   mods: ModListing[];
