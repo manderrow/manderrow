@@ -1,8 +1,9 @@
-import { createMemo, createSignal, createUniqueId, For, JSX, Show, useContext } from "solid-js";
+import { createMemo, createSignal, createUniqueId, For, JSX, Show } from "solid-js";
 
 import {
   importModpackFromThunderstoreCode,
   Modpack,
+  ModProgressRegistration,
   ModSpec,
   previewImportModpackFromThunderstoreCode,
 } from "../../api";
@@ -13,11 +14,14 @@ import { faChevronLeft } from "@fortawesome/free-solid-svg-icons";
 import { OverlayScrollbarsComponent } from "overlayscrollbars-solid";
 import Fa from "solid-fa";
 import { createStore } from "solid-js/store";
-import styles from "./ImportDialog.module.css";
 import { refetchProfiles } from "../../globals";
-import ErrorBoundary, { ErrorContext } from "../global/ErrorBoundary";
+import ErrorBoundary from "../global/ErrorBoundary";
 import { SimpleAsyncButton } from "../global/AsyncButton";
-import { Listener } from "../../api/tasks";
+import { initProgress, Listener, Id as TaskId, tasks } from "../../api/tasks";
+import { Channel } from "@tauri-apps/api/core";
+import { SimpleProgressIndicator } from "../global/Progress";
+
+import styles from "./ImportDialog.module.css";
 
 interface Actions {
   dismiss: () => void;
@@ -45,7 +49,12 @@ function ChoosePage(props: { gameId: string; profile?: string; actions: Actions 
   let [importButtonRef, setImportButtonRef] = createSignal<HTMLButtonElement>();
 
   async function onSubmitThunderstoreCode(listener: Listener) {
-    const modpack = await previewImportModpackFromThunderstoreCode(thunderstoreCode(), props.gameId, props.profile, listener);
+    const modpack = await previewImportModpackFromThunderstoreCode(
+      thunderstoreCode(),
+      props.gameId,
+      props.profile,
+      listener,
+    );
     props.actions.pushPage(
       <PreviewPage
         thunderstoreCode={thunderstoreCode()}
@@ -69,7 +78,9 @@ function ChoosePage(props: { gameId: string; profile?: string; actions: Actions 
         <input id={thunderstoreCodeFieldId} use:bindValue={[thunderstoreCode, setThunderstoreCode]}></input>
         <div class={styles.buttonRow}>
           <button on:click={props.actions.dismiss}>Cancel</button>
-          <SimpleAsyncButton type="submit" onClick={onSubmitThunderstoreCode} ref={setImportButtonRef}>Import</SimpleAsyncButton>
+          <SimpleAsyncButton type="submit" onClick={onSubmitThunderstoreCode} ref={setImportButtonRef}>
+            Import
+          </SimpleAsyncButton>
         </div>
       </form>
     </>
@@ -93,8 +104,20 @@ function PreviewPageInner(props: {
   modpack: Modpack;
   actions: Actions;
 }) {
+  let [modProgress, setModProgress] = createStore<Record<string, TaskId>>({});
+
   async function onImport(listener: Listener) {
-    const id = await importModpackFromThunderstoreCode(props.thunderstoreCode, props.gameId, props.profile, listener);
+    const modProgressChannel = new Channel<ModProgressRegistration>();
+    modProgressChannel.onmessage = (info) => {
+      setModProgress(info.url, info.task);
+    };
+    const id = await importModpackFromThunderstoreCode(
+      props.thunderstoreCode,
+      props.gameId,
+      props.profile,
+      modProgressChannel,
+      listener,
+    );
     console.log(`Imported to profile ${id}`);
     props.actions.dismiss();
     await refetchProfiles();
@@ -113,7 +136,7 @@ function PreviewPageInner(props: {
           <OverlayScrollbarsComponent defer options={{ scrollbars: { autoHide: "leave" } }}>
             <h3>Mods</h3>
             <ul>
-              <For each={props.modpack.mods}>{(mod) => <ModEntry mod={mod} />}</For>
+              <For each={props.modpack.mods}>{(mod) => <ModEntry mod={mod} modProgress={modProgress} />}</For>
             </ul>
 
             <h3>Files</h3>
@@ -161,10 +184,10 @@ function detectModSource(mod: ModSpec): { name: string; version: string; author?
   }
 }
 
-function ModEntry(props: { mod: ModSpec }) {
+function ModEntry(props: { mod: ModSpec; modProgress: Record<string, TaskId> }) {
   const metadata = createMemo(() => detectModSource(props.mod));
   return (
-    <li>
+    <li class={styles.modEntry}>
       <Show when={metadata()} fallback={<ModSource mod={props.mod} />}>
         {(metadata) => (
           <>
@@ -175,6 +198,13 @@ function ModEntry(props: { mod: ModSpec }) {
                   {" "}
                   by <span>{author()}</span>
                 </>
+              )}
+            </Show>
+            <Show when={props.modProgress[props.mod.url]}>
+              {(taskId) => (
+                <div class={styles.right}>
+                  <SimpleProgressIndicator progress={tasks.get(taskId())?.progress ?? initProgress()} />
+                </div>
               )}
             </Show>
           </>

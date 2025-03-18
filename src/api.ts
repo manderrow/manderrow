@@ -1,7 +1,7 @@
-import { invoke } from "@tauri-apps/api/core";
+import { Channel, invoke } from "@tauri-apps/api/core";
 import { C2SChannel } from "./components/global/Console";
 import { Game, ModListing, ModMetadata, ModPackage, ModVersion } from "./types";
-import { allocateTask, invokeWithListener, Listener, registerTaskListener, TaskEvent } from "./api/tasks";
+import { invokeWithListener, Listener, TaskEvent, Id as TaskId } from "./api/tasks";
 
 /**
  * An error thrown from native code.
@@ -197,13 +197,19 @@ export async function previewImportModpackFromThunderstoreCode(
   );
 }
 
+export interface ModProgressRegistration {
+  url: string;
+  task: TaskId;
+}
+
 export async function importModpackFromThunderstoreCode(
   thunderstoreId: string,
   game: string,
   profileId: string | undefined,
+  modProgressChannel: Channel<ModProgressRegistration>,
   listener: Listener,
 ): Promise<string> {
   return await invokeWithListener(listener, (taskId) =>
-    invoke("import_modpack_from_thunderstore_code", { thunderstoreId, game, profileId, taskId }),
+    invoke("import_modpack_from_thunderstore_code", { thunderstoreId, game, profileId, modProgressChannel, taskId }),
   );
 }

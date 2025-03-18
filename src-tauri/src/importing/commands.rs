@@ -4,6 +4,7 @@ use anyhow::{anyhow, bail, Context};
 use futures::stream::FuturesUnordered;
 use futures::TryStreamExt;
 use serde::Serialize;
+use tauri::ipc::{Channel, InvokeResponseBody};
 use tauri::{AppHandle, State};
 use tokio_util::compat::FuturesAsyncReadCompatExt;
 use uuid::Uuid;
@@ -102,6 +103,12 @@ pub async fn preview_import_modpack_from_thunderstore_code(
     })
 }
 
+#[derive(Clone, serde::Serialize)]
+struct ModProgressRegistration<'a> {
+    url: &'a str,
+    task: tasks::Id,
+}
+
 #[tauri::command]
 pub async fn import_modpack_from_thunderstore_code(
     app: AppHandle,
@@ -109,6 +116,8 @@ pub async fn import_modpack_from_thunderstore_code(
     thunderstore_id: Uuid,
     game: &str,
     profile_id: Option<Uuid>,
+    // ModProgressRegistration, but can't express the lifetime
+    mod_progress_channel: Channel<InvokeResponseBody>,
     task_id: tasks::Id,
 ) -> Result<Uuid, CommandError> {
     if profile_id.is_some() {
@@ -151,8 +160,16 @@ pub async fn import_modpack_from_thunderstore_code(
             ),
         };
 
-        if let Err(e) =
-            import_onto_profile(&app, &*reqwest, game, profile, profile_id, handle).await
+        if let Err(e) = import_onto_profile(
+            &app,
+            &*reqwest,
+            game,
+            profile,
+            profile_id,
+            mod_progress_channel,
+            handle,
+        )
+        .await
         {
             if is_new_profile {
                 crate::profiles::delete_profile(profile_id).await?;
@@ -172,8 +189,10 @@ async fn import_onto_profile(
     game: &str,
     profile: crate::importing::thunderstore::Profile,
     profile_id: Uuid,
+    mod_progress_channel: Channel<InvokeResponseBody>,
     handle: TaskHandle,
 ) -> Result<(), anyhow::Error> {
+    let mod_progress_channel = &mod_progress_channel;
     profile
         .manifest
         .mods
@@ -208,6 +227,17 @@ async fn import_onto_profile(
                     .into());
                 };
 
+                let sub_task_id = handle.allocate_dependency(app)?;
+                mod_progress_channel.send(
+                    serde_json::to_string(&ModProgressRegistration {
+                        url: &format!(
+                            "https://gcdn.thunderstore.io/live/repository/packages/{}-{}-{}.zip",
+                            &*m.owner, &*m.name, version.version_number
+                        ),
+                        task: sub_task_id,
+                    })?
+                    .into(),
+                )?;
                 crate::profiles::install_profile_mod(
                     app,
                     reqwest,
@@ -243,7 +273,7 @@ async fn import_onto_profile(
                         uuid4: Default::default(),
                         file_size: version.file_size.into(),
                     },
-                    Some(handle.allocate_dependency(app)?),
+                    Some(sub_task_id),
                 )
                 .await
             }
