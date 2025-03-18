@@ -22,7 +22,10 @@ impl Add for Score {
 
 pub fn score(needle: &str, haystack: &str) -> Option<Score> {
     // let mut score = fuzzy_matcher::skim::SkimMatcherV2::default().ignore_case().fuzzy_match(haystack, needle).map(Score);
-    let mut score = fuzzy_matcher::clangd::ClangdMatcher::default().ignore_case().fuzzy_match(haystack, needle).map(Score);
+    let mut score = fuzzy_matcher::clangd::ClangdMatcher::default()
+        .ignore_case()
+        .fuzzy_match(haystack, needle)
+        .map(Score);
     score = add_bonus(score, score_acronym(needle, haystack, 200));
     score
 }

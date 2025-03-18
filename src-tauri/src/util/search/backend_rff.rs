@@ -24,8 +24,7 @@ impl PartialEq for Score {
     }
 }
 
-impl Eq for Score {
-}
+impl Eq for Score {}
 
 impl PartialOrd for Score {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {

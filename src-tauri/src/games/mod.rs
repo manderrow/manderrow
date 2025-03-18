@@ -9,7 +9,9 @@ pub static GAMES: LazyLock<Vec<Game>> =
 
 struct IndexedGameData<T>(Vec<T>);
 
-impl<'de, T: Clone + Default + serde::Deserialize<'de>> serde::Deserialize<'de> for IndexedGameData<T> {
+impl<'de, T: Clone + Default + serde::Deserialize<'de>> serde::Deserialize<'de>
+    for IndexedGameData<T>
+{
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
         D: serde::Deserializer<'de>,
@@ -30,7 +32,11 @@ impl<'de, T: Clone + Default + serde::Deserialize<'de>> serde::Deserialize<'de> 
                 let mut buf = (0..GAMES.len()).map(|_| None::<T>).collect::<Vec<_>>();
                 while let Some(id) = map.next_key::<&str>()? {
                     let value = map.next_value()?;
-                    let mut iter = GAMES.iter().enumerate().filter(|(_, g)| g.id == id).map(|(i, _)| i);
+                    let mut iter = GAMES
+                        .iter()
+                        .enumerate()
+                        .filter(|(_, g)| g.id == id)
+                        .map(|(i, _)| i);
                     let Some(found) = iter.next() else {
                         // TODO: make this a hard error
                         //A::Error::invalid_value(serde::de::Unexpected::Str(id), &"a valid game id")
@@ -52,9 +58,12 @@ impl<'de, T: Clone + Default + serde::Deserialize<'de>> serde::Deserialize<'de> 
                             Ok::<_, A::Error>(match o {
                                 Some(t) => t,
                                 None => {
-                                    warn!("Ignoring missing entry for {:?} in a game data file", GAMES[i].id);
+                                    warn!(
+                                        "Ignoring missing entry for {:?} in a game data file",
+                                        GAMES[i].id
+                                    );
                                     Default::default()
-                                },
+                                }
                             })
                         })
                         .collect::<Result<Vec<_>, _>>()?,

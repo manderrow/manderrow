@@ -342,7 +342,8 @@ fn score_mod<'a, 'b>(
     if query.is_empty() {
         Some((m, Score::MAX))
     } else {
-        let owner_score = search::score(&query, &m.owner).map(|s| std::cmp::max(s / 8, Score::ZERO));
+        let owner_score =
+            search::score(&query, &m.owner).map(|s| std::cmp::max(s / 8, Score::ZERO));
         let name_score = search::score(&query, &m.name);
         let score = search::add_scores(name_score, owner_score)?;
         Some((m, score))
