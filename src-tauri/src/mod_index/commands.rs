@@ -16,7 +16,7 @@ pub async fn fetch_mod_index(
     refresh: bool,
     task_id: tasks::Id,
 ) -> Result<(), CommandError> {
-    super::fetch_mod_index(app_handle, game, refresh, Some(task_id)).await?;
+    super::fetch_mod_index(&app_handle, game, refresh, Some(task_id)).await?;
 
     Ok(())
 }

@@ -214,13 +214,13 @@ button.ghost {
   border: 1px solid inherit;
 }
 
-button:hover {
+button:hover:not(:disabled) {
   cursor: pointer;
   --bg-clr: var(--clr-neutral-7);
-}
 
-button.primary:hover {
-  --bg-clr: var(--clr-primary-5);
+  &.primary {
+    --bg-clr: var(--clr-primary-5);
+  }
 }
 
 button:disabled {

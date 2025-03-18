@@ -1,4 +1,4 @@
-import { Accessor, createSignal, JSX, Show } from "solid-js";
+import { Accessor, createEffect, createSignal, JSX, Show } from "solid-js";
 import { Error } from "./ErrorBoundary";
 import { createProgressProxyStore, Listener, Progress } from "../../api/tasks";
 import { Store } from "solid-js/store";
@@ -17,25 +17,21 @@ export default function AsyncButton(props: {
   return (
     <Show
       when={err()}
-      fallback={props.children(
-        busy,
-        progress,
-        async (f) => {
-          setBusy(true);
-          try {
-            await f((event) => {
-              if (event.event === "created") {
-                setProgress(event.progress);
-              }
-            });
-          } catch (e) {
-            console.error(e);
-            setErr(e);
-          } finally {
-            setBusy(false);
-          }
-        },
-      )}
+      fallback={props.children(busy, progress, async (f) => {
+        setBusy(true);
+        try {
+          await f((event) => {
+            if (event.event === "created") {
+              setProgress(event.progress);
+            }
+          });
+        } catch (e) {
+          console.error(e);
+          setErr(e);
+        } finally {
+          setBusy(false);
+        }
+      })}
     >
       {(err) => <Error err={err()} reset={() => setErr(undefined)} />}
     </Show>
@@ -44,17 +40,25 @@ export default function AsyncButton(props: {
 
 export function SimpleAsyncButton(props: {
   onClick: (listener: Listener) => Promise<void> | void;
+  type?: "submit" | "reset" | "button";
+  ref?: (element: HTMLButtonElement) => void;
   children: JSX.Element;
 }) {
+  let ref!: HTMLButtonElement;
+  createEffect(() => {
+    if (props.ref) props.ref(ref);
+  });
   return (
     <AsyncButton>
       {(busy, progress, wrapOnClick) => (
         <button
           disabled={busy()}
+          type={props.type}
           on:click={async (e) => {
             e.stopPropagation();
             await wrapOnClick(props.onClick);
           }}
+          ref={ref}
         >
           <Show when={busy()} fallback={props.children}>
             <SimpleProgressIndicator progress={progress} />

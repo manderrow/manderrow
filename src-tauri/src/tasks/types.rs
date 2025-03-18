@@ -13,6 +13,7 @@ pub struct Metadata {
 
 #[derive(Debug, Clone, Copy, serde::Serialize)]
 pub enum Kind {
+    Aggregate,
     Download,
     Other,
 }
@@ -59,6 +60,15 @@ impl TaskEventBody for TaskProgress {
 }
 
 #[derive(Clone, serde::Serialize)]
+pub struct TaskDependency {
+    pub dependency: Id,
+}
+
+impl TaskEventBody for TaskDependency {
+    const NAME: &str = "task_dependency";
+}
+
+#[derive(Clone, serde::Serialize)]
 pub struct TaskDropped {
     pub status: DropStatus,
 }
@@ -75,5 +85,7 @@ pub enum DropStatus {
         /// If true, the cancellation was due to the user acting directly on the task. Otherwise, it was likely due to the task's [`Future`](std::future::Future) being dropped.
         direct: bool,
     },
-    Failed(Cow<'static, str>),
+    Failed {
+        error: Cow<'static, str>,
+    },
 }

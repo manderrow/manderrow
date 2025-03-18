@@ -1,6 +1,6 @@
 import { For, JSX, Match, Show, Switch, catchError, createContext, createSignal } from "solid-js";
 
-import Dialog from "./Dialog";
+import { DefaultDialog } from "./Dialog";
 import { AbortedError, NativeError } from "../../api";
 import styles from "./ErrorBoundary.module.css";
 
@@ -30,7 +30,7 @@ export default function ErrorBoundary(props: { children: JSX.Element }) {
 
 export function Error(props: { err: unknown; reset: () => void }) {
   return (
-    <Dialog>
+    <DefaultDialog>
       <div class={styles.error}>
         <h2>Oops!</h2>
         <p>An error occurred, but don't worry, we caught it for you.</p>
@@ -76,6 +76,6 @@ export function Error(props: { err: unknown; reset: () => void }) {
           this error and carry on modding.
         </p>
       </div>
-    </Dialog>
+    </DefaultDialog>
   );
 }

@@ -115,6 +115,19 @@ impl TaskHandle {
         }
         Ok(())
     }
+
+    pub fn send_dependency(&self, app: &AppHandle, dependency: Id) -> Result<()> {
+        if let Some(handle) = self.0 {
+            handle.emit(app, TaskDependency { dependency })?;
+        }
+        Ok(())
+    }
+
+    pub fn allocate_dependency(&self, app: &AppHandle) -> Result<Id> {
+        let dependency = allocate_task();
+        self.send_dependency(app, dependency)?;
+        Ok(dependency)
+    }
 }
 
 impl Drop for OwnedTaskHandleInner<'_> {
@@ -160,7 +173,9 @@ impl<'a> OwnedTaskHandle<'a> {
     }
 
     fn fail(self, e: &impl std::fmt::Display) -> Result<()> {
-        self.drop(DropStatus::Failed(e.to_string().into()))
+        self.drop(DropStatus::Failed {
+            error: e.to_string().into(),
+        })
     }
 }
 
@@ -235,10 +250,10 @@ impl TaskBuilder {
         F: Future<Output = Result<T, E>>,
         E: std::fmt::Display + Into<anyhow::Error>,
     {
-        self.run_with_progress(app, move |_| fut).await
+        self.run_with_handle(app, move |_| fut).await
     }
 
-    pub async fn run_with_progress<'a, F, T, E>(
+    pub async fn run_with_handle<'a, F, T, E>(
         self,
         app: Option<&'a AppHandle>,
         fut: impl FnOnce(TaskHandle) -> F,

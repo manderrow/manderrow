@@ -151,7 +151,12 @@ export async function getProfileMods(id: string): Promise<ModPackage[]> {
   return await wrapInvoke(() => invoke("get_profile_mods", { id }));
 }
 
-export async function installProfileMod(id: string, mod: ModMetadata, version: ModVersion, listener: Listener): Promise<void> {
+export async function installProfileMod(
+  id: string,
+  mod: ModMetadata,
+  version: ModVersion,
+  listener: Listener,
+): Promise<void> {
   await invokeWithListener(listener, (taskId) => invoke("install_profile_mod", { id, mod, version, taskId }));
 }
 
@@ -184,17 +189,21 @@ export interface Modpack {
 export async function previewImportModpackFromThunderstoreCode(
   thunderstoreId: string,
   game: string,
-  profileId?: string,
+  profileId: string | undefined,
+  listener: Listener,
 ): Promise<Modpack> {
-  return await wrapInvoke(() =>
-    invoke("preview_import_modpack_from_thunderstore_code", { thunderstoreId, game, profileId }),
+  return await invokeWithListener(listener, (taskId) =>
+    invoke("preview_import_modpack_from_thunderstore_code", { thunderstoreId, game, profileId, taskId }),
   );
 }
 
 export async function importModpackFromThunderstoreCode(
   thunderstoreId: string,
   game: string,
-  profileId?: string,
+  profileId: string | undefined,
+  listener: Listener,
 ): Promise<string> {
-  return await wrapInvoke(() => invoke("import_modpack_from_thunderstore_code", { thunderstoreId, game, profileId }));
+  return await invokeWithListener(listener, (taskId) =>
+    invoke("import_modpack_from_thunderstore_code", { thunderstoreId, game, profileId, taskId }),
+  );
 }

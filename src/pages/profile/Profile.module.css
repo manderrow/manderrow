@@ -151,7 +151,7 @@
   background-color: transparent;
 }
 
-.tabs__tab button:hover {
+.tabs__tab button:hover:not(:disabled) {
   color: var(--clr-neutral-2);
 }
 

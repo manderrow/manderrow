@@ -37,24 +37,29 @@ export function initProgress(): Progress {
 
 export function createProgressProxyStore(): [Progress, Setter<Store<Progress>>] {
   const [progress, setProgress] = createSignal<Store<Progress>>();
-  return [Object.freeze({
-    get completed() {
-      return progress()?.completed ?? 0;
-    },
-    get total() {
-      return progress()?.total ?? 0;
-    },
-  }), setProgress as Setter<Store<Progress>>];
+  return [
+    Object.freeze({
+      get completed() {
+        return progress()?.completed ?? 0;
+      },
+      get total() {
+        return progress()?.total ?? 0;
+      },
+    }),
+    setProgress as Setter<Store<Progress>>,
+  ];
 }
 
 export class Task {
   readonly metadata: Store<Metadata>;
   readonly status: Store<Status>;
   readonly progress: Store<Progress>;
+  readonly dependencies: Store<Id[]>;
 
   readonly [SET_METADATA]: SetStoreFunction<Metadata>;
   readonly [SET_STATUS]: SetStoreFunction<Status>;
   readonly [SET_PROGRESS]: SetStoreFunction<Progress>;
+  readonly setDependencies: SetStoreFunction<Id[]>;
 
   listeners: Listener[];
 
@@ -71,6 +76,10 @@ export class Task {
     this.progress = progress;
     this[SET_PROGRESS] = setProgress;
 
+    const [dependencies, setDependencies] = untrack(() => createStore<Id[]>([]));
+    this.dependencies = dependencies;
+    this.setDependencies = setDependencies;
+
     this.listeners = listeners;
   }
 
@@ -81,6 +90,7 @@ export class Task {
 }
 
 export enum Kind {
+  Aggregate = "Aggregate",
   Download = "Download",
   Other = "Other",
 }
@@ -107,6 +117,11 @@ interface TaskProgressEvent {
   progress: Progress;
 }
 
+interface TaskDependencyEvent {
+  id: Id;
+  dependency: Id;
+}
+
 interface TaskDroppedEvent {
   id: Id;
   status: DropStatus;
@@ -115,6 +130,7 @@ interface TaskDroppedEvent {
 export type TaskEvent =
   | (Omit<TaskCreatedEvent, "id"> & { event: "created"; progress: Store<Progress> })
   | (Omit<TaskProgressEvent, "id"> & { event: "progress" })
+  | (Omit<TaskDependencyEvent, "id"> & { event: "dependency" })
   | (Omit<TaskDroppedEvent, "id"> & { event: "dropped" });
 
 listen<TaskCreatedEvent>("task_created", (event) => {
@@ -143,6 +159,42 @@ listen<TaskProgressEvent>("task_progress", (event) => {
   }
 });
 
+listen<TaskDependencyEvent>("task_dependency", (event) => {
+  const task = _tasks.get(event.payload.id);
+  if (task !== undefined) {
+    task.setDependencies(task.dependencies.length, event.payload.dependency);
+    if (task.metadata.kind === "Aggregate") {
+      const dependency = event.payload.dependency;
+      registerTaskListener(dependency, function handler(event) {
+        if (event.event === "created") {
+          if (event.metadata.progress_unit !== task.metadata.progress_unit) {
+            // Units don't match. We don't want to handle this.
+            unregisterTaskListener(dependency, handler);
+          }
+        } else if (event.event === "progress") {
+          // TODO: don't redo it all
+          let completed = event.progress.completed;
+          let total = event.progress.total;
+          for (const id of task.dependencies) {
+            if (id !== dependency) {
+              const subTask = tasks.get(id);
+              if (subTask === undefined) continue;
+              completed += subTask.progress.completed;
+              total += subTask.progress.total;
+            }
+          }
+
+          task[SET_PROGRESS]({
+            completed,
+            total,
+          });
+        }
+      });
+    }
+    notifyTaskListeners(task, { ...event.payload, event: "dependency" });
+  }
+});
+
 listen<TaskDroppedEvent>("task_dropped", (event) => {
   const task = _tasks.get(event.payload.id);
   if (task !== undefined) {
@@ -156,7 +208,7 @@ async function notifyTaskListeners(task: Task, event: TaskEvent) {
   task.listeners.forEach((listener) => listener(event));
 }
 
-export async function registerTaskListener(id: Id, listener: Listener) {
+export function registerTaskListener(id: Id, listener: Listener) {
   const task = _tasks.get(id);
   if (task === undefined) {
     _tasks.set(
@@ -176,7 +228,7 @@ export async function registerTaskListener(id: Id, listener: Listener) {
   }
 }
 
-export async function unregisterTaskListener(id: Id, listener: Listener) {
+export function unregisterTaskListener(id: Id, listener: Listener) {
   const task = _tasks.get(id);
   if (task !== undefined) {
     const i = task.listeners.indexOf(listener);

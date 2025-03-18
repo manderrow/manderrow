@@ -10,12 +10,17 @@ use std::{
 use anyhow::{bail, ensure, Context, Result};
 use base64::prelude::BASE64_STANDARD;
 use serde::{Deserialize, Serialize};
+use tauri::AppHandle;
 use triomphe::Arc;
 use uuid::Uuid;
 use zip::read::ZipFile;
 
-use crate::profiles::MODS_FOLDER;
 use crate::Reqwest;
+use crate::{
+    installing::{fetch_resource, fetch_resource_as_bytes},
+    profiles::MODS_FOLDER,
+    tasks,
+};
 
 #[derive(Clone)]
 pub struct FullName {
@@ -171,16 +176,22 @@ const R2_PROFILE_DATA_PREFIX: &str = "#r2modman\n";
 
 pub const R2_PROFILE_MANIFEST_FILE_NAME: &str = "export.r2x";
 
-pub async fn lookup_profile(client: &Reqwest, id: Uuid) -> Result<Profile> {
-    let bytes = client
-        .get(format!(
-            "https://thunderstore.io/api/experimental/legacyprofile/get/{id}/"
-        ))
-        .send()
-        .await?
-        .error_for_status()?
-        .bytes()
-        .await?;
+pub async fn lookup_profile(
+    app: Option<&AppHandle>,
+    log: &slog::Logger,
+    reqwest: &Reqwest,
+    id: Uuid,
+    task_id: Option<tasks::Id>,
+) -> Result<Profile> {
+    let bytes = fetch_resource_as_bytes(
+        app,
+        log,
+        reqwest,
+        &format!("https://thunderstore.io/api/experimental/legacyprofile/get/{id}/"),
+        Some(crate::installing::CacheOptions::ByUrl),
+        task_id,
+    )
+    .await?;
 
     tokio::task::block_in_place(move || {
         let Some((prefix, bytes)) = bytes.split_at_checked(R2_PROFILE_DATA_PREFIX.len()) else {

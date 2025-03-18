@@ -8,9 +8,11 @@ use tauri::{AppHandle, State};
 use tokio_util::compat::FuturesAsyncReadCompatExt;
 use uuid::Uuid;
 
+use crate::mod_index::fetch_mod_index;
 use crate::mods::{ModId, ModMetadata, ModVersion, Version};
 use crate::profiles::profile_path;
-use crate::{CommandError, Reqwest};
+use crate::tasks::{TaskBuilder, TaskError, TaskHandle};
+use crate::{tasks, CommandError, Reqwest};
 
 use super::thunderstore;
 
@@ -43,12 +45,18 @@ pub enum Diff {
 
 #[tauri::command]
 pub async fn preview_import_modpack_from_thunderstore_code(
+    app: AppHandle,
     reqwest: State<'_, Reqwest>,
     thunderstore_id: Uuid,
     game: &str,
     profile_id: Option<Uuid>,
+    task_id: tasks::Id,
 ) -> Result<Modpack, CommandError> {
-    let mut profile = thunderstore::lookup_profile(&reqwest, thunderstore_id).await?;
+    let log = slog_scope::logger();
+
+    let mut profile =
+        thunderstore::lookup_profile(Some(&app), &log, &reqwest, thunderstore_id, Some(task_id))
+            .await?;
 
     let mut mods = Vec::with_capacity(profile.manifest.mods.len());
 
@@ -94,7 +102,6 @@ pub async fn preview_import_modpack_from_thunderstore_code(
     })
 }
 
-// TODO: don't fetch again
 #[tauri::command]
 pub async fn import_modpack_from_thunderstore_code(
     app: AppHandle,
@@ -102,25 +109,71 @@ pub async fn import_modpack_from_thunderstore_code(
     thunderstore_id: Uuid,
     game: &str,
     profile_id: Option<Uuid>,
+    task_id: tasks::Id,
 ) -> Result<Uuid, CommandError> {
     if profile_id.is_some() {
         return Err(anyhow!("Importing over existing profiles is not yet supported").into());
     }
 
-    _ = profile_id;
-    let profile = thunderstore::lookup_profile(&reqwest, thunderstore_id).await?;
-
-    let profile_id = match profile_id {
-        Some(profile_id) => profile_id,
-        None => {
-            crate::profiles::create_profile(game.into(), profile.manifest.profile_name.into())
-                .await?
-        }
-    };
-
     let app = &app;
-    let reqwest = &*reqwest;
+    let log = slog_scope::logger();
 
+    TaskBuilder::with_id(
+        task_id,
+        format!("Import modpack thunderstore:{thunderstore_id}"),
+    )
+    .kind(tasks::Kind::Aggregate)
+    .progress_unit(tasks::ProgressUnit::Bytes)
+    .run_with_handle(Some(app), |handle| async move {
+        fetch_mod_index(app, game, false, Some(handle.allocate_dependency(app)?)).await?;
+
+        _ = profile_id;
+        let profile = {
+            thunderstore::lookup_profile(
+                Some(app),
+                &log,
+                &reqwest,
+                thunderstore_id,
+                Some(handle.allocate_dependency(app)?),
+            )
+            .await?
+        };
+
+        let (profile_id, is_new_profile) = match profile_id {
+            Some(profile_id) => (profile_id, false),
+            None => (
+                crate::profiles::create_profile(
+                    game.into(),
+                    profile.manifest.profile_name.as_str().into(),
+                )
+                .await?,
+                true,
+            ),
+        };
+
+        if let Err(e) =
+            import_onto_profile(&app, &*reqwest, game, profile, profile_id, handle).await
+        {
+            if is_new_profile {
+                crate::profiles::delete_profile(profile_id).await?;
+            }
+            return Err(e.into());
+        }
+
+        Ok(profile_id)
+    })
+    .await
+    .map_err(|e: TaskError<anyhow::Error>| anyhow::Error::from(e).into())
+}
+
+async fn import_onto_profile(
+    app: &AppHandle,
+    reqwest: &Reqwest,
+    game: &str,
+    profile: crate::importing::thunderstore::Profile,
+    profile_id: Uuid,
+    handle: TaskHandle,
+) -> Result<(), anyhow::Error> {
     profile
         .manifest
         .mods
@@ -190,9 +243,7 @@ pub async fn import_modpack_from_thunderstore_code(
                         uuid4: Default::default(),
                         file_size: version.file_size.into(),
                     },
-                    // TODO: allocate and send IDs back to the frontend via a Channel and then
-                    //       aggregate the progress from there
-                    None,
+                    Some(handle.allocate_dependency(app)?),
                 )
                 .await
             }
@@ -262,9 +313,8 @@ pub async fn import_modpack_from_thunderstore_code(
                 .try_collect::<()>()
                 .await?;
 
-            Ok(profile_id)
+            Ok(())
         }))
     })
-    .await
-    .map_err(anyhow::Error::from)?
+    .await?
 }

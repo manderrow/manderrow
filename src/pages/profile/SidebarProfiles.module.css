@@ -93,6 +93,6 @@
   border-radius: 4px;
 }
 
-.profileList__item button:hover {
+.profileList__item button:hover:not(:disabled) {
   background-color: var(--clr-neutral-7);
 }

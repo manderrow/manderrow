@@ -16,6 +16,8 @@ import { createStore } from "solid-js/store";
 import styles from "./ImportDialog.module.css";
 import { refetchProfiles } from "../../globals";
 import ErrorBoundary, { ErrorContext } from "../global/ErrorBoundary";
+import { SimpleAsyncButton } from "../global/AsyncButton";
+import { Listener } from "../../api/tasks";
 
 interface Actions {
   dismiss: () => void;
@@ -40,10 +42,10 @@ function ChoosePage(props: { gameId: string; profile?: string; actions: Actions 
 
   const [thunderstoreCode, setThunderstoreCode] = createSignal("");
 
-  async function onSubmitThunderstoreCode(e: SubmitEvent) {
-    e.preventDefault();
+  let [importButtonRef, setImportButtonRef] = createSignal<HTMLButtonElement>();
 
-    const modpack = await previewImportModpackFromThunderstoreCode(thunderstoreCode(), props.gameId, props.profile);
+  async function onSubmitThunderstoreCode(listener: Listener) {
+    const modpack = await previewImportModpackFromThunderstoreCode(thunderstoreCode(), props.gameId, props.profile, listener);
     props.actions.pushPage(
       <PreviewPage
         thunderstoreCode={thunderstoreCode()}
@@ -55,15 +57,19 @@ function ChoosePage(props: { gameId: string; profile?: string; actions: Actions 
     );
   }
 
+  async function onSubmitThunderstoreCodeProxy(e: SubmitEvent) {
+    e.preventDefault();
+  }
+
   return (
     <>
       <h2>Import</h2>
-      <form on:submit={onSubmitThunderstoreCode}>
+      <form on:submit={onSubmitThunderstoreCodeProxy}>
         <label for={thunderstoreCodeFieldId}>Thunderstore Code:</label>
         <input id={thunderstoreCodeFieldId} use:bindValue={[thunderstoreCode, setThunderstoreCode]}></input>
         <div class={styles.buttonRow}>
           <button on:click={props.actions.dismiss}>Cancel</button>
-          <button type="submit">Import</button>
+          <SimpleAsyncButton type="submit" onClick={onSubmitThunderstoreCode} ref={setImportButtonRef}>Import</SimpleAsyncButton>
         </div>
       </form>
     </>
@@ -87,19 +93,11 @@ function PreviewPageInner(props: {
   modpack: Modpack;
   actions: Actions;
 }) {
-  const reportErr = useContext(ErrorContext)!;
-
-  async function onImport(e: MouseEvent) {
-    e.preventDefault();
-
-    try {
-      const id = await importModpackFromThunderstoreCode(props.thunderstoreCode, props.gameId, props.profile);
-      console.log(`Imported to profile ${id}`);
-      props.actions.dismiss();
-      await refetchProfiles();
-    } catch (e) {
-      reportErr(e);
-    }
+  async function onImport(listener: Listener) {
+    const id = await importModpackFromThunderstoreCode(props.thunderstoreCode, props.gameId, props.profile, listener);
+    console.log(`Imported to profile ${id}`);
+    props.actions.dismiss();
+    await refetchProfiles();
   }
 
   return (
@@ -132,7 +130,7 @@ function PreviewPageInner(props: {
         </div>
         <div class={styles.buttonRow}>
           <button on:click={props.actions.dismiss}>Cancel</button>
-          <button on:click={onImport}>Import</button>
+          <SimpleAsyncButton onClick={onImport}>Import</SimpleAsyncButton>
         </div>
       </ErrorBoundary>
     </>

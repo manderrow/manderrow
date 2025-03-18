@@ -14,7 +14,7 @@ use std::{
 
 use anyhow::{anyhow, bail, ensure, Context, Result};
 use base64::Engine;
-use bytes::Bytes;
+use bytes::{Bytes, BytesMut};
 use fs4::tokio::AsyncFileExt;
 use index::{ArchivedIndex, ArchivedIndexEntryV1, Index, IndexEntryRef, IndexEntryV1, IndexPath};
 use slog::{debug, trace};
@@ -471,7 +471,7 @@ pub async fn fetch_resource<'a>(
     TaskBuilder::with_id(task_id.unwrap_or_else(tasks::allocate_task), url.to_owned())
         .kind(tasks::Kind::Download)
         .progress_unit(tasks::ProgressUnit::Bytes)
-        .run_with_progress(app, |handle| async move {
+        .run_with_handle(app, |handle| async move {
             debug!(log, "Fetching resource from {url:?}");
 
             match cache {
@@ -482,10 +482,38 @@ pub async fn fetch_resource<'a>(
                     fetch_resource_cached_by_url(app, log, reqwest, url, handle).await?
                 }
                 None => {
-                    let resp = reqwest::get(url).await?.error_for_status()?;
-                    let bytes = resp.bytes().await?;
+                    let mut resp = reqwest::get(url).await?.error_for_status()?;
+                    let len = resp.content_length();
+                    let bytes = if let Some(len) = len {
+                        let len = usize::try_from(len).context("Too large to fit in memory")?;
+                        let mut bytes = BytesMut::with_capacity(len);
+                        let mut total = 0;
+                        while let Some(chunk) = resp.chunk().await? {
+                            bytes.extend_from_slice(&chunk);
+                            if let Some(app) = app {
+                                total += chunk.len();
+                                handle.send_progress_manually(app, total.as_u64(), len.as_u64())?;
+                            }
+                        }
+                        bytes
+                    } else {
+                        let mut buf = Vec::new();
+                        let mut total = 0;
+                        while let Some(chunk) = resp.chunk().await? {
+                            if let Some(app) = app {
+                                total += chunk.len();
+                                handle.send_progress_manually(app, total.as_u64(), 0)?;
+                            }
+                            buf.push(chunk);
+                        }
+                        let mut bytes = BytesMut::with_capacity(total);
+                        for chunk in buf {
+                            bytes.extend_from_slice(&chunk);
+                        }
+                        bytes
+                    };
 
-                    Ok(FetchedResource::Bytes(bytes))
+                    Ok(FetchedResource::Bytes(bytes.into()))
                 }
             }
         })
@@ -540,8 +568,31 @@ async fn fetch_resource_cached_by_hash(
         }
     } else {
         debug!(log, "Zip is cached at {path:?}");
+        let metadata = tokio::fs::metadata(&path).await?;
+        report_progress_from_file_metadata(app, handle, metadata)?;
     }
     Ok(Ok(FetchedResource::File(path)))
+}
+
+fn report_progress_from_file_metadata(
+    app: Option<&AppHandle>,
+    handle: TaskHandle,
+    metadata: std::fs::Metadata,
+) -> Result<(), anyhow::Error> {
+    #[cfg(windows)]
+    let size = {
+        use std::os::windows::fs::MetadataExt;
+        metadata.file_size()
+    };
+    #[cfg(unix)]
+    let size = {
+        use std::os::unix::fs::MetadataExt;
+        metadata.size()
+    };
+    if let Some(app) = app {
+        handle.send_progress_manually(app, size, size)?;
+    }
+    Ok(())
 }
 
 async fn fetch_resource_cached_by_url(
@@ -555,48 +606,67 @@ async fn fetch_resource_cached_by_url(
     path.as_mut_os_string()
         .push(base64::engine::general_purpose::URL_SAFE.encode(url));
     path.as_mut_os_string().push(".zip");
-    if !tokio::fs::try_exists(&path).await? {
-        tokio::fs::create_dir_all(cache_dir()).await?;
-
-        let (tmp_file, tmp_path) = tokio::task::block_in_place(|| {
-            tempfile::NamedTempFile::new_in(path.parent().context("path must have a parent")?)
-                .map_err(anyhow::Error::from)
-        })?
-        .into_parts();
-
-        let mut resp = reqwest.get(url).send().await?.error_for_status()?;
-
-        let tmp_file = tokio::fs::File::from_std(tmp_file);
-
-        let len = resp.content_length();
-        if let Some(len) = len {
-            tmp_file.allocate(len).await?;
+    match tokio::fs::metadata(&path).await {
+        Ok(metadata) => {
+            debug!(log, "Zip is cached at {path:?}");
+            report_progress_from_file_metadata(app, handle, metadata)?;
         }
+        Err(e) if e.is_not_found() => {
+            tokio::fs::create_dir_all(cache_dir()).await?;
 
-        // TODO: should this be buffered?
-        let mut wtr = tmp_file;
-        let mut written = 0u64;
-        if let (Some(app), Some(total)) = (app, len) {
-            handle.send_progress_manually(app, written, total)?;
-        }
-        while let Some(chunk) = resp.chunk().await? {
-            wtr.write_all(&chunk).await?;
-            if let Some(app) = app {
-                written += chunk.len().as_u64();
-                handle.send_progress_manually(app, written, len.unwrap_or(0))?;
+            let (tmp_file, tmp_path) = tokio::task::block_in_place(|| {
+                tempfile::NamedTempFile::new_in(path.parent().context("path must have a parent")?)
+                    .map_err(anyhow::Error::from)
+            })?
+            .into_parts();
+
+            let mut resp = reqwest.get(url).send().await?.error_for_status()?;
+
+            let tmp_file = tokio::fs::File::from_std(tmp_file);
+
+            let len = resp.content_length();
+            if let Some(len) = len {
+                tmp_file.allocate(len).await?;
             }
+
+            // TODO: should this be buffered?
+            let mut wtr = tmp_file;
+            let mut written = 0u64;
+            if let (Some(app), Some(total)) = (app, len) {
+                handle.send_progress_manually(app, written, total)?;
+            }
+            while let Some(chunk) = resp.chunk().await? {
+                wtr.write_all(&chunk).await?;
+                if let Some(app) = app {
+                    written += chunk.len().as_u64();
+                    handle.send_progress_manually(app, written, len.unwrap_or(0))?;
+                }
+            }
+
+            let tmp_path = tmp_path.keep()?;
+            tokio::fs::rename(&tmp_path, &path)
+                .await
+                .context("Failed to move temp file into place")?;
+
+            debug!(log, "Cached zip at {path:?}");
         }
-
-        let tmp_path = tmp_path.keep()?;
-        tokio::fs::rename(&tmp_path, &path)
-            .await
-            .context("Failed to move temp file into place")?;
-
-        debug!(log, "Cached zip at {path:?}");
-    } else {
-        debug!(log, "Zip is cached at {path:?}");
+        Err(e) => return Err(e.into()),
     }
     Ok(Ok(FetchedResource::File(path)))
+}
+
+pub async fn fetch_resource_as_bytes<'a>(
+    app: Option<&AppHandle>,
+    log: &slog::Logger,
+    reqwest: &Reqwest,
+    url: &str,
+    cache: Option<CacheOptions<'_>>,
+    task_id: Option<tasks::Id>,
+) -> anyhow::Result<Bytes> {
+    match fetch_resource(app, log, reqwest, url, cache, task_id).await? {
+        FetchedResource::File(path_buf) => Ok(tokio::fs::read(&path_buf).await?.into()),
+        FetchedResource::Bytes(bytes) => Ok(bytes),
+    }
 }
 
 /// Downloads a zip file from `url` and installs it into the `target`

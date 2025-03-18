@@ -40,7 +40,7 @@ static MOD_INDEXES: LazyLock<HashMap<&'static str, ModIndex>> = LazyLock::new(||
 });
 
 pub async fn fetch_mod_index(
-    app: AppHandle,
+    app: &AppHandle,
     game: &str,
     refresh: bool,
     task_id: Option<tasks::Id>,
@@ -57,10 +57,9 @@ pub async fn fetch_mod_index(
             .map(|data| data.is_empty())
             .unwrap_or(true)
     {
-        let app = &app;
         TaskBuilder::with_id(task_id.unwrap_or_else(tasks::allocate_task), format!("Fetch mod index for {}", game.id))
             .progress_unit(tasks::ProgressUnit::Bytes)
-            .run_with_progress(Some(app), |handle| async move {
+            .run_with_handle(Some(app), |handle| async move {
                 info!(log, "Fetching mods");
 
                 let Ok(_lock) = mod_index.refresh_lock.try_lock() else {
