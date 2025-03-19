@@ -269,7 +269,11 @@ impl TaskBuilder {
         };
         let fut = fut(TaskHandle(handle.as_ref().map(|handle| handle.inner.id)));
         select! {
-            () = async { if let Some(handle) = &mut handle { handle.cancelled().await } } => {
+            () = async { if let Some(handle) = &mut handle {
+                handle.cancelled().await
+            } else {
+                std::future::pending().await
+            } } => {
                 handle.unwrap().drop(DropStatus::Cancelled { direct: true }).map_err(TaskError::Management)?;
                 Err(TaskError::Cancelled)
             }
