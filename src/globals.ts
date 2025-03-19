@@ -2,6 +2,7 @@ import { createResource } from "solid-js";
 
 import { GameSortColumn, getGameModDownloads, getGames, getGamesPopularity, getProfiles, searchGames } from "./api";
 import { Game } from "./types";
+import { settings } from "./api/settings";
 
 export const [gamesResource] = createResource<[readonly Game[], Map<string, Game>], never>(async () => {
   const games = Object.freeze(await getGames());
@@ -12,10 +13,14 @@ export const games = () => gamesResource.latest![0];
 export const gamesById = () => gamesResource.latest![1];
 
 export const [blankSearchGamesResource] = createResource<readonly number[], never>(async () => {
-  return Object.freeze(await searchGames("", [{
-    column: GameSortColumn.ModDownloads,
-    descending: true,
-  }]));
+  return Object.freeze(
+    await searchGames("", [
+      {
+        column: GameSortColumn.ModDownloads,
+        descending: true,
+      },
+    ]),
+  );
 });
 export const blankSearchGames = () => blankSearchGamesResource.latest!;
 
@@ -50,4 +55,11 @@ export const [profiles, { refetch: refetchProfiles }] = createResource(
 /**
  * The splashscreen will wait for these resources to load for a better user experience.
  */
-export const coreResources = Object.freeze([gamesResource, blankSearchGamesResource, gamesPopularityResource, gamesModDownloadsResource, profiles]);
+export const coreResources = Object.freeze([
+  settings,
+  gamesResource,
+  blankSearchGamesResource,
+  gamesPopularityResource,
+  gamesModDownloadsResource,
+  profiles,
+]);

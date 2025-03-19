@@ -1,0 +1,13 @@
+.settings {
+  display: flex;
+  flex-direction: column;
+  width: 70ch;
+  height: 70vh;
+  overflow-y: auto;
+}
+
+.header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}

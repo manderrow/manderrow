@@ -35,6 +35,8 @@ import styles from "./Profile.module.css";
 import sidebarStyles from "./SidebarProfiles.module.css";
 import ImportDialog from "../../components/profile/ImportDialog";
 import TasksDialog from "../../components/global/TasksDialog";
+import SettingsDialog from "../../components/global/SettingsDialog";
+import { settings } from "../../api/settings";
 
 interface ProfileParams {
   [key: string]: string | undefined;
@@ -70,8 +72,8 @@ export default function Profile() {
   async function launch(modded: boolean) {
     try {
       clearConsole();
-      if (searchParams.tab !== "logs") {
-        navigate(`?tab=logs`);
+      if (settings.loaded.openConsoleOnLaunch && searchParams.tab !== "logs") {
+        navigate(`?profile-tab=logs`);
       }
       const channel = createC2SChannel();
       setConsoleChannel(channel);
@@ -82,6 +84,8 @@ export default function Profile() {
   }
 
   const [importDialogOpen, setImportDialogOpen] = createSignal(false);
+
+  const [settingsDialogOpen, setSettingsDialogOpen] = createSignal(false);
 
   const [tasksDialogOpen, setTasksDialogOpen] = createSignal(false);
 
@@ -112,7 +116,11 @@ export default function Profile() {
               <A class={styles.sidebar__profilesActionBtn} href={`/profile/${params.gameId}`}>
                 <Fa icon={faPlus} />
               </A>
-              <button class={styles.sidebar__profilesActionBtn} title="Import" on:click={() => setImportDialogOpen(true)}>
+              <button
+                class={styles.sidebar__profilesActionBtn}
+                title="Import"
+                on:click={() => setImportDialogOpen(true)}
+              >
                 <Fa icon={faFileImport} class={sidebarStyles.sidebar__profileActionsBtnIcon} />
               </button>
             </div>
@@ -165,13 +173,11 @@ export default function Profile() {
         </section>
         <section class={styles.sidebar__group}>
           <div class={styles.sidebar__otherGrid}>
-            <A href="">
-              <button>
-                <Fa icon={faGear} class={styles.sidebar__otherGridIcon} />
-                <br />
-                Settings
-              </button>
-            </A>
+            <button on:click={() => setSettingsDialogOpen(true)}>
+              <Fa icon={faGear} class={styles.sidebar__otherGridIcon} />
+              <br />
+              Settings
+            </button>
             <button on:click={() => setTasksDialogOpen(true)}>
               <Fa icon={faDownload} class={styles.sidebar__otherGridIcon} />
               <br />
@@ -249,6 +255,10 @@ export default function Profile() {
 
       <Show when={importDialogOpen()}>
         <ImportDialog onDismiss={() => setImportDialogOpen(false)} gameId={params.gameId} />
+      </Show>
+
+      <Show when={settingsDialogOpen()}>
+        <SettingsDialog onDismiss={() => setSettingsDialogOpen(false)} />
       </Show>
 
       <Show when={tasksDialogOpen()}>

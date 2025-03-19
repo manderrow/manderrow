@@ -3,10 +3,11 @@ use std::sync::OnceLock;
 
 use anyhow::{anyhow, Context as _, Result};
 
-use crate::identifier;
+use crate::{identifier, product_name};
 
 static HOME_DIR: OnceLock<PathBuf> = OnceLock::new();
 static CACHE_DIR: OnceLock<PathBuf> = OnceLock::new();
+static CONFIG_DIR: OnceLock<PathBuf> = OnceLock::new();
 static LOCAL_DATA_DIR: OnceLock<PathBuf> = OnceLock::new();
 static RUNTIME_DIR: OnceLock<PathBuf> = OnceLock::new();
 
@@ -24,10 +25,18 @@ pub fn init() -> Result<()> {
             p
         })
         .map_err(|_| anyhow!("Already set"))?;
+    CONFIG_DIR
+        .set({
+            let mut p = dirs::config_dir().context("Unable to determine config directory")?;
+            p.push(product_name());
+            p
+        })
+        .map_err(|_| anyhow!("Already set"))?;
     LOCAL_DATA_DIR
         .set({
             let mut p =
                 dirs::data_local_dir().context("Unable to determine local data directory")?;
+            // TODO: replace with product_name()
             p.push(identifier());
             p
         })
@@ -57,6 +66,10 @@ pub fn home_dir() -> &'static PathBuf {
 
 pub fn cache_dir() -> &'static PathBuf {
     CACHE_DIR.get().unwrap()
+}
+
+pub fn config_dir() -> &'static PathBuf {
+    CONFIG_DIR.get().unwrap()
 }
 
 pub fn local_data_dir() -> &'static PathBuf {

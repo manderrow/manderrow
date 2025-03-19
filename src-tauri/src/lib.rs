@@ -22,6 +22,7 @@ mod mod_index;
 mod mods;
 mod paths;
 mod profiles;
+mod settings;
 mod tasks;
 mod util;
 mod window_state;
@@ -29,7 +30,7 @@ mod wrap;
 
 use std::{ops::Deref, sync::OnceLock};
 
-use anyhow::{anyhow, bail, Context};
+use anyhow::{bail, Context};
 use ipc::IpcState;
 
 pub use error::{CommandError, Error};
@@ -67,14 +68,15 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
         }))
         .setup(|app| {
             if !std::env::var_os("TAURI_IMMEDIATE_DEVTOOLS")
-                .unwrap_or_default()
-                .is_empty()
+            .unwrap_or_default()
+            .is_empty()
             {
                 let window = app.get_webview_window("main").context("no main window")?;
                 window.open_devtools();
             }
             Ok(())
         })
+        .manage(settings::try_read())
         .manage(IpcState::default())
         .manage(Reqwest(reqwest::Client::builder().build()?))
         .plugin(tauri_plugin_clipboard_manager::init())
@@ -105,6 +107,8 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
             profiles::commands::get_profile_mods,
             profiles::commands::install_profile_mod,
             profiles::commands::uninstall_profile_mod,
+            settings::commands::get_settings,
+            settings::commands::update_settings,
             tasks::commands::allocate_task,
             tasks::commands::cancel_task,
         ])

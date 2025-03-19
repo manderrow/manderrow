@@ -48,7 +48,7 @@ export default function App() {
   }
 
   createEffect(() => {
-    if (coreResources.every((resource) => !resource.loading)) setCoreResourcesLoaded(true);
+    if (coreResources.every((resource) => !resource.loading && resource.state !== "unresolved")) setCoreResourcesLoaded(true);
   });
 
   createEffect(async () => {

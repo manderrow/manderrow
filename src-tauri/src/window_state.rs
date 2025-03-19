@@ -250,7 +250,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
     PluginBuilder::new("window-state")
         .setup(|app, _api| {
             PATH.set(app.path().local_data_dir()?.join("window-state.bin"))
-                .expect("Already set");
+                .map_err(|_| anyhow!("Already set"))?;
 
             let cache = match read_window_state() {
                 Ok(Some(t)) => t,
