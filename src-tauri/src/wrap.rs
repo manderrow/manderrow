@@ -40,10 +40,15 @@ impl std::fmt::Display for DisplayArgList {
     }
 }
 
-pub async fn run(args: impl Iterator<Item = OsString>) -> Result<()> {
-    async fn inner1(mut args: impl Iterator<Item = OsString>) -> Result<()> {
-        let command = args.next().context("Missing required argument BINARY")?;
-        let mut command_args = args.collect::<Vec<_>>();
+pub async fn run(args: lexopt::Parser) -> Result<()> {
+    async fn inner1(mut args: lexopt::Parser) -> Result<()> {
+        use lexopt::Arg::*;
+
+        let command = match args.next()?.context("Missing required argument BINARY")? {
+            Value(s) => s,
+            arg => return Err(arg.unexpected().into()),
+        };
+        let mut command_args = args.raw_args()?.collect::<Vec<_>>();
 
         let mut args = Vec::new();
         if let Some(j) = command_args.iter().rposition(|s| s == ";") {
@@ -57,6 +62,7 @@ pub async fn run(args: impl Iterator<Item = OsString>) -> Result<()> {
             }
         }
 
+        // TODO: use lexopt to parse `args`
         let mut ipc = if args.first().map(|s| s == "--c2s-tx").unwrap_or(false) {
             args.remove(0);
             let c2s_tx = IpcSender::<C2SMessage>::connect(

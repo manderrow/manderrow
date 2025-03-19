@@ -4,8 +4,7 @@ import { wrapInvoke } from "../api";
 export type SafeOsString =
   | { Unicode: string }
   | { NonUnicodeBytes: number[] }
-  | { NonUnicodeWide: number[] }
-  | { NonUnicodeOther: string };
+  | { NonUnicodeWide: number[] };
 
 export interface DoctorReport {
   id: string;

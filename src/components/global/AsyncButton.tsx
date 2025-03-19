@@ -4,27 +4,18 @@ import { createProgressProxyStore, Listener, Progress } from "../../api/tasks";
 import { Store } from "solid-js/store";
 import { SimpleProgressIndicator } from "./Progress";
 
-export default function AsyncButton(props: {
-  children: (
-    busy: Accessor<boolean>,
-    progress: Store<Progress>,
-    wrapOnClick: (f: (listener: Listener) => Promise<void> | void) => Promise<void>,
-  ) => JSX.Element;
+export function AsyncButton(props: {
+  children: (busy: Accessor<boolean>, wrapOnClick: (f: () => Promise<void> | void) => Promise<void>) => JSX.Element;
 }) {
   const [err, setErr] = createSignal<unknown>();
   const [busy, setBusy] = createSignal(false);
-  const [progress, setProgress] = createProgressProxyStore();
   return (
     <Show
       when={err()}
-      fallback={props.children(busy, progress, async (f) => {
+      fallback={props.children(busy, async (f) => {
         setBusy(true);
         try {
-          await f((event) => {
-            if (event.event === "created") {
-              setProgress(event.progress);
-            }
-          });
+          await f();
         } catch (e) {
           console.error(e);
           setErr(e);
@@ -39,29 +30,41 @@ export default function AsyncButton(props: {
 }
 
 export function SimpleAsyncButton(props: {
+  class?: string;
   onClick: (listener: Listener) => Promise<void> | void;
   type?: "submit" | "reset" | "button";
   ref?: (element: HTMLButtonElement) => void;
+  whenBusy?: (progress: Progress) => JSX.Element;
   children: JSX.Element;
 }) {
+  const [progress, setProgress] = createProgressProxyStore();
   let ref!: HTMLButtonElement;
   createEffect(() => {
     if (props.ref) props.ref(ref);
   });
   return (
     <AsyncButton>
-      {(busy, progress, wrapOnClick) => (
+      {(busy, wrapOnClick) => (
         <button
+          class={props.class}
           disabled={busy()}
           type={props.type}
           on:click={async (e) => {
             e.stopPropagation();
-            await wrapOnClick(props.onClick);
+            await wrapOnClick(() => {
+              return props.onClick((event) => {
+                if (event.event === "created") {
+                  setProgress(event.progress);
+                }
+              });
+            });
           }}
           ref={ref}
         >
           <Show when={busy()} fallback={props.children}>
-            <SimpleProgressIndicator progress={progress} />
+            <Show when={props.whenBusy} fallback={<SimpleProgressIndicator progress={progress} />}>
+              {(whenBusy) => whenBusy()(progress)}
+            </Show>
           </Show>
         </button>
       )}

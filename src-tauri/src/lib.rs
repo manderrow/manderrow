@@ -2,16 +2,15 @@
 #![feature(error_generic_member_access)]
 #![feature(exit_status_error)]
 #![feature(extend_one)]
-#![feature(file_lock)]
 #![feature(os_string_truncate)]
 #![feature(path_add_extension)]
 #![feature(ptr_as_uninit)]
 #![feature(ptr_metadata)]
 #![feature(type_alias_impl_trait)]
 #![feature(type_changing_struct_update)]
-#![feature(unbounded_shifts)]
 #![feature(vec_push_within_capacity)]
 
+mod app_commands;
 mod error;
 mod games;
 mod i18n;
@@ -23,7 +22,6 @@ mod mod_index;
 mod mods;
 mod paths;
 mod profiles;
-mod splashscreen;
 mod tasks;
 mod util;
 mod window_state;
@@ -31,10 +29,11 @@ mod wrap;
 
 use std::{ops::Deref, sync::OnceLock};
 
-use anyhow::{anyhow, Context};
+use anyhow::{anyhow, bail, Context};
 use ipc::IpcState;
 
 pub use error::{CommandError, Error};
+use lexopt::ValueExt;
 use tauri::Manager;
 
 static PRODUCT_NAME: OnceLock<String> = OnceLock::new();
@@ -59,9 +58,8 @@ impl Deref for Reqwest {
 }
 
 fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
-    let _guard = slog_envlogger::init()?;
     tauri::Builder::default()
-        .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
+        .plugin(tauri_plugin_single_instance::init(|app, _, _| {
             let window = app.get_webview_window("main").expect("no main window");
 
             window.unminimize().ok();
@@ -85,7 +83,8 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
         .plugin(tauri_plugin_shell::init())
         .plugin(window_state::init())
         .invoke_handler(tauri::generate_handler![
-            splashscreen::close_splashscreen,
+            app_commands::close_splashscreen,
+            app_commands::relaunch,
             games::commands::get_games,
             games::commands::search_games,
             games::commands::get_games_popularity,
@@ -134,22 +133,51 @@ pub fn main() -> anyhow::Result<()> {
 
     paths::init().unwrap();
 
-    let mut args = std::env::args_os();
-    _ = args.next().unwrap();
+    let mut args = lexopt::Parser::from_env();
 
-    match args.next() {
-        Some(cmd) if cmd == "wrap" => tauri::async_runtime::block_on(async move {
-            match wrap::run(args).await {
-                Ok(()) => Ok(()),
-                Err(e) => {
-                    if cfg!(debug_assertions) {
-                        tokio::fs::write("/tmp/manderrow-wrap-crash", &format!("{e:?}")).await?;
+    let mut relaunch = None::<u32>;
+
+    use lexopt::Arg::*;
+    while let Some(arg) = args.next()? {
+        match arg {
+            Value(cmd) if cmd == "wrap" => {
+                return tauri::async_runtime::block_on(async move {
+                    match wrap::run(args).await {
+                        Ok(()) => Ok(()),
+                        Err(e) => {
+                            if cfg!(debug_assertions) {
+                                tokio::fs::write("/tmp/manderrow-wrap-crash", &format!("{e:?}"))
+                                    .await?;
+                            }
+                            Err(e)
+                        }
                     }
-                    Err(e)
-                }
+                })
             }
-        }),
-        Some(cmd) => Err(anyhow!("Unrecognized command {cmd:?}")),
-        None => run_app(ctx),
+            Value(cmd) => bail!("Unrecognized command {cmd:?}"),
+            Long("relaunch") => relaunch = Some(args.value()?.parse()?),
+            arg => return Err(arg.unexpected().into()),
+        }
     }
+
+    let _guard = slog_envlogger::init()?;
+
+    // TODO: remove this when https://github.com/tauri-apps/tauri/pull/12313 is released
+    if let Some(pid) = relaunch {
+        slog_scope::with_logger(|log| {
+            // ignore errors because the process might die before or during this operation
+            #[cfg(not(windows))]
+            {
+                let pid = rustix::process::Pid::from_raw(pid as i32).context("Invalid pid")?;
+                _ = crate::util::process::Pid { value: pid }.wait_for_exit(log)
+            }
+            #[cfg(windows)]
+            {
+                _ = crate::util::process::Pid { value: pid }.wait_for_exit(log)
+            }
+            Ok::<_, anyhow::Error>(())
+        })?;
+    }
+
+    run_app(ctx)
 }

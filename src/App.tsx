@@ -2,21 +2,24 @@ import "./styles/App.css";
 import "./styles/Markdown.css";
 
 import { Route, Router } from "@solidjs/router";
-import { invoke } from "@tauri-apps/api/core";
 import { platform } from "@tauri-apps/plugin-os";
 import { open } from "@tauri-apps/plugin-shell";
-import { Resource, Show, createEffect, createSignal, onCleanup, onMount } from "solid-js";
+import { Show, createEffect, createResource, createSignal, onCleanup, onMount } from "solid-js";
 
-import { splashScreenResources } from "./globals";
+import { coreResources as coreResources } from "./globals";
 
 import ErrorPage from "./pages/error/Error";
 import GameSelect from "./pages/game_select/GameSelect";
 import Profile from "./pages/profile/Profile";
-import ErrorBoundary from "./components/global/ErrorBoundary";
+import ErrorBoundary, { Error } from "./components/global/ErrorBoundary";
+import { closeSplashscreen, relaunch } from "./api/app";
 
 export default function App() {
-  const [loaded, setLoaded] = createSignal(false);
-  const [ready, setReady] = createSignal(false);
+  const [fontLoaded] = createResource(async () => {
+    // 64px taken from the title on game select screen
+    await document.fonts.load("64px Inter");
+  });
+  const [coreResourcesLoaded, setCoreResourcesLoaded] = createSignal(false);
 
   function getLink(event: MouseEvent) {
     if (!(event.target instanceof HTMLElement)) return;
@@ -44,20 +47,14 @@ export default function App() {
     }
   }
 
-  onMount(async () => {
-    // 64px taken from the title on game select screen
-    await document.fonts.load("64px Inter");
-    setLoaded(true);
-  });
-
   createEffect(() => {
-    if (splashScreenResources.every((resource) => resource.latest != null)) setReady(true);
+    if (coreResources.every((resource) => !resource.loading)) setCoreResourcesLoaded(true);
   });
 
   createEffect(async () => {
-    if (ready() && loaded()) {
+    if (coreResourcesLoaded() && !fontLoaded.loading) {
       // App ready, close splashscreen and show main window
-      await invoke("close_splashscreen");
+      await closeSplashscreen();
     }
   });
 
@@ -76,14 +73,16 @@ export default function App() {
   });
 
   return (
-    <ErrorBoundary>
-      <Show when={ready()}>
+    <Show when={coreResources.every((resource) => resource.error == null)} fallback={<Error err={coreResources.find((resource) => resource.error != null)!.error!} reset={async () => {
+      await relaunch();
+    }} />}>
+      <ErrorBoundary>
         <Router>
           <Route path="/" component={GameSelect} />
           <Route path="/profile/:gameId/:profileId?" component={Profile} />
           <Route path="*path" component={ErrorPage} />
         </Router>
-      </Show>
-    </ErrorBoundary>
+      </ErrorBoundary>
+    </Show>
   );
 }

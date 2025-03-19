@@ -110,7 +110,7 @@ export default function GameSelect() {
           }}
         >
           <For
-            each={Array.from(filteredGames.latest)}
+            each={filteredGames.latest}
             fallback={
               <li class={gameListStyles.gameList__empty}>
                 <p>{t("game_select.no_games_msg")}</p>

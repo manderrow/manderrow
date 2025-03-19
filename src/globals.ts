@@ -42,4 +42,12 @@ export const [profiles, { refetch: refetchProfiles }] = createResource(
   { initialValue: [] },
 );
 
-export const splashScreenResources = Object.freeze([gamesResource, blankSearchGamesResource, gamesPopularityResource, gamesModDownloadsResource, profiles]);
+// You can use this for testing splashscreen errors. Add it to coreResources.
+// const [dummyResource] = createResource(() => {
+//   return new Promise((_, reject) => setTimeout(() => reject("this is a made up error"), 2000));
+// })
+
+/**
+ * The splashscreen will wait for these resources to load for a better user experience.
+ */
+export const coreResources = Object.freeze([gamesResource, blankSearchGamesResource, gamesPopularityResource, gamesModDownloadsResource, profiles]);

@@ -14,38 +14,15 @@ use crate::ipc::{DoctorFix, OutputLine, Spc};
 pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
     #[cfg(windows)]
     {
-        use std::mem::MaybeUninit;
-        use std::ptr::{addr_of_mut, NonNull};
+        use std::ptr::NonNull;
 
-        use slog::warn;
-        use windows::Win32::System::Diagnostics::ToolHelp::PROCESSENTRY32;
-
-        use crate::util::windows::Handle;
-
-        let snapshot = unsafe {
-            Handle::new(
-                windows::Win32::System::Diagnostics::ToolHelp::CreateToolhelp32Snapshot(
-                    windows::Win32::System::Diagnostics::ToolHelp::TH32CS_SNAPPROCESS,
-                    0,
-                )?,
-            )?
-        };
-        let mut slot = MaybeUninit::<PROCESSENTRY32>::uninit();
-        unsafe {
-            (&raw mut (*slot.as_mut_ptr()).dwSize)
-                .write(size_of::<PROCESSENTRY32>().try_into().unwrap());
-        }
-        unsafe {
-            windows::Win32::System::Diagnostics::ToolHelp::Process32First(
-                snapshot.as_raw(),
-                slot.as_mut_ptr(),
-            )
-        }
-        .map_err(|e| anyhow!("{e:?}"))?;
+        use winsafe::prelude::*;
 
         let mut issued_shutdown = false;
-        loop {
-            let proc = unsafe { slot.assume_init_ref() };
+        for proc in winsafe::HPROCESSLIST::CreateToolhelp32Snapshot(winsafe::co::TH32CS::SNAPPROCESS, None)?.iter_processes() {
+            let proc = proc?;
+            // winsafe doesn't allow us to access szExeFile without allocating a string. We are **not** doing that for every process on the system.
+            let proc = unsafe { NonNull::from(proc).cast::<windows::Win32::System::Diagnostics::ToolHelp::PROCESSENTRY32>().as_ref() };
             let name = unsafe { NonNull::from(&proc.szExeFile).cast::<[u8; 260]>().as_ref() };
             let name = std::ffi::CStr::from_bytes_until_nul(name)?;
             if name.to_bytes() == b"steam.exe" {
@@ -63,40 +40,11 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
                     log,
                     "Waiting for Steam process {} to shut down", proc.th32ProcessID
                 );
-                let proc = unsafe {
-                    Handle::new(windows::Win32::System::Threading::OpenProcess(
-                        windows::Win32::System::Threading::PROCESS_SYNCHRONIZE,
-                        false,
-                        proc.th32ProcessID,
-                    )?)?
-                };
-                let event = unsafe {
-                    windows::Win32::System::Threading::WaitForSingleObject(
-                        proc.as_raw(),
-                        windows::Win32::System::Threading::INFINITE,
-                    )
-                };
-                match event {
-                    windows::Win32::Foundation::WAIT_OBJECT_0 => {}
-                    windows::Win32::Foundation::WAIT_FAILED => unsafe {
-                        bail!("{:?}", windows::Win32::Foundation::GetLastError())
-                    },
-                    _ => bail!("Unexpected WAIT_EVENT: {event:?}"),
-                }
-            }
-            if unsafe {
-                windows::Win32::System::Diagnostics::ToolHelp::Process32Next(
-                    snapshot.as_raw(),
-                    slot.as_mut_ptr(),
-                )
-            }
-            .is_err()
-            {
-                break;
+                crate::util::process::Pid { value: proc.th32ProcessID }.wait_for_exit(log)?;
             }
         }
     }
-    #[cfg(not(windows))]
+    #[cfg(unix)]
     {
         let output = tokio::process::Command::new("pgrep")
             .arg(if cfg!(target_os = "macos") {
@@ -156,35 +104,8 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
         #[cfg(target_os = "linux")]
         {
             for pid in output.lines() {
-                let pid = pid.parse()?;
-                let pidfd = match unsafe { nc::pidfd_open(pid, 0) } {
-                    Ok(t) => t,
-                    Err(nc::ESRCH) => {
-                        info!(log, "Steam process {pid} has already shut down");
-                        continue;
-                    }
-                    Err(errno) => bail!("pidfd_open errno={errno}"),
-                };
-
-                info!(log, "Waiting for Steam process {pid} to shut down");
-
-                drop_guard::defer(|| {
-                    _ = unsafe { libc::close(pidfd) };
-                });
-                let mut pollfd = libc::pollfd {
-                    fd: pidfd,
-                    events: libc::POLLIN,
-                    revents: 0,
-                };
-                loop {
-                    let code = unsafe { libc::poll(&mut pollfd, 1, -1) };
-                    if code != 0 {
-                        bail!("Return code {code} from poll");
-                    }
-                    if pollfd.revents & libc::POLLIN != 0 {
-                        break;
-                    }
-                }
+                let pid = rustix::process::Pid::from_raw(pid.parse()?).context("Invalid pid from pgrep")?;
+                crate::util::process::Pid { value: pid }.wait_for_exit(log)?;
             }
         }
         #[cfg(not(any(target_os = "linux", target_os = "macos")))]

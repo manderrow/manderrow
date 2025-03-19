@@ -152,7 +152,6 @@ function DisplaySafeOsString(props: { string: SafeOsString }) {
       <Match when={"Unicode" in s ? s.Unicode : null}>{(s) => JSON.stringify(s())}</Match>
       <Match when={"NonUnicodeBytes" in s ? s.NonUnicodeBytes : null}>{(b) => JSON.stringify(b())}</Match>
       <Match when={"NonUnicodeWide" in s ? s.NonUnicodeWide : null}>{(b) => JSON.stringify(b())}</Match>
-      <Match when={"NonUnicodeOther" in s ? s.NonUnicodeOther : null}>{(b) => JSON.stringify(b())}</Match>
     </Switch>
   );
 }

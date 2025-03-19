@@ -3,6 +3,7 @@ import { For, JSX, Match, Show, Switch, catchError, createContext, createSignal 
 import { DefaultDialog } from "./Dialog";
 import { AbortedError, NativeError } from "../../api";
 import styles from "./ErrorBoundary.module.css";
+import { AsyncButton } from "./AsyncButton";
 
 export const ErrorContext = createContext<(err: unknown) => void>(
   (e) => {
@@ -28,7 +29,7 @@ export default function ErrorBoundary(props: { children: JSX.Element }) {
   );
 }
 
-export function Error(props: { err: unknown; reset: () => void }) {
+export function Error(props: { err: unknown; reset: () => Promise<void> | void }) {
   return (
     <DefaultDialog>
       <div class={styles.error}>
@@ -70,9 +71,20 @@ export function Error(props: { err: unknown; reset: () => void }) {
 
         <p>
           Otherwise, feel free to{" "}
-          <button class={styles.inlineButton} on:click={props.reset}>
-            ignore
-          </button>{" "}
+          <AsyncButton>
+            {(busy, wrapOnClick) => (
+              <button
+                class={styles.inlineButton}
+                disabled={busy()}
+                on:click={(e) => {
+                  e.stopPropagation();
+                  wrapOnClick(props.reset);
+                }}
+              >
+                ignore
+              </button>
+            )}
+          </AsyncButton>{" "}
           this error and carry on modding.
         </p>
       </div>

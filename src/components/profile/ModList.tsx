@@ -21,7 +21,7 @@ import { fetch } from "@tauri-apps/plugin-http";
 
 import { Mod, ModListing, ModPackage } from "../../types";
 import { humanizeFileSize, removeProperty, roundedNumberFormatter } from "../../utils";
-import ErrorBoundary, { ErrorContext } from "../global/ErrorBoundary";
+import ErrorBoundary from "../global/ErrorBoundary";
 import { fetchModIndex, getFromModIndex, installProfileMod, uninstallProfileMod } from "../../api";
 
 import styles from "./ModList.module.css";
@@ -29,8 +29,7 @@ import Markdown from "../global/Markdown";
 import TabRenderer, { Tab, TabContent } from "../global/TabRenderer";
 import { useParams } from "@solidjs/router";
 import { createProgressProxyStore, initProgress } from "../../api/tasks";
-import AsyncButton from "../global/AsyncButton";
-import { SimpleProgressIndicator } from "../global/Progress";
+import { SimpleAsyncButton } from "../global/AsyncButton";
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   month: "short",
@@ -110,16 +109,10 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
       const version =
         "version" in mod ? mod.version.version_number : selectedVersion?.[0] ?? mod.versions[0].version_number;
 
-      try {
-        const request = await fetch(
-          `https://thunderstore.io/api/experimental/package/${mod.owner}/${mod.name}/${version}/${endpoint}/`,
-        );
-        return (await request.json()) as { markdown: string };
-      } catch (error) {
-        // TODO: error handling
-        console.error(error);
-        return undefined;
-      }
+      const request = await fetch(
+        `https://thunderstore.io/api/experimental/package/${mod.owner}/${mod.name}/${version}/${endpoint}/`,
+      );
+      return (await request.json()) as { markdown: string };
     };
   }
 
@@ -131,7 +124,14 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
       id: "overview",
       name: "Overview",
       component: (
-        <Show when={modReadme()} fallback={<p>Loading</p>}>
+        <Show
+          when={modReadme.state !== "errored" ? modReadme() : undefined}
+          fallback={
+            <Show when={modReadme.error} fallback={<p>Loading</p>}>
+              {(error) => <p>{error().toString()}</p>}
+            </Show>
+          }
+        >
           {(modReadme) => <Markdown source={modReadme().markdown} div={{ class: "markdown" }} />}
         </Show>
       ),
@@ -151,8 +151,15 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
       id: "changelog",
       name: "Changelog",
       component: (
-        <Show when={modChangelog()?.markdown} fallback={<p>Loading</p>}>
-          {(modChangelog) => <Markdown source={modChangelog()} div={{ class: "markdown" }} />}
+        <Show
+          when={modChangelog.state !== "errored" ? modChangelog() : undefined}
+          fallback={
+            <Show when={modChangelog.error} fallback={<p>Loading</p>}>
+              {(error) => <p>{error().toString()}</p>}
+            </Show>
+          }
+        >
+          {(modChangelog) => <Markdown source={modChangelog().markdown} div={{ class: "markdown" }} />}
         </Show>
       ),
     },
@@ -394,30 +401,20 @@ function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) 
 
 function InstallButton(props: { mod: ModListing; installContext: NonNullable<typeof ModInstallContext.defaultValue> }) {
   return (
-    <AsyncButton>
-      {(busy, progress, wrapOnClick) => (
-        <button
-          class={styles.downloadBtn}
-          disabled={busy()}
-          on:click={async (e) => {
-            e.stopPropagation();
-            await wrapOnClick(async listener => {
-              await installProfileMod(
-                props.installContext.profile,
-                removeProperty(props.mod, "versions"),
-                props.mod.versions[0],
-                listener,
-              );
-              await props.installContext.refetchInstalled();
-            });
-          }}
-        >
-          <Show when={busy()} fallback={<Fa icon={faDownLong} />}>
-            <SimpleProgressIndicator progress={progress} />
-          </Show>
-        </button>
-      )}
-    </AsyncButton>
+    <SimpleAsyncButton
+      class={styles.downloadBtn}
+      onClick={async (listener) => {
+        await installProfileMod(
+          props.installContext.profile,
+          removeProperty(props.mod, "versions"),
+          props.mod.versions[0],
+          listener,
+        );
+        await props.installContext.refetchInstalled();
+      }}
+    >
+      <Fa icon={faDownLong} />
+    </SimpleAsyncButton>
   );
 }
 
@@ -426,24 +423,14 @@ function UninstallButton(props: {
   installContext: NonNullable<typeof ModInstallContext.defaultValue>;
 }) {
   return (
-    <AsyncButton>
-      {(busy, progress, wrapOnClick) => (
-        <button
-          class={styles.downloadBtn}
-          disabled={busy()}
-          on:click={async (e) => {
-            e.stopPropagation();
-            await wrapOnClick(async () => {
-              await uninstallProfileMod(props.installContext.profile, props.mod.owner, props.mod.name);
-              await props.installContext.refetchInstalled();
-            });
-          }}
-        >
-          <Show when={busy()} fallback={<Fa icon={faTrash} />}>
-            <SimpleProgressIndicator progress={progress} />
-          </Show>
-        </button>
-      )}
-    </AsyncButton>
+    <SimpleAsyncButton
+      class={styles.downloadBtn}
+      onClick={async (listener) => {
+        await uninstallProfileMod(props.installContext.profile, props.mod.owner, props.mod.name);
+        await props.installContext.refetchInstalled();
+      }}
+    >
+      <Fa icon={faTrash} />
+    </SimpleAsyncButton>
   );
 }

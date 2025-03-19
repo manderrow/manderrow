@@ -3,9 +3,7 @@ mod progress;
 pub mod rkyv;
 pub mod search;
 pub mod serde;
-
-#[cfg(windows)]
-pub mod windows;
+pub mod process;
 
 pub use progress::Progress;
 

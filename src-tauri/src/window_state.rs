@@ -6,6 +6,7 @@
 
 #![cfg(not(any(target_os = "android", target_os = "ios")))]
 
+use parking_lot::MutexGuard;
 use slog_scope::error;
 use tauri::{
     plugin::{Builder as PluginBuilder, TauriPlugin},
@@ -56,7 +57,29 @@ impl Default for WindowState {
     }
 }
 
-struct WindowStateCache(Arc<Mutex<HashMap<String, WindowState>>>);
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, bincode::Decode, bincode::Encode)]
+enum PersistentWindowId {
+    Main,
+}
+
+impl PersistentWindowId {
+    pub fn from_label(label: &str) -> Option<Self> {
+        match label {
+            "main" => Some(Self::Main),
+            _ => None,
+        }
+    }
+
+    pub fn as_label(self) -> &'static str {
+        match self {
+            PersistentWindowId::Main => "main",
+        }
+    }
+}
+
+type WindowStateCacheInner = HashMap<PersistentWindowId, WindowState>;
+#[derive(Clone)]
+struct WindowStateCache(Arc<Mutex<WindowStateCacheInner>>);
 /// Used to prevent deadlocks from resize and position event listeners setting the cached state on restoring states
 struct RestoringWindowState(Mutex<()>);
 
@@ -71,8 +94,8 @@ impl<R: Runtime> AppHandleExt for tauri::AppHandle<R> {
         let cache = self.state::<WindowStateCache>();
         let mut state = cache.0.lock().unwrap();
 
-        for (label, s) in state.iter_mut() {
-            if let Some(window) = windows.get(label) {
+        for (id, s) in state.iter_mut() {
+            if let Some(window) = windows.get(id.as_label()) {
                 window.as_ref().window().update_state(s)?;
             }
         }
@@ -95,88 +118,76 @@ const RESTORE_FULLSCREEN: bool = true;
 
 trait WindowExt {
     /// Restores this window state from disk
-    fn restore_state(&self) -> tauri::Result<()>;
+    fn restore_state(&self, cache: &WindowStateCache) -> tauri::Result<()>;
 
     fn update_state(&self, state: &mut WindowState) -> tauri::Result<()>;
 }
 
 impl<R: Runtime> WindowExt for Window<R> {
-    fn restore_state(&self) -> tauri::Result<()> {
-        let label = self.label();
+    fn restore_state(&self, cache: &WindowStateCache) -> tauri::Result<()> {
+        let Some(id) = PersistentWindowId::from_label(self.label()) else {
+            return Ok(());
+        };
+
+        // insert a default state if this window should be tracked and
+        // the disk cache doesn't have a state for it
+        let mut c = cache.0.lock().unwrap();
 
         let restoring_window_state = self.state::<RestoringWindowState>();
         let _restoring_window_lock = restoring_window_state.0.lock().unwrap();
-        let cache = self.state::<WindowStateCache>();
-        let mut c = cache.0.lock().unwrap();
 
-        if let Some(state) = c
-            .get(label)
-            .filter(|state| state != &&WindowState::default())
-        {
-            if RESTORE_SIZE {
-                self.set_size(PhysicalSize {
-                    width: state.width,
-                    height: state.height,
-                })?;
-            }
+        match c.entry(id) {
+            std::collections::hash_map::Entry::Occupied(entry) => {
+                let state = entry.get();
 
-            if RESTORE_POSITION {
-                let position = (state.x, state.y).into();
-                let size = (state.width, state.height).into();
-                // restore position to saved value if saved monitor exists
-                // otherwise, let the OS decide where to place the window
-                for m in self.available_monitors()? {
-                    if m.intersects(position, size) {
-                        self.set_position(PhysicalPosition {
-                            x: if state.maximized {
-                                state.prev_x
-                            } else {
-                                state.x
-                            },
-                            y: if state.maximized {
-                                state.prev_y
-                            } else {
-                                state.y
-                            },
-                        })?;
+                if RESTORE_SIZE {
+                    self.set_size(PhysicalSize {
+                        width: state.width,
+                        height: state.height,
+                    })?;
+                }
+
+                if RESTORE_POSITION {
+                    let position = (state.x, state.y).into();
+                    let size = (state.width, state.height).into();
+                    // restore position to saved value if saved monitor exists
+                    // otherwise, let the OS decide where to place the window
+                    for m in self.available_monitors()? {
+                        if m.intersects(position, size) {
+                            self.set_position(PhysicalPosition {
+                                x: if state.maximized {
+                                    state.prev_x
+                                } else {
+                                    state.x
+                                },
+                                y: if state.maximized {
+                                    state.prev_y
+                                } else {
+                                    state.y
+                                },
+                            })?;
+                        }
                     }
                 }
-            }
 
-            if RESTORE_MAXIMIZED && state.maximized {
-                self.maximize()?;
-            }
+                if RESTORE_MAXIMIZED && state.maximized {
+                    self.maximize()?;
+                }
 
-            if RESTORE_FULLSCREEN {
-                self.set_fullscreen(state.fullscreen)?;
-            }
-        } else {
-            let mut metadata = WindowState::default();
+                if RESTORE_FULLSCREEN {
+                    self.set_fullscreen(state.fullscreen)?;
+                }
 
-            if RESTORE_SIZE {
-                let size = self.inner_size()?;
-                metadata.width = size.width;
-                metadata.height = size.height;
-            }
+                slog_scope::debug!("Restored window state: {state:?}");
 
-            if RESTORE_POSITION {
-                let pos = self.outer_position()?;
-                metadata.x = pos.x;
-                metadata.y = pos.y;
+                Ok(())
             }
+            std::collections::hash_map::Entry::Vacant(entry) => {
+                let state = entry.insert(WindowState::default());
 
-            if RESTORE_MAXIMIZED {
-                metadata.maximized = self.is_maximized()?;
+                self.update_state(state)
             }
-
-            if RESTORE_FULLSCREEN {
-                metadata.fullscreen = self.is_fullscreen()?;
-            }
-
-            c.insert(label.into(), metadata);
         }
-
-        Ok(())
     }
 
     fn update_state(&self, state: &mut WindowState) -> tauri::Result<()> {
@@ -211,7 +222,7 @@ impl<R: Runtime> WindowExt for Window<R> {
     }
 }
 
-fn read_window_state() -> anyhow::Result<Option<HashMap<String, WindowState>>> {
+fn read_window_state() -> anyhow::Result<Option<HashMap<PersistentWindowId, WindowState>>> {
     let file = match std::fs::File::open(PATH.get().unwrap()) {
         Ok(t) => t,
         Err(e) if e.is_not_found() => return Ok(None),
@@ -242,33 +253,20 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             Ok(())
         })
         .on_window_ready(move |window| {
-            let label = window.label();
-
-            if label == "splashscreen" {
+            let Some(id) = PersistentWindowId::from_label(window.label()) else {
                 return;
-            }
-
-            let _ = window.restore_state();
+            };
 
             let cache = window.state::<WindowStateCache>();
-            let cache = cache.0.clone();
-            let label = label.to_string();
-            let window_clone = window.clone();
+            let cache = (*cache).clone();
+            let _ = window.restore_state(&cache);
 
-            // insert a default state if this window should be tracked and
-            // the disk cache doesn't have a state for it
-            {
-                cache
-                    .lock()
-                    .unwrap()
-                    .entry(label.clone())
-                    .or_insert_with(WindowState::default);
-            }
+            let window_clone = window.clone();
 
             window.on_window_event(move |e| match e {
                 WindowEvent::CloseRequested { .. } => {
-                    let mut c = cache.lock().unwrap();
-                    if let Some(state) = c.get_mut(&label) {
+                    let mut c = cache.0.lock().unwrap();
+                    if let Some(state) = c.get_mut(&id) {
                         let _ = window_clone.update_state(state);
                     }
                 }
@@ -281,8 +279,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                         .is_ok()
                         && !window_clone.is_minimized().unwrap_or_default()
                     {
-                        let mut c = cache.lock().unwrap();
-                        if let Some(state) = c.get_mut(&label) {
+                        let mut c = cache.0.lock().unwrap();
+                        if let Some(state) = c.get_mut(&id) {
                             state.prev_x = state.x;
                             state.prev_y = state.y;
 
@@ -309,8 +307,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                         };
 
                         if !window_clone.is_minimized().unwrap_or_default() && !is_maximized {
-                            let mut c = cache.lock().unwrap();
-                            if let Some(state) = c.get_mut(&label) {
+                            let mut c = cache.0.lock().unwrap();
+                            if let Some(state) = c.get_mut(&id) {
                                 state.width = size.width;
                                 state.height = size.height;
                             }

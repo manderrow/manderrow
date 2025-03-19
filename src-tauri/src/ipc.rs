@@ -15,7 +15,6 @@ pub enum SafeOsString {
     Unicode(String),
     NonUnicodeBytes(Vec<u8>),
     NonUnicodeWide(Vec<u16>),
-    NonUnicodeOther(String),
 }
 
 impl From<OsString> for SafeOsString {
@@ -33,7 +32,7 @@ impl From<OsString> for SafeOsString {
                 Self::NonUnicodeWide(s.encode_wide().collect::<Vec<_>>())
             }
             #[cfg(not(any(unix, windows)))]
-            Err(s) => Self::NonUnicodeOther(format!("{s:?}")),
+            Err(s) => compile_error!("Unsupported platform"),
         }
     }
 }
