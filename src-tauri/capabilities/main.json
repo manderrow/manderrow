@@ -6,6 +6,7 @@
     "main"
   ],
   "permissions": [
+    "core:event:allow-listen",
     "shell:allow-open",
     {
       "identifier": "http:default",
