@@ -1,18 +1,16 @@
 import * as cheerio from "cheerio";
 import games from "../../src-tauri/src/games/games.json" with {type: "json"};
 
-const gameStoreIds = games
-  .filter((gameInfo) => gameInfo.storePlatformMetadata[0].storeIdentifier != null)
-  .map((gameInfo) => gameInfo.storePlatformMetadata[0].storeIdentifier);
-
-const urls = games.map((gameInfo) => gameInfo.thunderstoreUrl);
+const steamSupportedGames = games.filter((gameInfo) => gameInfo.storePlatformMetadata[0].storeIdentifier != null);
+const steamGameIds = steamSupportedGames.map((gameInfo) => gameInfo.storePlatformMetadata[0].storeIdentifier);
+const thunderstoreGameUrls = steamSupportedGames.map((gameInfo) => gameInfo.thunderstoreUrl);
 
 const gameIds: string[] = [];
 
 const textEncoder = new TextEncoder();
 
-for (let i = 0; i < urls.length; i++) {
-  const url = new URL(urls[i]);
+for (let i = 0; i < thunderstoreGameUrls.length; i++) {
+  const url = new URL(thunderstoreGameUrls[i]);
   const thunderstoreId = url.pathname.slice(1).split("/")[1];
 
   gameIds.push(thunderstoreId);
@@ -22,12 +20,12 @@ const adultAge = `birthtime=${Math.floor(new Date(2006, 1, 1).getTime() / 1000)}
 
 async function scrape() {
   const gameReviews = await Promise.all(
-    gameStoreIds.map(async (id) => {
+    steamGameIds.map(async (id) => {
       try {
         const request = await fetch("https://store.steampowered.com/app/" + id, {
           headers: {
-            Cookie: adultAge
-          }
+            Cookie: adultAge,
+          },
         });
 
         const $ = cheerio.load(await request.text());
@@ -35,7 +33,7 @@ async function scrape() {
         const reviewCount = $("meta[itemprop=reviewCount]").attr("content");
 
         if (reviewCount == null) {
-            console.error(`https://store.steampowered.com/app/${id} loaded but had no review count!`);
+          console.error(`https://store.steampowered.com/app/${id} loaded but had no review count!`);
         }
 
         return { reviewCount };
@@ -51,7 +49,7 @@ async function scrape() {
 
   for (let i = 0; i < gameReviews.length; i++) {
     if (gameFinal[gameIds[i]] != null) continue;
-    
+
     const reviews = gameReviews[i]?.reviewCount;
     gameFinal[gameIds[i]] = reviews != null ? parseInt(reviews) : null;
   }
