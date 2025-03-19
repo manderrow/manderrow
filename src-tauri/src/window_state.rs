@@ -6,7 +6,7 @@
 
 #![cfg(not(any(target_os = "android", target_os = "ios")))]
 
-use parking_lot::MutexGuard;
+use anyhow::{anyhow, Context};
 use slog_scope::error;
 use tauri::{
     plugin::{Builder as PluginBuilder, TauriPlugin},
@@ -92,7 +92,7 @@ impl<R: Runtime> AppHandleExt for tauri::AppHandle<R> {
     fn save_window_state(&self) -> anyhow::Result<()> {
         let windows = self.webview_windows();
         let cache = self.state::<WindowStateCache>();
-        let mut state = cache.0.lock().unwrap();
+        let mut state = cache.0.lock().map_err(|e| anyhow!("{e}"))?;
 
         for (id, s) in state.iter_mut() {
             if let Some(window) = windows.get(id.as_label()) {
@@ -100,13 +100,16 @@ impl<R: Runtime> AppHandleExt for tauri::AppHandle<R> {
             }
         }
 
-        let path = PATH.get().unwrap();
-        create_dir_all(path.parent().unwrap())?;
+        let path = PATH.get().context("PATH is not initialized")?;
+        create_dir_all(path.parent().context("PATH initialization is broken")?)?;
         bincode::encode_into_std_write(
             &*state,
             &mut std::io::BufWriter::new(File::create(path)?),
             BINCODE_CONFIG,
         )?;
+
+        slog_scope::debug!("Saved window state: {state:?}");
+
         Ok(())
     }
 }
@@ -116,25 +119,32 @@ const RESTORE_POSITION: bool = true;
 const RESTORE_MAXIMIZED: bool = true;
 const RESTORE_FULLSCREEN: bool = true;
 
-trait WindowExt {
-    /// Restores this window state from disk
-    fn restore_state(&self, cache: &WindowStateCache) -> tauri::Result<()>;
+pub trait WindowExt {
+    /// Restores this window state from the stored state.
+    fn restore_state(&self) -> tauri::Result<()>;
+}
 
+trait PrivateWindowExt {
     fn update_state(&self, state: &mut WindowState) -> tauri::Result<()>;
 }
 
 impl<R: Runtime> WindowExt for Window<R> {
-    fn restore_state(&self, cache: &WindowStateCache) -> tauri::Result<()> {
+    fn restore_state(&self) -> tauri::Result<()> {
         let Some(id) = PersistentWindowId::from_label(self.label()) else {
             return Ok(());
         };
 
+        let cache = self.state::<WindowStateCache>();
+
         // insert a default state if this window should be tracked and
         // the disk cache doesn't have a state for it
-        let mut c = cache.0.lock().unwrap();
+        let mut c = cache.0.lock().map_err(|e| anyhow!("{e}"))?;
 
         let restoring_window_state = self.state::<RestoringWindowState>();
-        let _restoring_window_lock = restoring_window_state.0.lock().unwrap();
+        let _restoring_window_lock = restoring_window_state
+            .0
+            .lock()
+            .map_err(|e| anyhow!("{e}"))?;
 
         match c.entry(id) {
             std::collections::hash_map::Entry::Occupied(entry) => {
@@ -189,7 +199,9 @@ impl<R: Runtime> WindowExt for Window<R> {
             }
         }
     }
+}
 
+impl<R: Runtime> PrivateWindowExt for Window<R> {
     fn update_state(&self, state: &mut WindowState) -> tauri::Result<()> {
         let is_maximized =
             (RESTORE_MAXIMIZED || RESTORE_POSITION || RESTORE_SIZE) && self.is_maximized()?;
@@ -223,7 +235,7 @@ impl<R: Runtime> WindowExt for Window<R> {
 }
 
 fn read_window_state() -> anyhow::Result<Option<HashMap<PersistentWindowId, WindowState>>> {
-    let file = match std::fs::File::open(PATH.get().unwrap()) {
+    let file = match std::fs::File::open(PATH.get().context("PATH is not initialized")?) {
         Ok(t) => t,
         Err(e) if e.is_not_found() => return Ok(None),
         Err(e) => return Err(e.into()),
@@ -257,10 +269,9 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                 return;
             };
 
-            let cache = window.state::<WindowStateCache>();
-            let cache = (*cache).clone();
-            let _ = window.restore_state(&cache);
+            let _ = window.restore_state();
 
+            let cache = (*window.state::<WindowStateCache>()).clone();
             let window_clone = window.clone();
 
             window.on_window_event(move |e| match e {
@@ -302,11 +313,16 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                                 || !window_clone.is_resizable().unwrap_or_default())
                         {
                             false
+                        } else if cfg!(target_os = "linux") {
+                            // is_maximized always reports true, at least under Hyprland
+                            false
                         } else {
                             window_clone.is_maximized().unwrap_or_default()
                         };
 
-                        if !window_clone.is_minimized().unwrap_or_default() && !is_maximized {
+                        let is_minimized = window_clone.is_minimized().unwrap_or_default();
+
+                        if !is_minimized && !is_maximized {
                             let mut c = cache.0.lock().unwrap();
                             if let Some(state) = c.get_mut(&id) {
                                 state.width = size.width;
