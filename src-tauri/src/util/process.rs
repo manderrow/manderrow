@@ -16,7 +16,8 @@ impl Pid {
         {
             use winsafe::prelude::*;
             // TODO: detect "not found" and return correct result
-            let proc = winsafe::HPROCESS::OpenProcess(winsafe::co::PROCESS::SYNCHRONIZE, false, pid)?;
+            let proc =
+                winsafe::HPROCESS::OpenProcess(winsafe::co::PROCESS::SYNCHRONIZE, false, pid)?;
             let event = proc.WaitForSingleObject(None)?;
             if event != winsafe::co::WAIT::OBJECT_0 {
                 bail!("Unexpected WAIT_EVENT: {event:?}");
@@ -25,11 +26,12 @@ impl Pid {
         }
         #[cfg(unix)]
         {
-            let pidfd = match rustix::process::pidfd_open(pid, rustix::process::PidfdFlags::empty()) {
+            let pidfd = match rustix::process::pidfd_open(pid, rustix::process::PidfdFlags::empty())
+            {
                 Ok(t) => t,
                 Err(rustix::io::Errno::SRCH) => {
                     info!(log, "Process {pid:?} has already shut down");
-                    return Ok(())
+                    return Ok(());
                 }
                 Err(errno) => bail!("pidfd_open errno={errno}"),
             };

@@ -19,10 +19,17 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
         use winsafe::prelude::*;
 
         let mut issued_shutdown = false;
-        for proc in winsafe::HPROCESSLIST::CreateToolhelp32Snapshot(winsafe::co::TH32CS::SNAPPROCESS, None)?.iter_processes() {
+        for proc in
+            winsafe::HPROCESSLIST::CreateToolhelp32Snapshot(winsafe::co::TH32CS::SNAPPROCESS, None)?
+                .iter_processes()
+        {
             let proc = proc?;
             // winsafe doesn't allow us to access szExeFile without allocating a string. We are **not** doing that for every process on the system.
-            let proc = unsafe { NonNull::from(proc).cast::<windows::Win32::System::Diagnostics::ToolHelp::PROCESSENTRY32>().as_ref() };
+            let proc = unsafe {
+                NonNull::from(proc)
+                    .cast::<windows::Win32::System::Diagnostics::ToolHelp::PROCESSENTRY32>()
+                    .as_ref()
+            };
             let name = unsafe { NonNull::from(&proc.szExeFile).cast::<[u8; 260]>().as_ref() };
             let name = std::ffi::CStr::from_bytes_until_nul(name)?;
             if name.to_bytes() == b"steam.exe" {
@@ -40,7 +47,10 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
                     log,
                     "Waiting for Steam process {} to shut down", proc.th32ProcessID
                 );
-                crate::util::process::Pid { value: proc.th32ProcessID }.wait_for_exit(log)?;
+                crate::util::process::Pid {
+                    value: proc.th32ProcessID,
+                }
+                .wait_for_exit(log)?;
             }
         }
     }
@@ -104,7 +114,8 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
         #[cfg(target_os = "linux")]
         {
             for pid in output.lines() {
-                let pid = rustix::process::Pid::from_raw(pid.parse()?).context("Invalid pid from pgrep")?;
+                let pid = rustix::process::Pid::from_raw(pid.parse()?)
+                    .context("Invalid pid from pgrep")?;
                 crate::util::process::Pid { value: pid }.wait_for_exit(log)?;
             }
         }

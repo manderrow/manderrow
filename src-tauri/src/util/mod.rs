@@ -1,9 +1,9 @@
 pub mod http;
+pub mod process;
 mod progress;
 pub mod rkyv;
 pub mod search;
 pub mod serde;
-pub mod process;
 
 pub use progress::Progress;
 
