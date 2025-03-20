@@ -1,4 +1,9 @@
+import { faHardDrive, faHeart, faThumbsUp } from "@fortawesome/free-regular-svg-icons";
+import { faDownload, faDownLong, faExternalLink, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { createInfiniteScroll } from "@solid-primitives/pagination";
+import { useParams } from "@solidjs/router";
+import { fetch } from "@tauri-apps/plugin-http";
+import { Fa } from "solid-fa";
 import {
   Accessor,
   createContext,
@@ -8,28 +13,26 @@ import {
   For,
   InitializedResource,
   Match,
+  Resource,
   ResourceFetcherInfo,
   Show,
   Signal,
   Switch,
   useContext,
 } from "solid-js";
-import Fa from "solid-fa";
-import { faDownload, faDownLong, faExternalLink, faTrash } from "@fortawesome/free-solid-svg-icons";
-import { faHardDrive, faHeart, faThumbsUp } from "@fortawesome/free-regular-svg-icons";
-import { fetch } from "@tauri-apps/plugin-http";
 
+import { fetchModIndex, getFromModIndex, installProfileMod, uninstallProfileMod } from "../../api";
+import { createProgressProxyStore, initProgress } from "../../api/tasks";
 import { Mod, ModListing, ModPackage } from "../../types";
 import { humanizeFileSize, removeProperty, roundedNumberFormatter } from "../../utils";
-import ErrorBoundary from "../global/ErrorBoundary";
-import { fetchModIndex, getFromModIndex, installProfileMod, uninstallProfileMod } from "../../api";
 
-import styles from "./ModList.module.css";
+import { SimpleAsyncButton } from "../global/AsyncButton";
+import ErrorBoundary from "../global/ErrorBoundary";
 import Markdown from "../global/Markdown";
 import TabRenderer, { Tab, TabContent } from "../global/TabRenderer";
-import { useParams } from "@solidjs/router";
-import { createProgressProxyStore, initProgress } from "../../api/tasks";
-import { SimpleAsyncButton } from "../global/AsyncButton";
+
+import styles from "./ModList.module.css";
+// @ts-types="solid-js"
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
   month: "short",
@@ -112,29 +115,43 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
       const request = await fetch(
         `https://thunderstore.io/api/experimental/package/${mod.owner}/${mod.name}/${version}/${endpoint}/`,
       );
-      return (await request.json()) as { markdown: string };
+      return (await request.json()) as { markdown: string | null };
     };
   }
 
   const [modReadme] = createResource(modData, onModSelect("readme"));
   const [modChangelog] = createResource(modData, onModSelect("changelog"));
 
+  function MarkdownNullMessage({
+    resource,
+    fallbackText,
+  }: {
+    resource: Resource<{ markdown: string | null } | undefined>;
+    fallbackText: string;
+  }) {
+    return (
+      <Show
+        when={modReadme.state !== "errored" ? resource() : undefined}
+        fallback={
+          <Show when={resource.error} fallback={<p>Loading</p>}>
+            {(error) => <p>{error().toString()}</p>}
+          </Show>
+        }
+      >
+        {(resource) => (
+          <Show when={resource().markdown} fallback={<p>{fallbackText}</p>}>
+            {(markdown) => <Markdown source={markdown()} div={{ class: "markdown" }} />}
+          </Show>
+        )}
+      </Show>
+    );
+  }
+
   const tabs: Tab[] = [
     {
       id: "overview",
       name: "Overview",
-      component: (
-        <Show
-          when={modReadme.state !== "errored" ? modReadme() : undefined}
-          fallback={
-            <Show when={modReadme.error} fallback={<p>Loading</p>}>
-              {(error) => <p>{error().toString()}</p>}
-            </Show>
-          }
-        >
-          {(modReadme) => <Markdown source={modReadme().markdown} div={{ class: "markdown" }} />}
-        </Show>
-      ),
+      component: <MarkdownNullMessage resource={modReadme} fallbackText="No README provided." />,
     },
     {
       id: "dependencies",
@@ -150,18 +167,7 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
     {
       id: "changelog",
       name: "Changelog",
-      component: (
-        <Show
-          when={modChangelog.state !== "errored" ? modChangelog() : undefined}
-          fallback={
-            <Show when={modChangelog.error} fallback={<p>Loading</p>}>
-              {(error) => <p>{error().toString()}</p>}
-            </Show>
-          }
-        >
-          {(modChangelog) => <Markdown source={modChangelog().markdown} div={{ class: "markdown" }} />}
-        </Show>
-      ),
+      component: <MarkdownNullMessage resource={modChangelog} fallbackText="No changelog provided." />,
     },
   ];
 
