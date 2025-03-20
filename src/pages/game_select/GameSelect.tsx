@@ -4,7 +4,7 @@ import { A } from "@solidjs/router";
 import Fa from "solid-fa";
 import { createResource, createSignal, For, onCleanup, onMount } from "solid-js";
 
-import { games, blankSearchGames } from "../../globals";
+import { games, initialSortedGames } from "../../globals";
 import { Locale, localeNamesMap, setLocale, locale, t, RAW_LOCALES } from "../../i18n/i18n";
 import { Game } from "../../types";
 import { autofocus } from "../../components/global/Directives";
@@ -32,7 +32,7 @@ export default function GameSelect() {
         { column: sort, descending: sort !== GameSortColumn.Name },
       ]);
     },
-    { initialValue: blankSearchGames() },
+    { initialValue: initialSortedGames() },
   );
 
   onMount(() => {

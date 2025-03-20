@@ -12,7 +12,7 @@ export const [gamesResource] = createResource<[readonly Game[], Map<string, Game
 export const games = () => gamesResource.latest![0];
 export const gamesById = () => gamesResource.latest![1];
 
-export const [blankSearchGamesResource] = createResource<readonly number[], never>(async () => {
+export const [initialSortedGamesResource] = createResource<readonly number[], never>(async () => {
   return Object.freeze(
     await searchGames("", [
       {
@@ -22,7 +22,7 @@ export const [blankSearchGamesResource] = createResource<readonly number[], neve
     ]),
   );
 });
-export const blankSearchGames = () => blankSearchGamesResource.latest!;
+export const initialSortedGames = () => initialSortedGamesResource.latest!;
 
 export const [gamesPopularityResource] = createResource<{ [key: string]: number }>(async () => {
   const gamesPopularity = await getGamesPopularity();
@@ -58,7 +58,7 @@ export const [profiles, { refetch: refetchProfiles }] = createResource(
 export const coreResources = Object.freeze([
   settings,
   gamesResource,
-  blankSearchGamesResource,
+  initialSortedGamesResource,
   gamesPopularityResource,
   gamesModDownloadsResource,
   profiles,
