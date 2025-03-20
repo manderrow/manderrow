@@ -13,7 +13,7 @@ export const settings = {
   get state() {
     const settings = _settings();
     if (settings === undefined) {
-      return "loading";
+      return "pending";
     } else {
       return "ready";
     }

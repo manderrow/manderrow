@@ -48,7 +48,8 @@ export default function App() {
   }
 
   createEffect(() => {
-    if (coreResources.every((resource) => !resource.loading && resource.state !== "unresolved")) setCoreResourcesLoaded(true);
+    if (coreResources.every((resource) => !resource.loading && resource.state !== "unresolved"))
+      setCoreResourcesLoaded(true);
   });
 
   createEffect(async () => {
@@ -73,9 +74,21 @@ export default function App() {
   });
 
   return (
-    <Show when={coreResources.every((resource) => resource.error == null)} fallback={<Error err={coreResources.find((resource) => resource.error != null)!.error!} reset={async () => {
-      await relaunch();
-    }} />}>
+    <Show
+      when={coreResources.every((resource) => !resource.loading)}
+      fallback={
+        <Show when={coreResources.find((resource) => resource.error != null)?.error}>
+          {(err) => (
+            <Error
+              err={err}
+              reset={async () => {
+                await relaunch();
+              }}
+            />
+          )}
+        </Show>
+      }
+    >
       <ErrorBoundary>
         <Router>
           <Route path="/" component={GameSelect} />
