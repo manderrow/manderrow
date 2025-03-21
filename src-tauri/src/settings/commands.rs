@@ -14,6 +14,11 @@ pub async fn get_settings(settings: SettingsState<'_>) -> Result<Response, Comma
 }
 
 #[tauri::command]
+pub async fn get_settings_ui() -> Result<Response, CommandError> {
+    Ok(Response::new(super::UI.to_owned()))
+}
+
+#[tauri::command]
 pub async fn update_settings(
     app: AppHandle,
     settings: SettingsState<'_>,

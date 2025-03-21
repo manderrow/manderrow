@@ -12,6 +12,7 @@ use triomphe::Arc;
 use crate::{paths::config_dir, product_name, util::IoErrorKindExt, CommandError};
 
 pub mod commands;
+mod ui;
 
 /// The name of the event used to send the settings to the frontend.
 pub const EVENT: &str = "settings";
@@ -97,61 +98,11 @@ enum Change<T> {
     Override(T),
 }
 
-macro_rules! settings {
-    ($Settings:ident, $DefaultedSettings:ident, $SettingsPatch:ident {
-        $($setting:ident as $json_name:ident: $type:ty, by |$by_bind:pat_param| $by_expr:expr, default $default:expr),+
-        $(,)?
-    }) => {
-        #[derive(Debug, Clone, Default)]
-        pub struct $Settings {
-            $($setting: Option<$type>),+
-        }
-
-        #[derive(Debug, Clone, serde::Serialize)]
-        #[allow(non_snake_case)]
-        pub struct $DefaultedSettings {
-            $($json_name: Setting<$type>),+
-        }
-
-        #[derive(Debug, Clone, serde::Deserialize)]
-        #[allow(non_snake_case)]
-        pub struct $SettingsPatch {
-            $(#[serde(default)]
-            $json_name: Option<Change<$type>>),+
-        }
-
-        impl $Settings {
-            $(pub fn $setting(&self) -> Setting<$type> {
-                match self.$setting {
-                    Some($by_bind) => Setting { value: $by_expr, is_default: false },
-                    None => Setting { value: $default, is_default: true },
-                }
-            })+
-
-            pub fn defaulted(&self) -> $DefaultedSettings {
-                $DefaultedSettings {
-                    $($json_name: self.$setting()),+
-                }
-            }
-
-            pub fn update(&mut self, patch: $SettingsPatch) {
-                $(
-                    if let Some(change) = patch.$json_name {
-                        self.$setting = match change {
-                            Change::Default => None,
-                            Change::Override(value) => Some(value),
-                        };
-                    }
-                )+
-            }
-        }
-    };
-}
-
-settings! {
-    Settings, DefaultedSettings, SettingsPatch {
-        open_console_on_launch as openConsoleOnLaunch: bool, by |x| x, default false,
-    }
+#[manderrow_macros::settings(sections = [launching])]
+struct Settings {
+    #[section(launching)]
+    #[default(false)]
+    open_console_on_launch: bool,
 }
 
 /// A representation of settings that must retain complete backwards compatibility. Any necessary

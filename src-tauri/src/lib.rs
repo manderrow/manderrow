@@ -108,6 +108,7 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
             profiles::commands::install_profile_mod,
             profiles::commands::uninstall_profile_mod,
             settings::commands::get_settings,
+            settings::commands::get_settings_ui,
             settings::commands::update_settings,
             tasks::commands::allocate_task,
             tasks::commands::cancel_task,

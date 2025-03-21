@@ -27,6 +27,8 @@ search-sublime_fuzzy = ["sublime_fuzzy"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+manderrow-macros = { path = "../crates/manderrow-macros" }
+
 tauri = { version = "2", features = ["macos-private-api"] }
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-http = "2"

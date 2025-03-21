@@ -50,5 +50,14 @@
         }
       }
     }
+  },
+
+  "settings": {
+    "section": {
+      "launching": "Launching"
+    },
+    "settings": {
+      "openConsoleOnLaunch": "Open console on launch?"
+    }
   }
 }

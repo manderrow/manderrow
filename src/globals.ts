@@ -2,7 +2,7 @@ import { createResource } from "solid-js";
 
 import { GameSortColumn, getGameModDownloads, getGames, getGamesPopularity, getProfiles, searchGames } from "./api";
 import { Game } from "./types";
-import { settings } from "./api/settings";
+import { settingsResource, settingsUIResource } from "./api/settings";
 
 export const [gamesResource] = createResource<[readonly Game[], Map<string, Game>], never>(async () => {
   const games = Object.freeze(await getGames());
@@ -56,7 +56,8 @@ export const [profiles, { refetch: refetchProfiles }] = createResource(
  * The splashscreen will wait for these resources to load for a better user experience.
  */
 export const coreResources = Object.freeze([
-  settings,
+  settingsResource,
+  settingsUIResource,
   gamesResource,
   initialSortedGamesResource,
   gamesPopularityResource,

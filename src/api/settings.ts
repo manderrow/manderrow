@@ -1,7 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
-import { wrapInvoke } from "../api";
 import { listen } from "@tauri-apps/api/event";
-import { createSignal } from "solid-js";
+import { createResource, createSignal } from "solid-js";
+
+import { wrapInvoke } from "../api.ts";
+import * as ui from "./settings/ui.ts";
 
 export interface Setting<T> {
   value: T;
@@ -20,7 +22,7 @@ export interface SettingsPatch {
 
 const [_settings, setSettings] = createSignal<Settings>();
 
-export const settings = {
+export const settingsResource = {
   get state() {
     const settings = _settings();
     if (settings === undefined) {
@@ -35,14 +37,15 @@ export const settings = {
   get latest() {
     return _settings();
   },
-  get loaded() {
-    const settings = _settings();
-    if (settings === undefined) {
-      throw new Error("Settings are not loaded");
-    }
-    return settings;
-  },
   error: undefined,
+};
+
+export const settings = () => {
+  const settings = _settings();
+  if (settings === undefined) {
+    throw new Error("Settings are not loaded");
+  }
+  return settings;
 };
 
 (async () => {
@@ -59,6 +62,11 @@ export const settings = {
 listen<Settings>("settings", (event) => {
   setSettings(event.payload);
 });
+
+export const [settingsUIResource] = createResource<ui.Settings>(async () => {
+  return Object.freeze(await wrapInvoke(() => invoke<ui.Settings>("get_settings_ui")));
+});
+export const settingsUI = () => settingsUIResource.latest!;
 
 export function updateSettings(patch: SettingsPatch): Promise<void> {
   return wrapInvoke(() => invoke("update_settings", { patch }));
