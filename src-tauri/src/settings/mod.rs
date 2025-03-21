@@ -54,17 +54,103 @@ pub fn try_read() -> SettingsStateInner {
     }))
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-pub struct Settings {
-    #[serde(rename = "openConsoleOnLaunch")]
-    open_console_on_launch: bool,
+#[derive(Debug, Clone, Copy, serde::Serialize)]
+pub struct Setting<T> {
+    value: T,
+    #[serde(rename = "isDefault")]
+    is_default: bool,
 }
 
-impl Default for Settings {
-    fn default() -> Self {
-        Self {
-            open_console_on_launch: false,
+impl<T: ToOwned> Setting<T> {
+    fn to_owned(&self) -> Setting<T::Owned> {
+        Setting {
+            value: self.value.to_owned(),
+            ..*self
         }
+    }
+}
+
+trait AsSetting<T>: Sized {
+    fn as_setting_or_else(self, default: impl FnOnce() -> T) -> Setting<T>;
+}
+
+impl<T> AsSetting<T> for Option<T> {
+    fn as_setting_or_else(self, default: impl FnOnce() -> T) -> Setting<T> {
+        match self {
+            Some(value) => Setting {
+                value,
+                is_default: false,
+            },
+            None => Setting {
+                value: default(),
+                is_default: true,
+            },
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, serde::Deserialize)]
+enum Change<T> {
+    #[serde(rename = "default")]
+    Default,
+    #[serde(rename = "override")]
+    Override(T),
+}
+
+macro_rules! settings {
+    ($Settings:ident, $DefaultedSettings:ident, $SettingsPatch:ident {
+        $($setting:ident as $json_name:ident: $type:ty, by |$by_bind:pat_param| $by_expr:expr, default $default:expr),+
+        $(,)?
+    }) => {
+        #[derive(Debug, Clone, Default)]
+        pub struct $Settings {
+            $($setting: Option<$type>),+
+        }
+
+        #[derive(Debug, Clone, serde::Serialize)]
+        #[allow(non_snake_case)]
+        pub struct $DefaultedSettings {
+            $($json_name: Setting<$type>),+
+        }
+
+        #[derive(Debug, Clone, serde::Deserialize)]
+        #[allow(non_snake_case)]
+        pub struct $SettingsPatch {
+            $(#[serde(default)]
+            $json_name: Option<Change<$type>>),+
+        }
+
+        impl $Settings {
+            $(pub fn $setting(&self) -> Setting<$type> {
+                match self.$setting {
+                    Some($by_bind) => Setting { value: $by_expr, is_default: false },
+                    None => Setting { value: $default, is_default: true },
+                }
+            })+
+
+            pub fn defaulted(&self) -> $DefaultedSettings {
+                $DefaultedSettings {
+                    $($json_name: self.$setting()),+
+                }
+            }
+
+            pub fn update(&mut self, patch: $SettingsPatch) {
+                $(
+                    if let Some(change) = patch.$json_name {
+                        self.$setting = match change {
+                            Change::Default => None,
+                            Change::Override(value) => Some(value),
+                        };
+                    }
+                )+
+            }
+        }
+    };
+}
+
+settings! {
+    Settings, DefaultedSettings, SettingsPatch {
+        open_console_on_launch as openConsoleOnLaunch: bool, by |x| x, default false,
     }
 }
 
@@ -72,5 +158,6 @@ impl Default for Settings {
 /// migrations will be performed on load into [`Settings`].
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct SettingsOnDisk {
-    open_console_on_launch: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    open_console_on_launch: Option<bool>,
 }

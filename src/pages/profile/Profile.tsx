@@ -72,7 +72,7 @@ export default function Profile() {
   async function launch(modded: boolean) {
     try {
       clearConsole();
-      if (settings.loaded.openConsoleOnLaunch && searchParams.tab !== "logs") {
+      if (settings.loaded.openConsoleOnLaunch.value && searchParams.tab !== "logs") {
         navigate(`?profile-tab=logs`);
       }
       const channel = createC2SChannel();

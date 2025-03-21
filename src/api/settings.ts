@@ -3,8 +3,19 @@ import { wrapInvoke } from "../api";
 import { listen } from "@tauri-apps/api/event";
 import { createSignal } from "solid-js";
 
+export interface Setting<T> {
+  value: T;
+  isDefault: boolean;
+}
+
 export interface Settings {
-  openConsoleOnLaunch: boolean;
+  openConsoleOnLaunch: Setting<boolean>;
+}
+
+export type Change<T> = { override: T } | "default";
+
+export interface SettingsPatch {
+  openConsoleOnLaunch?: Change<boolean>;
 }
 
 const [_settings, setSettings] = createSignal<Settings>();
@@ -49,6 +60,6 @@ listen<Settings>("settings", (event) => {
   setSettings(event.payload);
 });
 
-export function updateSettings(updated: Settings): Promise<void> {
-  return wrapInvoke(() => invoke("update_settings", { updated }));
+export function updateSettings(patch: SettingsPatch): Promise<void> {
+  return wrapInvoke(() => invoke("update_settings", { patch }));
 }

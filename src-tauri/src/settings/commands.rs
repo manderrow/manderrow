@@ -1,28 +1,30 @@
-use tauri::{AppHandle, Emitter};
+use tauri::{ipc::Response, AppHandle, Emitter};
 
 use crate::CommandError;
 
-use super::{Settings, SettingsState, EVENT};
+use super::{SettingsPatch, SettingsState, EVENT};
 
 #[tauri::command]
-pub async fn get_settings(settings: SettingsState<'_>) -> Result<Settings, CommandError> {
-    settings.read().await.clone()
+pub async fn get_settings(settings: SettingsState<'_>) -> Result<Response, CommandError> {
+    let settings = settings.read().await;
+    let settings = settings.as_ref().map_err(Clone::clone)?.defaulted();
+    Ok(Response::new(
+        serde_json::to_string(&settings).map_err(anyhow::Error::from)?,
+    ))
 }
 
 #[tauri::command]
 pub async fn update_settings(
     app: AppHandle,
     settings: SettingsState<'_>,
-    updated: Settings,
+    patch: SettingsPatch,
 ) -> Result<(), CommandError> {
     let mut settings = settings.write().await;
-    {
-        let settings = settings.as_mut().map_err(|e| e.clone())?;
-        *settings = updated;
-    }
+    settings.as_mut().map_err(|e| e.clone())?.update(patch);
     let settings = settings.downgrade();
     let settings = settings.as_ref().unwrap();
-    app.emit(EVENT, settings).map_err(anyhow::Error::from)?;
+    app.emit(EVENT, settings.defaulted())
+        .map_err(anyhow::Error::from)?;
     super::write(settings)?;
     Ok(())
 }
