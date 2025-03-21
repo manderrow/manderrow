@@ -68,8 +68,8 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
         }))
         .setup(|app| {
             if !std::env::var_os("TAURI_IMMEDIATE_DEVTOOLS")
-            .unwrap_or_default()
-            .is_empty()
+                .unwrap_or_default()
+                .is_empty()
             {
                 let window = app.get_webview_window("main").context("no main window")?;
                 window.open_devtools();
