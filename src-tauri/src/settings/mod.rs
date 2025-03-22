@@ -12,7 +12,6 @@ use triomphe::Arc;
 use crate::{paths::config_dir, product_name, util::IoErrorKindExt, CommandError};
 
 pub mod commands;
-mod ui;
 
 /// The name of the event used to send the settings to the frontend.
 pub const EVENT: &str = "settings";
