@@ -1,5 +1,5 @@
 import { RawDictionary } from "../../i18n/i18n.ts";
-import * as settings from "../settings.ts";
+import { SettingsT } from "../settings.ts";
 
 export interface Settings {
   sections: Section[];
@@ -10,9 +10,14 @@ export interface Section {
   settings: Setting[];
 }
 
-export interface Setting {
-  key: keyof settings.Settings & keyof settings.SettingsPatch & keyof RawDictionary["settings"]["settings"];
-  input: Input;
+export interface ToggleSetting {
+  key: SettingsT<boolean>;
+  input: { type: "Toggle" };
 }
 
-export type Input = { type: "Toggle" } | { type: "Text" };
+export interface TextSetting {
+  key: SettingsT<string>;
+  input: { type: "Text" };
+}
+
+export type Setting = ToggleSetting | TextSetting;

@@ -2,25 +2,14 @@ import { createUniqueId, For, Match, Show, Switch } from "solid-js";
 import { DefaultDialog, DismissCallback } from "./Dialog";
 
 import styles from "./SettingsDialog.module.css";
-import { SettingsPatch, updateSettings, settings, settingsUI } from "../../api/settings";
+import { Settings, SettingsPatch, updateSettings, settings, settingsUI } from "../../api/settings";
 import Fa from "solid-fa";
 import { faClockRotateLeft } from "@fortawesome/free-solid-svg-icons";
 import { t } from "../../i18n/i18n";
+import { Setting, TextSetting, ToggleSetting } from "../../api/settings/ui";
 
 export default function SettingsDialog(props: { onDismiss: DismissCallback }) {
   const idPrefix = createUniqueId();
-
-  function onChange(mutator: (e: HTMLInputElement) => SettingsPatch) {
-    return ((e: InputEvent) => {
-      updateSettings(mutator(e.target as HTMLInputElement));
-    }) as (e: Event) => void;
-  }
-
-  function onReset(key: keyof SettingsPatch) {
-    return ((_: MouseEvent) => {
-      updateSettings({ [key]: "default" });
-    }) as (e: Event) => void;
-  }
 
   return (
     <>
@@ -41,20 +30,10 @@ export default function SettingsDialog(props: { onDismiss: DismissCallback }) {
                       <label for={`${idPrefix}_${setting.key}`}>{t(`settings.settings.${setting.key}`)}</label>
                       <Switch>
                         <Match when={setting.input.type === "Toggle"}>
-                          <input
-                            type="checkbox"
-                            id={`${idPrefix}_${setting.key}`}
-                            checked={settings()[setting.key].value as unknown as boolean}
-                            on:change={onChange((e) => ({ [setting.key]: { override: e.checked } }))}
-                          />
+                          <ToggleInput idPrefix={idPrefix} setting={setting as ToggleSetting} />
                         </Match>
                         <Match when={setting.input.type === "Text"}>
-                          <input
-                            type="text"
-                            id={`${idPrefix}_${setting.key}`}
-                            value={settings()[setting.key].value as unknown as string}
-                            on:change={onChange((e) => ({ [setting.key]: { override: e.value } }))}
-                          />
+                          <TextInput idPrefix={idPrefix} setting={setting as TextSetting} />
                         </Match>
                       </Switch>
                       <Show when={!settings().openConsoleOnLaunch.isDefault}>
@@ -71,5 +50,49 @@ export default function SettingsDialog(props: { onDismiss: DismissCallback }) {
         </div>
       </DefaultDialog>
     </>
+  );
+}
+
+function onChange<S extends Setting>(setting: S, mutator: (e: HTMLInputElement) => Settings[S["key"]]["value"]) {
+  return ((e: InputEvent) => {
+    updateSettings({ [setting.key]: { override: mutator(e.target as HTMLInputElement) } });
+  }) as (e: Event) => void;
+}
+
+function onReset(key: keyof SettingsPatch) {
+  return ((_: MouseEvent) => {
+    updateSettings({ [key]: "default" });
+  }) as (e: Event) => void;
+}
+
+type SettingType<T extends Setting> = T["input"]["type"] extends "Text"
+  ? string
+  : T["input"]["type"] extends "Toggle"
+  ? boolean
+  : unknown;
+
+function get<T extends Setting>(setting: T): SettingType<T> {
+  return settings()[setting.key].value as SettingType<T>;
+}
+
+function ToggleInput(props: { idPrefix: string; setting: ToggleSetting }) {
+  return (
+    <input
+      type="checkbox"
+      id={`${props.idPrefix}_${props.setting.key}`}
+      checked={get(props.setting)}
+      on:change={onChange(props.setting, (e) => e.checked)}
+    />
+  );
+}
+
+function TextInput(props: { idPrefix: string; setting: TextSetting }) {
+  return (
+    <input
+      type="text"
+      id={`${props.idPrefix}_${props.setting.key}`}
+      value={get(props.setting) as unknown as string}
+      on:change={onChange(props.setting, (e) => e.value)}
+    />
   );
 }

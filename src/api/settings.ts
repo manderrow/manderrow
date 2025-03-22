@@ -14,6 +14,10 @@ export interface Settings {
   openConsoleOnLaunch: Setting<boolean>;
 }
 
+export type SettingsT<T> = keyof {
+  [key in keyof Settings as (Settings[key]["value"] extends T ? key : never)]: never;
+};
+
 export type Change<T> = { override: T } | "default";
 
 export interface SettingsPatch {

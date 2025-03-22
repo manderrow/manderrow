@@ -1,13 +1,4 @@
 //! Task management and monitoring.
-//!
-//! When running a task that should be exposed to the user, "register" it like so:
-//!
-//! ```rust
-//! // run_task returns a [`TaskError`], but you probably want an [`anyhow::Error`], so convert it, for example via the [`Try`] operator
-//! Ok(run_task(Kind::Other, async move {
-//!     // do some long-running operation
-//! })?)
-//! ```
 
 pub mod commands;
 pub mod types;

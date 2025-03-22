@@ -12,19 +12,21 @@ impl Parse for SettingsArgs {
     fn parse(input: syn::parse::ParseStream) -> syn::Result<Self> {
         let span = input.span();
         let mut sections = None::<Vec<_>>;
-        match input.parse::<Ident>()? {
-            key if key == "sections" => {
-                input.parse::<Eq>()?;
-                let sections_buf;
-                syn::bracketed!(sections_buf in input);
-                sections = Some(
-                    sections_buf
-                        .parse_terminated(Ident::parse, Token![,])?
-                        .into_iter()
-                        .collect(),
-                );
+        while !input.is_empty() {
+            match input.parse::<Ident>()? {
+                key if key == "sections" => {
+                    input.parse::<Eq>()?;
+                    let sections_buf;
+                    syn::bracketed!(sections_buf in input);
+                    sections = Some(
+                        sections_buf
+                            .parse_terminated(Ident::parse, Token![,])?
+                            .into_iter()
+                            .collect(),
+                    );
+                }
+                key => return Err(Error::new(key.span(), "Unrecognized argument")),
             }
-            key => return Err(Error::new(key.span(), "Unrecognized argument")),
         }
         Ok(Self {
             sections: sections
