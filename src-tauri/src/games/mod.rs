@@ -2,10 +2,16 @@ pub mod commands;
 
 use std::{borrow::Cow, collections::HashMap, marker::PhantomData, sync::LazyLock};
 
+use anyhow::{Context, Result};
 use slog_scope::warn;
 
-pub static GAMES: LazyLock<Vec<Game>> =
-    LazyLock::new(|| serde_json::from_str(include_str!("games.json")).unwrap());
+#[derive(Debug, Clone, thiserror::Error)]
+#[error("{0}")]
+pub struct StringError(String);
+
+static GAMES: LazyLock<Result<Vec<Game>, StringError>> = LazyLock::new(|| {
+    serde_json::from_str(include_str!("games.json")).map_err(|e| StringError(e.to_string()))
+});
 
 struct IndexedGameData<T>(Vec<T>);
 
@@ -29,10 +35,11 @@ impl<'de, T: Clone + Default + serde::Deserialize<'de>> serde::Deserialize<'de>
                 A: serde::de::MapAccess<'de>,
             {
                 use serde::de::Error;
-                let mut buf = (0..GAMES.len()).map(|_| None::<T>).collect::<Vec<_>>();
+                let games = GAMES.as_ref().map_err(|e| A::Error::custom(e))?;
+                let mut buf = (0..games.len()).map(|_| None::<T>).collect::<Vec<_>>();
                 while let Some(id) = map.next_key::<&str>()? {
                     let value = map.next_value()?;
-                    let mut iter = GAMES
+                    let mut iter = games
                         .iter()
                         .enumerate()
                         .filter(|(_, g)| g.thunderstore_id == id)
@@ -60,7 +67,7 @@ impl<'de, T: Clone + Default + serde::Deserialize<'de>> serde::Deserialize<'de>
                                 None => {
                                     warn!(
                                         "Ignoring missing entry for {:?} in a game data file",
-                                        GAMES[i].id
+                                        games[i].id
                                     );
                                     Default::default()
                                 }
@@ -74,20 +81,43 @@ impl<'de, T: Clone + Default + serde::Deserialize<'de>> serde::Deserialize<'de>
     }
 }
 
-pub static GAMES_MOD_DOWNLOADS: LazyLock<Vec<u64>> = LazyLock::new(|| {
-    serde_json::from_str::<IndexedGameData<_>>(include_str!("gameModDownloads.json"))
-        .expect("Failed to load gameModDownloads.json")
-        .0
+static GAMES_MOD_DOWNLOADS: LazyLock<Result<Vec<u64>, StringError>> = LazyLock::new(|| {
+    Ok(
+        serde_json::from_str::<IndexedGameData<_>>(include_str!("gameModDownloads.json"))
+            .map_err(|e| StringError(e.to_string()))?
+            .0,
+    )
 });
 
-pub static GAMES_REVIEWS: LazyLock<Vec<Option<u64>>> = LazyLock::new(|| {
-    serde_json::from_str::<IndexedGameData<_>>(include_str!("gameReviews.json"))
-        .expect("Failed to load gameReviews.json")
-        .0
+static GAMES_REVIEWS: LazyLock<Result<Vec<Option<u64>>, StringError>> = LazyLock::new(|| {
+    Ok(
+        serde_json::from_str::<IndexedGameData<_>>(include_str!("gameReviews.json"))
+            .map_err(|e| StringError(e.to_string()))?
+            .0,
+    )
 });
 
-pub static GAMES_BY_ID: LazyLock<HashMap<&'static str, &'static Game>> =
-    LazyLock::new(|| GAMES.iter().map(|g| (&*g.id, g)).collect());
+static GAMES_BY_ID: LazyLock<Result<HashMap<&'static str, &'static Game>, &'static StringError>> =
+    LazyLock::new(|| {
+        GAMES
+            .as_ref()
+            .map(|games| games.iter().map(|g| (&*g.id, g)).collect())
+    });
+
+pub fn games() -> Result<&'static [Game<'static>]> {
+    GAMES
+        .as_ref()
+        .map(Vec::as_slice)
+        .map_err(Clone::clone)
+        .context("Failed to load games.json")
+}
+
+pub fn games_by_id() -> Result<&'static HashMap<&'static str, &'static Game<'static>>> {
+    GAMES_BY_ID
+        .as_ref()
+        .map_err(Clone::clone)
+        .context("Failed to load games.json")
+}
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
@@ -103,12 +133,8 @@ pub struct Game<'a> {
     /// URL of the Thunderstore mod index for the game.
     #[serde(rename = "thunderstoreUrl", borrow)]
     pub thunderstore_url: Cow<'a, str>,
-    #[serde(rename = "steamFolderName", borrow)]
-    pub steam_folder_name: Cow<'a, str>,
     #[serde(rename = "exeNames", borrow)]
     pub exe_names: Vec<Cow<'a, str>>,
-    #[serde(rename = "dataFolderName", borrow)]
-    pub data_folder_name: Cow<'a, str>,
     #[serde(rename = "storePlatformMetadata", borrow)]
     pub store_platform_metadata: Vec<StorePlatformMetadata<'a>>,
     #[serde(rename = "instanceType")]
@@ -146,11 +172,18 @@ pub enum StorePlatformMetadata<'a> {
     Other,
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct SteamMetadata<'a> {
+    pub id: &'a str,
+}
+
 impl<'a> StorePlatformMetadata<'a> {
-    pub fn steam_or_direct(&self) -> Option<&str> {
+    pub fn steam_or_direct(&self) -> Option<SteamMetadata> {
         match self {
             StorePlatformMetadata::Steam { store_identifier }
-            | StorePlatformMetadata::SteamDirect { store_identifier } => Some(store_identifier),
+            | StorePlatformMetadata::SteamDirect { store_identifier } => Some(SteamMetadata {
+                id: &store_identifier,
+            }),
             _ => None,
         }
     }

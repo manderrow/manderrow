@@ -62,11 +62,11 @@ export async function searchGames(query: string, sort: readonly SortOption<GameS
 }
 
 export async function getGamesPopularity(): Promise<{ [key: string]: number }> {
-  return JSON.parse(await wrapInvoke<string>(() => invoke("get_games_popularity", {})));
+  return await wrapInvoke(() => invoke("get_games_popularity", {}));
 }
 
 export async function getGameModDownloads(): Promise<{ [key: string]: number }> {
-  return JSON.parse(await wrapInvoke<string>(() => invoke("get_game_mods_downloads", {})));
+  return await wrapInvoke(() => invoke("get_game_mods_downloads", {}));
 }
 
 export async function fetchModIndex(game: string, options: { refresh: boolean }, listener: (event: TaskEvent) => void) {

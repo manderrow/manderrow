@@ -10,7 +10,7 @@ use tauri::{ipc::Channel, AppHandle};
 use tokio::process::Command;
 use uuid::Uuid;
 
-use crate::games::GAMES_BY_ID;
+use crate::games::games_by_id;
 use crate::ipc::S2CMessage;
 use crate::profiles::{profile_path, read_profile, read_profile_file};
 use crate::util::hyphenated_uuid;
@@ -76,7 +76,7 @@ pub async fn launch_profile(
         .await
         .context("Failed to read profile")?;
     path.pop();
-    let Some(game) = GAMES_BY_ID.get(&*metadata.game).copied() else {
+    let Some(game) = games_by_id()?.get(&*metadata.game).copied() else {
         return Err(anyhow!("Unrecognized game {:?}", metadata.game).into());
     };
     let Some(store_metadata) = game.store_platform_metadata.iter().next() else {
@@ -84,9 +84,11 @@ pub async fn launch_profile(
     };
     let mut command: Command;
     match store_metadata {
-        crate::games::StorePlatformMetadata::Steam { store_identifier } => {
+        crate::games::StorePlatformMetadata::Steam {
+            store_identifier, ..
+        } => {
             let profile = read_profile(id).await.context("Failed to read profile")?;
-            let steam_id = GAMES_BY_ID
+            let steam_metadata = games_by_id()?
                 .get(&*profile.game)
                 .context("No such game")?
                 .store_platform_metadata
@@ -97,7 +99,7 @@ pub async fn launch_profile(
             crate::platforms::steam::launching::ensure_launch_args_are_applied(
                 &log,
                 Some(ipc_state.spc(channel.clone())),
-                steam_id,
+                steam_metadata.id,
             )
             .await?;
 

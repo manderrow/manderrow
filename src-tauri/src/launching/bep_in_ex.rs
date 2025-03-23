@@ -5,7 +5,7 @@ use anyhow::{anyhow, bail, Context as _, Result};
 use tempfile::tempdir;
 use uuid::Uuid;
 
-use crate::games::GAMES_BY_ID;
+use crate::games::games_by_id;
 use crate::installing::install_zip;
 use crate::platforms::steam::paths::resolve_steam_app_install_directory;
 use crate::platforms::steam::proton::{ensure_wine_will_load_dll_override, uses_proton};
@@ -66,7 +66,7 @@ pub async fn configure_command(
     profile_id: Uuid,
 ) -> anyhow::Result<()> {
     let profile = read_profile(profile_id).await?;
-    let steam_id = GAMES_BY_ID
+    let steam_metadata = games_by_id()?
         .get(&*profile.game)
         .context("No such game")?
         .store_platform_metadata
@@ -74,7 +74,7 @@ pub async fn configure_command(
         .find_map(|m| m.steam_or_direct())
         .context("Unsupported store platform")?;
 
-    let uses_proton = uses_proton(log, steam_id).await?;
+    let uses_proton = uses_proton(log, steam_metadata.id).await?;
 
     let bep_in_ex = get_bep_in_ex_path(log, uses_proton).await?;
 
@@ -135,11 +135,11 @@ pub async fn configure_command(
         if uses_proton {
             // TODO: don't overwrite anything without checking with the user
             //       via a doctor's note.
-            ensure_wine_will_load_dll_override(log, steam_id, "winhttp").await?;
+            ensure_wine_will_load_dll_override(log, steam_metadata.id, "winhttp").await?;
         }
         tokio::fs::copy(
             bep_in_ex.join("winhttp.dll"),
-            resolve_steam_app_install_directory(steam_id)
+            resolve_steam_app_install_directory(steam_metadata.id)
                 .await?
                 .join("winhttp.dll"),
         )

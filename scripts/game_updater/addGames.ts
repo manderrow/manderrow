@@ -23,15 +23,14 @@ const textEncoder = new TextEncoder();
 
 const fields: (keyof Game)[] = [
   "packageLoader",
-  "dataFolderName",
-  "steamFolderName",
   "exeNames",
   "instanceType",
   "storePlatformMetadata",
 ];
 
 const reader = Deno.stdin.readable.pipeThrough(new TextDecoderStream()).pipeThrough(new TextLineStream()).getReader();
-async function getLine() {
+
+async function getLine(): Promise<string> {
   return (await reader.read()).value!;
 }
 

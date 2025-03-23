@@ -12,11 +12,9 @@ export type Refetcher<T, R = unknown> = (info?: R) => T | Promise<T> | undefined
 export interface Game {
   id: string;
   name: string;
-  dataFolderName: string;
   exeNames: string[];
   instanceType: "Game" | "Server";
   packageLoader: PackageLoader;
-  steamFolderName: string;
   storePlatformMetadata: StorePlatformMetadata[];
   thunderstoreId: string;
   thunderstoreUrl: string;

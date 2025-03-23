@@ -14,7 +14,7 @@ use tokio::select;
 use tokio::sync::{Mutex, RwLock, RwLockReadGuard};
 use url::Url;
 
-use crate::games::{GAMES, GAMES_BY_ID};
+use crate::games::{games, games_by_id};
 use crate::mods::{ArchivedModRef, ModId, ModRef};
 use crate::tasks::{self, TaskBuilder};
 use crate::util::http::ResponseExt;
@@ -33,7 +33,10 @@ struct ModIndex {
 }
 
 static MOD_INDEXES: LazyLock<HashMap<&'static str, ModIndex>> = LazyLock::new(|| {
-    GAMES
+    let Ok(games) = games() else {
+        return HashMap::new();
+    };
+    games
         .iter()
         .map(|game| (&*game.thunderstore_url, ModIndex::default()))
         .collect()
@@ -47,7 +50,7 @@ pub async fn fetch_mod_index(
 ) -> Result<()> {
     let log = slog_scope::logger();
 
-    let game = *GAMES_BY_ID.get(game).context("No such game")?;
+    let game = *games_by_id()?.get(game).context("No such game")?;
     let mod_index = MOD_INDEXES.get(&*game.thunderstore_url).unwrap();
 
     if refresh
@@ -262,7 +265,7 @@ pub enum SortColumn {
 pub type ModIndexReadGuard = RwLockReadGuard<'static, Vec<MemoryModIndex>>;
 
 pub async fn read_mod_index(game: &str) -> Result<ModIndexReadGuard> {
-    let game = *GAMES_BY_ID.get(game).context("No such game")?;
+    let game = *games_by_id()?.get(game).context("No such game")?;
     Ok(MOD_INDEXES
         .get(&*game.thunderstore_url)
         .unwrap()

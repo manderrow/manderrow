@@ -2,9 +2,7 @@
   {
     "id": "riskofrain2",
     "name": "Risk of Rain 2",
-    "steamFolderName": "Risk of Rain 2",
     "exeNames": ["Risk of Rain 2.exe"],
-    "dataFolderName": "Risk of Rain 2_Data",
     "thunderstoreId": "riskofrain2",
     "thunderstoreUrl": "https://thunderstore.io/c/riskofrain2/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -23,9 +21,7 @@
   {
     "id": "riskofrain2-thunderstore-dev",
     "name": "Thunderstore Dev - Risk of Rain 2",
-    "steamFolderName": "Risk of Rain 2",
     "exeNames": ["Risk of Rain 2.exe"],
-    "dataFolderName": "Risk of Rain 2_Data",
     "thunderstoreId": "riskofrain2",
     "thunderstoreUrl": "https://thunderstore.dev/c/riskofrain2/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -40,9 +36,7 @@
   {
     "id": "riskofrain2-server",
     "name": "Risk of Rain 2 Dedicated Server",
-    "steamFolderName": "Risk of Rain 2 Dedicated Server",
     "exeNames": ["Risk of Rain 2.exe"],
-    "dataFolderName": "Risk of Rain 2_Data",
     "thunderstoreId": "riskofrain2",
     "thunderstoreUrl": "https://thunderstore.io/c/riskofrain2/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -57,9 +51,7 @@
   {
     "id": "dyson-sphere-program",
     "name": "Dyson Sphere Program",
-    "steamFolderName": "Dyson Sphere Program",
     "exeNames": ["DSPGAME.exe"],
-    "dataFolderName": "DSPGAME_Data",
     "thunderstoreId": "dyson-sphere-program",
     "thunderstoreUrl": "https://thunderstore.io/c/dyson-sphere-program/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -78,9 +70,7 @@
   {
     "id": "valheim",
     "name": "Valheim",
-    "steamFolderName": "Valheim",
     "exeNames": ["valheim.exe", "valheim.x86_64"],
-    "dataFolderName": "valheim_Data",
     "thunderstoreId": "valheim",
     "thunderstoreUrl": "https://thunderstore.io/c/valheim/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -99,9 +89,7 @@
   {
     "id": "valheim-server",
     "name": "Valheim Dedicated Server",
-    "steamFolderName": "Valheim dedicated server",
     "exeNames": ["valheim_server.exe", "valheim_server.x86_64"],
-    "dataFolderName": "valheim_server_Data",
     "thunderstoreId": "valheim",
     "thunderstoreUrl": "https://thunderstore.io/c/valheim/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -116,9 +104,7 @@
   {
     "id": "gtfo",
     "name": "GTFO",
-    "steamFolderName": "GTFO",
     "exeNames": ["GTFO.exe"],
-    "dataFolderName": "GTFO_Data",
     "thunderstoreId": "gtfo",
     "thunderstoreUrl": "https://thunderstore.io/c/gtfo/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -133,9 +119,7 @@
   {
     "id": "outward",
     "name": "Outward",
-    "steamFolderName": "Outward",
     "exeNames": ["Outward.exe"],
-    "dataFolderName": "Outward_Data",
     "thunderstoreId": "outward",
     "thunderstoreUrl": "https://thunderstore.io/c/outward/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -157,9 +141,7 @@
   {
     "id": "outward",
     "name": "Outward Definitive",
-    "steamFolderName": "Outward/Outward_Defed",
     "exeNames": ["Outward Definitive Edition.exe"],
-    "dataFolderName": "Outward Definitive Edition_Data",
     "thunderstoreId": "outward",
     "thunderstoreUrl": "https://thunderstore.io/c/outward/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -181,9 +163,7 @@
   {
     "id": "talespire",
     "name": "TaleSpire",
-    "steamFolderName": "TaleSpire",
     "exeNames": ["TaleSpire.exe"],
-    "dataFolderName": "TaleSpire_Data",
     "thunderstoreId": "talespire",
     "thunderstoreUrl": "https://thunderstore.io/c/talespire/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -198,9 +178,7 @@
   {
     "id": "h3vr",
     "name": "H3VR",
-    "steamFolderName": "H3VR",
     "exeNames": ["h3vr.exe"],
-    "dataFolderName": "h3vr_Data",
     "thunderstoreId": "h3vr",
     "thunderstoreUrl": "https://thunderstore.io/c/h3vr/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -215,9 +193,7 @@
   {
     "id": "rounds",
     "name": "ROUNDS",
-    "steamFolderName": "ROUNDS",
     "exeNames": ["Rounds.exe"],
-    "dataFolderName": "Rounds_Data",
     "thunderstoreId": "rounds",
     "thunderstoreUrl": "https://thunderstore.io/c/rounds/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -232,9 +208,7 @@
   {
     "id": "mechanica",
     "name": "Mechanica",
-    "steamFolderName": "Mechanica",
     "exeNames": ["Mechanica.exe"],
-    "dataFolderName": "Mechanica_Data",
     "thunderstoreId": "mechanica",
     "thunderstoreUrl": "https://thunderstore.io/c/mechanica/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -249,9 +223,7 @@
   {
     "id": "muck",
     "name": "Muck",
-    "steamFolderName": "Muck",
     "exeNames": ["Muck.exe", "Muck.x86_64"],
-    "dataFolderName": "Muck_Data",
     "thunderstoreId": "muck",
     "thunderstoreUrl": "https://thunderstore.io/c/muck/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -266,9 +238,7 @@
   {
     "id": "boneworks",
     "name": "BONEWORKS",
-    "steamFolderName": "BONEWORKS\\BONEWORKS",
     "exeNames": ["BONEWORKS.exe", "Boneworks_Oculus_Windows64.exe"],
-    "dataFolderName": "BONEWORKS_Data",
     "thunderstoreId": "boneworks",
     "thunderstoreUrl": "https://thunderstore.io/c/boneworks/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -286,9 +256,7 @@
   {
     "id": "lethal-league-blaze",
     "name": "Lethal League Blaze",
-    "steamFolderName": "LLBlaze",
     "exeNames": ["LLBlaze.exe", "LLBlaze.x86_64", "LLBlaze.x86", "LLBlaze.app"],
-    "dataFolderName": "LLBlaze_Data",
     "thunderstoreId": "lethal-league-blaze",
     "thunderstoreUrl": "https://thunderstore.io/c/lethal-league-blaze/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -303,9 +271,7 @@
   {
     "id": "timberborn",
     "name": "Timberborn",
-    "steamFolderName": "Timberborn",
     "exeNames": ["Timberborn.exe"],
-    "dataFolderName": "Timberborn_Data",
     "thunderstoreId": "timberborn",
     "thunderstoreUrl": "https://thunderstore.io/c/timberborn/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -327,9 +293,7 @@
   {
     "id": "totally-accurate-battle-simulator",
     "name": "TABS",
-    "steamFolderName": "Totally Accurate Battle Simulator",
     "exeNames": ["TotallyAccurateBattleSimulator.exe"],
-    "dataFolderName": "TotallyAccurateBattleSimulator_Data",
     "thunderstoreId": "totally-accurate-battle-simulator",
     "thunderstoreUrl": "https://thunderstore.io/c/totally-accurate-battle-simulator/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -352,9 +316,7 @@
   {
     "id": "nasb",
     "name": "Nickelodeon All‑Star Brawl",
-    "steamFolderName": "Nickelodeon All-Star Brawl",
     "exeNames": ["Nickelodeon All-Star Brawl.exe"],
-    "dataFolderName": "Nickelodeon All-Star Brawl_Data",
     "thunderstoreId": "nasb",
     "thunderstoreUrl": "https://thunderstore.io/c/nasb/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -369,9 +331,7 @@
   {
     "id": "inscryption",
     "name": "Inscryption",
-    "steamFolderName": "Inscryption",
     "exeNames": ["Inscryption.exe"],
-    "dataFolderName": "Inscryption_Data",
     "thunderstoreId": "inscryption",
     "thunderstoreUrl": "https://thunderstore.io/c/inscryption/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -389,9 +349,7 @@
   {
     "id": "starsand",
     "name": "Starsand",
-    "steamFolderName": "Starsand",
     "exeNames": ["Starsand.exe"],
-    "dataFolderName": "Starsand_Data",
     "thunderstoreId": "starsand",
     "thunderstoreUrl": "https://thunderstore.io/c/starsand/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -410,9 +368,7 @@
   {
     "id": "cats-are-liquid",
     "name": "Cats are Liquid - A Better Place",
-    "steamFolderName": "Cats are Liquid - A Better Place",
     "exeNames": ["CaL-ABP-Windows.exe", "CaL-ABP-Linux.x86_64", "CaL-ABP-macOS.app"],
-    "dataFolderName": "CaL-ABP-Windows_Data",
     "thunderstoreId": "cats-are-liquid",
     "thunderstoreUrl": "https://thunderstore.io/c/cats-are-liquid/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -430,9 +386,7 @@
   {
     "id": "potion-craft",
     "name": "Potion Craft",
-    "steamFolderName": "Potion Craft",
     "exeNames": ["Potion Craft.exe"],
-    "dataFolderName": "Potion Craft_Data",
     "thunderstoreId": "potion-craft",
     "thunderstoreUrl": "https://thunderstore.io/c/potion-craft/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -447,9 +401,7 @@
   {
     "id": "nearly-dead",
     "name": "Nearly Dead",
-    "steamFolderName": "Nearly Dead",
     "exeNames": ["Nearly Dead.exe"],
-    "dataFolderName": "Nearly Dead_Data",
     "thunderstoreId": "nearly-dead",
     "thunderstoreUrl": "https://thunderstore.io/c/nearly-dead/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -464,9 +416,7 @@
   {
     "id": "against",
     "name": "AGAINST",
-    "steamFolderName": "AGAINST_steam",
     "exeNames": ["AGAINST.exe"],
-    "dataFolderName": "AGAINST_Data",
     "thunderstoreId": "against",
     "thunderstoreUrl": "https://thunderstore.io/c/against/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -481,9 +431,7 @@
   {
     "id": "rogue-tower",
     "name": "Rogue Tower",
-    "steamFolderName": "Rogue Tower",
     "exeNames": ["Rogue Tower.exe"],
-    "dataFolderName": "Rogue Tower_Data",
     "thunderstoreId": "rogue-tower",
     "thunderstoreUrl": "https://thunderstore.io/c/rogue-tower/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -498,9 +446,7 @@
   {
     "id": "hotds",
     "name": "House of the Dying Sun",
-    "steamFolderName": "DyingSun",
     "exeNames": ["dyingsun.exe"],
-    "dataFolderName": "dyingsun_Data",
     "thunderstoreId": "hotds",
     "thunderstoreUrl": "https://thunderstore.io/c/hotds/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -515,9 +461,7 @@
   {
     "id": "for-the-king",
     "name": "For The King",
-    "steamFolderName": "For The King",
     "exeNames": ["FTK.exe"],
-    "dataFolderName": "FTK_Data",
     "thunderstoreId": "for-the-king",
     "thunderstoreUrl": "https://thunderstore.io/c/for-the-king/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -536,9 +480,7 @@
   {
     "id": "subnautica",
     "name": "Subnautica",
-    "steamFolderName": "Subnautica",
     "exeNames": ["Subnautica.exe"],
-    "dataFolderName": "Subnautica_Data",
     "thunderstoreId": "subnautica",
     "thunderstoreUrl": "https://thunderstore.io/c/subnautica/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -561,9 +503,7 @@
   {
     "id": "subnautica-below-zero",
     "name": "Subnautica: Below Zero",
-    "steamFolderName": "SubnauticaZero",
     "exeNames": ["SubnauticaZero.exe"],
-    "dataFolderName": "SubnauticaZero_Data",
     "thunderstoreId": "subnautica-below-zero",
     "thunderstoreUrl": "https://thunderstore.io/c/subnautica-below-zero/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -582,9 +522,7 @@
   {
     "id": "core-keeper",
     "name": "Core Keeper",
-    "steamFolderName": "Core Keeper",
     "exeNames": ["CoreKeeper.exe"],
-    "dataFolderName": "CoreKeeper_Data",
     "thunderstoreId": "core-keeper",
     "thunderstoreUrl": "https://thunderstore.io/c/core-keeper/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -599,9 +537,7 @@
   {
     "id": "northstar",
     "name": "Titanfall 2",
-    "steamFolderName": "Titanfall2",
     "exeNames": ["NorthstarLauncher.exe", "Titanfall2.exe"],
-    "dataFolderName": "",
     "thunderstoreId": "northstar",
     "thunderstoreUrl": "https://thunderstore.io/c/northstar/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -620,9 +556,7 @@
   {
     "id": "peglin",
     "name": "Peglin",
-    "steamFolderName": "Peglin",
     "exeNames": ["Peglin.exe"],
-    "dataFolderName": "Peglin_Data",
     "thunderstoreId": "peglin",
     "thunderstoreUrl": "https://thunderstore.io/c/peglin/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -640,9 +574,7 @@
   {
     "id": "v-rising",
     "name": "V Rising",
-    "steamFolderName": "VRising",
     "exeNames": ["VRising.exe"],
-    "dataFolderName": "VRising_Data",
     "thunderstoreId": "v-rising",
     "thunderstoreUrl": "https://thunderstore.io/c/v-rising/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -657,9 +589,7 @@
   {
     "id": "hard-bullet",
     "name": "Hard Bullet",
-    "steamFolderName": "Hard Bullet",
     "exeNames": ["Hard Bullet.exe"],
-    "dataFolderName": "Hard Bullet_Data",
     "thunderstoreId": "hard-bullet",
     "thunderstoreUrl": "https://thunderstore.io/c/hard-bullet/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -674,9 +604,7 @@
   {
     "id": "20-minutes-till-dawn",
     "name": "20 Minutes Till Dawn",
-    "steamFolderName": "20MinuteTillDawn",
     "exeNames": ["MinutesTillDawn.exe"],
-    "dataFolderName": "MinutesTillDawn_Data",
     "thunderstoreId": "20-minutes-till-dawn",
     "thunderstoreUrl": "https://thunderstore.io/c/20-minutes-till-dawn/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -695,9 +623,7 @@
   {
     "id": "green-hell-vr",
     "name": "Green Hell VR",
-    "steamFolderName": "Green Hell VR",
     "exeNames": ["GHVR.exe"],
-    "dataFolderName": "GHVR_Data",
     "thunderstoreId": "green-hell-vr",
     "thunderstoreUrl": "https://thunderstore.io/c/green-hell-vr/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -715,9 +641,7 @@
   {
     "id": "vtol-vr",
     "name": "VTOL VR",
-    "steamFolderName": "VTOL VR",
     "exeNames": ["VTOLVR.exe"],
-    "dataFolderName": "VTOLVR_Data",
     "thunderstoreId": "vtol-vr",
     "thunderstoreUrl": "https://thunderstore.io/c/vtol-vr/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -732,9 +656,7 @@
   {
     "id": "backpack-hero",
     "name": "Backpack Hero",
-    "steamFolderName": "Backpack Hero",
     "exeNames": ["Backpack Hero.exe", "linux.x86_64"],
-    "dataFolderName": "Backpack Hero_Data",
     "thunderstoreId": "backpack-hero",
     "thunderstoreUrl": "https://thunderstore.io/c/backpack-hero/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -749,9 +671,7 @@
   {
     "id": "stacklands",
     "name": "Stacklands",
-    "steamFolderName": "Stacklands",
     "exeNames": ["Stacklands.exe"],
-    "dataFolderName": "Stacklands_Data",
     "thunderstoreId": "stacklands",
     "thunderstoreUrl": "https://thunderstore.io/c/stacklands/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -766,9 +686,7 @@
   {
     "id": "enter-the-gungeon",
     "name": "Enter the Gungeon",
-    "steamFolderName": "Enter the Gungeon",
     "exeNames": ["EtG.exe"],
-    "dataFolderName": "EtG_Data",
     "thunderstoreId": "enter-the-gungeon",
     "thunderstoreUrl": "https://thunderstore.io/c/enter-the-gungeon/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -790,9 +708,7 @@
   {
     "id": "ravenfield",
     "name": "Ravenfield",
-    "steamFolderName": "Ravenfield",
     "exeNames": ["ravenfield.exe"],
-    "dataFolderName": "ravenfield_Data",
     "thunderstoreId": "ravenfield",
     "thunderstoreUrl": "https://thunderstore.io/c/ravenfield/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -807,9 +723,7 @@
   {
     "id": "aloft",
     "name": "Aloft",
-    "steamFolderName": "Aloft Demo",
     "exeNames": ["Aloft.exe"],
-    "dataFolderName": "Aloft_Data",
     "thunderstoreId": "aloft",
     "thunderstoreUrl": "https://thunderstore.io/c/aloft/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -824,9 +738,7 @@
   {
     "id": "cult-of-the-lamb",
     "name": "Cult of the Lamb",
-    "steamFolderName": "Cult of the Lamb",
     "exeNames": ["Cult Of The Lamb.exe"],
-    "dataFolderName": "Cult Of The Lamb_Data",
     "thunderstoreId": "cult-of-the-lamb",
     "thunderstoreUrl": "https://thunderstore.io/c/cult-of-the-lamb/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -844,9 +756,7 @@
   {
     "id": "chrono-ark",
     "name": "Chrono Ark",
-    "steamFolderName": "Chrono Ark\\x64\\Master",
     "exeNames": ["ChronoArk.exe"],
-    "dataFolderName": "ChronoArk_Data",
     "thunderstoreId": "chrono-ark",
     "thunderstoreUrl": "https://thunderstore.io/c/chrono-ark/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -861,9 +771,7 @@
   {
     "id": "bonelab",
     "name": "BONELAB",
-    "steamFolderName": "BONELAB",
     "exeNames": ["BONELAB_Steam_Windows64.exe", "BONELAB_Oculus_Windows64.exe"],
-    "dataFolderName": "BONELAB_Steam_Windows64",
     "thunderstoreId": "bonelab",
     "thunderstoreUrl": "https://thunderstore.io/c/bonelab/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -881,9 +789,7 @@
   {
     "id": "trombone-champ",
     "name": "Trombone Champ",
-    "steamFolderName": "TromboneChamp",
     "exeNames": ["TromboneChamp.exe"],
-    "dataFolderName": "TromboneChamp_Data",
     "thunderstoreId": "trombone-champ",
     "thunderstoreUrl": "https://thunderstore.io/c/trombone-champ/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -898,9 +804,7 @@
   {
     "id": "rogue-genesia",
     "name": "Rogue : Genesia",
-    "steamFolderName": "Rogue Genesia",
     "exeNames": ["Rogue Genesia.exe"],
-    "dataFolderName": "Rogue Genesia_Data",
     "thunderstoreId": "rogue-genesia",
     "thunderstoreUrl": "https://thunderstore.io/c/rogue-genesia/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -915,9 +819,7 @@
   {
     "id": "across-the-obelisk",
     "name": "Across the Obelisk",
-    "steamFolderName": "Across the Obelisk",
     "exeNames": ["AcrossTheObelisk.exe"],
-    "dataFolderName": "AcrossTheObelisk_Data",
     "thunderstoreId": "across-the-obelisk",
     "thunderstoreUrl": "https://thunderstore.io/c/across-the-obelisk/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -932,9 +834,7 @@
   {
     "id": "ultrakill",
     "name": "ULTRAKILL",
-    "steamFolderName": "ULTRAKILL",
     "exeNames": ["ULTRAKILL.exe"],
-    "dataFolderName": "ULTRAKILL_Data",
     "thunderstoreId": "ultrakill",
     "thunderstoreUrl": "https://thunderstore.io/c/ultrakill/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -949,9 +849,7 @@
   {
     "id": "ultimate-chicken-horse",
     "name": "Ultimate Chicken Horse",
-    "steamFolderName": "Ultimate Chicken Horse",
     "exeNames": ["UltimateChickenHorse.exe"],
-    "dataFolderName": "UltimateChickenHorse_Data",
     "thunderstoreId": "ultimate-chicken-horse",
     "thunderstoreUrl": "https://thunderstore.io/c/ultimate-chicken-horse/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -966,9 +864,7 @@
   {
     "id": "atrio-the-dark-wild",
     "name": "Atrio: The Dark Wild",
-    "steamFolderName": "Atrio The Dark Wild",
     "exeNames": ["Atrio.exe"],
-    "dataFolderName": "Atrio_Data",
     "thunderstoreId": "atrio-the-dark-wild",
     "thunderstoreUrl": "https://thunderstore.io/c/atrio-the-dark-wild/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -983,9 +879,7 @@
   {
     "id": "brotato",
     "name": "Brotato",
-    "steamFolderName": "Brotato",
     "exeNames": ["Brotato.exe"],
-    "dataFolderName": "",
     "thunderstoreId": "brotato",
     "thunderstoreUrl": "https://thunderstore.io/c/brotato/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1000,9 +894,7 @@
   {
     "id": "ancient-dungeon-vr",
     "name": "Ancient Dungeon VR",
-    "steamFolderName": "Ancient Dungeon VR",
     "exeNames": ["Ancient_Dungeon.exe"],
-    "dataFolderName": "Ancient_Dungeon_Data",
     "thunderstoreId": "ancient-dungeon-vr",
     "thunderstoreUrl": "https://thunderstore.io/c/ancient-dungeon-vr/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1020,9 +912,7 @@
   {
     "id": "rumble",
     "name": "RUMBLE",
-    "steamFolderName": "RUMBLE",
     "exeNames": ["RUMBLE.exe"],
-    "dataFolderName": "RUMBLE_Data",
     "thunderstoreId": "rumble",
     "thunderstoreUrl": "https://thunderstore.io/c/rumble/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1037,9 +927,7 @@
   {
     "id": "dome-keeper",
     "name": "Dome Keeper",
-    "steamFolderName": "Dome Keeper",
     "exeNames": ["domekeeper.exe"],
-    "dataFolderName": "",
     "thunderstoreId": "dome-keeper",
     "thunderstoreUrl": "https://thunderstore.io/c/dome-keeper/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1054,9 +942,7 @@
   {
     "id": "skul-the-hero-slayer",
     "name": "Skul: The Hero Slayer",
-    "steamFolderName": "Skul",
     "exeNames": ["Skul.exe"],
-    "dataFolderName": "Skul_Data",
     "thunderstoreId": "skul-the-hero-slayer",
     "thunderstoreUrl": "https://thunderstore.io/c/skul-the-hero-slayer/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1071,9 +957,7 @@
   {
     "id": "sons-of-the-forest",
     "name": "Sons Of The Forest",
-    "steamFolderName": "Sons Of The Forest",
     "exeNames": ["SonsOfTheForest.exe"],
-    "dataFolderName": "SonsOfTheForest_Data",
     "thunderstoreId": "sons-of-the-forest",
     "thunderstoreUrl": "https://thunderstore.io/c/sons-of-the-forest/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1088,9 +972,7 @@
   {
     "id": "the-ouroboros-king",
     "name": "The Ouroboros King",
-    "steamFolderName": "The Ouroboros King",
     "exeNames": ["The Ouroboros King.exe"],
-    "dataFolderName": "The Ouroboros King_Data",
     "thunderstoreId": "the-ouroboros-king",
     "thunderstoreUrl": "https://thunderstore.io/c/the-ouroboros-king/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1105,9 +987,7 @@
   {
     "id": "wrestling-empire",
     "name": "Wrestling Empire",
-    "steamFolderName": "Wrestling Empire",
     "exeNames": ["Wrestling Empire.exe"],
-    "dataFolderName": "Wrestling Empire_Data",
     "thunderstoreId": "wrestling-empire",
     "thunderstoreUrl": "https://thunderstore.io/c/wrestling-empire/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1122,9 +1002,7 @@
   {
     "id": "receiver-2",
     "name": "Receiver 2",
-    "steamFolderName": "Receiver 2",
     "exeNames": ["Receiver2.exe"],
-    "dataFolderName": "Receiver2_Data",
     "thunderstoreId": "receiver-2",
     "thunderstoreUrl": "https://thunderstore.io/c/receiver-2/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1139,9 +1017,7 @@
   {
     "id": "the-planet-crafter",
     "name": "The Planet Crafter",
-    "steamFolderName": "The Planet Crafter",
     "exeNames": ["Planet Crafter.exe"],
-    "dataFolderName": "ThePlanetCrafter_Data",
     "thunderstoreId": "the-planet-crafter",
     "thunderstoreUrl": "https://thunderstore.io/c/the-planet-crafter/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1156,9 +1032,7 @@
   {
     "id": "patch-quest",
     "name": "Patch Quest",
-    "steamFolderName": "Patch Quest",
     "exeNames": ["Patch Quest.exe"],
-    "dataFolderName": "PatchQuest_Data",
     "thunderstoreId": "patch-quest",
     "thunderstoreUrl": "https://thunderstore.io/c/patch-quest/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1173,9 +1047,7 @@
   {
     "id": "shadows-over-loathing",
     "name": "Shadows Over Loathing",
-    "steamFolderName": "Shadows Over Loathing\\Shadows Over Loathing",
     "exeNames": ["Shadows Over Loathing.exe"],
-    "dataFolderName": "ShadowsOverLoathing_Data",
     "thunderstoreId": "shadows-over-loathing",
     "thunderstoreUrl": "https://thunderstore.io/c/shadows-over-loathing/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1190,9 +1062,7 @@
   {
     "id": "west-of-loathing",
     "name": "West of Loathing",
-    "steamFolderName": "West of Loathing",
     "exeNames": ["West of Loathing.exe"],
-    "dataFolderName": "WestofLoathing_Data",
     "thunderstoreId": "west-of-loathing",
     "thunderstoreUrl": "https://thunderstore.io/c/west-of-loathing/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1207,9 +1077,7 @@
   {
     "id": "sun-haven",
     "name": "Sun Haven",
-    "steamFolderName": "Sun Haven",
     "exeNames": ["Sun Haven.exe"],
-    "dataFolderName": "SunHaven_Data",
     "thunderstoreId": "sun-haven",
     "thunderstoreUrl": "https://thunderstore.io/c/sun-haven/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1224,9 +1092,7 @@
   {
     "id": "wildfrost",
     "name": "Wildfrost",
-    "steamFolderName": "Wildfrost",
     "exeNames": ["Wildfrost.exe"],
-    "dataFolderName": "Wildfrost_Data",
     "thunderstoreId": "wildfrost",
     "thunderstoreUrl": "https://thunderstore.io/c/wildfrost/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1241,9 +1107,7 @@
   {
     "id": "shadows-of-doubt",
     "name": "Shadows of Doubt",
-    "steamFolderName": "Shadows of Doubt",
     "exeNames": ["Shadows of Doubt.exe"],
-    "dataFolderName": "ShadowsofDoubt_Data",
     "thunderstoreId": "shadows-of-doubt",
     "thunderstoreUrl": "https://thunderstore.io/c/shadows-of-doubt/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1258,9 +1122,7 @@
   {
     "id": "garfield-kart-furious-racing",
     "name": "Garfield Kart - Furious Racing",
-    "steamFolderName": "Garfield Kart - Furious Racing",
     "exeNames": ["Garfield Kart Furious Racing.exe"],
-    "dataFolderName": "GarfieldKartFuriousRacing_Data",
     "thunderstoreId": "garfield-kart-furious-racing",
     "thunderstoreUrl": "https://thunderstore.io/c/garfield-kart-furious-racing/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1275,9 +1137,7 @@
   {
     "id": "techtonica",
     "name": "Techtonica",
-    "steamFolderName": "Techtonica",
     "exeNames": ["Techtonica.exe"],
-    "dataFolderName": "Techtonica_Data",
     "thunderstoreId": "techtonica",
     "thunderstoreUrl": "https://thunderstore.io/c/techtonica/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1292,9 +1152,7 @@
   {
     "id": "thronefall",
     "name": "Thronefall",
-    "steamFolderName": "Thronefall",
     "exeNames": ["Thronefall.exe"],
-    "dataFolderName": "Thronefall_Data",
     "thunderstoreId": "thronefall",
     "thunderstoreUrl": "https://thunderstore.io/c/thronefall/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1309,9 +1167,7 @@
   {
     "id": "we-love-katamari-reroll-royal-reverie",
     "name": "We Love Katamari REROLL+ Royal Reverie",
-    "steamFolderName": "WLKRR",
     "exeNames": ["WLKRR.exe"],
-    "dataFolderName": "WeLoveKatamariRerollRoyalReverie_Data",
     "thunderstoreId": "we-love-katamari-reroll-royal-reverie",
     "thunderstoreUrl": "https://thunderstore.io/c/we-love-katamari-reroll-royal-reverie/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1326,9 +1182,7 @@
   {
     "id": "wizard-of-legend",
     "name": "Wizard of Legend",
-    "steamFolderName": "Wizard of Legend",
     "exeNames": ["WizardOfLegend.exe"],
-    "dataFolderName": "WizardOfLegend_Data",
     "thunderstoreId": "wizard-of-legend",
     "thunderstoreUrl": "https://thunderstore.io/c/wizard-of-legend/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1343,9 +1197,7 @@
   {
     "id": "bomb-rush-cyberfunk",
     "name": "Bomb Rush Cyberfunk",
-    "steamFolderName": "BombRushCyberfunk",
     "exeNames": ["Bomb Rush Cyberfunk.exe"],
-    "dataFolderName": "Bomb Rush Cyberfunk_Data",
     "thunderstoreId": "bomb-rush-cyberfunk",
     "thunderstoreUrl": "https://thunderstore.io/c/bomb-rush-cyberfunk/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1364,9 +1216,7 @@
   {
     "id": "touhou-lost-branch-of-legend",
     "name": "Touhou Lost Branch Of Legend",
-    "steamFolderName": "LBoL",
     "exeNames": ["LBoL.exe"],
-    "dataFolderName": "LBoL_Data",
     "thunderstoreId": "touhou-lost-branch-of-legend",
     "thunderstoreUrl": "https://thunderstore.io/c/touhou-lost-branch-of-legend/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1381,9 +1231,7 @@
   {
     "id": "wizard-with-a-gun",
     "name": "Wizard With A Gun",
-    "steamFolderName": "Wizard With A Gun",
     "exeNames": ["wizardwithagun.exe"],
-    "dataFolderName": "wizardwithagun_Data",
     "thunderstoreId": "wizard-with-a-gun",
     "thunderstoreUrl": "https://thunderstore.io/c/wizard-with-a-gun/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1398,9 +1246,7 @@
   {
     "id": "sunkenland",
     "name": "Sunkenland",
-    "steamFolderName": "Sunkenland",
     "exeNames": ["Sunkenland.exe"],
-    "dataFolderName": "Sunkenland_Data",
     "thunderstoreId": "sunkenland",
     "thunderstoreUrl": "https://thunderstore.io/c/sunkenland/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1415,9 +1261,7 @@
   {
     "id": "atomicrops",
     "name": "Atomicrops",
-    "steamFolderName": "Atomicrops",
     "exeNames": ["Atomicrops.exe"],
-    "dataFolderName": "Atomicrops_Data",
     "thunderstoreId": "atomicrops",
     "thunderstoreUrl": "https://thunderstore.io/c/atomicrops/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1432,9 +1276,7 @@
   {
     "id": "erenshor",
     "name": "Erenshor",
-    "steamFolderName": "Erenshor",
     "exeNames": ["Erenshor.exe"],
-    "dataFolderName": "Erenshor_Data",
     "thunderstoreId": "erenshor",
     "thunderstoreUrl": "https://thunderstore.io/c/erenshor/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1449,9 +1291,7 @@
   {
     "id": "last-train-outta-wormtown",
     "name": "Last Train Outta' Wormtown",
-    "steamFolderName": "Last Train Outta' Wormtown",
     "exeNames": ["Last Train Out Of WormTown.exe"],
-    "dataFolderName": "Last Train Out Of WormTown_Data",
     "thunderstoreId": "last-train-outta-wormtown",
     "thunderstoreUrl": "https://thunderstore.io/c/last-train-outta-wormtown/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1466,9 +1306,7 @@
   {
     "id": "dredge",
     "name": "DREDGE",
-    "steamFolderName": "DREDGE",
     "exeNames": ["DREDGE.exe"],
-    "dataFolderName": "DREDGE_Data",
     "thunderstoreId": "dredge",
     "thunderstoreUrl": "https://thunderstore.io/c/dredge/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1483,9 +1321,7 @@
   {
     "id": "cities-skylines-ii",
     "name": "Cities: Skylines II",
-    "steamFolderName": "Cities Skylines II",
     "exeNames": ["Cities2.exe"],
-    "dataFolderName": "CitiesSkylines2_Data",
     "thunderstoreId": "cities-skylines-ii",
     "thunderstoreUrl": "https://thunderstore.io/c/cities-skylines-ii/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1504,9 +1340,7 @@
   {
     "id": "lethal-company",
     "name": "Lethal Company",
-    "steamFolderName": "Lethal Company",
     "exeNames": ["Lethal Company.exe"],
-    "dataFolderName": "Lethal Company_Data",
     "thunderstoreId": "lethal-company",
     "thunderstoreUrl": "https://thunderstore.io/c/lethal-company/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1521,9 +1355,7 @@
   {
     "id": "meeple-station",
     "name": "Meeple Station",
-    "steamFolderName": "Meeple Station",
     "exeNames": ["Meeple Station.exe"],
-    "dataFolderName": "MeepleStation_Data",
     "thunderstoreId": "meeple-station",
     "thunderstoreUrl": "https://thunderstore.io/c/meeple-station/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1538,9 +1370,7 @@
   {
     "id": "void-crew",
     "name": "Void Crew",
-    "steamFolderName": "Void Crew",
     "exeNames": ["Void Crew.exe"],
-    "dataFolderName": "VoidCrew_Data",
     "thunderstoreId": "void-crew",
     "thunderstoreUrl": "https://thunderstore.io/c/void-crew/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1555,9 +1385,7 @@
   {
     "id": "sailwind",
     "name": "Sailwind",
-    "steamFolderName": "Sailwind",
     "exeNames": ["Sailwind.exe"],
-    "dataFolderName": "Sailwind_Data",
     "thunderstoreId": "sailwind",
     "thunderstoreUrl": "https://thunderstore.io/c/sailwind/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1572,9 +1400,7 @@
   {
     "id": "voices-of-the-void",
     "name": "Voices of the Void",
-    "steamFolderName": "",
     "exeNames": ["VotV.exe"],
-    "dataFolderName": "VotV",
     "thunderstoreId": "voices-of-the-void",
     "thunderstoreUrl": "https://thunderstore.io/c/voices-of-the-void/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1588,9 +1414,7 @@
   {
     "id": "palworld",
     "name": "Palworld",
-    "steamFolderName": "Palworld",
     "exeNames": ["Palworld.exe"],
-    "dataFolderName": "Pal",
     "thunderstoreId": "palworld",
     "thunderstoreUrl": "https://thunderstore.io/c/palworld/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1605,9 +1429,7 @@
   {
     "id": "plasma",
     "name": "Plasma",
-    "steamFolderName": "Plasma",
     "exeNames": ["Plasma.exe"],
-    "dataFolderName": "Plasma_Data",
     "thunderstoreId": "plasma",
     "thunderstoreUrl": "https://thunderstore.io/c/plasma/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1622,9 +1444,7 @@
   {
     "id": "content-warning",
     "name": "Content Warning",
-    "steamFolderName": "Content Warning",
     "exeNames": ["Content Warning.exe"],
-    "dataFolderName": "Content Warning_Data",
     "thunderstoreId": "content-warning",
     "thunderstoreUrl": "https://thunderstore.io/c/content-warning/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1639,9 +1459,7 @@
   {
     "id": "balatro",
     "name": "Balatro",
-    "steamFolderName": "Balatro",
     "exeNames": ["Balatro.exe"],
-    "dataFolderName": "Balatro_Data",
     "thunderstoreId": "balatro",
     "thunderstoreUrl": "https://thunderstore.io/c/balatro/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1656,9 +1474,7 @@
   {
     "id": "bopl-battle",
     "name": "Bopl Battle",
-    "steamFolderName": "Bopl Battle",
     "exeNames": ["BoplBattle.exe"],
-    "dataFolderName": "BoplBattle_Data",
     "thunderstoreId": "bopl-battle",
     "thunderstoreUrl": "https://thunderstore.io/c/bopl-battle/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1673,9 +1489,7 @@
   {
     "id": "vertigo-2",
     "name": "Vertigo 2",
-    "steamFolderName": "Vertigo 2",
     "exeNames": ["vertigo2.exe"],
-    "dataFolderName": "vertigo2_Data",
     "thunderstoreId": "vertigo-2",
     "thunderstoreUrl": "https://thunderstore.io/c/vertigo-2/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1690,9 +1504,7 @@
   {
     "id": "against-the-storm",
     "name": "Against the Storm",
-    "steamFolderName": "Against the Storm",
     "exeNames": ["Against the Storm.exe"],
-    "dataFolderName": "Against the Storm_Data",
     "thunderstoreId": "against-the-storm",
     "thunderstoreUrl": "https://thunderstore.io/c/against-the-storm/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1707,9 +1519,7 @@
   {
     "id": "lycans",
     "name": "Lycans",
-    "steamFolderName": "Lycans",
     "exeNames": ["Lycans.exe"],
-    "dataFolderName": "Lycans_Data",
     "thunderstoreId": "lycans",
     "thunderstoreUrl": "https://thunderstore.io/c/lycans/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1724,9 +1534,7 @@
   {
     "id": "castle-story",
     "name": "Castle Story",
-    "steamFolderName": "Castle Story",
     "exeNames": ["Castle Story.exe"],
-    "dataFolderName": "Castle Story_Data",
     "thunderstoreId": "castle-story",
     "thunderstoreUrl": "https://thunderstore.io/c/castle-story/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1741,9 +1549,7 @@
   {
     "id": "panicore",
     "name": "Panicore",
-    "steamFolderName": "Panicore",
     "exeNames": ["Panicore.exe"],
-    "dataFolderName": "Panicore",
     "thunderstoreId": "panicore",
     "thunderstoreUrl": "https://thunderstore.io/c/panicore/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1758,9 +1564,7 @@
   {
     "id": "risk-of-rain-returns",
     "name": "Risk of Rain Returns",
-    "steamFolderName": "Risk of Rain Returns",
     "exeNames": ["Risk of Rain Returns.exe"],
-    "dataFolderName": "",
     "thunderstoreId": "risk-of-rain-returns",
     "thunderstoreUrl": "https://thunderstore.io/c/risk-of-rain-returns/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1775,9 +1579,7 @@
   {
     "id": "magicraft",
     "name": "Magicraft",
-    "steamFolderName": "Magicraft",
     "exeNames": ["Magicraft.exe"],
-    "dataFolderName": "Magicraft_Data",
     "thunderstoreId": "magicraft",
     "thunderstoreUrl": "https://thunderstore.io/c/magicraft/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1792,9 +1594,7 @@
   {
     "id": "another-crabs-treasure",
     "name": "Another Crab's Treasure",
-    "steamFolderName": "AnotherCrabsTreasure",
     "exeNames": ["AnotherCrabsTreasure.exe"],
-    "dataFolderName": "AnotherCrabsTreasure_Data",
     "thunderstoreId": "another-crabs-treasure",
     "thunderstoreUrl": "https://thunderstore.io/c/another-crabs-treasure/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1809,9 +1609,7 @@
   {
     "id": "gladio-mori",
     "name": "Gladio Mori",
-    "steamFolderName": "Gladio Mori",
     "exeNames": ["Gladio Mori.exe"],
-    "dataFolderName": "Gladio Mori_Data",
     "thunderstoreId": "gladio-mori",
     "thunderstoreUrl": "https://thunderstore.io/c/gladio-mori/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1826,9 +1624,7 @@
   {
     "id": "slipstream-rogue-space",
     "name": "Slipstream: Rogue Space",
-    "steamFolderName": "Slipstream Rogue Space",
     "exeNames": ["Slipstream_Win.exe"],
-    "dataFolderName": "Slipstream_Win_Data",
     "thunderstoreId": "slipstream-rogue-space",
     "thunderstoreUrl": "https://thunderstore.io/c/slipstream-rogue-space/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1843,9 +1639,7 @@
   {
     "id": "back-to-the-dawn",
     "name": "Back to the Dawn",
-    "steamFolderName": "MetalHeadGames",
     "exeNames": ["Back To The Dawn.exe"],
-    "dataFolderName": "Back To The Dawn_Data",
     "thunderstoreId": "back-to-the-dawn",
     "thunderstoreUrl": "https://thunderstore.io/c/back-to-the-dawn/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1860,9 +1654,7 @@
   {
     "id": "below-the-stone",
     "name": "Below the Stone",
-    "steamFolderName": "Below The Stone",
     "exeNames": ["Below The Stone.exe"],
-    "dataFolderName": "Below The Stone_Data",
     "thunderstoreId": "below-the-stone",
     "thunderstoreUrl": "https://thunderstore.io/c/below-the-stone/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1877,9 +1669,7 @@
   {
     "id": "gloomwood",
     "name": "Gloomwood",
-    "steamFolderName": "Gloomwood",
     "exeNames": ["Gloomwood.exe"],
-    "dataFolderName": "Gloomwood_Data",
     "thunderstoreId": "gloomwood",
     "thunderstoreUrl": "https://thunderstore.io/c/gloomwood/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1894,9 +1684,7 @@
   {
     "id": "among-us",
     "name": "Among Us",
-    "steamFolderName": "Among Us",
     "exeNames": ["Among Us.exe"],
-    "dataFolderName": "Among Us_Data",
     "thunderstoreId": "among-us",
     "thunderstoreUrl": "https://thunderstore.io/c/among-us/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1922,9 +1710,7 @@
   {
     "id": "betrayal-beach",
     "name": "Betrayal Beach",
-    "steamFolderName": "Betrayal Beach",
     "exeNames": ["Betrayal Beach.exe"],
-    "dataFolderName": "Betrayal Beach_Data",
     "thunderstoreId": "betrayal-beach",
     "thunderstoreUrl": "https://thunderstore.io/c/betrayal-beach/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1939,9 +1725,7 @@
   {
     "id": "arcus-chroma",
     "name": "Arcus Chroma",
-    "steamFolderName": "Arcus Chroma",
     "exeNames": ["Arcus Chroma.exe"],
-    "dataFolderName": "Arcus Chroma_Data",
     "thunderstoreId": "arcus-chroma",
     "thunderstoreUrl": "https://thunderstore.io/c/arcus-chroma/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1956,9 +1740,7 @@
   {
     "id": "deep-rock-galactic-survivor",
     "name": "Deep Rock Galactic: Survivor",
-    "steamFolderName": "Deep Rock Survivor",
     "exeNames": ["DRG Survivor.exe"],
-    "dataFolderName": "DRG Survivor_Data",
     "thunderstoreId": "deep-rock-galactic-survivor",
     "thunderstoreUrl": "https://thunderstore.io/c/deep-rock-galactic-survivor/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1973,9 +1755,7 @@
   {
     "id": "ale-and-tale-tavern",
     "name": "Ale & Tale Tavern",
-    "steamFolderName": "Ale & Tale Tavern",
     "exeNames": ["Ale and Tale Tavern.exe"],
-    "dataFolderName": "Ale and Tale Tavern_Data",
     "thunderstoreId": "ale-and-tale-tavern",
     "thunderstoreUrl": "https://thunderstore.io/c/ale-and-tale-tavern/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -1990,9 +1770,7 @@
   {
     "id": "screw-drivers",
     "name": "Screw Drivers",
-    "steamFolderName": "Screw Drivers",
     "exeNames": ["Screw Drivers.exe"],
-    "dataFolderName": "Screw Drivers_Data",
     "thunderstoreId": "screw-drivers",
     "thunderstoreUrl": "https://thunderstore.io/c/screw-drivers/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -2007,9 +1785,7 @@
   {
     "id": "nine-sols",
     "name": "Nine Sols",
-    "steamFolderName": "Nine Sols",
     "exeNames": ["NineSols.exe"],
-    "dataFolderName": "Nine Sols_Data",
     "thunderstoreId": "nine-sols",
     "thunderstoreUrl": "https://thunderstore.io/c/nine-sols/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -2024,9 +1800,7 @@
   {
     "id": "goodbye-volcano-high",
     "name": "Goodbye Volcano High",
-    "steamFolderName": "Goodbye Volcano High",
     "exeNames": ["Goodbye Volcano High.exe"],
-    "dataFolderName": "Goodbye Volcano High_Data",
     "thunderstoreId": "goodbye-volcano-high",
     "thunderstoreUrl": "https://thunderstore.io/c/goodbye-volcano-high/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -2041,9 +1815,7 @@
   {
     "id": "supermarket-together",
     "name": "Supermarket Together",
-    "steamFolderName": "Supermarket Together",
     "exeNames": ["Supermarket Together.exe"],
-    "dataFolderName": "Supermarket Together_Data",
     "thunderstoreId": "supermarket-together",
     "thunderstoreUrl": "https://thunderstore.io/c/supermarket-together/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -2058,9 +1830,7 @@
   {
     "id": "hades-ii",
     "name": "Hades II",
-    "steamFolderName": "Hades II/Ship",
     "exeNames": ["Hades2.exe"],
-    "dataFolderName": "",
     "thunderstoreId": "hades-ii",
     "thunderstoreUrl": "https://thunderstore.io/c/hades-ii/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -2075,9 +1845,7 @@
   {
     "id": "shapez-2",
     "name": "Shapez 2",
-    "steamFolderName": "shapez 2",
     "exeNames": ["shapez 2.exe"],
-    "dataFolderName": "shapez 2_Data",
     "thunderstoreId": "shapez-2",
     "thunderstoreUrl": "https://thunderstore.io/c/shapez-2/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -2092,9 +1860,7 @@
   {
     "id": "paquerette-down-the-bunburrows",
     "name": "Paquerette Down the Bunburrows",
-    "steamFolderName": "Paquerette Down the Bunburrows",
     "exeNames": ["Paquerette Down the Bunburrows.exe"],
-    "dataFolderName": "Paquerette Down the Bunburrows_Data",
     "thunderstoreId": "paquerette-down-the-bunburrows",
     "thunderstoreUrl": "https://thunderstore.io/c/paquerette-down-the-bunburrows/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -2109,9 +1875,7 @@
   {
     "id": "hard-time-3",
     "name": "Hard Time III",
-    "steamFolderName": "Hard Time III",
     "exeNames": ["Hard Time III.exe"],
-    "dataFolderName": "Hard Time III_Data",
     "thunderstoreId": "hard-time-3",
     "thunderstoreUrl": "https://thunderstore.io/c/hard-time-3/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -2126,9 +1890,7 @@
   {
     "id": "tank-team",
     "name": "Tank Team",
-    "steamFolderName": "Tank Team",
     "exeNames": ["Tank Team.exe"],
-    "dataFolderName": "Tank Team_Data",
     "thunderstoreId": "tank-team",
     "thunderstoreUrl": "https://thunderstore.io/c/tank-team/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -2143,9 +1905,7 @@
   {
     "id": "distance",
     "name": "Distance",
-    "steamFolderName": "Distance",
     "exeNames": ["Distance.exe"],
-    "dataFolderName": "Distance_Data",
     "thunderstoreId": "distance",
     "thunderstoreUrl": "https://thunderstore.io/c/distance/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -2160,9 +1920,7 @@
   {
     "id": "five-nights-at-freddys-into-the-pit",
     "name": "Five Nights at Freddy's: Into the Pit",
-    "steamFolderName": "Five Nights at Freddy's Into the Pit",
     "exeNames": ["Five Nights at Freddy's Into the Pit.exe"],
-    "dataFolderName": "Five Nights at Freddy's Into the Pit_Data",
     "thunderstoreId": "five-nights-at-freddys-into-the-pit",
     "thunderstoreUrl": "https://thunderstore.io/c/five-nights-at-freddys-into-the-pit/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -2177,9 +1935,7 @@
   {
     "id": "gorebox",
     "name": "GoreBox",
-    "steamFolderName": "GoreBox",
     "exeNames": ["GoreBox.exe"],
-    "dataFolderName": "GoreBox_Data",
     "thunderstoreId": "gorebox",
     "thunderstoreUrl": "https://thunderstore.io/c/gorebox/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -2194,9 +1950,7 @@
   {
     "id": "tcg-card-shop-simulator",
     "name": "TCG Card Shop Simulator",
-    "steamFolderName": "TCG Card Shop Simulator",
     "exeNames": ["Card Shop Simulator.exe"],
-    "dataFolderName": "Card Shop Simulator_Data",
     "thunderstoreId": "tcg-card-shop-simulator",
     "thunderstoreUrl": "https://thunderstore.io/c/tcg-card-shop-simulator/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -2211,9 +1965,7 @@
   {
     "id": "old-market-simulator",
     "name": "Old Market Simulator",
-    "steamFolderName": "Old Market Simulator",
     "exeNames": ["Old Market Simulator.exe"],
-    "dataFolderName": "Old Market Simulator_Data",
     "thunderstoreId": "old-market-simulator",
     "thunderstoreUrl": "https://thunderstore.io/c/old-market-simulator/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -2228,9 +1980,7 @@
   {
     "id": "subterranauts",
     "name": "Subterranauts",
-    "steamFolderName": "Subterranauts",
     "exeNames": ["Subterranauts.exe"],
-    "dataFolderName": "Subterranauts_Data",
     "thunderstoreId": "subterranauts",
     "thunderstoreUrl": "https://thunderstore.io/c/subterranauts/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -2245,9 +1995,7 @@
   {
     "id": "sulfur",
     "name": "SULFUR",
-    "steamFolderName": "Sulfur",
     "exeNames": ["Sulfur.exe"],
-    "dataFolderName": "Sulfur_Data",
     "thunderstoreId": "sulfur",
     "thunderstoreUrl": "https://thunderstore.io/c/sulfur/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -2262,9 +2010,7 @@
   {
     "id": "webfishing",
     "name": "WEBFISHING",
-    "steamFolderName": "WEBFISHING",
     "exeNames": ["webfishing.exe"],
-    "dataFolderName": "",
     "thunderstoreId": "webfishing",
     "thunderstoreUrl": "https://thunderstore.io/c/webfishing/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -2279,9 +2025,7 @@
   {
     "id": "straftat",
     "name": "STRAFTAT",
-    "steamFolderName": "STRAFTAT",
     "exeNames": ["STRAFTAT.exe"],
-    "dataFolderName": "STRAFTAT_Data",
     "thunderstoreId": "straftat",
     "thunderstoreUrl": "https://thunderstore.io/c/straftat/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -2296,9 +2040,7 @@
   {
     "id": "atlyss",
     "name": "ATLYSS",
-    "steamFolderName": "ATLYSS",
     "exeNames": ["ATLYSS.exe"],
-    "dataFolderName": "ATLYSS_Data",
     "thunderstoreId": "atlyss",
     "thunderstoreUrl": "https://thunderstore.io/c/atlyss/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -2313,9 +2055,7 @@
   {
     "id": "peaks-of-yore",
     "name": "Peaks of Yore",
-    "steamFolderName": "Peaks of Yore",
     "exeNames": ["Peaks of Yore.exe"],
-    "dataFolderName": "Peaks of Yore_Data",
     "thunderstoreId": "peaks-of-yore",
     "thunderstoreUrl": "https://thunderstore.io/c/peaks-of-yore/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -2330,9 +2070,7 @@
   {
     "id": "miside",
     "name": "MiSide",
-    "steamFolderName": "MiSide",
     "exeNames": ["MiSide.exe"],
-    "dataFolderName": "MiSideFull_Data",
     "thunderstoreId": "miside",
     "thunderstoreUrl": "https://thunderstore.io/c/miside/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -2347,9 +2085,7 @@
   {
     "id": "i-am-your-beast",
     "name": "I Am Your Beast",
-    "steamFolderName": "I Am Your Beast",
     "exeNames": ["I Am Your Beast.exe"],
-    "dataFolderName": "I Am Your Beast_Data",
     "thunderstoreId": "i-am-your-beast",
     "thunderstoreUrl": "https://thunderstore.io/c/i-am-your-beast/api/v1/package-listing-index/",
     "storePlatformMetadata": [
@@ -2367,8 +2103,6 @@
     "thunderstoreId": "repo",
     "thunderstoreUrl": "https://thunderstore.io/c/repo/api/v1/package-listing-index/",
     "packageLoader": "BepInEx",
-    "dataFolderName": "REPO_Data",
-    "steamFolderName": "REPO",
     "exeNames": ["REPO.exe"],
     "instanceType": "Game",
     "storePlatformMetadata": [
@@ -2384,8 +2118,6 @@
     "thunderstoreId": "dusk",
     "thunderstoreUrl": "https://thunderstore.io/c/dusk/api/v1/package-listing-index/",
     "packageLoader": "BepInEx",
-    "dataFolderName": "Dusk_Data",
-    "steamFolderName": "DUSK",
     "exeNames": ["Dusk.exe"],
     "instanceType": "Game",
     "storePlatformMetadata": [
@@ -2401,8 +2133,6 @@
     "thunderstoreId": "my-dream-setup",
     "thunderstoreUrl": "https://thunderstore.io/c/my-dream-setup/api/v1/package-listing-index/",
     "packageLoader": "BepInEx",
-    "dataFolderName": "MDS_Data",
-    "steamFolderName": "My dream setup/MDS",
     "exeNames": ["MDS.exe"],
     "instanceType": "Game",
     "storePlatformMetadata": [
@@ -2418,8 +2148,6 @@
     "thunderstoreId": "zort",
     "thunderstoreUrl": "https://thunderstore.io/c/zort/api/v1/package-listing-index/",
     "packageLoader": "BepInEx",
-    "dataFolderName": "Zort_Data",
-    "steamFolderName": "Zort",
     "exeNames": ["Zort.exe"],
     "instanceType": "Game",
     "storePlatformMetadata": [
@@ -2435,8 +2163,6 @@
     "thunderstoreId": "disco-elysium",
     "thunderstoreUrl": "https://thunderstore.io/c/disco-elysium/api/v1/package-listing-index/",
     "packageLoader": "BepInEx",
-    "dataFolderName": "disco_Data",
-    "steamFolderName": "Disco Elysium",
     "exeNames": ["disco.exe"],
     "instanceType": "Game",
     "storePlatformMetadata": [
@@ -2452,8 +2178,6 @@
     "thunderstoreId": "odd-remedy",
     "thunderstoreUrl": "https://thunderstore.io/c/odd-remedy/api/v1/package-listing-index/",
     "packageLoader": "BepInEx",
-    "dataFolderName": "OddRemedy_Data",
-    "steamFolderName": "OddRemedy",
     "exeNames": ["OddRemedy.exe"],
     "instanceType": "Game",
     "storePlatformMetadata": [
@@ -2469,8 +2193,6 @@
     "thunderstoreId": "monster-train-2",
     "thunderstoreUrl": "https://thunderstore.io/c/monster-train-2/api/v1/package-listing-index/",
     "packageLoader": "BepInEx",
-    "dataFolderName": "MonsterTrain2-Demo_Data",
-    "steamFolderName": "Monster Train 2 Demo",
     "exeNames": ["MonsterTrain2-Demo.exe"],
     "instanceType": "Game",
     "storePlatformMetadata": [
@@ -2486,8 +2208,6 @@
   "thunderstoreId": "subterror",
     "thunderstoreUrl": "https://thunderstore.io/c/subterror/api/v1/package-listing-index/",
     "packageLoader": "BepInEx",
-    "dataFolderName": "Subterror_Data",
-    "steamFolderName": "Subterror",
     "exeNames": ["Subterror.exe"],
     "instanceType": "Game",
     "storePlatformMetadata": [

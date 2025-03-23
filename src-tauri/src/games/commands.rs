@@ -1,13 +1,17 @@
+use anyhow::Context;
+use tauri::ipc::InvokeResponseBody;
+
 use crate::{
-    games::{Game, GAMES},
+    games::Game,
     util::search::{self, Score, SortOption},
+    CommandError,
 };
 
-use super::{GAMES_MOD_DOWNLOADS, GAMES_REVIEWS};
+use super::{games, GAMES_MOD_DOWNLOADS, GAMES_REVIEWS};
 
 #[tauri::command]
-pub async fn get_games() -> &'static [Game<'static>] {
-    &*GAMES
+pub async fn get_games() -> Result<&'static [Game<'static>], CommandError> {
+    Ok(games()?)
 }
 
 #[derive(Debug, Clone, Copy, serde::Deserialize)]
@@ -19,11 +23,21 @@ pub enum SortColumn {
 }
 
 #[tauri::command]
-pub async fn search_games(query: String, sort: Vec<SortOption<SortColumn>>) -> Vec<usize> {
-    let games_mod_downloads = &**GAMES_MOD_DOWNLOADS;
-    let games_reviews = &**GAMES_REVIEWS;
+pub async fn search_games(
+    query: String,
+    sort: Vec<SortOption<SortColumn>>,
+) -> Result<Vec<usize>, CommandError> {
+    let games_mod_downloads = GAMES_MOD_DOWNLOADS
+        .as_ref()
+        .map_err(Clone::clone)
+        .context("Failed to load gameModDownloads.json")?;
+    let games_reviews = GAMES_REVIEWS
+        .as_ref()
+        .map_err(Clone::clone)
+        .context("Failed to load gameReviews.json")?;
     slog_scope::with_logger(|_logger| {
-        let mut buf = GAMES
+        let games = games()?;
+        let mut buf = games
             .iter()
             .enumerate()
             .filter_map(|(i, g)| {
@@ -43,7 +57,7 @@ pub async fn search_games(query: String, sort: Vec<SortOption<SortColumn>>) -> V
             for &SortOption { column, descending } in &sort {
                 ordering = match column {
                     SortColumn::Relevance => a_score.cmp(b_score),
-                    SortColumn::Name => GAMES[*a_i].name.cmp(&GAMES[*b_i].name),
+                    SortColumn::Name => games[*a_i].name.cmp(&games[*b_i].name),
                     SortColumn::ModDownloads => {
                         games_mod_downloads[*a_i].cmp(&games_mod_downloads[*b_i])
                     }
@@ -58,16 +72,30 @@ pub async fn search_games(query: String, sort: Vec<SortOption<SortColumn>>) -> V
             }
             ordering
         });
-        buf.into_iter().map(|(i, _)| i).collect()
+        Ok(buf.into_iter().map(|(i, _)| i).collect())
     })
 }
 
 #[tauri::command]
-pub async fn get_games_popularity() -> &'static str {
-    include_str!("gameReviews.json")
+pub async fn get_games_popularity() -> Result<InvokeResponseBody, CommandError> {
+    // type check the JSON before sending the raw JSON to the frontend
+    GAMES_REVIEWS
+        .as_ref()
+        .map_err(Clone::clone)
+        .context("Failed to load gameReviews.json")?;
+    Ok(InvokeResponseBody::Json(
+        include_str!("gameReviews.json").to_owned(),
+    ))
 }
 
 #[tauri::command]
-pub async fn get_game_mods_downloads() -> &'static str {
-    include_str!("gameModDownloads.json")
+pub async fn get_game_mods_downloads() -> Result<InvokeResponseBody, CommandError> {
+    // type check the JSON before sending the raw JSON to the frontend
+    GAMES_MOD_DOWNLOADS
+        .as_ref()
+        .map_err(Clone::clone)
+        .context("Failed to load gameModDownloads.json")?;
+    Ok(InvokeResponseBody::Json(
+        include_str!("gameModDownloads.json").to_owned(),
+    ))
 }
