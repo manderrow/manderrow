@@ -1572,15 +1572,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fuzzy-matcher"
-version = "0.3.7"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "54614a3312934d066701a80f20f15fa3b56d67ac7722b39eea5b4c9dd1d66c94"
-dependencies = [
- "thread_local",
-]
-
-[[package]]
 name = "fxhash"
 version = "0.2.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2719,7 +2710,6 @@ dependencies = [
  "flate2",
  "fs4",
  "futures",
- "fuzzy-matcher",
  "get-locale",
  "hashbrown 0.15.2",
  "ipc-channel",
@@ -2730,7 +2720,6 @@ dependencies = [
  "pin-project-lite",
  "registry",
  "reqwest",
- "rff",
  "rkyv",
  "rkyv_intern",
  "rustix 1.0.3",
@@ -4161,11 +4150,6 @@ dependencies = [
  "webpki-roots",
  "windows-registry",
 ]
-
-[[package]]
-name = "rff"
-version = "0.3.0"
-source = "git+https://github.com/mpfaff/rff.git#fbed3990c4ef5e715e8827a0dad7a6dffa3f2899"
 
 [[package]]
 name = "ring"

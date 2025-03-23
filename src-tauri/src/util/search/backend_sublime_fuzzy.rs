@@ -2,14 +2,13 @@ use std::ops::{Add, Div};
 
 use sublime_fuzzy::{FuzzySearch, Scoring};
 
-use super::{add_bonus, score_acronym, score_from_beginning};
-
 pub(super) type ScoreValue = isize;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Score(pub(super) ScoreValue);
 
 impl Score {
+    #[allow(unused)]
     pub const MIN: Self = Self(isize::MIN);
     pub const ZERO: Self = Self(0);
     pub const MAX: Self = Self(isize::MAX);
@@ -45,15 +44,9 @@ pub fn score(needle: &str, haystack: &str) -> Option<Score> {
     if haystack.starts_with(needle) {
         score = score.map(|s| Score(s.0 * 2));
     }
-    // let acronym_bonus = score_acronym(needle, haystack, 400);
-    // score = add_bonus(score, acronym_bonus);
-    // if acronym_bonus.0 < (450 as ScoreValue).isqrt() {
-    //     score = add_bonus(score, Score(-(haystack.len().abs_diff(needle.len()).pow(2) as ScoreValue)));
-    // }
-    // score = add_bonus(score, score_from_beginning(needle, haystack));
     score
 }
 
-pub fn should_include(score: Score) -> bool {
+pub fn should_include(_score: Score) -> bool {
     true
 }

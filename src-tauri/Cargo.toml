@@ -19,8 +19,6 @@ default = ["search-sublime_fuzzy"]
 
 statistics = ["rkyv_intern/statistics"]
 
-search-fuzzy-matcher = ["fuzzy-matcher"]
-search-rff = ["rff"]
 search-sublime_fuzzy = ["sublime_fuzzy"]
 
 [build-dependencies]
@@ -61,7 +59,6 @@ event-listener = "5.3.1"
 fastrand = "2.3.0"
 fs4 = { version = "0.13.1", default-features = false, features = ["tokio"] }
 futures = "0.3.31"
-fuzzy-matcher = { version = "0.3.7", optional = true }
 get-locale = { git = "https://git.pfaff.dev/michael/get-locale.rs", version = "0.1.0" }
 hashbrown = "0.15.2"
 ipc-channel = "0.19.0"
@@ -71,7 +68,6 @@ parking_lot = "0.12.3"
 pin-project-lite = "0.2.16"
 # using features specified by tauri-plugin-http
 reqwest = { version = "0.12.12", features = ["stream"], default-features = false }
-rff = { git = "https://github.com/mpfaff/rff.git", optional = true }
 slog = "2.7.0"
 slog-envlogger = "2.2.0"
 slog-scope = "4.4.0"
