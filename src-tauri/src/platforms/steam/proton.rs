@@ -144,7 +144,7 @@ fn reg_add_in_section(
 
 #[cfg(test)]
 mod tests {
-    use crate::launching::steam::proton::reg_add_in_section;
+    use super::reg_add_in_section;
 
     #[test]
     fn test_reg_add_in_section() {
