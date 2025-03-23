@@ -35,7 +35,7 @@ impl<'de, T: Clone + Default + serde::Deserialize<'de>> serde::Deserialize<'de>
                     let mut iter = GAMES
                         .iter()
                         .enumerate()
-                        .filter(|(_, g)| g.id == id)
+                        .filter(|(_, g)| g.thunderstore_id == id)
                         .map(|(i, _)| i);
                     let Some(found) = iter.next() else {
                         // TODO: make this a hard error
