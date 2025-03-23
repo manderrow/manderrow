@@ -1,14 +1,11 @@
-pub mod paths;
-pub mod proton;
-
 use std::io::Write as _;
 use std::ops::BitOrAssign;
 
 use anyhow::{anyhow, bail, Context as _, Result};
-use paths::get_steam_exe;
 use slog::{debug, info};
 use tokio::process::Command;
 
+use super::paths::{get_steam_exe, resolve_steam_directory};
 use crate::ipc::{DoctorFix, OutputLine, Spc};
 
 pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
@@ -245,7 +242,7 @@ async fn apply_launch_args(
     overwrite_ok: bool,
     dry_run: bool,
 ) -> Result<AppliedLaunchArgs> {
-    let mut path = paths::resolve_steam_directory().await?;
+    let mut path = resolve_steam_directory().await?;
     path.push("userdata");
 
     let mut result = AppliedLaunchArgs::Unchanged;

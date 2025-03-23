@@ -89,10 +89,11 @@ pub async fn resolve_steam_directory() -> Result<PathBuf> {
 pub async fn resolve_steamapps_directory() -> Result<PathBuf> {
     const ERROR_MSG: &str = "Could not locate steamapps directory";
     let mut buf = resolve_steam_directory().await?;
+    // these are the subpaths searched by r2modman
     const PATHS: &[&[&str]] = &[
-        &["steamapps"],          // every proper linux distro ever
-        &["steam", "steamapps"], // Ubuntu LTS
-        &["root", "steamapps"],  // wtf? expect the unexpectable
+        &["steamapps"], // this one is the most standard path
+        &["steam", "steamapps"],
+        &["root", "steamapps"],
     ];
     for &path in PATHS {
         for &segment in path {

@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { createResource, createSignal } from "solid-js";
+import { createResource } from "solid-js";
 
 import { wrapInvoke } from "../api.ts";
 import * as ui from "./settings/ui.ts";

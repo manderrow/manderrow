@@ -1,6 +1,5 @@
 pub mod bep_in_ex;
 pub mod commands;
-pub mod steam;
 
 use std::sync::LazyLock;
 use std::{panic::AssertUnwindSafe, path::PathBuf};
@@ -95,7 +94,7 @@ pub async fn launch_profile(
                 .find_map(|m| m.steam_or_direct())
                 .context("Unsupported store platform")?;
 
-            crate::launching::steam::ensure_launch_args_are_applied(
+            crate::platforms::steam::launching::ensure_launch_args_are_applied(
                 &log,
                 Some(ipc_state.spc(channel.clone())),
                 steam_id,

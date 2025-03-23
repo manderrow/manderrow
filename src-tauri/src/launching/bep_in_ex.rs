@@ -7,11 +7,10 @@ use uuid::Uuid;
 
 use crate::games::GAMES_BY_ID;
 use crate::installing::install_zip;
+use crate::platforms::steam::paths::resolve_steam_app_install_directory;
+use crate::platforms::steam::proton::{ensure_wine_will_load_dll_override, uses_proton};
 use crate::profiles::{profile_path, read_profile, MODS_FOLDER};
 use crate::Reqwest;
-
-use super::steam::paths::resolve_steam_app_install_directory;
-use super::steam::proton::{ensure_wine_will_load_dll_override, uses_proton};
 
 pub trait CommandBuilder {
     fn env(&mut self, key: impl AsRef<str>, value: impl AsRef<OsStr>);

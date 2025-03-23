@@ -21,6 +21,7 @@ mod launching;
 mod mod_index;
 mod mods;
 mod paths;
+mod platforms;
 mod profiles;
 mod settings;
 mod tasks;
