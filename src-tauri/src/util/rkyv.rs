@@ -29,17 +29,3 @@ where
         ArchivedString::serialize_from_str(*field, serializer)
     }
 }
-
-/// Niche value begins with a `0xfe` byte.
-pub struct FE;
-
-impl Niching<ArchivedString> for FE {
-    unsafe fn is_niched(niched: *const ArchivedString) -> bool {
-        niched.cast::<u8>().read() == 0xfe
-    }
-
-    fn resolve_niched(out: Place<ArchivedString>) {
-        let out = unsafe { out.cast_unchecked::<[u8; rkyv::string::repr::INLINE_CAPACITY]>() };
-        out.write([0xfe; rkyv::string::repr::INLINE_CAPACITY]);
-    }
-}

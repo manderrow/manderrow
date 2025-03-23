@@ -416,7 +416,7 @@ mod tests {
         ArchivedModMetadataRef, ArchivedModVersionRef, ArchivedVersion, InlineString,
         InternedString, ModMetadata, ModMetadataRef, ModRef, ModVersion, ModVersionRef,
     };
-    use crate::util::rkyv::{ArchivedInternedString, InternedStringNiche, FE};
+    use crate::util::rkyv::{ArchivedInternedString, InternedStringNiche};
 
     use super::Version;
 

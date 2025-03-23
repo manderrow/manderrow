@@ -275,7 +275,7 @@ mod tests {
         ArchivedModMetadataRef, ArchivedModVersionRef, ArchivedVersion, InlineString,
         InternedString, ModMetadata, ModMetadataRef, ModRef, ModVersion, ModVersionRef,
     };
-    use crate::util::rkyv::{ArchivedInternedString, InternedStringNiche, FE};
+    use crate::util::rkyv::{ArchivedInternedString, InternedStringNiche};
 
     use super::Version;
 
@@ -332,24 +332,6 @@ mod tests {
 
     #[test]
     fn test_inline_string_encoding() {
-        #[derive(rkyv::Archive, rkyv::Serialize)]
-        struct NichedFEOption<T: rkyv::Archive>(#[rkyv(with = NicheInto<FE>)] Option<T>)
-        where
-            FE: Niching<T::Archived>;
-
-        impl<T: rkyv::Archive> NichedFEOption<T>
-        where
-            FE: Niching<T::Archived>,
-        {
-            pub fn some(t: T) -> Self {
-                Self(Some(t))
-            }
-
-            pub fn none() -> Self {
-                Self(None)
-            }
-        }
-
         let buf = serialize::<_, String>(&InlineString("BepInEx"));
         assert_eq!(
             buf.as_slice(),
@@ -362,13 +344,6 @@ mod tests {
             buf.as_slice(),
             b"BepInExPack\0\x8b\0\0\0\xf4\xff\xff\xff",
             "Long string should be serialized out-of-line"
-        );
-
-        let buf = serialize::<_, String>(&NichedFEOption::some(InlineString("BepInExPack")));
-        assert_eq!(
-            buf.as_slice(),
-            b"BepInExPack\0\x8b\0\0\0\xf4\xff\xff\xff",
-            "Option<_> should be serialized correctly, zero overhead"
         );
     }
 
