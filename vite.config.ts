@@ -29,4 +29,8 @@ export default defineConfig(async () => ({
       ignored: ["**/src-tauri/**"],
     },
   },
+
+  build: {
+    target: ["chrome88", "edge88", "firefox78", "safari14", "es2020"],
+  },
 }));

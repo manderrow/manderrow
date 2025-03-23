@@ -31,7 +31,7 @@ mod wrap;
 
 use std::{ops::Deref, sync::OnceLock};
 
-use anyhow::{bail, Context};
+use anyhow::{anyhow, bail, Context};
 use ipc::IpcState;
 
 pub use error::{CommandError, Error};
@@ -72,8 +72,14 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
                 .unwrap_or_default()
                 .is_empty()
             {
-                let window = app.get_webview_window("main").context("no main window")?;
-                window.open_devtools();
+                #[cfg(debug_assertions)]
+                {
+                    let window = app.get_webview_window("main").context("no main window")?;
+                    window.open_devtools();
+                }
+                if cfg!(not(debug_assertions)) {
+                    return Err(anyhow!("TAURI_IMMEDIATE_DEVTOOLS only works when the app is compiled with debug assertions enabled").into());
+                }
             }
             Ok(())
         })
@@ -118,7 +124,6 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
         .context("error while running tauri application")
 }
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn main() -> anyhow::Result<()> {
     if cfg!(target_os = "linux") {
         // Only provide a default value, don't override the user's choice.
