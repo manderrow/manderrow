@@ -25,18 +25,28 @@ fn read() -> anyhow::Result<Option<Settings>> {
         Err(e) if e.is_not_found() => return Ok(None),
         Err(e) => return Err(e.into()),
     };
-    let settings = simd_json::from_slice::<SettingsOnDisk>(&mut bytes)?;
+    let SettingsOnDisk {
+        default_game,
+        open_console_on_launch,
+    } = simd_json::from_slice::<SettingsOnDisk>(&mut bytes)?;
     Ok(Some(Settings {
-        open_console_on_launch: settings.open_console_on_launch,
+        default_game,
+        open_console_on_launch,
     }))
 }
 
-fn write(settings: &Settings) -> anyhow::Result<()> {
+fn write(
+    &Settings {
+        ref default_game,
+        open_console_on_launch,
+    }: &Settings,
+) -> anyhow::Result<()> {
     let file = std::fs::File::create(get_path())?;
     simd_json::to_writer(
         file,
         &SettingsOnDisk {
-            open_console_on_launch: settings.open_console_on_launch,
+            default_game: default_game.clone(),
+            open_console_on_launch,
         },
     )?;
     Ok(())
@@ -97,10 +107,18 @@ enum Change<T> {
     Override(T),
 }
 
-#[manderrow_macros::settings(sections = [launching])]
+#[manderrow_macros::settings(sections = [general, launching])]
 struct Settings {
+    #[section(general)]
+    #[default(None)]
+    #[input(game_select)]
+    #[ref_by(Option<&'a String>, Option::as_ref)]
+    default_game: Option<String>,
+
     #[section(launching)]
     #[default(false)]
+    #[input(toggle)]
+    #[ref_by(bool, bool::clone)]
     open_console_on_launch: bool,
 }
 
@@ -108,6 +126,9 @@ struct Settings {
 /// migrations will be performed on load into [`Settings`].
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct SettingsOnDisk {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    default_game: Option<Option<String>>,
+
     #[serde(default, skip_serializing_if = "Option::is_none")]
     open_console_on_launch: Option<bool>,
 }

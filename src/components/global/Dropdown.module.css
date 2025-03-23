@@ -1,23 +1,39 @@
+.mountPoint {
+  position: absolute;
+  bottom: -0.5em;
+  width: 100%;
+}
+
 .dropdown {
   position: absolute;
-  z-index: 2;
-  bottom: -0.5em;
+  top: var(--offset-y);
+  left: 0;
   padding: 0.5em;
+  z-index: var(--portal-z-index);
   border-radius: 0.5em;
   background-color: var(--clr-neutral-8);
   box-shadow: 0 0 1em -0.25em rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+
+  &.center {
+    translate: -50% 0;
+  }
+
+  &.left {
+    translate: 0% 0;
+  }
+
+  &.right {
+    translate: -100% 0;
+  }
+
+  cursor: default !important;
 }
-.dropdownCenter {
-  left: 50%;
-  translate: -50% 100%;
-}
-.dropdownLeft {
-  left: 0;
-  translate: 0% 100%;
-}
-.dropdownRight {
-  right: 0;
-  translate: 0% 100%;
+
+.content {
+  cursor: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .dropdown p {

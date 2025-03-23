@@ -1,19 +1,13 @@
-import { useSearchParams } from "@solidjs/router";
 import { Accessor, createEffect, For, JSX, Match, Setter, Switch } from "solid-js";
+import { useSearchParamsInPlace } from "../../utils/router";
 
-export interface PlainTab {
-  id: string;
+export interface Tab<Id extends string> {
+  id: Id;
   name: string;
   // fallback?: JSX.Element;
   selected?: boolean;
-  component: JSX.Element;
+  component: JSX.Element | ((data: any) => JSX.Element);
 }
-
-export interface DynamicTab extends Omit<PlainTab, "component"> {
-  component: (data: any) => JSX.Element;
-}
-
-export type Tab = PlainTab | DynamicTab;
 
 interface TabStyles {
   tabs: {
@@ -24,25 +18,30 @@ interface TabStyles {
   };
 }
 
-export default function TabRenderer({
+/**
+ * The first tab will be the default.
+ */
+export default function TabRenderer<Id extends string>({
   id,
   tabs,
   styles,
   setter,
 }: {
   id: string;
-  tabs: Tab[];
+  tabs: Tab<Id>[];
   rootUrl?: string;
   styles: TabStyles;
-  setter?: Setter<Tab>;
+  setter?: Setter<Tab<Id>>;
 }) {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParamsInPlace();
+
   const defaultTab = tabs.find((tab) => tab.selected)?.id ?? tabs[0].id;
   const tablistId = `${id}-tab`;
   const currentTab = () =>
-    (Array.isArray(searchParams[tablistId]) ? searchParams[tablistId][0] : searchParams[tablistId]) ?? defaultTab; // First tab is the default
+    ((Array.isArray(searchParams[tablistId]) ? searchParams[tablistId][0] : searchParams[tablistId]) as Id) ??
+    defaultTab;
 
-  const tabsMap = new Map<Tab[][number]["id"], Tab>(tabs.map((tab) => [tab.id, tab]));
+  const tabsMap = new Map<Tab<Id>[][number]["id"], Tab<Id>>(tabs.map((tab) => [tab.id, tab]));
 
   if (setter != null) {
     createEffect(() => {
@@ -71,7 +70,13 @@ export default function TabRenderer({
   );
 }
 
-export function TabContent({ tabs, currentTab }: { tabs: Tab[]; currentTab: Accessor<Tab> }) {
+export function TabContent<Id extends string>({
+  tabs,
+  currentTab,
+}: {
+  tabs: Tab<Id>[];
+  currentTab: Accessor<Tab<Id>>;
+}) {
   return (
     <Switch>
       <For each={tabs}>{(tab) => <Match when={currentTab().id === tab.id}>{tab.component}</Match>}</For>

@@ -22,7 +22,7 @@ export default function TasksDialog(props: { onDismiss: DismissCallback }) {
         <div class={styles.tasks}>
           <div class={styles.header}>
             <h2>Tasks</h2>
-            <SimpleAsyncButton onClick={clearCache}>Clear Cache</SimpleAsyncButton>
+            <SimpleAsyncButton progress onClick={clearCache}>Clear Cache</SimpleAsyncButton>
           </div>
 
           <TaskSectionHeader

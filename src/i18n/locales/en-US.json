@@ -1,6 +1,6 @@
 {
   "global": {
-    "list_sort_type": {
+    "game_sort_column": {
       "name": "Name",
       "mod_downloads": "Mod Downloads",
       "popularity": "Popularity"
@@ -21,7 +21,7 @@
 
     "bg_img_alt": "Background image of {{ gameName }}",
     "select_btn": "Select",
-    "default_btn": "Set Default",
+    "set_default_btn": "Set Default",
     "fav_btn": "Favorite this game"
   },
 

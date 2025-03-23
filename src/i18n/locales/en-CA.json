@@ -1,9 +1,12 @@
 {
   "global": {
-    "list_sort_type": {
+    "game_sort_column": {
       "name": "Name",
       "mod_downloads": "Mod Downloads",
       "popularity": "Popularity"
+    },
+    "select_dropdown": {
+      "default_fallback": "Select..."
     }
   },
 
@@ -21,7 +24,7 @@
 
     "bg_img_alt": "Background image of {{ gameName }}",
     "select_btn": "Select",
-    "default_btn": "Set Default",
+    "set_default_btn": "Set Default",
     "fav_btn": "Favorite this game"
   },
 
@@ -54,9 +57,11 @@
 
   "settings": {
     "section": {
+      "general": "General",
       "launching": "Launching"
     },
     "settings": {
+      "defaultGame": "Default game",
       "openConsoleOnLaunch": "Open console on launch?"
     }
   }

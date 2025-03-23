@@ -47,6 +47,7 @@
 .sortOptions {
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
 
   .sortOption {
     display: flex;
@@ -54,6 +55,8 @@
     gap: 8px;
     align-items: center;
     padding: 8px;
+
+    cursor: grab;
 
     > select {
       appearance: none;
@@ -70,6 +73,7 @@
   }
 
   > label {
+    cursor: pointer;
   }
 }
 

@@ -1,5 +1,5 @@
 import { createMemo, createResource, createSignal, createUniqueId, For, Show, useContext } from "solid-js";
-import { A, useNavigate, useParams, useSearchParams } from "@solidjs/router";
+import { A, useNavigate, useParams } from "@solidjs/router";
 import { faCirclePlay as faCirclePlayOutline, faTrashCan } from "@fortawesome/free-regular-svg-icons";
 import {
   faChevronLeft,
@@ -37,16 +37,24 @@ import ImportDialog from "../../components/profile/ImportDialog";
 import TasksDialog from "../../components/global/TasksDialog";
 import SettingsDialog from "../../components/global/SettingsDialog";
 import { settings } from "../../api/settings";
+import { useSearchParamsInPlace } from "../../utils/router";
 
 interface ProfileParams {
-  [key: string]: string | undefined;
   profileId?: string;
   gameId: string;
 }
 
+type TabId = "mod-list" | "mod-search" | "logs" | "config";
+
+interface ProfileSearchParams {
+  "profile-tab"?: TabId;
+}
+
 export default function Profile() {
-  // @ts-expect-error params.profileId is an optional param, it can be undefined
+  // @ts-expect-error params.profileId is an optional param, it can be undefined, and we don't expect any other params
   const params = useParams<ProfileParams>();
+  const [searchParams, setSearchParams] = useSearchParamsInPlace<ProfileSearchParams>();
+  const navigate = useNavigate();
 
   const gameInfo = globals.gamesById().get(params.gameId)!; // TODO, handle undefined case
 
@@ -66,14 +74,11 @@ export default function Profile() {
 
   const [consoleChannel, setConsoleChannel] = createSignal<C2SChannel>();
 
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-
   async function launch(modded: boolean) {
     try {
       clearConsole();
-      if (settings().openConsoleOnLaunch.value && searchParams.tab !== "logs") {
-        navigate(`?profile-tab=logs`);
+      if (settings().openConsoleOnLaunch.value && searchParams["profile-tab"] !== "logs") {
+        `?profile-tab=logs`;
       }
       const channel = createC2SChannel();
       setConsoleChannel(channel);
@@ -93,11 +98,9 @@ export default function Profile() {
     <main class={styles.main}>
       <aside class={styles.sidebar}>
         <nav class={styles.sidebar__nav}>
-          <A href="/" tabIndex="-1">
-            <button class={styles.sidebar__btn}>
-              <Fa icon={faChevronLeft} />
-            </button>
-          </A>
+          <button class={styles.sidebar__btn} on:click={() => navigate(-1)}>
+            <Fa icon={faChevronLeft} />
+          </button>
 
           <h1>{gameInfo.name}</h1>
         </nav>
@@ -207,7 +210,7 @@ export default function Profile() {
 
             return (
               <ModInstallContext.Provider value={{ profile: profileId(), installed, refetchInstalled }}>
-                <TabRenderer
+                <TabRenderer<TabId>
                   id="profile"
                   styles={{
                     tabs: {

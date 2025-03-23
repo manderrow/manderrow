@@ -1,7 +1,6 @@
 import { faHardDrive, faHeart, faThumbsUp } from "@fortawesome/free-regular-svg-icons";
 import { faDownload, faDownLong, faExternalLink, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { createInfiniteScroll } from "@solid-primitives/pagination";
-import { useParams } from "@solidjs/router";
 import { fetch } from "@tauri-apps/plugin-http";
 import { Fa } from "solid-fa";
 import {
@@ -32,15 +31,6 @@ import Markdown from "../global/Markdown";
 import TabRenderer, { Tab, TabContent } from "../global/TabRenderer";
 
 import styles from "./ModList.module.css";
-// @ts-types="solid-js"
-
-const dateFormatter = new Intl.DateTimeFormat(undefined, {
-  month: "short",
-  day: "numeric",
-  year: "numeric",
-  hour: "numeric",
-  minute: "numeric",
-});
 
 export type Fetcher = (page: number) => Promise<readonly Mod[]>;
 
@@ -147,7 +137,7 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
     );
   }
 
-  const tabs: Tab[] = [
+  const tabs: Tab<"overview" | "dependencies" | "changelog">[] = [
     {
       id: "overview",
       name: "Overview",
@@ -172,8 +162,6 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
   ];
 
   const [currentTab, setCurrentTab] = createSignal(tabs[0]);
-
-  const params = useParams();
 
   return (
     <div class={styles.scrollOuter}>
@@ -408,6 +396,7 @@ function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) 
 function InstallButton(props: { mod: ModListing; installContext: NonNullable<typeof ModInstallContext.defaultValue> }) {
   return (
     <SimpleAsyncButton
+      progress
       class={styles.downloadBtn}
       onClick={async (listener) => {
         await installProfileMod(
@@ -430,6 +419,7 @@ function UninstallButton(props: {
 }) {
   return (
     <SimpleAsyncButton
+      progress
       class={styles.downloadBtn}
       onClick={async (listener) => {
         await uninstallProfileMod(props.installContext.profile, props.mod.owner, props.mod.name);

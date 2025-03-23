@@ -1,7 +1,6 @@
 import { Accessor, createEffect, createSignal, JSX, Show } from "solid-js";
 import { Error } from "./ErrorBoundary";
 import { createProgressProxyStore, Listener, Progress } from "../../api/tasks";
-import { Store } from "solid-js/store";
 import { SimpleProgressIndicator } from "./Progress";
 
 export function AsyncButton(props: {
@@ -29,15 +28,29 @@ export function AsyncButton(props: {
   );
 }
 
-export function SimpleAsyncButton(props: {
-  class?: string;
-  onClick: (listener: Listener) => Promise<void> | void;
-  type?: "submit" | "reset" | "button";
-  ref?: (element: HTMLButtonElement) => void;
-  whenBusy?: (progress: Progress) => JSX.Element;
-  children: JSX.Element;
-}) {
-  const [progress, setProgress] = createProgressProxyStore();
+type ProgressProps<Progress extends true | undefined> = Progress extends true
+  ? {
+      progress: true;
+      onClick: (listener: Listener) => Promise<void> | void;
+    }
+  : {
+      progress?: never;
+      onClick: () => Promise<void> | void;
+    };
+
+export function SimpleAsyncButton<const P extends true | undefined>(
+  props: {
+    class?: string;
+    type?: "submit" | "reset" | "button";
+    ref?: (element: HTMLButtonElement) => void;
+    whenBusy?: (progress: Progress) => JSX.Element;
+    children: JSX.Element;
+  } & ProgressProps<P>,
+) {
+  type ProgressSignal = P extends true ? ReturnType<typeof createProgressProxyStore> : [undefined, undefined];
+  const [progress, setProgress]: ProgressSignal = (
+    props.progress ? createProgressProxyStore() : [undefined, undefined]
+  ) as ProgressSignal;
   let ref!: HTMLButtonElement;
   createEffect(() => {
     if (props.ref) props.ref(ref);
@@ -52,18 +65,22 @@ export function SimpleAsyncButton(props: {
           on:click={async (e) => {
             e.stopPropagation();
             await wrapOnClick(() => {
-              return props.onClick((event) => {
-                if (event.event === "created") {
-                  setProgress(event.progress);
-                }
-              });
+              if (props.progress) {
+                return props.onClick((event) => {
+                  if (event.event === "created") {
+                    setProgress!(event.progress);
+                  }
+                });
+              } else {
+                return props.onClick();
+              }
             });
           }}
           ref={ref}
         >
-          <Show when={busy()} fallback={props.children}>
-            <Show when={props.whenBusy} fallback={<SimpleProgressIndicator progress={progress} />}>
-              {(whenBusy) => whenBusy()(progress)}
+          <Show when={props.progress && busy()} fallback={props.children}>
+            <Show when={props.whenBusy} fallback={<SimpleProgressIndicator progress={progress!} />}>
+              {(whenBusy) => whenBusy()(progress!)}
             </Show>
           </Show>
         </button>

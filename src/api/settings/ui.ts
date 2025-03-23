@@ -12,12 +12,17 @@ export interface Section {
 
 export interface ToggleSetting {
   key: SettingsT<boolean>;
-  input: { type: "Toggle" };
+  input: { type: "toggle" };
 }
 
 export interface TextSetting {
   key: SettingsT<string>;
-  input: { type: "Text" };
+  input: { type: "text" };
 }
 
-export type Setting = ToggleSetting | TextSetting;
+export interface GameSelectSetting {
+  key: SettingsT<string>;
+  input: { type: "game_select" };
+}
+
+export type Setting = ToggleSetting | TextSetting | GameSelectSetting;

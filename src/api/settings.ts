@@ -4,6 +4,7 @@ import { createResource, createSignal } from "solid-js";
 
 import { wrapInvoke } from "../api.ts";
 import * as ui from "./settings/ui.ts";
+import { createSignalResource } from "../utils.ts";
 
 export interface Setting<T> {
   value: T;
@@ -11,60 +12,26 @@ export interface Setting<T> {
 }
 
 export interface Settings {
+  defaultGame: Setting<string | null>;
   openConsoleOnLaunch: Setting<boolean>;
 }
 
 export type SettingsT<T> = keyof {
-  [key in keyof Settings as (Settings[key]["value"] extends T ? key : never)]: never;
+  [key in keyof Settings as Settings[key]["value"] extends T ? key : never]: never;
 };
 
 export type Change<T> = { override: T } | "default";
 
-export interface SettingsPatch {
-  openConsoleOnLaunch?: Change<boolean>;
-}
-
-const [_settings, setSettings] = createSignal<Settings>();
-
-export const settingsResource = {
-  get state() {
-    const settings = _settings();
-    if (settings === undefined) {
-      return "pending";
-    } else {
-      return "ready";
-    }
-  },
-  get loading() {
-    return _settings() === undefined;
-  },
-  get latest() {
-    return _settings();
-  },
-  error: undefined,
+export type SettingsPatch = {
+  [setting in keyof Settings]?: Change<Settings[setting]["value"]>;
 };
 
-export const settings = () => {
-  const settings = _settings();
-  if (settings === undefined) {
-    throw new Error("Settings are not loaded");
-  }
-  return settings;
-};
+export const settingsResource = createSignalResource<Settings>(() => wrapInvoke(() => invoke("get_settings")));
 
-(async () => {
-  let settings;
-  try {
-    settings = await wrapInvoke(() => invoke<Settings>("get_settings"));
-  } catch (e) {
-    console.error(e);
-    settings = {} as unknown as Settings;
-  }
-  setSettings(settings);
-})();
+export const settings = () => settingsResource.latestOrThrow;
 
 listen<Settings>("settings", (event) => {
-  setSettings(event.payload);
+  settingsResource.value = event.payload;
 });
 
 export const [settingsUIResource] = createResource<ui.Settings>(async () => {

@@ -167,11 +167,12 @@
   -webkit-backdrop-filter: blur(8px);
   border: 2px solid rgba(225, 225, 225, 0.3);
   background-color: rgba(225, 225, 225, 0.2);
+
+  &:hover {
+    background-color: rgba(225, 225, 225, 0.3);
+  }
 }
 
-.game__actions button[data-default]:hover {
-  background-color: rgba(225, 225, 225, 0.3);
-}
 
 /* --- Game list item style code --- */
 

@@ -6,7 +6,9 @@ import { Settings, SettingsPatch, updateSettings, settings, settingsUI } from ".
 import Fa from "solid-fa";
 import { faClockRotateLeft } from "@fortawesome/free-solid-svg-icons";
 import { t } from "../../i18n/i18n";
-import { Setting, TextSetting, ToggleSetting } from "../../api/settings/ui";
+import { GameSelectSetting, Setting, TextSetting, ToggleSetting } from "../../api/settings/ui";
+import SelectDropdown from "./SelectDropdown";
+import { games } from "../../globals";
 
 export default function SettingsDialog(props: { onDismiss: DismissCallback }) {
   const idPrefix = createUniqueId();
@@ -26,21 +28,30 @@ export default function SettingsDialog(props: { onDismiss: DismissCallback }) {
 
                 <For each={section.settings}>
                   {(setting) => (
-                    <div>
-                      <label for={`${idPrefix}_${setting.key}`}>{t(`settings.settings.${setting.key}`)}</label>
-                      <Switch>
-                        <Match when={setting.input.type === "Toggle"}>
-                          <ToggleInput idPrefix={idPrefix} setting={setting as ToggleSetting} />
-                        </Match>
-                        <Match when={setting.input.type === "Text"}>
-                          <TextInput idPrefix={idPrefix} setting={setting as TextSetting} />
-                        </Match>
-                      </Switch>
-                      <Show when={!settings().openConsoleOnLaunch.isDefault}>
-                        <button on:click={onReset(setting.key)}>
+                    <div class={styles.option}>
+                      <label for={`${idPrefix}_${setting.key}`} id={`${idPrefix}-label_${setting.key}`}>
+                        {t(`settings.settings.${setting.key}`)}
+                      </label>
+                      <div class={styles.right}>
+                        <Switch>
+                          <Match when={setting.input.type === "toggle"}>
+                            <ToggleInput idPrefix={idPrefix} setting={setting as ToggleSetting} />
+                          </Match>
+                          <Match when={setting.input.type === "text"}>
+                            <TextInput idPrefix={idPrefix} setting={setting as TextSetting} />
+                          </Match>
+                          <Match when={setting.input.type === "game_select"}>
+                            <GameSelectInput idPrefix={idPrefix} setting={setting as GameSelectSetting} />
+                          </Match>
+                        </Switch>
+                        <button
+                          class={styles.resetButton}
+                          on:click={onReset(setting.key)}
+                          data-disabled={settings()[setting.key].isDefault}
+                        >
                           <Fa icon={faClockRotateLeft} />
                         </button>
-                      </Show>
+                      </div>
                     </div>
                   )}
                 </For>
@@ -53,9 +64,13 @@ export default function SettingsDialog(props: { onDismiss: DismissCallback }) {
   );
 }
 
+function overrideSetting<S extends Setting>(setting: S, override: SettingType<S>) {
+  return updateSettings({ [setting.key]: { override } });
+}
+
 function onChange<S extends Setting>(setting: S, mutator: (e: HTMLInputElement) => Settings[S["key"]]["value"]) {
   return ((e: InputEvent) => {
-    updateSettings({ [setting.key]: { override: mutator(e.target as HTMLInputElement) } });
+    overrideSetting(setting, mutator(e.target as HTMLInputElement));
   }) as (e: Event) => void;
 }
 
@@ -65,14 +80,10 @@ function onReset(key: keyof SettingsPatch) {
   }) as (e: Event) => void;
 }
 
-type SettingType<T extends Setting> = T["input"]["type"] extends "Text"
-  ? string
-  : T["input"]["type"] extends "Toggle"
-  ? boolean
-  : unknown;
+type SettingType<S extends Setting> = Settings[S["key"]]["value"];
 
-function get<T extends Setting>(setting: T): SettingType<T> {
-  return settings()[setting.key].value as SettingType<T>;
+function get<S extends Setting>(setting: S): SettingType<S> {
+  return settings()[setting.key].value;
 }
 
 function ToggleInput(props: { idPrefix: string; setting: ToggleSetting }) {
@@ -91,8 +102,31 @@ function TextInput(props: { idPrefix: string; setting: TextSetting }) {
     <input
       type="text"
       id={`${props.idPrefix}_${props.setting.key}`}
-      value={get(props.setting) as unknown as string}
+      value={get(props.setting)}
       on:change={onChange(props.setting, (e) => e.value)}
+    />
+  );
+}
+
+function GameSelectInput(props: { idPrefix: string; setting: GameSelectSetting }) {
+  function onChanged(value: string, selected: boolean) {
+    if (selected) {
+      overrideSetting(props.setting, value);
+    }
+  }
+  return (
+    <SelectDropdown
+      label={{ labelText: "value" }}
+      buttonId={`${props.idPrefix}_${props.setting.key}`}
+      options={Object.fromEntries(
+        games()
+          .map<[string, { value: string; selected: boolean }]>((game) => [
+            game.name,
+            { value: game.id, selected: get(props.setting) === game.id },
+          ])
+          .sort((a, b) => a[0].localeCompare(b[0])),
+      )}
+      onChanged={onChanged}
     />
   );
 }

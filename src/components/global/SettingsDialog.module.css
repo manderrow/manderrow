@@ -8,6 +8,28 @@
 
 .header {
   display: flex;
-  flex-direction: row;
   justify-content: space-between;
+}
+
+.option {
+  display: flex;
+  justify-content: space-between;
+
+  label {
+    flex-grow: 1;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .right {
+    display: flex;
+  }
+
+  .resetButton[data-disabled="true"] {
+    visibility: hidden;
+  }
+
+  &:hover {
+    background-color: var(--clr-neutral-7);
+  }
 }

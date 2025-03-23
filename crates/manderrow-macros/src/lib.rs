@@ -2,7 +2,12 @@ use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::{format_ident, quote};
 use serde_json::json;
-use syn::{Data, DeriveInput, Error, Expr, Ident, Token, Type, parse::Parse, token::Eq};
+use syn::{
+    Attribute, Data, DeriveInput, Error, Expr, Ident, Path, Result, Token, Type,
+    parse::Parse,
+    spanned::Spanned,
+    token::{Comma, Eq},
+};
 
 struct SettingsArgs {
     sections: Vec<Ident>,
@@ -40,6 +45,40 @@ struct Field {
     ty: Type,
     section: Ident,
     default: Expr,
+    input: Ident,
+    ref_by_ty: Type,
+    ref_by_fn: Path,
+}
+
+fn try_parse_attribute<T: Parse>(current: Option<(Span, T)>, attr: Attribute) -> Result<(Span, T)> {
+    if let Some((span, _)) = current {
+        let mut e = Error::new(attr.path().span(), "Duplicate attribute");
+        e.combine(Error::new(span, "The first attribute is here"));
+        return Err(e);
+    }
+
+    Ok((attr.span(), attr.parse_args()?))
+}
+
+fn expect_attribute<T>(ident: &Ident, name: &str, attribute: Option<(Span, T)>) -> Result<T> {
+    match attribute {
+        Some((_, t)) => Ok(t),
+        None => Err(Error::new(
+            ident.span(),
+            format!("Missing required attribute `{name}`"),
+        )),
+    }
+}
+
+struct RefByAttrArgs(Type, Path);
+
+impl Parse for RefByAttrArgs {
+    fn parse(input: syn::parse::ParseStream) -> Result<Self> {
+        let ty = input.parse()?;
+        input.parse::<Comma>()?;
+        let func = input.parse()?;
+        Ok(Self(ty, func))
+    }
 }
 
 #[proc_macro_attribute]
@@ -55,43 +94,50 @@ pub fn settings(args: TokenStream, input: TokenStream) -> TokenStream {
         .into_iter()
         .map(|field| {
             let ident = field.ident.unwrap();
+
+            let mut section = None;
+            let mut default = None;
+            let mut input = None;
+            let mut ref_by = None;
+
+            for attr in field.attrs {
+                match attr.path().get_ident() {
+                    Some(ident) if ident == "section" => {
+                        let (span, ident) = try_parse_attribute(section, attr)?;
+                        if !args.sections.contains(&ident) {
+                            return Err(Error::new(
+                                ident.span(),
+                                "Unrecognized section. Perhaps you forgot to include it in the sections list?",
+                            ));
+                        }
+                        section = Some((span, ident));
+                    }
+                    Some(ident) if ident == "default" => {
+                        default = Some(try_parse_attribute(default, attr)?);
+                    }
+                    Some(ident) if ident == "input" => {
+                        input = Some(try_parse_attribute(input, attr)?);
+                    }
+                    Some(ident) if ident == "ref_by" => {
+                        ref_by = Some(try_parse_attribute(ref_by, attr)?);
+                    }
+                    _ => return Err(Error::new(attr.path().span(), "Unrecognized attribute")),
+                }
+            }
+
+            let RefByAttrArgs(ref_by_ty, ref_by_fn) = expect_attribute(&ident, "ref_by", ref_by)?;
+
             Ok(Field {
                 ty: field.ty,
-                section: field
-                    .attrs
-                    .iter()
-                    .find(|attr| {
-                        attr.path()
-                            .get_ident()
-                            .map_or(false, |ident| ident == "section")
-                    })
-                    .ok_or_else(|| {
-                        Error::new(ident.span(), "Missing required attribute `section`")
-                    })?
-                    .parse_args()
-                    .and_then(|section| {
-                        if !args.sections.contains(&section) {
-                            Err(Error::new(section.span(), "Unrecognized section. Perhaps you forgot to include it in the sections list?"))
-                        } else {
-                            Ok(section)
-                        }
-                    })?,
-                default: field
-                    .attrs
-                    .iter()
-                    .find(|attr| {
-                        attr.path()
-                            .get_ident()
-                            .map_or(false, |ident| ident == "default")
-                    })
-                    .ok_or_else(|| {
-                        Error::new(ident.span(), "Missing required attribute `default`")
-                    })?
-                    .parse_args()?,
+                section: expect_attribute(&ident, "section", section)?,
+                default: expect_attribute(&ident, "default", default)?,
+                input: expect_attribute(&ident, "input", input)?,
+                ref_by_ty,
+                ref_by_fn,
                 ident,
             })
         })
-        .collect::<Result<Vec<_>, Error>>();
+        .collect::<Result<Vec<_>>>();
     let fields = match fields {
         Ok(t) => t,
         Err(e) => return TokenStream::from(e.to_compile_error()),
@@ -102,24 +148,20 @@ pub fn settings(args: TokenStream, input: TokenStream) -> TokenStream {
 
     let field_accessor_ident = Ident::new("x", Span::call_site());
 
-    let (field_accessor_bind, field_default): (Vec<_>, Vec<_>) = fields
+    let (field_accessor_by_ref, field_by_ref_ty): (Vec<_>, Vec<_>) = fields
         .iter()
         .map(|f| {
+            let ref_by_fn = &f.ref_by_fn;
             (
-                match &f.ty {
-                    Type::Path(p) if p.path.get_ident().map_or(false, |ident| ident == "bool") => {
-                        quote! {
-                            #field_accessor_ident
-                        }
-                    }
-                    _ => quote! {
-                        ref #field_accessor_ident
-                    },
+                quote! {
+                    #ref_by_fn(#field_accessor_ident)
                 },
-                &f.default,
+                &f.ref_by_ty,
             )
         })
         .unzip();
+
+    let field_default: Vec<_> = fields.iter().map(|f| &f.default).collect();
 
     let name = input.ident;
 
@@ -137,16 +179,14 @@ pub fn settings(args: TokenStream, input: TokenStream) -> TokenStream {
                     .map(|field| {
                         json!({
                             "key": cruet::to_camel_case(&field.ident.to_string()),
-                            "input": match &field.ty {
-                                Type::Path(p) if p.path.get_ident().map_or(false, |ident| ident == "bool") => json!({ "type": "Toggle" }),
-                                _ => todo!(),
-                            },
+                            "input": { "type": field.input.to_string() },
                         })
                     })
                     .collect::<Vec<_>>(),
             })
         }).collect::<Vec<_>>()
-    })).unwrap();
+    }))
+    .unwrap();
 
     let expanded = quote! {
         #[derive(Debug, Clone, Default)]
@@ -157,8 +197,8 @@ pub fn settings(args: TokenStream, input: TokenStream) -> TokenStream {
         #[derive(Debug, Clone, serde::Serialize)]
         #[serde(rename_all = "camelCase")]
         #[allow(non_snake_case)]
-        pub struct #defaulted {
-            #(#field_ident: Setting<#field_ty>),*
+        pub struct #defaulted<'a> {
+            #(#field_ident: Setting<#field_by_ref_ty>),*
         }
 
         #[derive(Debug, Clone, serde::Deserialize)]
@@ -170,9 +210,9 @@ pub fn settings(args: TokenStream, input: TokenStream) -> TokenStream {
         }
 
         impl #name {
-            #(pub fn #field_ident(&self) -> Setting<#field_ty> {
+            #(pub fn #field_ident<'a>(&'a self) -> Setting<#field_by_ref_ty> {
                 match self.#field_ident {
-                    Some(#field_accessor_bind) => Setting { value: #field_accessor_ident, is_default: false },
+                    Some(ref #field_accessor_ident) => Setting { value: #field_accessor_by_ref, is_default: false },
                     None => Setting { value: #field_default, is_default: true },
                 }
             })*

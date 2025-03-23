@@ -1,10 +1,10 @@
 import { faStar } from "@fortawesome/free-regular-svg-icons";
 import { faGlobe, faList, faTableCellsLarge } from "@fortawesome/free-solid-svg-icons";
-import { A } from "@solidjs/router";
+import { useLocation, useNavigate } from "@solidjs/router";
 import Fa from "solid-fa";
-import { createResource, createSignal, For, onCleanup, onMount } from "solid-js";
+import { createEffect, createResource, createSignal, For, onCleanup, onMount } from "solid-js";
 
-import { games, initialSortedGames } from "../../globals";
+import { games, initialGame, initialSortedGames } from "../../globals";
 import { Locale, localeNamesMap, setLocale, locale, t, RAW_LOCALES } from "../../i18n/i18n";
 import { Game } from "../../types";
 import { autofocus } from "../../components/global/Directives";
@@ -13,10 +13,17 @@ import blobStyles from "./GameBlobs.module.css";
 import gameListStyles from "./GameList.module.css";
 import styles from "./GameSelect.module.css";
 import { GameSortColumn, searchGames } from "../../api";
+import { replaceRouterState as replaceRouteState } from "../../utils/router";
+import { updateSettings } from "../../api/settings";
+import { SimpleAsyncButton } from "../../components/global/AsyncButton";
 
 enum DisplayType {
   Card = -1,
   List = 1,
+}
+
+interface GameSelectState {
+  explicit?: true;
 }
 
 export default function GameSelect() {
@@ -41,6 +48,20 @@ export default function GameSelect() {
 
   onCleanup(() => {
     document.body.classList.remove(styles.body);
+  });
+
+  const navigate = useNavigate();
+  const location = useLocation<GameSelectState>();
+
+  createEffect(() => {
+    console.log(location.state);
+    if (location.state?.explicit != null) return;
+    const game = initialGame.latest;
+    if (game) {
+      // don't trigger again when the user manually navigates back
+      replaceRouteState((current) => ({ ...current, explicit: true }));
+      navigate(`/profile/${game}`);
+    }
   });
 
   return (
@@ -84,9 +105,11 @@ export default function GameSelect() {
             on:input={(e) => setSearch(e.target.value)}
           />
           <select name="sort-type" id="sort-type" on:input={(e) => setSort(e.target.value as GameSortColumn)}>
-            <option value={GameSortColumn.ModDownloads} selected>{t("global.list_sort_type.mod_downloads")}</option>
-            <option value={GameSortColumn.Popularity}>{t("global.list_sort_type.popularity")}</option>
-            <option value={GameSortColumn.Name}>{t("global.list_sort_type.name")}</option>
+            <option value={GameSortColumn.ModDownloads} selected>
+              {t("global.game_sort_column.mod_downloads")}
+            </option>
+            <option value={GameSortColumn.Popularity}>{t("global.game_sort_column.popularity")}</option>
+            <option value={GameSortColumn.Name}>{t("global.game_sort_column.name")}</option>
           </select>
           <button
             type="button"
@@ -128,18 +151,30 @@ export default function GameSelect() {
 function GameComponent(props: { game: Game }) {
   const url = `/img/game_covers/${props.game.thunderstoreId}.webp`;
 
+  const navigate = useNavigate();
+
+  function navigateToGame() {
+    navigate(`/profile/${props.game.id}/`);
+  }
+
   return (
     <li class={gameListStyles.gameList__game} style={`--img-src: url("${url}")`}>
       <img src={url} alt={t("game_select.bg_img_alt", { gameName: props.game.name })} />
       <div class={gameListStyles.game__content}>
         <p class={gameListStyles.game__title}>{props.game.name}</p>
         <div class={gameListStyles.game__actions}>
-          <A href={`/profile/${props.game.id}/`} tabIndex="-1">
-            <button data-select>{t("game_select.select_btn")}</button>
-          </A>
-          <A href={`/profile/${props.game.id}/`} tabIndex="-1">
-            <button data-default>{t("game_select.default_btn")}</button>
-          </A>
+          <button data-select on:click={navigateToGame}>
+            {t("game_select.select_btn")}
+          </button>
+          <SimpleAsyncButton
+            data-default
+            onClick={async () => {
+              await updateSettings({ defaultGame: { override: props.game.id } });
+              navigateToGame();
+            }}
+          >
+            {t("game_select.set_default_btn")}
+          </SimpleAsyncButton>
         </div>
         <button class={gameListStyles.game__favoriteBtn} title={t("game_select.fav_btn")}>
           <Fa icon={faStar} />

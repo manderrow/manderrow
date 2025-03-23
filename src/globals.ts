@@ -3,6 +3,7 @@ import { createResource } from "solid-js";
 import { GameSortColumn, getGameModDownloads, getGames, getGamesPopularity, getProfiles, searchGames } from "./api";
 import { Game } from "./types";
 import { settingsResource, settingsUIResource } from "./api/settings";
+import { createSignalResource } from "./utils";
 
 export const [gamesResource] = createResource<[readonly Game[], Map<string, Game>], never>(async () => {
   const games = Object.freeze(await getGames());
@@ -47,6 +48,8 @@ export const [profiles, { refetch: refetchProfiles }] = createResource(
   { initialValue: [] },
 );
 
+export const initialGame = createSignalResource(async () => (await settingsResource.loaded).defaultGame.value);
+
 // You can use this for testing splashscreen errors. Add it to coreResources.
 // const [dummyResource] = createResource(() => {
 //   return new Promise((_, reject) => setTimeout(() => reject("this is a made up error"), 2000));
@@ -63,4 +66,5 @@ export const coreResources = Object.freeze([
   gamesPopularityResource,
   gamesModDownloadsResource,
   profiles,
+  initialGame,
 ]);

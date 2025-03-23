@@ -1,6 +1,6 @@
 {
   "global": {
-    "list_sort_type": {
+    "game_sort_column": {
       "popularity": "Popularidad"
     }
   },
@@ -19,7 +19,7 @@
 
     "bg_img_alt": "Imagen de fondo de {{ gameName }}",
     "select_btn": "Seleccionar",
-    "default_btn": "Hacerlo el predeterminado",
+    "set_default_btn": "Hacerlo el predeterminado",
     "fav_btn": "Agregar a favoritos"
   },
 

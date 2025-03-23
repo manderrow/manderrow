@@ -78,7 +78,7 @@ function ChoosePage(props: { gameId: string; profile?: string; actions: Actions 
         <input id={thunderstoreCodeFieldId} use:bindValue={[thunderstoreCode, setThunderstoreCode]}></input>
         <div class={styles.buttonRow}>
           <button on:click={props.actions.dismiss}>Cancel</button>
-          <SimpleAsyncButton type="submit" onClick={onSubmitThunderstoreCode} ref={setImportButtonRef}>
+          <SimpleAsyncButton progress type="submit" onClick={onSubmitThunderstoreCode} ref={setImportButtonRef}>
             Import
           </SimpleAsyncButton>
         </div>
@@ -153,7 +153,7 @@ function PreviewPageInner(props: {
         </div>
         <div class={styles.buttonRow}>
           <button on:click={props.actions.dismiss}>Cancel</button>
-          <SimpleAsyncButton onClick={onImport}>Import</SimpleAsyncButton>
+          <SimpleAsyncButton progress onClick={onImport}>Import</SimpleAsyncButton>
         </div>
       </ErrorBoundary>
     </>

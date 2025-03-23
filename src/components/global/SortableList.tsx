@@ -61,7 +61,7 @@ export function SortableList<T>({
       <SortableProvider ids={ids()}>
         <For each={items()}>{(item, i) => <SortableListItem item={children(item, i())} id={id(item, i())} />}</For>
       </SortableProvider>
-      <DragOverlay>{activeItem()}</DragOverlay>
+      <DragOverlay class={styles.dragOverlay}>{activeItem()}</DragOverlay>
     </DragDropProvider>
   );
 }

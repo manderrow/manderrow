@@ -103,6 +103,8 @@
   --clr-ok-7: hsl(var(--clr-ok-hs), 70%);
   --clr-ok-8: hsl(var(--clr-ok-hs), 80%);
   --clr-ok-9: hsl(var(--clr-ok-hs), 90%);
+
+  --portal-z-index: 9;
 }
 
 *,

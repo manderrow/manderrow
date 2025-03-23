@@ -6,7 +6,7 @@ import { platform } from "@tauri-apps/plugin-os";
 import { open } from "@tauri-apps/plugin-shell";
 import { Show, createEffect, createResource, createSignal, onCleanup, onMount } from "solid-js";
 
-import { coreResources as coreResources } from "./globals";
+import { coreResources } from "./globals";
 
 import ErrorPage from "./pages/error/Error";
 import GameSelect from "./pages/game_select/GameSelect";
@@ -52,10 +52,10 @@ export default function App() {
       setCoreResourcesLoaded(true);
   });
 
-  createEffect(async () => {
+  createEffect(() => {
     if (coreResourcesLoaded() && !fontLoaded.loading) {
       // App ready, close splashscreen and show main window
-      await closeSplashscreen();
+      closeSplashscreen();
     }
   });
 
