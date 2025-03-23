@@ -7,7 +7,6 @@ import games from "../../src-tauri/src/games/games.json" with {type: "json"}
 enum UpdateMode {
   ALL = "all",
   ASSETS = "assets",
-  GAMES = "games",
   DOWNLOADS = "downloads",
 }
 

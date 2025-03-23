@@ -155,19 +155,15 @@ pub enum StorePlatformMetadata<'a> {
         #[serde(rename = "storeIdentifier", borrow)]
         store_identifier: Cow<'a, str>,
     },
-    #[serde(alias = "Epic Games Store")]
     Epic {
         #[serde(rename = "storeIdentifier", borrow)]
         store_identifier: Cow<'a, str>,
     },
-    #[serde(alias = "Xbox Game Pass")]
     Xbox {
         #[serde(rename = "storeIdentifier", borrow)]
         store_identifier: Cow<'a, str>,
     },
-    #[serde(alias = "Oculus Store")]
     Oculus,
-    #[serde(alias = "Origin / EA Desktop")]
     Origin,
     Other,
 }

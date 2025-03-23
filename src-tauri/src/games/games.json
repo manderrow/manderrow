@@ -11,7 +11,7 @@
         "storeIdentifier": "632360"
       },
       {
-        "storePlatform": "Epic Games Store",
+        "storePlatform": "Epic",
         "storeIdentifier": "4b3dcc5723454a47a9112d8fe8fd5f5c"
       }
     ],
@@ -60,7 +60,7 @@
         "storeIdentifier": "1366540"
       },
       {
-        "storePlatform": "Xbox Game Pass",
+        "storePlatform": "Xbox",
         "storeIdentifier": "GameraGame.DysonSphereProgram"
       }
     ],
@@ -79,7 +79,7 @@
         "storeIdentifier": "892970"
       },
       {
-        "storePlatform": "Xbox Game Pass",
+        "storePlatform": "Xbox",
         "storeIdentifier": "CoffeeStainStudios.Valheim"
       }
     ],
@@ -128,7 +128,7 @@
         "storeIdentifier": "794260"
       },
       {
-        "storePlatform": "Epic Games Store",
+        "storePlatform": "Epic",
         "storeIdentifier": "Viola"
       },
       {
@@ -150,7 +150,7 @@
         "storeIdentifier": "1758860"
       },
       {
-        "storePlatform": "Epic Games Store",
+        "storePlatform": "Epic",
         "storeIdentifier": "f07a51af8ac845ea96f792fb485e04a3"
       },
       {
@@ -247,7 +247,7 @@
         "storeIdentifier": "823500"
       },
       {
-        "storePlatform": "Oculus Store"
+        "storePlatform": "Oculus"
       }
     ],
     "instanceType": "Game",
@@ -280,7 +280,7 @@
         "storeIdentifier": "1062090"
       },
       {
-        "storePlatform": "Epic Games Store",
+        "storePlatform": "Epic",
         "storeIdentifier": "972a4ca2631e43b4ba7bc3b7586ad8c4"
       },
       {
@@ -302,11 +302,11 @@
         "storeIdentifier": "508440"
       },
       {
-        "storePlatform": "Epic Games Store",
+        "storePlatform": "Epic",
         "storeIdentifier": "Driftfish"
       },
       {
-        "storePlatform": "Xbox Game Pass",
+        "storePlatform": "Xbox",
         "storeIdentifier": "LandfallGames.TotallyAccurateBattleSimulator"
       }
     ],
@@ -358,7 +358,7 @@
         "storeIdentifier": "1380220"
       },
       {
-        "storePlatform": "Epic Games Store",
+        "storePlatform": "Epic",
         "storeIdentifier": "a774278c0813447c96a76b053cbf73ff"
       }
     ],
@@ -470,7 +470,7 @@
         "storeIdentifier": "527230"
       },
       {
-        "storePlatform": "Epic Games Store",
+        "storePlatform": "Epic",
         "storeIdentifier": "Discus"
       }
     ],
@@ -489,11 +489,11 @@
         "storeIdentifier": "264710"
       },
       {
-        "storePlatform": "Epic Games Store",
+        "storePlatform": "Epic",
         "storeIdentifier": "Jaguar"
       },
       {
-        "storePlatform": "Xbox Game Pass",
+        "storePlatform": "Xbox",
         "storeIdentifier": "UnknownWorldsEntertainmen.GAMEPREVIEWSubnautica"
       }
     ],
@@ -512,7 +512,7 @@
         "storeIdentifier": "848450"
       },
       {
-        "storePlatform": "Xbox Game Pass",
+        "storePlatform": "Xbox",
         "storeIdentifier": "UnknownWorldsEntertainmen.SubnauticaBelowZero"
       }
     ],
@@ -546,8 +546,7 @@
         "storeIdentifier": "1237970"
       },
       {
-        "storePlatform": "Origin / EA Desktop",
-        "storeIdentifier": ""
+        "storePlatform": "Origin"
       }
     ],
     "instanceType": "Game",
@@ -613,7 +612,7 @@
         "storeIdentifier": "1966900"
       },
       {
-        "storePlatform": "Epic Games Store",
+        "storePlatform": "Epic",
         "storeIdentifier": "4656facc740742a39e265b026e13d075"
       }
     ],
@@ -632,7 +631,7 @@
         "storeIdentifier": "1782330"
       },
       {
-        "storePlatform": "Oculus Store"
+        "storePlatform": "Oculus"
       }
     ],
     "instanceType": "Game",
@@ -695,7 +694,7 @@
         "storeIdentifier": "311690"
       },
       {
-        "storePlatform": "Epic Games Store",
+        "storePlatform": "Epic",
         "storeIdentifier": "Garlic"
       },
       {
@@ -780,7 +779,7 @@
         "storeIdentifier": "1592190"
       },
       {
-        "storePlatform": "Oculus Store"
+        "storePlatform": "Oculus"
       }
     ],
     "instanceType": "Game",
@@ -903,7 +902,7 @@
         "storeIdentifier": "1125240"
       },
       {
-        "storePlatform": "Oculus Store"
+        "storePlatform": "Oculus"
       }
     ],
     "instanceType": "Game",
@@ -1206,7 +1205,7 @@
         "storeIdentifier": "1353230"
       },
       {
-        "storePlatform": "Xbox Game Pass",
+        "storePlatform": "Xbox",
         "storeIdentifier": "TeamReptile.BombRushCyberfunk"
       }
     ],
@@ -1330,7 +1329,7 @@
         "storeIdentifier": "949230"
       },
       {
-        "storePlatform": "Xbox Game Pass",
+        "storePlatform": "Xbox",
         "storeIdentifier": "ParadoxInteractive.CitiesSkylinesII-PCEdition"
       }
     ],
@@ -1693,11 +1692,11 @@
         "storeIdentifier": "945360"
       },
       {
-        "storePlatform": "Epic Games Store",
+        "storePlatform": "Epic",
         "storeIdentifier": "among-us"
       },
       {
-        "storePlatform": "Xbox Game Pass",
+        "storePlatform": "Xbox",
         "storeIdentifier": "Innersloth.AmongUs"
       },
       {

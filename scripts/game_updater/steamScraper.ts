@@ -26,6 +26,7 @@ async function scrape() {
           headers: {
             Cookie: adultAge,
           },
+          redirect: "error",
         });
 
         const $ = cheerio.load(await request.text());
