@@ -22,7 +22,7 @@ pub enum SortColumn {
 pub async fn search_games(query: String, sort: Vec<SortOption<SortColumn>>) -> Vec<usize> {
     let games_mod_downloads = &**GAMES_MOD_DOWNLOADS;
     let games_reviews = &**GAMES_REVIEWS;
-    slog_scope::with_logger(|logger| {
+    slog_scope::with_logger(|_logger| {
         let mut buf = GAMES
             .iter()
             .enumerate()

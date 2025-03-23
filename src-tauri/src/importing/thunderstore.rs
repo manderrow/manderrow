@@ -16,11 +16,7 @@ use uuid::Uuid;
 use zip::read::ZipFile;
 
 use crate::Reqwest;
-use crate::{
-    installing::{fetch_resource, fetch_resource_as_bytes},
-    profiles::MODS_FOLDER,
-    tasks,
-};
+use crate::{installing::fetch_resource_as_bytes, profiles::MODS_FOLDER, tasks};
 
 #[derive(Clone)]
 pub struct FullName {

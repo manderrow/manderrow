@@ -148,6 +148,7 @@ pub struct ArchivedInternedString {
 }
 
 impl ArchivedInternedString {
+    #[allow(unused)]
     pub fn len(&self) -> usize {
         if self.repr.is_inline() {
             unsafe { self.repr.inline.len() }

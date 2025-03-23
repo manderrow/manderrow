@@ -256,10 +256,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::marker::PhantomData;
-
-    use rkyv::niche::niching::Niching;
-    use rkyv::primitive::{FixedIsize, FixedUsize};
+    use rkyv::primitive::FixedIsize;
     use rkyv::rancor::Strategy;
     use rkyv::string::ArchivedString;
     use rkyv::util::AlignedVec;
@@ -268,12 +265,10 @@ mod tests {
     use rkyv::validation::Validator;
     use rkyv::with::NicheInto;
     use rkyv_intern::Interner;
-    use smol_str::SmolStr;
-    use uuid::Uuid;
 
     use crate::mods::{
         ArchivedModMetadataRef, ArchivedModVersionRef, ArchivedVersion, InlineString,
-        InternedString, ModMetadata, ModMetadataRef, ModRef, ModVersion, ModVersionRef,
+        InternedString, ModMetadataRef, ModRef, ModVersionRef,
     };
     use crate::util::rkyv::{ArchivedInternedString, InternedStringNiche};
 

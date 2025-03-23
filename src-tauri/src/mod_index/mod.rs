@@ -140,11 +140,16 @@ pub async fn fetch_mod_index(
                                     average_uses: f64,
                                     single_use_entries: usize,
                                 }
-                                #[cfg(feature = "statistics")]
+                                #[cfg(not(feature = "statistics"))]
+                                struct Statistics;
                                 impl std::fmt::Display for Statistics {
-                                    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                                        let Statistics { values, total_bytes, average_uses, single_use_entries } = self;
-                                        write!(f, "{values} strings interned, {total_bytes} bytes, avg. {average_uses} uses/string, {single_use_entries} single-use strings")
+                                    fn fmt(&self, _f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                                        #[cfg(feature = "statistics")]
+                                        {
+                                            let Statistics { values, total_bytes, average_uses, single_use_entries } = self;
+                                            write!(_f, "{values} strings interned, {total_bytes} bytes, avg. {average_uses} uses/string, {single_use_entries} single-use strings")?;
+                                        }
+                                        Ok(())
                                     }
                                 }
 
@@ -164,7 +169,7 @@ pub async fn fetch_mod_index(
                                         &mods,
                                         &mut serializer,
                                     )?;
-                                    let (serializer, interner) = serializer.into_components();
+                                    let (serializer, _interner) = serializer.into_components();
                                     #[cfg(feature = "statistics")]
                                     #[derive(Default)]
                                     struct StatisticsAccumulator {
@@ -173,7 +178,7 @@ pub async fn fetch_mod_index(
                                         single_use_entries: usize,
                                     }
                                     #[cfg(feature = "statistics")]
-                                    let stats = interner.iter().map(|(s, e)| (s.len(), e.ref_cnt.get())).fold(StatisticsAccumulator::default(), |mut stats, (len, ref_cnt)| {
+                                    let stats = _interner.iter().map(|(s, e)| (s.len(), e.ref_cnt.get())).fold(StatisticsAccumulator::default(), |mut stats, (len, ref_cnt)| {
                                         stats.total_bytes += len;
                                         stats.total_uses += ref_cnt;
                                         if ref_cnt == 1 {
@@ -185,23 +190,21 @@ pub async fn fetch_mod_index(
                                         #[cfg(feature = "statistics")]
                                         {
                                             Statistics {
-                                                values: interner.len(),
+                                                values: _interner.len(),
                                                 total_bytes: stats.total_bytes,
-                                                average_uses: stats.total_uses as f64 / interner.len() as f64,
+                                                average_uses: stats.total_uses as f64 / _interner.len() as f64,
                                                 single_use_entries: stats.single_use_entries,
                                             }
                                         }
                                         #[cfg(not(feature = "statistics"))]
                                         {
-                                            ()
+                                            Statistics
                                         }
                                     }))
                                 })?;
                                 let encoded_at = std::time::Instant::now();
                                 let encoded_in = encoded_at.duration_since(decoded_at);
                                 let stats_prefix = if cfg!(feature = "statistics") { ", " } else { "" };
-                                #[cfg(not(feature = "statistics"))]
-                                let stats = "";
                                 info!(
                                     log,
                                     "{buf_len} bytes of JSON -> {} bytes in memory ({:.2}%{stats_prefix}{stats}), {latency:?} spawning, {fetched_in:?} fetching, {decoded_in:?} decoding, {encoded_in:?} encoding",
@@ -335,7 +338,7 @@ pub async fn query_mod_index<'a>(
 }
 
 fn score_mod<'a, 'b>(
-    log: &slog::Logger,
+    _log: &slog::Logger,
     query: &str,
     m: &'a ArchivedModRef<'b>,
 ) -> Option<(&'a ArchivedModRef<'b>, Score)> {

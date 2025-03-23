@@ -2,7 +2,6 @@ mod intern;
 
 pub use intern::{ArchivedInternedString, InternedString, InternedStringNiche, StringIntern};
 
-use rkyv::niche::niching::Niching;
 use rkyv::rancor::{Fallible, Source};
 use rkyv::string::{ArchivedString, StringResolver};
 use rkyv::with::{ArchiveWith, SerializeWith};

@@ -397,27 +397,6 @@ impl fmt::Binary for Version {
 
 #[cfg(test)]
 mod tests {
-    use std::marker::PhantomData;
-
-    use rkyv::niche::niching::Niching;
-    use rkyv::primitive::{FixedIsize, FixedUsize};
-    use rkyv::rancor::Strategy;
-    use rkyv::string::ArchivedString;
-    use rkyv::util::AlignedVec;
-    use rkyv::validation::archive::ArchiveValidator;
-    use rkyv::validation::shared::SharedValidator;
-    use rkyv::validation::Validator;
-    use rkyv::with::NicheInto;
-    use rkyv_intern::Interner;
-    use smol_str::SmolStr;
-    use uuid::Uuid;
-
-    use crate::mods::{
-        ArchivedModMetadataRef, ArchivedModVersionRef, ArchivedVersion, InlineString,
-        InternedString, ModMetadata, ModMetadataRef, ModRef, ModVersion, ModVersionRef,
-    };
-    use crate::util::rkyv::{ArchivedInternedString, InternedStringNiche};
-
     use super::Version;
 
     #[test]

@@ -80,25 +80,6 @@ impl<T: ToOwned> Setting<T> {
     }
 }
 
-trait AsSetting<T>: Sized {
-    fn as_setting_or_else(self, default: impl FnOnce() -> T) -> Setting<T>;
-}
-
-impl<T> AsSetting<T> for Option<T> {
-    fn as_setting_or_else(self, default: impl FnOnce() -> T) -> Setting<T> {
-        match self {
-            Some(value) => Setting {
-                value,
-                is_default: false,
-            },
-            None => Setting {
-                value: default(),
-                is_default: true,
-            },
-        }
-    }
-}
-
 #[derive(Debug, Clone, Copy, serde::Deserialize)]
 enum Change<T> {
     #[serde(rename = "default")]
