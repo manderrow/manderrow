@@ -14,7 +14,9 @@ impl Pid {
         let pid = self.value;
         #[cfg(windows)]
         {
+            use anyhow::bail;
             use winsafe::prelude::*;
+
             // TODO: detect "not found" and return correct result
             tokio::task::spawn_blocking(|| {
                 let proc =
