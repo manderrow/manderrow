@@ -18,7 +18,7 @@ impl Pid {
             use winsafe::prelude::*;
 
             // TODO: detect "not found" and return correct result
-            tokio::task::spawn_blocking(|| {
+            tokio::task::spawn_blocking(move || {
                 let proc =
                     winsafe::HPROCESS::OpenProcess(winsafe::co::PROCESS::SYNCHRONIZE, false, pid)?;
                 let event = proc.WaitForSingleObject(None)?;
