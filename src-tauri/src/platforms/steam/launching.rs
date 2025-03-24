@@ -47,7 +47,8 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
                 crate::util::process::Pid {
                     value: proc.th32ProcessID,
                 }
-                .wait_for_exit(log)?;
+                .wait_for_exit(log)
+                .await?;
             }
         }
     }
@@ -89,36 +90,13 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
             .exit_ok()?;
 
         let output = String::from_utf8(output.stdout)?;
-        #[cfg(target_os = "macos")]
-        {
-            use std::process::Stdio;
-            use std::time::Duration;
 
-            for pid in output.lines() {
-                info!(log, "Waiting for Steam process {pid} to shut down");
-                // could use https://man.freebsd.org/cgi/man.cgi?query=kvm_getprocs
-                while tokio::process::Command::new("ps")
-                    .args(["-p", pid])
-                    .stdout(Stdio::null())
-                    .status()
-                    .await?
-                    .success()
-                {
-                    tokio::time::sleep(Duration::from_millis(50)).await;
-                }
-            }
-        }
-        #[cfg(target_os = "linux")]
-        {
-            for pid in output.lines() {
-                let pid = rustix::process::Pid::from_raw(pid.parse()?)
-                    .context("Invalid pid from pgrep")?;
-                crate::util::process::Pid { value: pid }.wait_for_exit(log)?;
-            }
-        }
-        #[cfg(not(any(target_os = "linux", target_os = "macos")))]
-        {
-            bail!("Not implemented for this platform")
+        for pid in output.lines() {
+            let pid =
+                rustix::process::Pid::from_raw(pid.parse()?).context("Invalid pid from pgrep")?;
+            crate::util::process::Pid { value: pid }
+                .wait_for_exit(log)
+                .await?;
         }
     }
     Ok(())

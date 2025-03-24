@@ -2714,6 +2714,7 @@ dependencies = [
  "hashbrown 0.15.2",
  "ipc-channel",
  "itertools",
+ "itoa 1.0.15",
  "lexopt",
  "manderrow-macros",
  "parking_lot",
