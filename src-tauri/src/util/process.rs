@@ -1,5 +1,5 @@
 use anyhow::Result;
-use slog::{info, Logger};
+use slog::Logger;
 
 #[derive(Clone, Copy)]
 pub struct Pid {
@@ -31,7 +31,7 @@ impl Pid {
             use std::process::Stdio;
             use std::time::Duration;
 
-            info!(log, "Waiting for process {pid:?} to shut down");
+            slog::info!(log, "Waiting for process {pid:?} to shut down");
             // TODO: use https://man.freebsd.org/cgi/man.cgi?query=kvm_getprocs instead of spawning
             // a process every time
             while tokio::process::Command::new("ps")
@@ -47,9 +47,15 @@ impl Pid {
         }
         #[cfg(target_os = "linux")]
         {
-            tokio::task::spawn_blocking(|| {
-                let pidfd =
-                    match rustix::process::pidfd_open(pid, rustix::process::PidfdFlags::empty()) {
+            use anyhow::bail;
+            use slog::info;
+
+            tokio::task::spawn_blocking(move || {
+                slog_scope::with_logger(move |log| {
+                    let pidfd = match rustix::process::pidfd_open(
+                        pid,
+                        rustix::process::PidfdFlags::empty(),
+                    ) {
                         Ok(t) => t,
                         Err(rustix::io::Errno::SRCH) => {
                             info!(log, "Process {pid:?} has already shut down");
@@ -58,17 +64,20 @@ impl Pid {
                         Err(errno) => bail!("pidfd_open errno={errno}"),
                     };
 
-                info!(log, "Waiting for process {pid:?} to shut down");
+                    info!(log, "Waiting for process {pid:?} to shut down");
 
-                let mut pollfd = rustix::event::PollFd::new(&pidfd, rustix::event::PollFlags::IN);
-                loop {
-                    rustix::event::poll(std::slice::from_mut(&mut pollfd), None)?;
-                    if pollfd.revents().contains(rustix::event::PollFlags::IN) {
-                        break;
+                    let mut pollfd =
+                        rustix::event::PollFd::new(&pidfd, rustix::event::PollFlags::IN);
+                    loop {
+                        rustix::event::poll(std::slice::from_mut(&mut pollfd), None)?;
+                        if pollfd.revents().contains(rustix::event::PollFlags::IN) {
+                            break;
+                        }
                     }
-                }
-                Ok(())
-            })?
+                    Ok(())
+                })
+            })
+            .await?
         }
     }
 }
