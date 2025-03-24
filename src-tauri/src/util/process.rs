@@ -26,7 +26,8 @@ impl Pid {
                     bail!("Unexpected WAIT_EVENT: {event:?}");
                 }
                 Ok(())
-            })?
+            })
+            .await?
         }
         #[cfg(target_os = "macos")]
         {
