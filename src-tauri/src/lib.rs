@@ -6,6 +6,7 @@
 #![feature(path_add_extension)]
 #![feature(ptr_as_uninit)]
 #![feature(ptr_metadata)]
+#![feature(slice_split_once)]
 #![feature(type_alias_impl_trait)]
 #![feature(type_changing_struct_update)]
 #![feature(vec_push_within_capacity)]

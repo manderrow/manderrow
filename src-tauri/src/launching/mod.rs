@@ -57,6 +57,7 @@ pub async fn launch_profile(
             _ = tokio::task::block_in_place(|| {
                 self.c2s_tx.send(C2SMessage::Log {
                     level: record.level().into(),
+                    scope: "manderrow".into(),
                     message: record.msg().to_string(),
                 })
             });
@@ -99,6 +100,7 @@ pub async fn launch_profile(
             crate::platforms::steam::launching::ensure_launch_args_are_applied(
                 &log,
                 Some(ipc_state.spc(channel.clone())),
+                game.id,
                 steam_metadata.id,
             )
             .await?;
@@ -137,6 +139,11 @@ pub async fn launch_profile(
     // TODO: use Tauri sidecar
     if let Some(path) = std::env::var_os("MANDERROW_WRAPPER_STAGE2_PATH") {
         command.arg("--wrapper-stage2");
+        command.arg(path);
+    }
+
+    if let Some(path) = std::env::var_os("OVERRIDE_DOORSTOP_LIBRARY_PATH") {
+        command.arg("--doorstop-path");
         command.arg(path);
     }
 

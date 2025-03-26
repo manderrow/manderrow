@@ -193,7 +193,7 @@ pub async fn install_profile_mod(
             "https://gcdn.thunderstore.io/live/repository/packages/{}-{}-{}.zip",
             r#mod.owner, r#mod.name, version.version_number
         ),
-        Some(crate::installing::CacheOptions::ByUrl),
+        Some(crate::installing::CacheOptions::by_url()),
         &path,
         task_id,
     )

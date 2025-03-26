@@ -1,40 +1,66 @@
 use std::ffi::{OsStr, OsString};
 use std::path::PathBuf;
 
-use anyhow::{anyhow, bail, Context as _, Result};
+use anyhow::{bail, Context as _, Result};
+use slog::debug;
 use tempfile::tempdir;
 use uuid::Uuid;
 
 use crate::games::games_by_id;
-use crate::installing::install_zip;
+use crate::installing::{fetch_resource_cached_by_hash, install_file, install_zip};
 use crate::platforms::steam::paths::resolve_steam_app_install_directory;
 use crate::platforms::steam::proton::{ensure_wine_will_load_dll_override, uses_proton};
-use crate::profiles::{profile_path, read_profile, MODS_FOLDER};
+use crate::profiles::{profile_path, MODS_FOLDER};
 use crate::Reqwest;
 
 pub trait CommandBuilder {
     fn env(&mut self, key: impl AsRef<str>, value: impl AsRef<OsStr>);
 
     fn args(&mut self, args: impl IntoIterator<Item = impl AsRef<OsStr>>);
+
+    fn arg(&mut self, arg: impl AsRef<std::ffi::OsStr>);
 }
 
 fn get_url_and_hash(uses_proton: bool) -> Result<(&'static str, &'static str)> {
-    macro_rules! artifact_url {
-        ($target:literal) => {
-            concat!(
-                "https://github.com/mpfaff/BepInEx/releases/download/v5.4.23.2%2Bbuild.14/BepInEx_",
+    macro_rules! artifact {
+        ($target:literal, $hash:literal) => {
+            (concat!(
+                "https://github.com/mpfaff/BepInEx/releases/download/v5.4.23.2%2Bbuild.16/BepInEx_",
                 $target,
                 "_5.4.23.2.zip"
-            )
+            ), $hash)
         };
     }
 
     Ok(match (std::env::consts::OS, std::env::consts::ARCH, uses_proton) {
-        ("linux", "x86_64", false) => (artifact_url!("linux_x64"), "337947f8889e57336fc8946832c30ca6eced854e3b2b18f454ca5624d074acf9"),
-        ("linux", "x86", false) => (artifact_url!("linux_x86"), "44d4b3f91242a778af90d11bdadca0227ce5273164cbcf29c252f7efc087483b"),
-        ("macos", "x86_64", false) => (artifact_url!("macos_x64"), "93710bcc2fa45a41bf2d58f8b2eebfd3f4efe5a7e69f6f535985e757c9ddaa19"),
-        ("linux", "x86_64", true) | ("windows", "x86_64", false) => (artifact_url!("win_x64"), "fcc1da41089e579268e5ca4a1fc603766eea292a55d5ea1571ff7952af870af8"),
-        ("linux", "x86", true) | ("windows", "x86", false) => (artifact_url!("win_x86"), "4061496bcfb593052ffb89224b055a6b3f52a97d1cc1e29cea68bc653b018680"),
+        ("linux", "x86_64", false) => artifact!("linux_x64", "e4ab751df846565012f75979b55ee4bc0b8232c7cb7227bea073a3e1dddeaf95"),
+        ("linux", "x86", false) => artifact!("linux_x86", "fccc407923e92b18e2d00b71685b5e7721ea5fe5264bbc951269c7452a672bcc"),
+        ("macos", "x86_64", false) => artifact!("macos_x64", "0eced505910fe7c48a2d1e4690d1c9616204ad015c13f8a3cb2d8926903216a5"),
+        ("linux", "x86_64", true) | ("windows", "x86_64", false) => artifact!("win_x64", "cee8243e7333aaf716b4f950b9043df94d5763cb5ff0d486a82bd5671cbafa98"),
+        ("linux", "x86", true) | ("windows", "x86", false) => artifact!("win_x86", "db3649c65243dc78441abc19334016faf4755a5c3fbe9a1a6e1e3142665db925"),
+        (os, arch, uses_proton) => bail!("Unsupported platform combo: (os: {os:?}, arch: {arch:?}, uses_proton: {uses_proton})"),
+    })
+}
+
+fn get_doorstop_url_and_hash(
+    uses_proton: bool,
+) -> Result<(&'static str, &'static str, &'static str)> {
+    macro_rules! doorstop_artifact {
+        ($artifact:literal, $suffix:literal, $hash:literal) => {
+            (concat!(
+                "https://github.com/mpfaff/UnityDoorstop/releases/download/v4.3.0%2Bmanderrow.1/",
+                $artifact,
+                $suffix
+            ), $hash, $suffix)
+        };
+    }
+
+    Ok(match (std::env::consts::OS, std::env::consts::ARCH, uses_proton) {
+        ("linux", "x86_64", false) => doorstop_artifact!("libUnityDoorstop", ".so", "3467e96af3e3d2be952869af26c62addd20d9dd56f447e248671cf9a8b025c3e"),
+        ("linux", "x86", false) => todo!(),
+        ("macos", "x86_64", false) => doorstop_artifact!("libUnityDoorstop", ".dylib", "6fc720e2a8897f3a68c6dda17d1bf3af06996c3e0764f5d69d69fd2bf66323d1"),
+        ("linux", "x86_64", true) | ("windows", "x86_64", false) => doorstop_artifact!("UnityDoorstop", ".dll", "f431c17c2673a77c10e6ea94a6710a12b4f98e5bda6f025f64d52fcdf68c2549"),
+        ("linux", "x86", true) | ("windows", "x86", false) => todo!(),
         (os, arch, uses_proton) => bail!("Unsupported platform combo: (os: {os:?}, arch: {arch:?}, uses_proton: {uses_proton})"),
     })
 }
@@ -49,7 +75,7 @@ pub async fn get_bep_in_ex_path(log: &slog::Logger, uses_proton: bool) -> Result
         log,
         &Reqwest(reqwest::Client::new()),
         url,
-        Some(crate::installing::CacheOptions::Hash(hash)),
+        Some(crate::installing::CacheOptions::by_hash(hash)),
         &path,
         None,
     )
@@ -63,11 +89,12 @@ pub async fn get_bep_in_ex_path(log: &slog::Logger, uses_proton: bool) -> Result
 pub async fn configure_command(
     log: &slog::Logger,
     command: &mut impl CommandBuilder,
-    profile_id: Uuid,
+    game: &str,
+    profile_id: Option<Uuid>,
+    doorstop_path: Option<PathBuf>,
 ) -> anyhow::Result<()> {
-    let profile = read_profile(profile_id).await?;
     let steam_metadata = games_by_id()?
-        .get(&*profile.game)
+        .get(game)
         .context("No such game")?
         .store_platform_metadata
         .iter()
@@ -78,58 +105,62 @@ pub async fn configure_command(
 
     let bep_in_ex = get_bep_in_ex_path(log, uses_proton).await?;
 
-    let profile_path = profile_path(profile_id);
+    let profile_path = profile_id.map(profile_path);
 
-    command.env("BEPINEX_CONFIGS", profile_path.join("config"));
-    command.env("BEPINEX_PLUGINS", profile_path.join(MODS_FOLDER));
-    command.env("BEPINEX_PATCHER_PLUGINS", profile_path.join("patchers"));
-    command.env("BEPINEX_CACHE", tempdir()?.into_path());
+    let temp_dir = tempdir()?.into_path();
 
-    if cfg!(windows) || uses_proton {
-        command.args(["--doorstop-enable", "true"]);
+    command.env(
+        "BEPINEX_CONFIGS",
+        profile_path
+            .as_ref()
+            .map(|p| p.join("config"))
+            .unwrap_or_else(|| temp_dir.join("configs")),
+    );
+    command.env(
+        "BEPINEX_PLUGINS",
+        profile_path
+            .as_ref()
+            .map(|p| p.join(MODS_FOLDER))
+            .unwrap_or_else(|| temp_dir.join("configs")),
+    );
+    command.env(
+        "BEPINEX_PATCHER_PLUGINS",
+        profile_path
+            .as_ref()
+            .map(|p| p.join("patchers"))
+            .unwrap_or_else(|| temp_dir.join("configs")),
+    );
+    command.env("BEPINEX_CACHE", temp_dir.join("cache"));
+    command.env("BEPINEX_STANDARD_LOG", "");
 
-        command.args(["--doorstop-target-assembly"]);
-        if uses_proton {
-            let mut buf = OsString::from("Z:");
-            buf.push(
-                bep_in_ex
-                    .as_os_str()
-                    .to_str()
-                    .context(anyhow!("Invalid Unicode string: {bep_in_ex:?}"))?,
-            );
-            buf.push("/BepInEx/core/BepInEx.Preloader.dll");
-            command.args([buf]);
-        } else {
-            let mut p = bep_in_ex.clone();
-            p.push("BepInEx");
-            p.push("core");
-            p.push("BepInEx.Preloader.dll");
-            command.args([p]);
-        }
-
-        command.args(["--doorstop-mono-debug-enabled", "false"]);
-        command.args(["--doorstop-mono-debug-address", "127.0.0.1:10000"]);
-        command.args(["--doorstop-mono-debug-suspend", "false"]);
-        // specify these only if they have values
-        // especially --doorstop-mono-dll-search-path-override, which will
-        // cause the doorstop to fail if given an empty string
-        // command.args(["--doorstop-mono-dll-search-path-override", ""]);
-        // command.args(["--doorstop-clr-corlib-dir", ""]);
-        // command.args(["--doorstop-clr-runtime-coreclr-path", ""]);
+    let target_assembly = if uses_proton {
+        let mut buf = OsString::from("Z:");
+        const SUFFIX: &str = "/BepInEx/core/BepInEx.Preloader.dll";
+        buf.reserve_exact(bep_in_ex.as_os_str().len() + SUFFIX.len());
+        buf.push(bep_in_ex.as_os_str());
+        buf.push(SUFFIX);
+        PathBuf::from(buf)
     } else {
-        command.env("DOORSTOP_ENABLED", "1");
-        command.env(
-            "DOORSTOP_TARGET_ASSEMBLY",
-            bep_in_ex.join("BepInEx/core/BepInEx.Preloader.dll"),
-        );
-        command.env("DOORSTOP_IGNORE_DISABLED_ENV", "0");
-        command.env("DOORSTOP_MONO_DLL_SEARCH_PATH_OVERRIDE", "");
-        command.env("DOORSTOP_MONO_DEBUG_ENABLED", "0");
-        command.env("DOORSTOP_MONO_DEBUG_ADDRESS", "127.0.0.1:10000");
-        command.env("DOORSTOP_MONO_DEBUG_SUSPEND", "0");
-        command.env("DOORSTOP_CLR_CORLIB_DIR", "");
-        command.env("DOORSTOP_CLR_RUNTIME_CORECLR_PATH", "");
-    }
+        let mut p = bep_in_ex.clone();
+        p.push("BepInEx");
+        p.push("core");
+        p.push("BepInEx.Preloader.dll");
+        p
+    };
+
+    command.env("DOORSTOP_ENABLED", "1");
+    command.env("DOORSTOP_TARGET_ASSEMBLY", target_assembly);
+    command.env("DOORSTOP_IGNORE_DISABLED_ENV", "0");
+    // specify these only if they have values
+    // command.env("DOORSTOP_MONO_DLL_SEARCH_PATH_OVERRIDE", "");
+    command.env("DOORSTOP_MONO_DEBUG_ENABLED", "0");
+    command.env("DOORSTOP_MONO_DEBUG_ADDRESS", "127.0.0.1:10000");
+    command.env("DOORSTOP_MONO_DEBUG_SUSPEND", "0");
+    // specify these only if they have values
+    // command.env("DOORSTOP_CLR_CORLIB_DIR", "");
+    // command.env("DOORSTOP_CLR_RUNTIME_CORECLR_PATH", "");
+
+    let (doorstop_url, doorstop_hash, doorstop_suffix) = get_doorstop_url_and_hash(uses_proton)?;
 
     if cfg!(windows) || uses_proton {
         if uses_proton {
@@ -137,39 +168,65 @@ pub async fn configure_command(
             //       via a doctor's note.
             ensure_wine_will_load_dll_override(log, steam_metadata.id, "winhttp").await?;
         }
-        tokio::fs::copy(
-            bep_in_ex.join("winhttp.dll"),
-            resolve_steam_app_install_directory(steam_metadata.id)
+
+        install_file(
+            // TODO: communicate via IPC
+            None,
+            log,
+            &Reqwest(reqwest::Client::new()),
+            doorstop_url,
+            // suffix is unnecessary here
+            Some(crate::installing::CacheOptions::by_hash(doorstop_hash)),
+            &resolve_steam_app_install_directory(steam_metadata.id)
                 .await?
                 .join("winhttp.dll"),
+            None,
         )
         .await?;
     } else {
-        for var in ["LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH"] {
-            let base = std::env::var_os(var).unwrap_or_else(OsString::new);
-            let mut buf = bep_in_ex.as_os_str().to_owned();
-            if !base.is_empty() {
-                buf.push(":");
-                buf.push(base);
+        let doorstop_path = match doorstop_path {
+            Some(t) => t,
+            None => {
+                fetch_resource_cached_by_hash(
+                    // TODO: communicate via IPC
+                    None,
+                    log,
+                    &Reqwest(reqwest::Client::new()),
+                    doorstop_url,
+                    doorstop_hash,
+                    doorstop_suffix,
+                    None,
+                )
+                .await?
             }
+        };
 
-            command.env(var, buf);
+        //         for var in ["LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH"] {
+        //             let base = std::env::var_os(var).unwrap_or_else(OsString::new);
+        //             let mut buf = bep_in_ex.as_os_str().to_owned();
+        //             if !base.is_empty() {
+        //                 buf.push(":");
+        //                 buf.push(base);
+        //             }
+        //
+        //             command.env(var, buf);
+        //         }
+
+        const VAR: &str = if cfg!(target_os = "macos") {
+            "DYLD_INSERT_LIBRARIES"
+        } else {
+            "LD_PRELOAD"
+        };
+        let base = std::env::var_os(VAR).unwrap_or_else(OsString::new);
+        let mut buf = doorstop_path.clone().into_os_string();
+        if !base.is_empty() {
+            buf.push(":");
+            buf.push(base);
         }
 
-        for var in ["LD_PRELOAD", "DYLD_INSERT_LIBRARIES"] {
-            let base = std::env::var_os(var).unwrap_or_else(OsString::new);
-            let mut buf = OsString::from(if cfg!(target_os = "macos") {
-                "libdoorstop.dylib"
-            } else {
-                "libdoorstop.so"
-            });
-            if !base.is_empty() {
-                buf.push(":");
-                buf.push(base);
-            }
+        debug!(log, "Injecting {VAR} {buf:?}");
 
-            command.env(var, buf);
-        }
+        command.env(VAR, buf);
     }
 
     Ok(())

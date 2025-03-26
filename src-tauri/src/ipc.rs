@@ -6,6 +6,7 @@ use std::ffi::OsString;
 use anyhow::{bail, Context as _, Result};
 use ipc_channel::ipc::{IpcError, IpcOneShotServer, IpcReceiver, IpcSender};
 use slog::error;
+use smol_str::SmolStr;
 use tauri::ipc::Channel;
 use tauri::{AppHandle, Manager};
 use uuid::Uuid;
@@ -111,6 +112,7 @@ pub enum C2SMessage {
     },
     Log {
         level: LogLevel,
+        scope: SmolStr,
         message: String,
     },
     Output {

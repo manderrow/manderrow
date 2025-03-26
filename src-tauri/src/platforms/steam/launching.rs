@@ -102,22 +102,23 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
     Ok(())
 }
 
-pub fn generate_launch_options() -> Result<String> {
+pub fn generate_launch_options(game: &str) -> Result<String> {
     let bin = std::env::current_exe()
         .unwrap()
         .into_os_string()
         .into_string()
         .map_err(|s| anyhow!("Non-Unicode executable name: {s:?}"))?;
-    Ok(format!("{bin:?} wrap %command%"))
+    Ok(format!("{bin:?} wrap %command% ; --game {game:?} ;"))
 }
 
 pub async fn ensure_launch_args_are_applied(
     log: &slog::Logger,
     mut comms: Option<Spc<'_>>,
+    game: &str,
     game_id: &str,
 ) -> Result<(), crate::Error> {
     loop {
-        let result = apply_launch_args(game_id, true, true).await?;
+        let result = apply_launch_args(game, game_id, true, true).await?;
         if matches!(
             result,
             AppliedLaunchArgs::Applied | AppliedLaunchArgs::Overwrote
@@ -157,7 +158,7 @@ pub async fn ensure_launch_args_are_applied(
                             description: Some(
                                 [(
                                     "launch_options".to_owned(),
-                                    serde_json::Value::from(generate_launch_options()?),
+                                    serde_json::Value::from(generate_launch_options(game)?),
                                 )]
                                 .into(),
                             ),
@@ -175,6 +176,7 @@ pub async fn ensure_launch_args_are_applied(
                 Fix::Apply => {
                     kill_steam(log).await?;
                     apply_launch_args(
+                        game,
                         game_id,
                         matches!(result, AppliedLaunchArgs::Overwrote),
                         false,
@@ -216,6 +218,7 @@ impl BitOrAssign for AppliedLaunchArgs {
 ///
 /// Returns `true` if a change was made, or would be made if this is a dry run.
 async fn apply_launch_args(
+    game: &str,
     game_id: &str,
     overwrite_ok: bool,
     dry_run: bool,
@@ -225,7 +228,7 @@ async fn apply_launch_args(
 
     let mut result = AppliedLaunchArgs::Unchanged;
 
-    let launch_options_str = generate_launch_options()?;
+    let launch_options_str = generate_launch_options(game)?;
 
     let mut iter = tokio::fs::read_dir(&path).await?;
     while let Some(e) = iter.next_entry().await? {

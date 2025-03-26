@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 use std::ffi::OsString;
+use std::ops::ControlFlow;
 use std::panic::AssertUnwindSafe;
+use std::path::PathBuf;
 
 use anyhow::{anyhow, bail, ensure, Context as _, Result};
 use ipc_channel::ipc::IpcSender;
@@ -10,7 +12,7 @@ use slog::{debug, info};
 use tokio::{io::AsyncBufReadExt as _, process::Command};
 use uuid::Uuid;
 
-use crate::ipc::{C2SMessage, Ipc, OutputLine, S2CMessage};
+use crate::ipc::{C2SMessage, Ipc, LogLevel, OutputLine, S2CMessage};
 
 async fn send_ipc(
     log: &slog::Logger,
@@ -51,22 +53,22 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
         let mut command_args = args.raw_args()?.collect::<Vec<_>>();
 
         let mut args = Vec::new();
-        if let Some(j) = command_args.iter().rposition(|s| s == ";") {
+        while let Some(j) = command_args.iter().rposition(|s| s == ";") {
             if let Some(i) = command_args[..j].iter().rposition(|s| s == ";") {
                 let range = i..(j + 1);
                 // exclude the two ";" delimiters
                 let len = range.len() - 2;
                 args.extend(command_args.drain(range).skip(1).take(len));
             } else {
-                bail!("Only found one argument delimiter");
+                bail!("Found an odd number of argument delimiters");
             }
         }
 
         // TODO: use lexopt to parse `args`
-        let mut ipc = if args.first().map(|s| s == "--c2s-tx").unwrap_or(false) {
-            args.remove(0);
+        let mut ipc = if let Some(i) = args.iter().position(|s| s == "--c2s-tx") {
+            args.remove(i);
             let c2s_tx = IpcSender::<C2SMessage>::connect(
-                args.remove(0)
+                args.remove(i)
                     .into_string()
                     .map_err(|e| anyhow!("Invalid value for option --c2s-tx: {e:?}"))?,
             )?;
@@ -102,6 +104,7 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
                     _ = tokio::task::block_in_place(|| {
                         self.c2s_tx.lock().send(C2SMessage::Log {
                             level: record.level().into(),
+                            scope: "manderrow_wrap".into(),
                             message: record.msg().to_string(),
                         })
                     });
@@ -148,14 +151,16 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
 
         let mut parsed_args = lexopt::Parser::from_args(args.iter().cloned());
 
+        let mut game = None::<String>;
         let mut profile = None::<Uuid>;
         let mut loader = None::<OsString>;
-        let mut wrapper_stage2_path = None::<OsString>;
+        let mut wrapper_stage2_path = None::<PathBuf>;
+        let mut doorstop_path = None::<PathBuf>;
 
         while let Some(arg) = parsed_args.next()? {
             match arg {
                 Long("c2s-tx") => {
-                    bail!("--c2s-tx must be the first argument to the wrapper");
+                    // handled already
                 }
                 Long("profile") => {
                     if profile.is_some() {
@@ -167,6 +172,17 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
                             .into_string()
                             .map_err(|s| anyhow!("Invalid profile id: {s:?}"))?
                             .parse::<Uuid>()?,
+                    );
+                }
+                Long("game") => {
+                    if game.is_some() {
+                        bail!("--game specified twice");
+                    }
+                    game = Some(
+                        parsed_args
+                            .value()?
+                            .into_string()
+                            .map_err(|s| anyhow!("Invalid game: {s:?}"))?,
                     );
                 }
                 Long("loader") => {
@@ -181,6 +197,12 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
                     }
                     wrapper_stage2_path = Some(parsed_args.value()?.into());
                 }
+                Long("doorstop-path") => {
+                    if doorstop_path.is_some() {
+                        bail!("--doorstop-path specified twice");
+                    }
+                    doorstop_path = Some(parsed_args.value()?.into());
+                }
                 _ => {
                     return Err(anyhow::Error::from(arg.unexpected())
                         .context(format!("Failed to parse arguments {args:?}")))
@@ -188,7 +210,18 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
             }
         }
 
-        let profile = profile.context("Missing required option --profile")?;
+        let game = game.context("Missing required option --game")?;
+
+        if let Some(id) = profile {
+            let profile = crate::profiles::read_profile(id).await?;
+            if profile.game != game {
+                bail!(
+                    "Specified profile is for the game {:?}, but you are attempting to launch {:?}",
+                    profile.game,
+                    game
+                );
+            }
+        }
 
         let mut env = HashMap::default();
         match loader {
@@ -210,6 +243,10 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
                         self.args
                             .extend(args.into_iter().map(|s| s.as_ref().to_owned()))
                     }
+
+                    fn arg(&mut self, arg: impl AsRef<std::ffi::OsStr>) {
+                        self.args.push(arg.as_ref().to_owned())
+                    }
                 }
                 crate::launching::bep_in_ex::configure_command(
                     &log,
@@ -217,7 +254,9 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
                         env: &mut env,
                         args: &mut command_args,
                     },
+                    &game,
                     profile,
+                    doorstop_path,
                 )
                 .await?;
             }
@@ -240,10 +279,12 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
             command_args.insert(
                 i,
                 match wrapper_stage2_path {
-                    Some(t) => t,
-                    None => std::env::current_exe()?
-                        .with_file_name("manderrow-wrapper-stage2")
-                        .into_os_string(),
+                    Some(t) => t.into(),
+                    None => {
+                        let mut buf = std::env::current_exe()?;
+                        buf.set_file_name("manderrow-wrapper-stage2");
+                        buf.into_os_string()
+                    }
                 },
             );
 
@@ -285,7 +326,7 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
         };
 
         let tasks = if let Some(ref mut ipc) = ipc {
-            fn spawn_task(
+            fn spawn_output_pipe_task<const TRY_PARSE_LOGS: bool>(
                 c2s_tx: &IpcSender<C2SMessage>,
                 rdr: impl tokio::io::AsyncRead + Unpin + Send + 'static,
                 channel: crate::ipc::StandardOutputChannel,
@@ -301,6 +342,15 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
                         }
                         if matches!(buf.last(), Some(b'\n')) {
                             buf.pop();
+                            if matches!(buf.last(), Some(b'\r')) {
+                                buf.pop();
+                            }
+                        }
+                        if TRY_PARSE_LOGS {
+                            if let ControlFlow::Break(()) = try_handle_log_record(&c2s_tx, &buf) {
+                                buf.clear();
+                                continue;
+                            }
                         }
                         let line = OutputLine::new(std::mem::take(&mut buf));
                         let c2s_tx = &c2s_tx;
@@ -311,12 +361,12 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
                 })
             }
             Some((
-                spawn_task(
+                spawn_output_pipe_task::<false>(
                     &ipc.c2s_tx,
                     child.stdout.take().unwrap(),
                     crate::ipc::StandardOutputChannel::Out,
                 ),
-                spawn_task(
+                spawn_output_pipe_task::<true>(
                     &ipc.c2s_tx,
                     child.stderr.take().unwrap(),
                     crate::ipc::StandardOutputChannel::Err,
@@ -353,4 +403,37 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
             Err(e)
         }
     }
+}
+
+fn try_handle_log_record(c2s_tx: &IpcSender<C2SMessage>, buf: &[u8]) -> ControlFlow<()> {
+    if let Some((level, rem)) = buf.split_once(|b| *b == b' ') {
+        if let Some((scope, msg)) = rem.split_once(|b| *b == b' ') {
+            let level = match level {
+                b"fatal" => Some(LogLevel::Critical),
+                b"err" => Some(LogLevel::Error),
+                b"warn" => Some(LogLevel::Warning),
+                b"msg" | b"info" => Some(LogLevel::Info),
+                b"debug" => Some(LogLevel::Debug),
+                _ => None,
+            };
+            if let Some(level) = level {
+                if let Ok(scope) = std::str::from_utf8(scope) {
+                    if scope.chars().all(|c| c.is_ascii_graphic()) {
+                        if let Ok(msg) = std::str::from_utf8(msg) {
+                            let c2s_tx = c2s_tx;
+                            _ = tokio::task::block_in_place(move || {
+                                c2s_tx.send(C2SMessage::Log {
+                                    level,
+                                    scope: scope.into(),
+                                    message: msg.to_owned(),
+                                })
+                            });
+                            return ControlFlow::Break(());
+                        }
+                    }
+                }
+            }
+        }
+    }
+    ControlFlow::Continue(())
 }

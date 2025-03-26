@@ -37,7 +37,8 @@ export type C2SMessage =
     }
   | {
       Log: {
-        level: "Error" | "Warn" | "Info" | "Debug" | "Trace";
+        level: "Critical" | "Error" | "Warn" | "Info" | "Debug" | "Trace";
+        scope: string;
         message: string;
       };
     }

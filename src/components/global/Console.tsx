@@ -75,7 +75,7 @@ export default function Console({ channel }: { channel: Accessor<Channel<C2SMess
                 <p>
                   <span class={styles.event__type}>
                     <Switch>
-                      <Match when={event.Output.channel === "Out"}>[LOG]</Match>
+                      <Match when={event.Output.channel === "Out"}>[OUT]</Match>
                       <Match when={event.Output.channel === "Err"}>[ERR]</Match>
                     </Switch>
                   </span>{" "}
@@ -85,7 +85,7 @@ export default function Console({ channel }: { channel: Accessor<Channel<C2SMess
             } else if ("Log" in event) {
               return (
                 <p>
-                  <span class={styles.event__type}>[{event.Log.level}]</span> <span>{event.Log.message}</span>
+                  <span class={styles.event__type}>[{event.Log.level}]</span> <span>{event.Log.scope}</span>: <span>{event.Log.message}</span>
                 </p>
               );
             } else if ("Connect" in event) {
