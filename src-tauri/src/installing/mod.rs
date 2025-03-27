@@ -620,12 +620,12 @@ pub async fn fetch_resource_cached_by_hash(
                         hsr.update_mmap(&path)?;
                         hsr.finalize()
                     };
-                    debug!(log, "Cached zip at {path:?}");
+                    debug!(log, "Cached resource at {path:?}");
                     if hash_on_disk != hash {
-                        bail!("Hash of downloaded zip does not match hash provided to install_zip: expected {hash}, found {hash_on_disk}");
+                        bail!("Bad hash of downloaded resource: expected {hash}, found {hash_on_disk}");
                     }
                 } else {
-                    debug!(log, "Zip is cached at {path:?}");
+                    debug!(log, "Resource is cached at {path:?}");
                     let metadata = tokio::fs::metadata(&path).await?;
                     report_progress_from_file_metadata(app, handle, metadata)?;
                 }
@@ -676,7 +676,7 @@ pub async fn fetch_resource_cached_by_url(
             path.as_mut_os_string().push(suffix);
             match tokio::fs::metadata(&path).await {
                 Ok(metadata) => {
-                    debug!(log, "Zip is cached at {path:?}");
+                    debug!(log, "Resource is cached at {path:?}");
                     report_progress_from_file_metadata(app, handle, metadata)?;
                 }
                 Err(e) if e.is_not_found() => {
@@ -718,7 +718,7 @@ pub async fn fetch_resource_cached_by_url(
                         .await
                         .context("Failed to move temp file into place")?;
 
-                    debug!(log, "Cached zip at {path:?}");
+                    debug!(log, "Cached resource at {path:?}");
                 }
                 Err(e) => return Err(e.into()),
             }
