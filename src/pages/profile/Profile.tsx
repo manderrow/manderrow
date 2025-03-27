@@ -78,7 +78,7 @@ export default function Profile() {
     try {
       clearConsole();
       if (settings().openConsoleOnLaunch.value && searchParams["profile-tab"] !== "logs") {
-        `?profile-tab=logs`;
+        setSearchParams({ "profile-tab": "logs" });
       }
       const channel = createC2SChannel();
       setConsoleChannel(channel);
