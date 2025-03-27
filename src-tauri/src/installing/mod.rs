@@ -492,7 +492,7 @@ impl<'a> CacheOptions<'a> {
 
 pub enum FetchedResource {
     File(PathBuf),
-    Bytes(Bytes),
+    Bytes(BytesMut),
 }
 
 pub async fn fetch_resource<'a>(
@@ -528,7 +528,7 @@ pub async fn fetch_resource_uncached<'a>(
     reqwest: &Reqwest,
     url: &str,
     task_id: Option<tasks::Id>,
-) -> Result<Bytes> {
+) -> Result<BytesMut> {
     TaskBuilder::with_id(task_id.unwrap_or_else(tasks::allocate_task), url.to_owned())
         .kind(tasks::Kind::Download)
         .progress_unit(tasks::ProgressUnit::Bytes)
@@ -566,7 +566,7 @@ pub async fn fetch_resource_uncached<'a>(
                 bytes
             };
 
-            Ok::<_, anyhow::Error>(bytes.into())
+            Ok::<_, anyhow::Error>(bytes)
         })
         .await
         .map_err(Into::into)
@@ -735,9 +735,11 @@ pub async fn fetch_resource_as_bytes<'a>(
     url: &str,
     cache: Option<CacheOptions<'_>>,
     task_id: Option<tasks::Id>,
-) -> Result<Bytes> {
+) -> Result<BytesMut> {
     match fetch_resource(app, log, reqwest, url, cache, task_id).await? {
-        FetchedResource::File(path_buf) => Ok(tokio::fs::read(&path_buf).await?.into()),
+        FetchedResource::File(path_buf) => {
+            Ok(Bytes::from(tokio::fs::read(&path_buf).await?).into())
+        }
         FetchedResource::Bytes(bytes) => Ok(bytes),
     }
 }

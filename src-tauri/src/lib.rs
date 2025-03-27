@@ -22,9 +22,9 @@ mod launching;
 mod mod_index;
 mod mods;
 mod paths;
-mod stores;
 mod profiles;
 mod settings;
+mod stores;
 mod tasks;
 mod util;
 mod window_state;
@@ -109,6 +109,7 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
             mod_index::commands::count_mod_index,
             mod_index::commands::query_mod_index,
             mod_index::commands::get_from_mod_index,
+            mod_index::thunderstore::commands::thunderstore_fetch_mod_markdown,
             profiles::commands::get_profiles,
             profiles::commands::create_profile,
             profiles::commands::delete_profile,

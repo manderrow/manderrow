@@ -1,5 +1,6 @@
 pub mod commands;
 mod memory;
+pub mod thunderstore;
 
 use std::collections::{HashMap, HashSet};
 use std::sync::LazyLock;

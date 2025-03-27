@@ -31,6 +31,7 @@ import Markdown from "../global/Markdown";
 import TabRenderer, { Tab, TabContent } from "../global/TabRenderer";
 
 import styles from "./ModList.module.css";
+import { fetchModMarkdown } from "../../api/mod_index/thunderstore";
 
 export type Fetcher = (page: number) => Promise<readonly Mod[]>;
 
@@ -94,7 +95,7 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
   const [selectedVersion, setSelectedVersion] = createSignal<[string, number]>();
 
   const modData = () => ({ mod: mod(), selectedVersion: selectedVersion() });
-  function onModSelect(endpoint: string) {
+  function modEndpointMarkdownFetcher(endpoint: "readme" | "changelog") {
     return async ({ mod, selectedVersion }: { mod?: Mod; selectedVersion?: [string, number] }) => {
       if (mod == null) return undefined;
 
@@ -102,26 +103,23 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
       const version =
         "version" in mod ? mod.version.version_number : selectedVersion?.[0] ?? mod.versions[0].version_number;
 
-      const request = await fetch(
-        `https://thunderstore.io/api/experimental/package/${mod.owner}/${mod.name}/${version}/${endpoint}/`,
-      );
-      return (await request.json()) as { markdown: string | null };
+      return await fetchModMarkdown(mod.owner, mod.name, version, endpoint, (_) => {});
     };
   }
 
-  const [modReadme] = createResource(modData, onModSelect("readme"));
-  const [modChangelog] = createResource(modData, onModSelect("changelog"));
+  const [modReadme] = createResource(modData, modEndpointMarkdownFetcher("readme"));
+  const [modChangelog] = createResource(modData, modEndpointMarkdownFetcher("changelog"));
 
   function MarkdownNullMessage({
     resource,
-    fallbackText,
+    label,
   }: {
     resource: Resource<{ markdown: string | null } | undefined>;
-    fallbackText: string;
+    label: string;
   }) {
     return (
       <Show
-        when={modReadme.state !== "errored" ? resource() : undefined}
+        when={!resource.loading && resource.state !== "errored" ? resource() : undefined}
         fallback={
           <Show when={resource.error} fallback={<p>Loading</p>}>
             {(error) => <p>{error().toString()}</p>}
@@ -129,7 +127,7 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
         }
       >
         {(resource) => (
-          <Show when={resource().markdown} fallback={<p>{fallbackText}</p>}>
+          <Show when={resource().markdown} fallback={<p>No {label} provided.</p>}>
             {(markdown) => <Markdown source={markdown()} div={{ class: "markdown" }} />}
           </Show>
         )}
@@ -141,7 +139,7 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
     {
       id: "overview",
       name: "Overview",
-      component: <MarkdownNullMessage resource={modReadme} fallbackText="No README provided." />,
+      component: <MarkdownNullMessage resource={modReadme} label="README" />,
     },
     {
       id: "dependencies",
@@ -157,7 +155,7 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
     {
       id: "changelog",
       name: "Changelog",
-      component: <MarkdownNullMessage resource={modChangelog} fallbackText="No changelog provided." />,
+      component: <MarkdownNullMessage resource={modChangelog} label="changelog" />,
     },
   ];
 

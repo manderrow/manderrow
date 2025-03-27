@@ -8,9 +8,9 @@ use uuid::Uuid;
 
 use crate::games::games_by_id;
 use crate::installing::{fetch_resource_cached_by_hash, install_file, install_zip};
+use crate::profiles::{profile_path, MODS_FOLDER};
 use crate::stores::steam::paths::resolve_steam_app_install_directory;
 use crate::stores::steam::proton::{ensure_wine_will_load_dll_override, uses_proton};
-use crate::profiles::{profile_path, MODS_FOLDER};
 use crate::Reqwest;
 
 pub trait CommandBuilder {
