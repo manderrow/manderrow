@@ -97,7 +97,7 @@ pub async fn launch_profile(
                 .find_map(|m| m.steam_or_direct())
                 .context("Unsupported store platform")?;
 
-            crate::platforms::steam::launching::ensure_launch_args_are_applied(
+            crate::stores::steam::launching::ensure_launch_args_are_applied(
                 &log,
                 Some(ipc_state.spc(channel.clone())),
                 game.id,
@@ -109,7 +109,7 @@ pub async fn launch_profile(
                 #[cfg(windows)]
                 {
                     let mut p =
-                        crate::platforms::steam::paths::get_steam_install_path_from_registry()?;
+                        crate::stores::steam::paths::get_steam_install_path_from_registry()?;
                     p.push("steam.exe");
                     Command::new(p)
                 }
