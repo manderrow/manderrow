@@ -582,57 +582,57 @@ pub async fn fetch_resource_cached_by_hash(
     task_id: Option<tasks::Id>,
 ) -> Result<PathBuf> {
     TaskBuilder::with_id(task_id.unwrap_or_else(tasks::allocate_task), url.to_owned())
-            .kind(tasks::Kind::Download)
-            .progress_unit(tasks::ProgressUnit::Bytes)
-            .run_with_handle(app, |handle| async move {
-                debug!(log, "Fetching resource from {url:?} cached by hash");
+        .kind(tasks::Kind::Download)
+        .progress_unit(tasks::ProgressUnit::Bytes)
+        .run_with_handle(app, |handle| async move {
+            debug!(log, "Fetching resource from {url:?} cached by hash");
 
-                let mut path = cache_dir().join(hash_str);
-                path.as_mut_os_string().push(suffix);
-                let hash = blake3::Hash::from_hex(hash_str)?;
+            let mut path = cache_dir().join(hash_str);
+            path.as_mut_os_string().push(suffix);
+            let hash = blake3::Hash::from_hex(hash_str)?;
+            let hash_on_disk = {
+                let mut hsr = blake3::Hasher::new();
+                match hsr.update_mmap(&path) {
+                    Ok(_) => Some(hsr.finalize()),
+                    Err(e) if e.is_not_found() => None,
+                    Err(e) => return Err(e.into()),
+                }
+            };
+            if hash_on_disk.map(|h| h != hash).unwrap_or(true) {
+                let mut resp = reqwest.get(url).send().await?.error_for_status()?;
+                tokio::fs::create_dir_all(cache_dir()).await?;
+                // TODO: should this be buffered?
+                let mut wtr = tokio::fs::File::create(&path).await?;
+                let mut written = 0u64;
+                let len = resp.content_length();
+                if let (Some(app), Some(total)) = (app, len) {
+                    handle.send_progress_manually(app, written, total)?;
+                }
+                while let Some(chunk) = resp.chunk().await? {
+                    wtr.write_all(&chunk).await?;
+                    if let Some(app) = app {
+                        written += chunk.len().as_u64();
+                        handle.send_progress_manually(app, written, len.unwrap_or(0))?;
+                    }
+                }
                 let hash_on_disk = {
                     let mut hsr = blake3::Hasher::new();
-                    match hsr.update_mmap(&path) {
-                        Ok(_) => Some(hsr.finalize()),
-                        Err(e) if e.is_not_found() => None,
-                        Err(e) => return Err(e.into()),
-                    }
+                    hsr.update_mmap(&path)?;
+                    hsr.finalize()
                 };
-                if hash_on_disk.map(|h| h != hash).unwrap_or(true) {
-                    let mut resp = reqwest.get(url).send().await?.error_for_status()?;
-                    tokio::fs::create_dir_all(cache_dir()).await?;
-                    // TODO: should this be buffered?
-                    let mut wtr = tokio::fs::File::create(&path).await?;
-                    let mut written = 0u64;
-                    let len = resp.content_length();
-                    if let (Some(app), Some(total)) = (app, len) {
-                        handle.send_progress_manually(app, written, total)?;
-                    }
-                    while let Some(chunk) = resp.chunk().await? {
-                        wtr.write_all(&chunk).await?;
-                        if let Some(app) = app {
-                            written += chunk.len().as_u64();
-                            handle.send_progress_manually(app, written, len.unwrap_or(0))?;
-                        }
-                    }
-                    let hash_on_disk = {
-                        let mut hsr = blake3::Hasher::new();
-                        hsr.update_mmap(&path)?;
-                        hsr.finalize()
-                    };
-                    debug!(log, "Cached resource at {path:?}");
-                    if hash_on_disk != hash {
-                        bail!("Bad hash of downloaded resource: expected {hash}, found {hash_on_disk}");
-                    }
-                } else {
-                    debug!(log, "Resource is cached at {path:?}");
-                    let metadata = tokio::fs::metadata(&path).await?;
-                    report_progress_from_file_metadata(app, handle, metadata)?;
+                debug!(log, "Cached resource at {path:?}");
+                if hash_on_disk != hash {
+                    bail!("Bad hash of downloaded resource: expected {hash}, found {hash_on_disk}");
                 }
-                Ok::<_, anyhow::Error>(path)
-            })
-            .await
-            .map_err(Into::into)
+            } else {
+                debug!(log, "Resource is cached at {path:?}");
+                let metadata = tokio::fs::metadata(&path).await?;
+                report_progress_from_file_metadata(app, handle, metadata)?;
+            }
+            Ok::<_, anyhow::Error>(path)
+        })
+        .await
+        .map_err(Into::into)
 }
 
 fn report_progress_from_file_metadata(
