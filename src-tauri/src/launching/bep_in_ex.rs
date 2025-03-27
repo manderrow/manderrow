@@ -25,7 +25,7 @@ fn get_url_and_hash(uses_proton: bool) -> Result<(&'static str, &'static str)> {
     macro_rules! artifact {
         ($target:literal, $hash:literal) => {
             (concat!(
-                "https://github.com/mpfaff/BepInEx/releases/download/v5.4.23.2%2Bbuild.16/BepInEx_",
+                "https://github.com/manderrow/BepInEx/releases/download/v5.4.23.2%2Bbuild.16/BepInEx_",
                 $target,
                 "_5.4.23.2.zip"
             ), $hash)
@@ -48,7 +48,7 @@ fn get_doorstop_url_and_hash(
     macro_rules! doorstop_artifact {
         ($artifact:literal, $suffix:literal, $hash:literal) => {
             (concat!(
-                "https://github.com/mpfaff/UnityDoorstop/releases/download/v4.3.0%2Bmanderrow.2/",
+                "https://github.com/manderrow/UnityDoorstop/releases/download/v4.3.0%2Bmanderrow.2/",
                 $artifact,
                 $suffix
             ), $hash, $suffix)
