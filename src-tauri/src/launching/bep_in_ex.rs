@@ -56,10 +56,10 @@ fn get_doorstop_url_and_hash(
     }
 
     Ok(match (std::env::consts::OS, std::env::consts::ARCH, uses_proton) {
-        ("linux", "x86_64", false) => doorstop_artifact!("libUnityDoorstop", ".so", "c0f99773e268210707672cb08ff420795132310f9f52514a0bb70053c14d2d93"),
+        ("linux", "x86_64", false) => doorstop_artifact!("libUnityDoorstop", ".so", "a317dd1b96a3537ad5cf09a322af9d5090d100e0cb8b484cddafa4fc16035245"),
         ("linux", "x86", false) => todo!(),
-        ("macos", "x86_64", false) => doorstop_artifact!("libUnityDoorstop", ".dylib", "777392a650b611acc03f374b1885377e18fefec456d0f1bddb1c0878d5380a49"),
-        ("linux", "x86_64", true) | ("windows", "x86_64", false) => doorstop_artifact!("UnityDoorstop", ".dll", "c375b961953c0cae1b3017bb151bb14e9c2f255ea0246e195f53dc75332715e4"),
+        ("macos", "x86_64", false) => doorstop_artifact!("libUnityDoorstop", ".dylib", "c36f3802db74b2d5cf3211e4251d33bd7e2df118941c59073a4a6372ccec838f"),
+        ("linux", "x86_64", true) | ("windows", "x86_64", false) => doorstop_artifact!("UnityDoorstop", ".dll", "ff121c3cea9f9d50e9119ebc828ffc1e5aac741ef5649477f0d53108f5b23a4e"),
         ("linux", "x86", true) | ("windows", "x86", false) => todo!(),
         (os, arch, uses_proton) => bail!("Unsupported platform combo: (os: {os:?}, arch: {arch:?}, uses_proton: {uses_proton})"),
     })
