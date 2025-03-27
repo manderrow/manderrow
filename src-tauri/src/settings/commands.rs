@@ -30,6 +30,6 @@ pub async fn update_settings(
     let settings = settings.as_ref().unwrap();
     app.emit(EVENT, settings.defaulted())
         .map_err(anyhow::Error::from)?;
-    super::write(settings)?;
+    super::write(settings).await?;
     Ok(())
 }

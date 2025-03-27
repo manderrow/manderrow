@@ -1,4 +1,4 @@
-import { createUniqueId, For, Match, Show, Switch } from "solid-js";
+import { createUniqueId, For, Match, Switch, useContext } from "solid-js";
 import { DefaultDialog, DismissCallback } from "./Dialog";
 
 import styles from "./SettingsDialog.module.css";
@@ -9,12 +9,13 @@ import { t } from "../../i18n/i18n";
 import { GameSelectSetting, Setting, TextSetting, ToggleSetting } from "../../api/settings/ui";
 import SelectDropdown from "./SelectDropdown";
 import { games } from "../../globals";
+import ErrorBoundary, { ErrorContext, ReportErrFn } from "./ErrorBoundary";
 
 export default function SettingsDialog(props: { onDismiss: DismissCallback }) {
   const idPrefix = createUniqueId();
 
   return (
-    <>
+    <ErrorBoundary>
       <DefaultDialog onDismiss={props.onDismiss}>
         <div class={styles.settings}>
           <div class={styles.header}>
@@ -60,7 +61,7 @@ export default function SettingsDialog(props: { onDismiss: DismissCallback }) {
           </For>
         </div>
       </DefaultDialog>
-    </>
+    </ErrorBoundary>
   );
 }
 
@@ -68,9 +69,17 @@ function overrideSetting<S extends Setting>(setting: S, override: SettingType<S>
   return updateSettings({ [setting.key]: { override } });
 }
 
-function onChange<S extends Setting>(setting: S, mutator: (e: HTMLInputElement) => Settings[S["key"]]["value"]) {
+function onChange<S extends Setting>(
+  reportErr: ReportErrFn,
+  setting: S,
+  mutator: (e: HTMLInputElement) => Settings[S["key"]]["value"],
+) {
   return ((e: InputEvent) => {
-    overrideSetting(setting, mutator(e.target as HTMLInputElement));
+    try {
+      overrideSetting(setting, mutator(e.target as HTMLInputElement));
+    } catch (e) {
+      reportErr(e);
+    }
   }) as (e: Event) => void;
 }
 
@@ -87,31 +96,38 @@ function get<S extends Setting>(setting: S): SettingType<S> {
 }
 
 function ToggleInput(props: { idPrefix: string; setting: ToggleSetting }) {
+  const reportErr = useContext(ErrorContext);
   return (
     <input
       type="checkbox"
       id={`${props.idPrefix}_${props.setting.key}`}
       checked={get(props.setting)}
-      on:change={onChange(props.setting, (e) => e.checked)}
+      on:change={onChange(reportErr, props.setting, (e) => e.checked)}
     />
   );
 }
 
 function TextInput(props: { idPrefix: string; setting: TextSetting }) {
+  const reportErr = useContext(ErrorContext);
   return (
     <input
       type="text"
       id={`${props.idPrefix}_${props.setting.key}`}
       value={get(props.setting)}
-      on:change={onChange(props.setting, (e) => e.value)}
+      on:change={onChange(reportErr, props.setting, (e) => e.value)}
     />
   );
 }
 
 function GameSelectInput(props: { idPrefix: string; setting: GameSelectSetting }) {
+  const reportErr = useContext(ErrorContext);
   function onChanged(value: string, selected: boolean) {
     if (selected) {
-      overrideSetting(props.setting, value);
+      try {
+        overrideSetting(props.setting, value);
+      } catch (e) {
+        reportErr(e);
+      }
     }
   }
   return (

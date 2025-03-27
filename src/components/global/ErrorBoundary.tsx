@@ -5,7 +5,9 @@ import { AbortedError, NativeError } from "../../api";
 import styles from "./ErrorBoundary.module.css";
 import { AsyncButton } from "./AsyncButton";
 
-export const ErrorContext = createContext<(err: unknown) => void>(
+export type ReportErrFn = (err: unknown) => void;
+
+export const ErrorContext = createContext<ReportErrFn>(
   (e) => {
     // rethrow
     throw e;
@@ -13,7 +15,7 @@ export const ErrorContext = createContext<(err: unknown) => void>(
   { name: "Error" },
 );
 
-export default function ErrorBoundary(props: { children: JSX.Element }) {
+export default function ErrorBoundary(props: { children: JSX.Element | ((ctx: ReportErrFn) => JSX.Element) }) {
   const [error, setError] = createSignal<unknown>();
   function onError(e: unknown) {
     if (e instanceof AbortedError) return;
@@ -22,7 +24,17 @@ export default function ErrorBoundary(props: { children: JSX.Element }) {
   }
   return (
     <ErrorContext.Provider value={onError}>
-      <Show when={error()} fallback={catchError(() => props.children, onError)}>
+      <Show
+        when={error()}
+        fallback={catchError(() => {
+          const children = props.children;
+          if (typeof children === "function") {
+            return children(onError);
+          } else {
+            return children;
+          }
+        }, onError)}
+      >
         {(err) => <Error err={err()} reset={() => setError(undefined)} />}
       </Show>
     </ErrorContext.Provider>

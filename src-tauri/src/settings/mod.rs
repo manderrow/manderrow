@@ -4,6 +4,7 @@
 //! them to disk.
 
 use std::path::PathBuf;
+use std::sync::LazyLock;
 
 use tauri::State;
 use tokio::sync::RwLock;
@@ -35,25 +36,32 @@ fn read() -> anyhow::Result<Option<Settings>> {
     }))
 }
 
-fn write(
+async fn write(
     &Settings {
         ref default_game,
         open_console_on_launch,
     }: &Settings,
 ) -> anyhow::Result<()> {
-    let file = std::fs::File::create(get_path())?;
-    simd_json::to_writer(
-        file,
-        &SettingsOnDisk {
-            default_game: default_game.clone(),
-            open_console_on_launch,
-        },
-    )?;
+    let settings = SettingsOnDisk {
+        default_game: default_game.clone(),
+        open_console_on_launch,
+    };
+    tokio::task::spawn_blocking(move || {
+        let path = get_path();
+        std::fs::create_dir_all(path.parent().unwrap())?;
+        let file = std::fs::File::create(path)?;
+        simd_json::to_writer(file, &settings)?;
+        Ok::<_, anyhow::Error>(())
+    })
+    .await??;
     Ok(())
 }
 
-fn get_path() -> PathBuf {
-    config_dir().join(format!("{}.json", product_name()))
+static PATH: LazyLock<PathBuf> =
+    LazyLock::new(|| config_dir().join(format!("{}.json", product_name())));
+
+fn get_path() -> &'static PathBuf {
+    &*PATH
 }
 
 pub fn try_read() -> SettingsStateInner {
