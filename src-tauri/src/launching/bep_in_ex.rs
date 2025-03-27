@@ -109,18 +109,9 @@ pub async fn configure_command(
 
     let temp_dir = tempdir()?.into_path();
 
-    command.env(
-        "BEPINEX_CONFIGS",
-        profile_path.join("config"),
-    );
-    command.env(
-        "BEPINEX_PLUGINS",
-        profile_path.join(MODS_FOLDER),
-    );
-    command.env(
-        "BEPINEX_PATCHER_PLUGINS",
-        profile_path.join("patchers"),
-    );
+    command.env("BEPINEX_CONFIGS", profile_path.join("config"));
+    command.env("BEPINEX_PLUGINS", profile_path.join(MODS_FOLDER));
+    command.env("BEPINEX_PATCHER_PLUGINS", profile_path.join("patchers"));
     // TODO: should this point to a "persistent" cache directory, and should it be per-profile or shared?
     command.env("BEPINEX_CACHE", temp_dir.join("cache"));
     // enables the logging we expect from our fork of BepInEx
