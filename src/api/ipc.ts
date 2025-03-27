@@ -1,10 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { wrapInvoke } from "../api";
 
-export type SafeOsString =
-  | { Unicode: string }
-  | { NonUnicodeBytes: number[] }
-  | { NonUnicodeWide: number[] };
+export type SafeOsString = { Unicode: string } | { NonUnicodeBytes: number[] } | { NonUnicodeWide: number[] };
 
 export interface DoctorReport {
   id: string;
@@ -68,12 +65,14 @@ export type C2SMessage =
       DoctorReport: DoctorReport;
     };
 
-export type S2CMessage = {
-  PatientResponse: {
-    id: string;
-    choice: string;
-  };
-};
+export type S2CMessage =
+  | {
+      PatientResponse: {
+        id: string;
+        choice: string;
+      };
+    }
+  | "Kill";
 
 export async function sendS2CMessage(msg: S2CMessage) {
   return await wrapInvoke<void>(() => invoke("send_s2c_message", { msg }));

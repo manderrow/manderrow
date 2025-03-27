@@ -9,6 +9,7 @@ use slog::error;
 use smol_str::SmolStr;
 use tauri::ipc::Channel;
 use tauri::{AppHandle, Manager};
+use triomphe::Arc;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
@@ -132,16 +133,24 @@ pub enum C2SMessage {
 pub enum S2CMessage {
     Connect,
     PatientResponse { id: Uuid, choice: String },
+    Kill,
 }
 
-#[derive(Default)]
 pub struct IpcState {
-    pub s2c_tx: tokio::sync::RwLock<Option<tokio::sync::mpsc::Sender<S2CMessage>>>,
+    pub s2c_tx: flume::Sender<S2CMessage>,
+    pub s2c_rx: flume::Receiver<S2CMessage>,
+}
+
+impl Default for IpcState {
+    fn default() -> Self {
+        let (s2c_tx, s2c_rx) = flume::bounded(1);
+        Self { s2c_tx, s2c_rx }
+    }
 }
 
 impl IpcState {
-    pub fn spc<'a>(&'a self, channel: Channel<C2SMessage>) -> Spc<'a> {
-        Spc {
+    pub fn bi<'a>(&'a self, channel: &'a Channel<C2SMessage>) -> IpcBiState<'a> {
+        IpcBiState {
             ipc_state: self,
             c2s_tx: channel,
         }
@@ -210,8 +219,7 @@ pub fn spawn_c2s_pipe(
 }
 
 fn spawn_s2c_pipe(log: slog::Logger, app_handle: &AppHandle, s2c_tx: String) -> anyhow::Result<()> {
-    let (cmd_s2c_tx, mut cmd_s2c_rx) = tokio::sync::mpsc::channel(1);
-    *app_handle.state::<IpcState>().s2c_tx.blocking_write() = Some(cmd_s2c_tx);
+    let s2c_rx = app_handle.state::<IpcState>().s2c_rx.clone();
 
     let s2c_tx =
         IpcSender::<S2CMessage>::connect(s2c_tx).context("Failed to connect to S2C IPC channel")?;
@@ -219,7 +227,7 @@ fn spawn_s2c_pipe(log: slog::Logger, app_handle: &AppHandle, s2c_tx: String) -> 
     std::thread::Builder::new()
         .name("ipc-sender".to_owned())
         .spawn(move || {
-            while let Some(msg) = cmd_s2c_rx.blocking_recv() {
+            while let Ok(msg) = s2c_rx.recv() {
                 if let Err(e) = s2c_tx.send(msg) {
                     error!(log, "Unable to send IPC message: {e}");
                 }
@@ -231,7 +239,7 @@ fn spawn_s2c_pipe(log: slog::Logger, app_handle: &AppHandle, s2c_tx: String) -> 
 /// Inter-process communication.
 pub struct Ipc {
     pub c2s_tx: IpcSender<C2SMessage>,
-    pub s2c_rx: IpcReceiver<S2CMessage>,
+    pub s2c_rx: Arc<tokio::sync::Mutex<IpcReceiver<S2CMessage>>>,
 }
 
 impl Drop for Ipc {
@@ -240,53 +248,40 @@ impl Drop for Ipc {
     }
 }
 
-/// Same-process communication.
-pub struct Spc<'a> {
+pub struct IpcBiState<'a> {
     ipc_state: &'a IpcState,
-    c2s_tx: Channel<C2SMessage>,
-}
-
-pub struct SpcReceiver<'a> {
-    #[allow(unused)]
-    lock: tokio::sync::RwLockReadGuard<'a, Option<tokio::sync::mpsc::Sender<S2CMessage>>>,
-    c2s_tx: &'a mut Channel<C2SMessage>,
-    s2c_rx: tokio::sync::mpsc::Receiver<S2CMessage>,
+    c2s_tx: &'a Channel<C2SMessage>,
 }
 
 impl Ipc {
-    pub async fn send(&mut self, message: C2SMessage) -> Result<()> {
-        Ok(tokio::task::block_in_place(|| self.c2s_tx.send(message))?)
+    pub async fn send(&self, message: C2SMessage) -> Result<()> {
+        let c2s_tx = self.c2s_tx.clone();
+        Ok(tokio::task::spawn_blocking(move || c2s_tx.send(message)).await??)
     }
 
     pub async fn recv(&self) -> Result<S2CMessage> {
-        Ok(tokio::task::block_in_place(|| self.s2c_rx.recv())?)
-    }
-}
-
-impl<'a> Spc<'a> {
-    pub async fn send(&mut self, message: C2SMessage) -> Result<()> {
-        Ok(tokio::task::block_in_place(|| self.c2s_tx.send(message))?)
-    }
-
-    pub async fn acquire_recv(&mut self) -> Result<SpcReceiver<'_>> {
-        let (tx, rx) = tokio::sync::mpsc::channel(1);
-        let mut lock = self.ipc_state.s2c_tx.write().await;
-        *lock = Some(tx);
-        Ok(SpcReceiver {
-            lock: lock.downgrade(),
-            c2s_tx: &mut self.c2s_tx,
-            s2c_rx: rx,
+        let s2c_rx = self.s2c_rx.clone();
+        Ok(tokio::task::spawn(async move {
+            let s2c_rx = s2c_rx.lock().await;
+            tokio::task::block_in_place(|| s2c_rx.recv())
         })
+        .await??)
     }
 }
 
-impl<'a> SpcReceiver<'a> {
-    pub async fn send(&mut self, message: C2SMessage) -> Result<()> {
-        Ok(tokio::task::block_in_place(|| self.c2s_tx.send(message))?)
+impl<'a> IpcBiState<'a> {
+    pub async fn send(&self, message: C2SMessage) -> Result<()> {
+        let c2s_tx = self.c2s_tx.clone();
+        Ok(tokio::task::spawn_blocking(move || c2s_tx.send(message)).await??)
     }
 
-    pub async fn recv(&mut self) -> Result<S2CMessage> {
-        Ok(self.s2c_rx.recv().await.context("Channel closed")?)
+    pub async fn recv(&self) -> Result<S2CMessage> {
+        Ok(self
+            .ipc_state
+            .s2c_rx
+            .recv_async()
+            .await
+            .context("Channel closed")?)
     }
 
     // TODO: share this among Ipc and SpcReceiver

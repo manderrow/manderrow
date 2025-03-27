@@ -1,9 +1,10 @@
 use tauri::ipc::Channel;
 use tauri::{AppHandle, State};
-use uuid::Uuid;
 
 use crate::ipc::{C2SMessage, IpcState, S2CMessage};
 use crate::CommandError;
+
+use super::LaunchTarget;
 
 #[tauri::command]
 pub async fn send_s2c_message(
@@ -19,11 +20,11 @@ pub async fn send_s2c_message(
 pub async fn launch_profile(
     app_handle: AppHandle,
     ipc_state: State<'_, IpcState>,
-    id: Uuid,
+    target: LaunchTarget<'_>,
     modded: bool,
     channel: Channel<C2SMessage>,
 ) -> Result<(), CommandError> {
-    super::launch_profile(app_handle, &*ipc_state, id, modded, channel)
+    super::launch_profile(app_handle, &*ipc_state, target, modded, channel)
         .await
         .map_err(Into::into)
 }

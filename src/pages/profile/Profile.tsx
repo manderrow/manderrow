@@ -1,4 +1,15 @@
-import { createMemo, createResource, createSignal, createUniqueId, For, Show, useContext } from "solid-js";
+import {
+  createEffect,
+  createMemo,
+  createResource,
+  createSignal,
+  createUniqueId,
+  For,
+  Match,
+  Show,
+  Switch,
+  useContext,
+} from "solid-js";
 import { A, useNavigate, useParams } from "@solidjs/router";
 import { faCirclePlay as faCirclePlayOutline, faTrashCan } from "@fortawesome/free-regular-svg-icons";
 import {
@@ -13,11 +24,13 @@ import {
   faGear,
   faArrowUpWideShort,
   faArrowDownShortWide,
+  faSkullCrossbones,
+  faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { OverlayScrollbarsComponent } from "overlayscrollbars-solid";
 import Fa from "solid-fa";
 
-import Console, { C2SChannel, clearConsole, createC2SChannel } from "../../components/global/Console";
+import Console, { ConsoleConnection } from "../../components/global/Console";
 import { PromptDialog } from "../../components/global/Dialog";
 import { ErrorContext } from "../../components/global/ErrorBoundary";
 import SelectDropdown from "../../components/global/SelectDropdown";
@@ -38,6 +51,7 @@ import TasksDialog from "../../components/global/TasksDialog";
 import SettingsDialog from "../../components/global/SettingsDialog";
 import { settings } from "../../api/settings";
 import { useSearchParamsInPlace } from "../../utils/router";
+import { sendS2CMessage } from "../../api/ipc";
 
 interface ProfileParams {
   profileId?: string;
@@ -68,21 +82,44 @@ export default function Profile() {
     { initialValue: [] },
   );
 
-  const currentProfile = createMemo(() => globals.profiles().find((profile) => profile.id === params.profileId));
+  const currentProfile = createMemo(() => {
+    if (params.profileId === undefined) return undefined;
+    const profile = globals.profiles().find((profile) => profile.id === params.profileId);
+    if (profile !== undefined) return profile;
+    throw new Error(`Unknown profile ${params.profileId}`);
+  });
+
+  createEffect(() => {
+    const game = currentProfile()?.game;
+    if (game !== undefined && game !== params.gameId) {
+      throw new Error(`Profile ${params.profileId} is for ${game}, not ${params.gameId}`);
+    }
+  });
 
   const reportErr = useContext(ErrorContext)!;
 
-  const [consoleChannel, setConsoleChannel] = createSignal<C2SChannel>();
+  const [connection, setConnection] = createSignal<ConsoleConnection>();
 
   async function launch(modded: boolean) {
     try {
-      clearConsole();
+      const conn = new ConsoleConnection();
+      setConnection(conn);
       if (settings().openConsoleOnLaunch.value && searchParams["profile-tab"] !== "logs") {
         setSearchParams({ "profile-tab": "logs" });
       }
-      const channel = createC2SChannel();
-      setConsoleChannel(channel);
-      await launchProfile(params.profileId!, channel, { modded });
+      await launchProfile(
+        params.profileId !== undefined ? { profile: params.profileId } : { vanilla: params.gameId },
+        conn.channel,
+        { modded },
+      );
+    } catch (e) {
+      reportErr(e);
+    }
+  }
+
+  async function killGame() {
+    try {
+      await sendS2CMessage("Kill");
     } catch (e) {
       reportErr(e);
     }
@@ -105,12 +142,26 @@ export default function Profile() {
           <h1>{gameInfo.name}</h1>
         </nav>
         <section classList={{ [styles.sidebar__group]: true, [styles.sidebar__mainActions]: true }}>
-          <button disabled={params.profileId === undefined} on:click={() => launch(true)} data-modded>
-            <Fa icon={faCirclePlay} /> Start modded
-          </button>
-          <button disabled={params.profileId === undefined} on:click={() => launch(false)} data-vanilla>
-            <Fa icon={faCirclePlayOutline} /> Start vanilla
-          </button>
+          <Switch>
+            <Match when={connection()?.status() === "connected"}>
+              <button on:click={() => killGame()} data-kill>
+                <Fa icon={faSkullCrossbones} /> Kill game
+              </button>
+            </Match>
+            <Match when={connection() !== undefined && connection()?.status() !== "disconnected"}>
+              <button on:click={() => setConnection(undefined)} data-cancel>
+                <Fa icon={faXmark} /> Cancel
+              </button>
+            </Match>
+            <Match when={true}>
+              <button disabled={params.profileId === undefined} on:click={() => launch(true)} data-modded>
+                <Fa icon={faCirclePlay} /> Start modded
+              </button>
+              <button on:click={() => launch(false)} data-vanilla>
+                <Fa icon={faCirclePlayOutline} /> Start vanilla
+              </button>
+            </Match>
+          </Switch>
         </section>
         <section classList={{ [styles.sidebar__group]: true, [sidebarStyles.sidebar__profiles]: true }}>
           <h3 class={styles.sidebar__profilesTitle}>
@@ -238,7 +289,7 @@ export default function Profile() {
                       name: "Logs",
                       component: (
                         <div class={styles.content__console}>
-                          <Console channel={consoleChannel} />
+                          <Console conn={connection()} />
                         </div>
                       ),
                     },

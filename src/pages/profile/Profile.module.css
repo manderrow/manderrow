@@ -92,6 +92,28 @@
   border: 2px solid hsl(var(--clr-primary-hs), 70%, 20%);
 }
 
+.sidebar__mainActions button[data-kill] {
+  background-color: var(--clr-danger-4);
+  background-image: linear-gradient(
+    20deg,
+    var(--clr-danger-3) 10%,
+    var(--clr-danger-4) 80%,
+    var(--clr-danger-5) 100%
+  );
+  border: 2px solid hsl(var(--clr-danger-hs), 70%, 20%);
+}
+
+.sidebar__mainActions button[data-cancel] {
+  background-color: var(--clr-warn-4);
+  background-image: linear-gradient(
+    20deg,
+    var(--clr-warn-3) 10%,
+    var(--clr-warn-4) 80%,
+    var(--clr-warn-5) 100%
+  );
+  border: 2px solid hsl(var(--clr-warn-hs), 70%, 20%);
+}
+
 .sidebar__group {
   border-top: 1px solid var(--clr-neutral-8);
   padding-top: 0.75em;

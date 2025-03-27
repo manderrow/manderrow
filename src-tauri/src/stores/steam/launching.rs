@@ -6,7 +6,7 @@ use slog::{debug, info};
 use tokio::process::Command;
 
 use super::paths::{get_steam_exe, resolve_steam_directory};
-use crate::ipc::{DoctorFix, OutputLine, Spc};
+use crate::ipc::{DoctorFix, IpcBiState, OutputLine};
 
 pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
     #[cfg(windows)]
@@ -113,7 +113,7 @@ pub fn generate_launch_options(game: &str) -> Result<String> {
 
 pub async fn ensure_launch_args_are_applied(
     log: &slog::Logger,
-    mut comms: Option<Spc<'_>>,
+    mut comms: Option<IpcBiState<'_>>,
     game: &str,
     game_id: &str,
 ) -> Result<(), crate::Error> {
@@ -134,8 +134,6 @@ pub async fn ensure_launch_args_are_applied(
                 return Err(anyhow!("Not adding launch options without consent").into());
             };
             let choice = ipc
-                .acquire_recv()
-                .await?
                 .prompt_patient(
                     "launch_options",
                     if matches!(result, AppliedLaunchArgs::Overwrote) {

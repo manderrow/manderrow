@@ -1,22 +1,27 @@
 use std::collections::HashMap;
 use std::ffi::OsString;
+use std::future::join;
 use std::ops::ControlFlow;
 use std::panic::AssertUnwindSafe;
 use std::path::PathBuf;
 
 use anyhow::{anyhow, bail, ensure, Context as _, Result};
 use ipc_channel::ipc::IpcSender;
+use lexopt::ValueExt;
 use parking_lot::Mutex;
 use slog::o;
 use slog::{debug, info};
+use tokio::select;
 use tokio::{io::AsyncBufReadExt as _, process::Command};
+use triomphe::Arc;
 use uuid::Uuid;
 
+use crate::games::PackageLoader;
 use crate::ipc::{C2SMessage, Ipc, LogLevel, OutputLine, S2CMessage};
 
 async fn send_ipc(
     log: &slog::Logger,
-    ipc: &mut Option<&mut Ipc>,
+    ipc: Option<&Ipc>,
     message: impl FnOnce() -> Result<C2SMessage>,
 ) -> Result<()> {
     if let Some(ipc) = ipc {
@@ -65,7 +70,7 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
         }
 
         // TODO: use lexopt to parse `args`
-        let mut ipc = if let Some(i) = args.iter().position(|s| s == "--c2s-tx") {
+        let ipc = if let Some(i) = args.iter().position(|s| s == "--c2s-tx") {
             args.remove(i);
             let c2s_tx = IpcSender::<C2SMessage>::connect(
                 args.remove(i)
@@ -81,7 +86,10 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
                 "Unexpected initial message"
             );
 
-            Some(Ipc { c2s_tx, s2c_rx })
+            Some(Ipc {
+                c2s_tx,
+                s2c_rx: Arc::new(s2c_rx.into()),
+            })
         } else {
             None
         };
@@ -127,8 +135,8 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
         info!(log, "  args: {}", DisplayArgList);
         info!(log, "  cwd: {:?}", std::env::current_dir()?);
 
-        if let Err(e) = inner(args, command, command_args, &log, ipc.as_mut()).await {
-            send_ipc(&log, &mut ipc.as_mut(), || {
+        if let Err(e) = inner(args, command, command_args, &log, ipc.as_ref()).await {
+            send_ipc(&log, ipc.as_ref(), || {
                 Ok(C2SMessage::Crash {
                     error: format!("{e:?}"),
                 })
@@ -145,7 +153,7 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
         command_name: OsString,
         mut command_args: Vec<OsString>,
         log: &slog::Logger,
-        mut ipc: Option<&mut Ipc>,
+        ipc: Option<&Ipc>,
     ) -> Result<()> {
         use lexopt::Arg::*;
 
@@ -153,7 +161,7 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
 
         let mut game = None::<String>;
         let mut profile = None::<Uuid>;
-        let mut loader = None::<OsString>;
+        let mut loader = None::<PackageLoader>;
         let mut wrapper_stage2_path = None::<PathBuf>;
         let mut doorstop_path = None::<PathBuf>;
 
@@ -189,7 +197,11 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
                     if loader.is_some() {
                         bail!("--loader specified twice");
                     }
-                    loader = Some(parsed_args.value()?);
+                    let name = parsed_args.value()?;
+                    loader = Some(
+                        name.parse()
+                            .with_context(|| format!("Unrecognized mod loader {name:?}"))?,
+                    );
                 }
                 Long("wrapper-stage2") => {
                     if wrapper_stage2_path.is_some() {
@@ -224,8 +236,9 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
         }
 
         let mut env = HashMap::default();
-        match loader {
-            Some(s) if s == "BepInEx" => {
+        match (profile, loader) {
+            (None, Some(_)) => bail!("Cannot launch modded without a profile"),
+            (Some(profile), Some(PackageLoader::BepInEx)) => {
                 struct CommandBuilder<'a> {
                     env: &'a mut HashMap<String, OsString>,
                     args: &'a mut Vec<OsString>,
@@ -260,11 +273,14 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
                 )
                 .await?;
             }
-            Some(name) => bail!("Unsupported loader {name:?} for wrap command"),
-            None => {}
+            (Some(_), Some(loader)) => {
+                bail!("The mod loader {loader:?} is not yet supported by the wrap command")
+            }
+            (_, None) => {}
         }
 
         let mut command = Command::new(&command_name);
+        command.kill_on_drop(true);
 
         if let Some(mut i) = command_args.iter().position(|s| {
             s.to_string_lossy()
@@ -294,7 +310,7 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
             command.envs(&env);
         }
 
-        send_ipc(log, &mut ipc, || {
+        send_ipc(log, ipc, || {
             Ok(C2SMessage::Start {
                 command: command_name.clone().into(),
                 args: command_args
@@ -325,7 +341,7 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
             Err(e) => return Err(e.into()),
         };
 
-        let tasks = if let Some(ref mut ipc) = ipc {
+        let tasks = if let Some(ipc) = ipc {
             fn spawn_output_pipe_task<const TRY_PARSE_LOGS: bool>(
                 c2s_tx: &IpcSender<C2SMessage>,
                 rdr: impl tokio::io::AsyncRead + Unpin + Send + 'static,
@@ -376,19 +392,52 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
             None
         };
 
-        let status = child.wait().await?;
-        if let Some((out, err)) = tasks {
-            out.await??;
-            err.await??;
-        }
+        let wait_fut = child.wait();
 
-        send_ipc(log, &mut ipc, || {
-            Ok(C2SMessage::Exit {
-                code: status.code(),
-            })
-        })
-        .await?;
-        Ok(())
+        let kill_fut = async {
+            if let Some(ipc) = ipc {
+                while let Ok(msg) = ipc.recv().await {
+                    match msg {
+                        S2CMessage::Connect => {}
+                        S2CMessage::PatientResponse { .. } => {}
+                        S2CMessage::Kill => return,
+                    }
+                }
+            }
+            std::future::pending().await
+        };
+
+        select! {
+            _ = kill_fut => {
+                child.kill().await?;
+                info!(log, "Killed process");
+                Ok(())
+            }
+            r = wait_fut => {
+                let status = r?;
+
+                let tasks = if let Some((out, err)) = tasks {
+                    let (out, err) = join!(out, err).await;
+                    Some((out, err))
+                } else {
+                    None
+                };
+
+                send_ipc(log, ipc, || {
+                    Ok(C2SMessage::Exit {
+                        code: status.code(),
+                    })
+                })
+                .await?;
+
+                if let Some((out, err)) = tasks {
+                    out??;
+                    err??;
+                }
+
+                Ok(())
+            }
+        }
     }
 
     match inner1(args).await {

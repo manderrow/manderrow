@@ -2,6 +2,7 @@
 #![feature(error_generic_member_access)]
 #![feature(exit_status_error)]
 #![feature(extend_one)]
+#![feature(future_join)]
 #![feature(os_string_truncate)]
 #![feature(path_add_extension)]
 #![feature(ptr_as_uninit)]

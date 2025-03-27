@@ -1,5 +1,5 @@
 import { Channel } from "@tauri-apps/api/core";
-import { Accessor, For, Match, Switch, createEffect, createSignal, onCleanup, useContext } from "solid-js";
+import { Accessor, For, Match, Setter, Switch, createEffect, createSignal, onCleanup, useContext } from "solid-js";
 
 import { C2SMessage, DoctorReport, SafeOsString, sendS2CMessage } from "../../api/ipc";
 import styles from "./Console.module.css";
@@ -9,58 +9,74 @@ import { ErrorContext } from "./ErrorBoundary";
 
 const translateUnchecked = t as (key: string, args: Object | undefined) => string;
 
-const [events, setEvents] = createSignal<C2SMessage[]>([]);
+export type ConnectionStatus = "connecting" | "connected" | "disconnected";
 
-export type C2SChannel = Channel<C2SMessage>;
+export class ConsoleConnection {
+  readonly channel: Channel<C2SMessage>;
+  readonly status: Accessor<ConnectionStatus>;
+  readonly setStatus: (value: ConnectionStatus) => void;
+  // TODO: don't use a signal for these
+  readonly events: Accessor<C2SMessage[]>;
+  readonly setEvents: Setter<C2SMessage[]>;
 
-export function createC2SChannel<T>() {
-  return new Channel<T>();
+  constructor() {
+    this.channel = new Channel<C2SMessage>();
+    const [status, setStatus] = createSignal<ConnectionStatus>("connecting");
+    this.status = status;
+    this.setStatus = setStatus;
+    const [events, setEvents] = createSignal<C2SMessage[]>([]);
+    this.events = events;
+    this.setEvents = setEvents;
+  }
+
+  clear() {
+    this.setEvents([]);
+  }
+
+  close() {
+    this.channel.onmessage = () => {};
+  }
 }
 
-export function clearConsole() {
-  setEvents([]);
-}
-
-export default function Console({ channel }: { channel: Accessor<Channel<C2SMessage> | undefined> }) {
+export default function Console(props: { conn: ConsoleConnection | undefined }) {
   const [doctorReports, setDoctorReports] = createSignal<DoctorReport[]>([]);
 
-  const [connected, setConnected] = createSignal(false);
-
   function handleLogEvent(event: C2SMessage) {
-    if ("Connect" in event) {
-      setConnected(true);
-    } else if ("Disconnect" in event) {
-      setConnected(false);
-    } else if ("DoctorReport" in event) {
-      setDoctorReports((reports) => [...reports, event.DoctorReport]);
-    } else {
-      setEvents((events) => [...events, event]);
+    if (props.conn !== undefined) {
+      if ("Connect" in event) {
+        props.conn.setStatus("connected");
+      } else if ("Disconnect" in event) {
+        props.conn.setStatus("disconnected");
+      } else if ("DoctorReport" in event) {
+        setDoctorReports((reports) => [...reports, event.DoctorReport]);
+      } else {
+        props.conn.setEvents((events) => [...events, event]);
+      }
     }
   }
 
-  function clearChannelHandler() {
-    channel()!.onmessage = () => {};
-  }
-
-  createEffect(() => {
-    if (channel() != null) {
-      channel()!.onmessage = handleLogEvent;
+  createEffect<ConsoleConnection | undefined>((prevConn) => {
+    if (prevConn !== props.conn) {
+      if (prevConn !== undefined) {
+        prevConn.close();
+      }
+      if (props.conn !== undefined) {
+        props.conn.channel.onmessage = handleLogEvent;
+      }
     }
+    return props.conn;
   });
 
-  onCleanup(() => {
-    // Clear handler
-    if (channel() != null) clearChannelHandler();
-  });
+  onCleanup(() => props.conn?.close());
 
   return (
     <>
       <h2 class={styles.heading}>
-        <span class={styles.statusIndicator} data-connected={connected()}></span>
-        {connected() ? "Connected" : "Disconnected"}{" "}
+        <span class={styles.statusIndicator} data-connected={props.conn?.status() === "connected"}></span>
+        {props.conn?.status() === "connected" ? "Connected" : "Disconnected"}{" "}
       </h2>
       <div class={styles.console}>
-        <For each={events()} fallback={<p>Game not running.</p>}>
+        <For each={props.conn?.events()} fallback={<p>Game not running.</p>}>
           {(event) => {
             if ("Output" in event) {
               let line: string;
@@ -85,7 +101,8 @@ export default function Console({ channel }: { channel: Accessor<Channel<C2SMess
             } else if ("Log" in event) {
               return (
                 <p>
-                  <span class={styles.event__type}>[{event.Log.level}]</span> <span>{event.Log.scope}</span>: <span>{event.Log.message}</span>
+                  <span class={styles.event__type}>[{event.Log.level}]</span> <span>{event.Log.scope}</span>:{" "}
+                  <span>{event.Log.message}</span>
                 </p>
               );
             } else if ("Connect" in event) {

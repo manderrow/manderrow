@@ -12,7 +12,7 @@ use uuid::Uuid;
 
 use crate::games::games_by_id;
 use crate::ipc::S2CMessage;
-use crate::profiles::{profile_path, read_profile, read_profile_file};
+use crate::profiles::{profile_path, read_profile_file};
 use crate::util::hyphenated_uuid;
 use crate::{
     ipc::{C2SMessage, IpcState},
@@ -23,20 +23,26 @@ use crate::{
 pub static LOADERS_DIR: LazyLock<PathBuf> = LazyLock::new(|| cache_dir().join("loaders"));
 
 pub async fn send_s2c_message(ipc_state: &IpcState, msg: S2CMessage) -> Result<()> {
-    let s2c_tx = ipc_state.s2c_tx.read().await;
-    if let Some(s2c_tx) = &*s2c_tx {
-        s2c_tx
-            .send(msg)
-            .await
-            .context("Failed to send IPC message")?;
-    }
+    ipc_state
+        .s2c_tx
+        .send_async(msg)
+        .await
+        .context("Failed to send IPC message")?;
     Ok(())
+}
+
+#[derive(Debug, Clone, Copy, serde::Deserialize)]
+pub enum LaunchTarget<'a> {
+    #[serde(rename = "profile")]
+    Profile(Uuid),
+    #[serde(rename = "vanilla")]
+    Vanilla(&'a str),
 }
 
 pub async fn launch_profile(
     app_handle: AppHandle,
     ipc_state: &IpcState,
-    id: Uuid,
+    target: LaunchTarget<'_>,
     modded: bool,
     channel: Channel<C2SMessage>,
 ) -> Result<(), CommandError> {
@@ -71,14 +77,23 @@ pub async fn launch_profile(
         o!(),
     );
 
-    let mut path = profile_path(id);
-    path.push("profile.json");
-    let metadata = read_profile_file(&path)
-        .await
-        .context("Failed to read profile")?;
-    path.pop();
-    let Some(game) = games_by_id()?.get(&*metadata.game).copied() else {
-        return Err(anyhow!("Unrecognized game {:?}", metadata.game).into());
+    let game = match target {
+        LaunchTarget::Profile(id) => {
+            let mut path = profile_path(id);
+            path.push("profile.json");
+            let metadata = read_profile_file(&path)
+                .await
+                .context("Failed to read profile")?;
+            path.pop();
+            games_by_id()?
+                .get(&*metadata.game)
+                .copied()
+                .with_context(|| format!("Unrecognized game {:?}", metadata.game))?
+        }
+        LaunchTarget::Vanilla(id) => games_by_id()?
+            .get(id)
+            .copied()
+            .with_context(|| format!("Unrecognized game {:?}", id))?,
     };
     let Some(store_metadata) = game.store_platform_metadata.iter().next() else {
         return Err(anyhow!("Unable to launch game").into());
@@ -88,10 +103,7 @@ pub async fn launch_profile(
         crate::games::StorePlatformMetadata::Steam {
             store_identifier, ..
         } => {
-            let profile = read_profile(id).await.context("Failed to read profile")?;
-            let steam_metadata = games_by_id()?
-                .get(&*profile.game)
-                .context("No such game")?
+            let steam_metadata = game
                 .store_platform_metadata
                 .iter()
                 .find_map(|m| m.steam_or_direct())
@@ -99,7 +111,7 @@ pub async fn launch_profile(
 
             crate::stores::steam::launching::ensure_launch_args_are_applied(
                 &log,
-                Some(ipc_state.spc(channel.clone())),
+                Some(ipc_state.bi(&channel)),
                 game.id,
                 steam_metadata.id,
             )
@@ -133,8 +145,10 @@ pub async fn launch_profile(
     command.arg(";");
     command.arg("--c2s-tx");
     command.arg(c2s_tx);
-    command.arg("--profile");
-    command.arg(hyphenated_uuid!(id));
+    if let LaunchTarget::Profile(id) = target {
+        command.arg("--profile");
+        command.arg(hyphenated_uuid!(id));
+    }
 
     // TODO: use Tauri sidecar
     if let Some(path) = std::env::var_os("MANDERROW_WRAPPER_STAGE2_PATH") {

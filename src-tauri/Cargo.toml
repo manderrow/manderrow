@@ -81,6 +81,7 @@ reqwest = { version = "0.12.12", features = ["stream"] }
 tempfile = "3.14.0"
 walkdir = "2.5.0"
 
+flume = { version = "0.11.1", features = ["async"] }
 ipc-channel = "0.19.0"
 
 slog = "2.7.0"

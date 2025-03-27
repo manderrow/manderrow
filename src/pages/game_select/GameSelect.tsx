@@ -54,7 +54,6 @@ export default function GameSelect() {
   const location = useLocation<GameSelectState>();
 
   createEffect(() => {
-    console.log(location.state);
     if (location.state?.explicit != null) return;
     const game = initialGame.latest;
     if (game) {

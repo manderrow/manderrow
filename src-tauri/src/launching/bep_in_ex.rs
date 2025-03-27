@@ -90,7 +90,7 @@ pub async fn configure_command(
     log: &slog::Logger,
     command: &mut impl CommandBuilder,
     game: &str,
-    profile_id: Option<Uuid>,
+    profile_id: Uuid,
     doorstop_path: Option<PathBuf>,
 ) -> anyhow::Result<()> {
     let steam_metadata = games_by_id()?
@@ -105,32 +105,25 @@ pub async fn configure_command(
 
     let bep_in_ex = get_bep_in_ex_path(log, uses_proton).await?;
 
-    let profile_path = profile_id.map(profile_path);
+    let profile_path = profile_path(profile_id);
 
     let temp_dir = tempdir()?.into_path();
 
     command.env(
         "BEPINEX_CONFIGS",
-        profile_path
-            .as_ref()
-            .map(|p| p.join("config"))
-            .unwrap_or_else(|| temp_dir.join("configs")),
+        profile_path.join("config"),
     );
     command.env(
         "BEPINEX_PLUGINS",
-        profile_path
-            .as_ref()
-            .map(|p| p.join(MODS_FOLDER))
-            .unwrap_or_else(|| temp_dir.join("configs")),
+        profile_path.join(MODS_FOLDER),
     );
     command.env(
         "BEPINEX_PATCHER_PLUGINS",
-        profile_path
-            .as_ref()
-            .map(|p| p.join("patchers"))
-            .unwrap_or_else(|| temp_dir.join("configs")),
+        profile_path.join("patchers"),
     );
+    // TODO: should this point to a "persistent" cache directory, and should it be per-profile or shared?
     command.env("BEPINEX_CACHE", temp_dir.join("cache"));
+    // enables the logging we expect from our fork of BepInEx
     command.env("BEPINEX_STANDARD_LOG", "");
 
     let target_assembly = if uses_proton {
@@ -201,6 +194,7 @@ pub async fn configure_command(
             }
         };
 
+        // TODO: test on Linux and verify this is unnecessary, then delete
         //         for var in ["LD_LIBRARY_PATH", "DYLD_LIBRARY_PATH"] {
         //             let base = std::env::var_os(var).unwrap_or_else(OsString::new);
         //             let mut buf = bep_in_ex.as_os_str().to_owned();
