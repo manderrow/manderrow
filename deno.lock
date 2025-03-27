@@ -11,7 +11,6 @@
     "npm:@tauri-apps/api@^2.4.0": "2.4.0",
     "npm:@tauri-apps/cli@^2.4.0": "2.4.0",
     "npm:@tauri-apps/plugin-clipboard-manager@^2.2.2": "2.2.2",
-    "npm:@tauri-apps/plugin-http@^2.4.2": "2.4.2",
     "npm:@tauri-apps/plugin-os@^2.2.1": "2.2.1",
     "npm:@tauri-apps/plugin-shell@^2.2.0": "2.2.0",
     "npm:@thisbeyond/solid-dnd@0.7.5": "0.7.5_solid-js@1.9.5__seroval@1.2.1",
@@ -426,12 +425,6 @@
         "@tauri-apps/api@2.3.0"
       ]
     },
-    "@tauri-apps/plugin-http@2.4.2": {
-      "integrity": "sha512-deoafidYelei/fmd4AQoHa2aCA9N2DvnnQrF/91QNjE0xCCTuVpPhIQdVRgdHDhFehEal9uI14OTvERBpcfHrg==",
-      "dependencies": [
-        "@tauri-apps/api@2.4.0"
-      ]
-    },
     "@tauri-apps/plugin-os@2.2.1": {
       "integrity": "sha512-cNYpNri2CCc6BaNeB6G/mOtLvg8dFyFQyCUdf2y0K8PIAKGEWdEcu8DECkydU2B+oj4OJihDPD2de5K6cbVl9A==",
       "dependencies": [
@@ -775,7 +768,6 @@
         "npm:@tauri-apps/api@^2.4.0",
         "npm:@tauri-apps/cli@^2.4.0",
         "npm:@tauri-apps/plugin-clipboard-manager@^2.2.2",
-        "npm:@tauri-apps/plugin-http@^2.4.2",
         "npm:@tauri-apps/plugin-os@^2.2.1",
         "npm:@tauri-apps/plugin-shell@^2.2.0",
         "npm:@thisbeyond/solid-dnd@0.7.5",

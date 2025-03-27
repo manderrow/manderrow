@@ -7,14 +7,6 @@
   ],
   "permissions": [
     "core:event:allow-listen",
-    "shell:allow-open",
-    {
-      "identifier": "http:default",
-      "allow": [
-        {
-          "url": "https://thunderstore.io/*"
-        }
-      ]
-    }
+    "shell:allow-open"
   ]
 }

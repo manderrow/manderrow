@@ -26,7 +26,6 @@ manderrow-macros = { path = "../crates/manderrow-macros" }
 
 tauri = { version = "2", features = ["macos-private-api"] }
 tauri-plugin-clipboard-manager = "2"
-tauri-plugin-http = "2"
 tauri-plugin-os = "2"
 tauri-plugin-shell = "2"
 
@@ -63,8 +62,7 @@ itertools = "0.13.0"
 lexopt = "0.3.0"
 parking_lot = "0.12.3"
 pin-project-lite = "0.2.16"
-# using features specified by tauri-plugin-http
-reqwest = { version = "0.12.12", features = ["stream"], default-features = false }
+reqwest = { version = "0.12.12", features = ["stream"] }
 slog = "2.7.0"
 slog-envlogger = "2.2.0"
 slog-scope = "4.4.0"
@@ -73,7 +71,7 @@ strum = { version = "0.26.3", features = ["derive"] }
 sublime_fuzzy = { version = "0.7.0", optional = true }
 tempfile = "3.14.0"
 thiserror = "2.0.11"
-tokio = { version = "1.42.0", features = ["process"] }
+tokio = { version = "1.42.0", features = ["macros", "process"] }
 tokio-util = { version = "0.7.13", features = ["compat", "io"] }
 trie-rs = "0.4.2"
 triomphe = "0.1.14"

@@ -1,7 +1,6 @@
 import { faHardDrive, faHeart, faThumbsUp } from "@fortawesome/free-regular-svg-icons";
 import { faDownload, faDownLong, faExternalLink, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { createInfiniteScroll } from "@solid-primitives/pagination";
-import { fetch } from "@tauri-apps/plugin-http";
 import { Fa } from "solid-fa";
 import {
   Accessor,
@@ -12,7 +11,6 @@ import {
   For,
   InitializedResource,
   Match,
-  Resource,
   ResourceFetcherInfo,
   Show,
   Signal,
@@ -27,11 +25,10 @@ import { humanizeFileSize, removeProperty, roundedNumberFormatter } from "../../
 
 import { SimpleAsyncButton } from "../global/AsyncButton";
 import ErrorBoundary from "../global/ErrorBoundary";
-import Markdown from "../global/Markdown";
 import TabRenderer, { Tab, TabContent } from "../global/TabRenderer";
+import ModMarkdown from "./ModMarkdown.tsx";
 
 import styles from "./ModList.module.css";
-import { fetchModMarkdown } from "../../api/mod_index/thunderstore";
 
 export type Fetcher = (page: number) => Promise<readonly Mod[]>;
 
@@ -94,52 +91,11 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
 
   const [selectedVersion, setSelectedVersion] = createSignal<[string, number]>();
 
-  const modData = () => ({ mod: mod(), selectedVersion: selectedVersion() });
-  function modEndpointMarkdownFetcher(endpoint: "readme" | "changelog") {
-    return async ({ mod, selectedVersion }: { mod?: Mod; selectedVersion?: [string, number] }) => {
-      if (mod == null) return undefined;
-
-      // mod is a ModPackage if it has the version field, otherwise it is a ModListing
-      const version =
-        "version" in mod ? mod.version.version_number : selectedVersion?.[0] ?? mod.versions[0].version_number;
-
-      return await fetchModMarkdown(mod.owner, mod.name, version, endpoint, (_) => {});
-    };
-  }
-
-  const [modReadme] = createResource(modData, modEndpointMarkdownFetcher("readme"));
-  const [modChangelog] = createResource(modData, modEndpointMarkdownFetcher("changelog"));
-
-  function MarkdownNullMessage({
-    resource,
-    label,
-  }: {
-    resource: Resource<{ markdown: string | null } | undefined>;
-    label: string;
-  }) {
-    return (
-      <Show
-        when={!resource.loading && resource.state !== "errored" ? resource() : undefined}
-        fallback={
-          <Show when={resource.error} fallback={<p>Loading</p>}>
-            {(error) => <p>{error().toString()}</p>}
-          </Show>
-        }
-      >
-        {(resource) => (
-          <Show when={resource().markdown} fallback={<p>No {label} provided.</p>}>
-            {(markdown) => <Markdown source={markdown()} div={{ class: "markdown" }} />}
-          </Show>
-        )}
-      </Show>
-    );
-  }
-
   const tabs: Tab<"overview" | "dependencies" | "changelog">[] = [
     {
       id: "overview",
       name: "Overview",
-      component: <MarkdownNullMessage resource={modReadme} label="README" />,
+      component: <ModMarkdown mod={mod()} selectedVersion={selectedVersion()?.[0]} endpoint="readme" />,
     },
     {
       id: "dependencies",
@@ -155,7 +111,7 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
     {
       id: "changelog",
       name: "Changelog",
-      component: <MarkdownNullMessage resource={modChangelog} label="changelog" />,
+      component: <ModMarkdown mod={mod()} selectedVersion={selectedVersion()?.[0]} endpoint="changelog" />,
     },
   ];
 

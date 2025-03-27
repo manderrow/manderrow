@@ -1,4 +1,4 @@
-use tauri::ipc::{InvokeResponseBody, Response};
+use tauri::ipc::InvokeResponseBody;
 use tauri::{AppHandle, State};
 
 use crate::mods::Version;
