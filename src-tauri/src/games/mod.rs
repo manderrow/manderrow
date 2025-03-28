@@ -3,7 +3,6 @@ pub mod commands;
 use std::{borrow::Cow, collections::HashMap, marker::PhantomData, sync::LazyLock};
 
 use anyhow::{Context, Result};
-use slog_scope::warn;
 
 #[derive(Debug, Clone, thiserror::Error)]
 #[error("{0}")]
@@ -44,12 +43,9 @@ impl<'de, T: Clone + Default + serde::Deserialize<'de>> serde::Deserialize<'de>
                         .enumerate()
                         .filter(|(_, g)| g.thunderstore_id == id)
                         .map(|(i, _)| i);
-                    let Some(found) = iter.next() else {
-                        // TODO: make this a hard error
-                        //A::Error::invalid_value(serde::de::Unexpected::Str(id), &"a valid game id")
-                        warn!("Skipping unused entry for {id:?} in a game data file");
-                        continue;
-                    };
+                    let found = iter.next().ok_or_else(|| {
+                        A::Error::invalid_value(serde::de::Unexpected::Str(id), &"a valid game id")
+                    })?;
                     buf[found] = Some(value);
                     for i in iter {
                         let value = buf[found].clone();
@@ -59,20 +55,7 @@ impl<'de, T: Clone + Default + serde::Deserialize<'de>> serde::Deserialize<'de>
                 Ok(IndexedGameData(
                     buf.into_iter()
                         .enumerate()
-                        .map(|(i, o)| {
-                            // TODO: make this a hard error
-                            //o.ok_or_else(|| A::Error::missing_field(GAMES[i].id))
-                            Ok::<_, A::Error>(match o {
-                                Some(t) => t,
-                                None => {
-                                    warn!(
-                                        "Ignoring missing entry for {:?} in a game data file",
-                                        games[i].id
-                                    );
-                                    Default::default()
-                                }
-                            })
-                        })
+                        .map(|(i, o)| o.ok_or_else(|| A::Error::missing_field(games[i].id)))
                         .collect::<Result<Vec<_>, _>>()?,
                 ))
             }

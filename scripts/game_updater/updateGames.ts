@@ -27,8 +27,11 @@ if (mode === UpdateMode.ALL || mode === UpdateMode.DOWNLOADS) {
   const thunderstoreIds = new Set(games.map(game => game.thunderstoreId));
   const { results } = await (await fetch(THUNDERSTORE_COMMUNITIES_API)).json() as ThunderstoreCommunityApiResponse;
   for (const game of results) {
+    if (!thunderstoreIds.delete(game.identifier)) {
+      console.warn(`Thunderstore lists ${game.identifier} with ${game.total_download_count} mod downloads, but we don't have it`);
+      continue;
+    }
     sorted.push([game.identifier, game.total_download_count]);
-    thunderstoreIds.delete(game.identifier);
   }
   await Promise.all(Array.from(thunderstoreIds).map(async thunderstoreId => {
     const resp = await fetch(THUNDERSTORE_COMMUNITIES_API + thunderstoreId);

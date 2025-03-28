@@ -1,26 +1,21 @@
 import * as cheerio from "cheerio";
 import games from "../../src-tauri/src/games/games.json" with {type: "json"};
 
-const steamSupportedGames = games.filter((gameInfo) => gameInfo.storePlatformMetadata[0].storeIdentifier != null);
-const steamGameIds = steamSupportedGames.map((gameInfo) => gameInfo.storePlatformMetadata[0].storeIdentifier);
-const thunderstoreGameUrls = steamSupportedGames.map((gameInfo) => gameInfo.thunderstoreUrl);
-
-const gameIds: string[] = [];
+const steamStoreIdentifiers = games.map(
+  (gameInfo) =>
+    gameInfo.storePlatformMetadata.find(
+      (meta) => meta.storePlatform === "Steam" || meta.storePlatform === "SteamDirect",
+    )?.storeIdentifier,
+);
 
 const textEncoder = new TextEncoder();
-
-for (let i = 0; i < thunderstoreGameUrls.length; i++) {
-  const url = new URL(thunderstoreGameUrls[i]);
-  const thunderstoreId = url.pathname.slice(1).split("/")[1];
-
-  gameIds.push(thunderstoreId);
-}
 
 const adultAge = `birthtime=${Math.floor(new Date(2006, 1, 1).getTime() / 1000)}`;
 
 async function scrape() {
   const gameReviews = await Promise.all(
-    steamGameIds.map(async (id) => {
+    steamStoreIdentifiers.map(async (id) => {
+      if (id === undefined) return { reviewCount: null };
       try {
         const request = await fetch("https://store.steampowered.com/app/" + id, {
           headers: {
@@ -49,10 +44,10 @@ async function scrape() {
   const gameFinal: Record<string, number | null> = {};
 
   for (let i = 0; i < gameReviews.length; i++) {
-    if (gameFinal[gameIds[i]] != null) continue;
+    if (gameFinal[games[i].thunderstoreId] != null) continue;
 
     const reviews = gameReviews[i]?.reviewCount;
-    gameFinal[gameIds[i]] = reviews != null ? parseInt(reviews) : null;
+    gameFinal[games[i].thunderstoreId] = reviews != null ? parseInt(reviews) : null;
   }
 
   const gameJSON = JSON.stringify(gameFinal, null, 2);
