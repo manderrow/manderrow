@@ -23,3 +23,8 @@ check:
 run-script BIN *ARGS:
 	cargo run --manifest-path crates/Cargo.toml --bin {{BIN}} -- {{ARGS}}
 
+[working-directory: 'scripts/game_updater']
+scrape:
+	deno run --allow-net=thunderstore.io:443 --allow-write=../../src-tauri/src/games/gameModDownloads.json --no-prompt updateGames.ts --mode downloads
+	deno run --allow-net=store.steampowered.com:443 --allow-write=../../src-tauri/src/games/gameReviews.json --no-prompt steamScraper.ts
+
