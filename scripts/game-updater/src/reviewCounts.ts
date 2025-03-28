@@ -1,5 +1,7 @@
 import * as cheerio from "cheerio";
-import games from "../../src-tauri/src/games/games.json" with {type: "json"};
+
+import games from "./games.ts";
+import { projectRootDir } from "./paths.ts";
 
 const steamStoreIdentifiers = games.map(
   (gameInfo) =>
@@ -12,12 +14,13 @@ const textEncoder = new TextEncoder();
 
 const adultAge = `birthtime=${Math.floor(new Date(2006, 1, 1).getTime() / 1000)}`;
 
-async function scrape() {
+export async function scrapeSteam() {
   const gameReviews = await Promise.all(
     steamStoreIdentifiers.map(async (id) => {
       if (id === undefined) return { reviewCount: null };
+      const url = `https://store.steampowered.com/app/${id}`;
       try {
-        const request = await fetch("https://store.steampowered.com/app/" + id, {
+        const request = await fetch(url, {
           headers: {
             Cookie: adultAge,
           },
@@ -29,12 +32,19 @@ async function scrape() {
         const reviewCount = $("meta[itemprop=reviewCount]").attr("content");
 
         if (reviewCount == null) {
-          console.error(`https://store.steampowered.com/app/${id} loaded but had no review count!`);
+          console.error(`${url} loaded but had no review count!`);
         }
 
         return { reviewCount };
       } catch (err) {
-        console.error(`https://store.steampowered.com/app/${id} failed to resolve: `, err);
+        if (
+          err instanceof TypeError &&
+          err.message === "Fetch failed: Encountered redirect while redirect mode is set to 'error'"
+        ) {
+          console.error(`${url} redirected`);
+        } else {
+          console.error(`${url} failed to resolve: `, err);
+        }
 
         return { reviewCount: null };
       }
@@ -52,7 +62,5 @@ async function scrape() {
 
   const gameJSON = JSON.stringify(gameFinal, null, 2);
 
-  await Deno.writeFile("../../src-tauri/src/games/gameReviews.json", textEncoder.encode(gameJSON));
+  await Deno.writeFile(projectRootDir + "/src-tauri/src/games/gameReviews.json", textEncoder.encode(gameJSON));
 }
-
-await scrape();

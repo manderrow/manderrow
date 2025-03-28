@@ -1,0 +1,12 @@
+{
+  "tasks": {
+    "add-games": "deno run --allow-net=thunderstore.io:443 --allow-write=../../src-tauri/src/games/games.json --no-prompt main.ts add-games",
+    "scrape": "deno run --allow-net=thunderstore.io:443,store.steampowered.com:443 --allow-write=../../src-tauri/src/games/gameModDownloads.json --allow-write=../../src-tauri/src/games/gameReviews.json --no-prompt main.ts scrape"
+  },
+  "imports": {
+    "@std/cli": "jsr:@std/cli@^1.0.14",
+    "@std/path": "jsr:@std/path@^1.0.8",
+    "@std/streams": "jsr:@std/streams@^1.0.9",
+    "cheerio": "npm:cheerio@^1.0.0"
+  }
+}

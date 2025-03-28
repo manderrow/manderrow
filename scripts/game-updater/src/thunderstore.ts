@@ -1,3 +1,5 @@
+export const THUNDERSTORE_COMMUNITIES_API = "https://thunderstore.io/api/cyberstorm/community/";
+
 export interface ThunderstoreCommunityApiResponse {
   count: number;
   next?: number; // Not sure if next or previous is a number as always null so far
@@ -12,7 +14,10 @@ export interface ThunderstoreCommunityGame {
   description: string;
   discord_url: string;
   wiki_url: string;
-  datetime_created: string; // ISO timestamp
+  /**
+   * ISO timestamp
+   */
+  datetime_created: string;
   background_image_url: string;
   hero_image_url: string;
   cover_image_url: string;

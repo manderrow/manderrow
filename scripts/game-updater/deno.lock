@@ -3,6 +3,7 @@
   "specifiers": {
     "jsr:@std/bytes@^1.0.5": "1.0.5",
     "jsr:@std/cli@^1.0.14": "1.0.14",
+    "jsr:@std/path@^1.0.8": "1.0.8",
     "jsr:@std/streams@^1.0.9": "1.0.9",
     "npm:cheerio@1": "1.0.0"
   },
@@ -12,6 +13,9 @@
     },
     "@std/cli@1.0.14": {
       "integrity": "b09ee9921cd476c0e08185ed2bfce682d45ecf4654f26c31b4aa244a2c5c024e"
+    },
+    "@std/path@1.0.8": {
+      "integrity": "548fa456bb6a04d3c1a1e7477986b6cffbce95102d0bb447c67c4ee70e0364be"
     },
     "@std/streams@1.0.9": {
       "integrity": "a9d26b1988cdd7aa7b1f4b51e1c36c1557f3f252880fa6cc5b9f37078b1a5035",
@@ -158,6 +162,7 @@
   "workspace": {
     "dependencies": [
       "jsr:@std/cli@^1.0.14",
+      "jsr:@std/path@^1.0.8",
       "jsr:@std/streams@^1.0.9",
       "npm:cheerio@1"
     ]
