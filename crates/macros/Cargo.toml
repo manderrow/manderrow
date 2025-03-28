@@ -1,6 +1,7 @@
 [package]
 name = "manderrow-macros"
 version = "0.1.0"
+authors.workspace = true
 edition = "2024"
 
 [lib]

@@ -22,7 +22,7 @@ search-sublime_fuzzy = ["sublime_fuzzy"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
-manderrow-macros = { path = "../crates/manderrow-macros" }
+manderrow-macros = { path = "../crates/macros" }
 
 tauri = { version = "2", features = ["macos-private-api"] }
 tauri-plugin-clipboard-manager = "2"

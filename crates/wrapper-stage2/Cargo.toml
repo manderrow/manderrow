@@ -1,8 +1,8 @@
 [package]
 name = "manderrow-wrapper-stage2"
 version = "0.1.0"
-authors = ["Jack Huang", "Michael Pfaff"]
-edition = "2021"
+authors.workspace = true
+edition = "2024"
 
 [dependencies]
 anyhow = "1.0.94"
