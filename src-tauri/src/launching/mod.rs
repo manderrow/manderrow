@@ -161,6 +161,10 @@ pub async fn launch_profile(
         command.arg(path);
     }
 
+    if std::env::var_os("LEGACY_DOORSTOP").is_some() {
+        command.arg("--legacy-doorstop");
+    }
+
     if modded {
         command.arg("--loader");
         command.arg(game.package_loader.as_str());

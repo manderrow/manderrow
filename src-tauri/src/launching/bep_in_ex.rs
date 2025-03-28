@@ -92,6 +92,7 @@ pub async fn configure_command(
     game: &str,
     profile_id: Uuid,
     doorstop_path: Option<PathBuf>,
+    legacy_doorstop: bool,
 ) -> anyhow::Result<()> {
     let steam_metadata = games_by_id()?
         .get(game)
@@ -133,7 +134,7 @@ pub async fn configure_command(
     };
 
     command.env("DOORSTOP_ENABLED", "1");
-    command.env("DOORSTOP_TARGET_ASSEMBLY", target_assembly);
+    command.env("DOORSTOP_TARGET_ASSEMBLY", &target_assembly);
     command.env("DOORSTOP_IGNORE_DISABLED_ENV", "0");
     // specify these only if they have values
     // command.env("DOORSTOP_MONO_DLL_SEARCH_PATH_OVERRIDE", "");
@@ -167,6 +168,23 @@ pub async fn configure_command(
             None,
         )
         .await?;
+
+        if legacy_doorstop {
+            command.args(["--doorstop-enable", "true"]);
+
+            command.arg("--doorstop-target-assembly");
+            command.arg(&target_assembly);
+
+            command.args(["--doorstop-mono-debug-enabled", "false"]);
+            command.args(["--doorstop-mono-debug-address", "127.0.0.1:10000"]);
+            command.args(["--doorstop-mono-debug-suspend", "false"]);
+            // specify these only if they have values
+            // especially --doorstop-mono-dll-search-path-override, which will
+            // cause the doorstop to fail if given an empty string
+            // command.args(["--doorstop-mono-dll-search-path-override", ""]);
+            // command.args(["--doorstop-clr-corlib-dir", ""]);
+            // command.args(["--doorstop-clr-runtime-coreclr-path", ""]);
+        }
     } else {
         let doorstop_path = match doorstop_path {
             Some(t) => t,

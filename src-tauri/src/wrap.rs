@@ -164,6 +164,7 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
         let mut loader = None::<PackageLoader>;
         let mut wrapper_stage2_path = None::<PathBuf>;
         let mut doorstop_path = None::<PathBuf>;
+        let mut legacy_doorstop = false;
 
         while let Some(arg) = parsed_args.next()? {
             match arg {
@@ -214,6 +215,12 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
                         bail!("--doorstop-path specified twice");
                     }
                     doorstop_path = Some(parsed_args.value()?.into());
+                }
+                Long("legacy-doorstop") => {
+                    if legacy_doorstop {
+                        bail!("--legacy-doorstop specified twice");
+                    }
+                    legacy_doorstop = true;
                 }
                 _ => {
                     return Err(anyhow::Error::from(arg.unexpected())
@@ -270,6 +277,7 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
                     &game,
                     profile,
                     doorstop_path,
+                    legacy_doorstop,
                 )
                 .await?;
             }
