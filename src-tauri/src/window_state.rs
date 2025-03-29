@@ -269,6 +269,10 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                 return;
             };
 
+            if matches!(id, PersistentWindowId::Main) {
+                return;
+            }
+
             let _ = window.restore_state();
 
             let cache = (*window.state::<WindowStateCache>()).clone();
