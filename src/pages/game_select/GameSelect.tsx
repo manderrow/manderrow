@@ -13,9 +13,9 @@ import blobStyles from "./GameBlobs.module.css";
 import gameListStyles from "./GameList.module.css";
 import styles from "./GameSelect.module.css";
 import { GameSortColumn, searchGames } from "../../api";
-import { replaceRouterState as replaceRouteState } from "../../utils/router";
 import { updateSettings } from "../../api/settings";
 import { SimpleAsyncButton } from "../../components/global/AsyncButton";
+import { replaceRouteState } from "../../utils/router";
 
 enum DisplayType {
   Card = -1,
@@ -55,7 +55,7 @@ export default function GameSelect() {
 
   createEffect(() => {
     if (location.state?.explicit != null) return;
-    const game = initialGame.latest;
+    const game = initialGame.latestOrThrow;
     if (game) {
       // don't trigger again when the user manually navigates back
       replaceRouteState((current) => ({ ...current, explicit: true }));

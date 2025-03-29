@@ -1,6 +1,6 @@
 import { NavigateOptions, useLocation, useSearchParams } from "@solidjs/router";
 
-export function replaceRouterState<T extends object>(mutator: (current: T) => T) {
+export function replaceRouteState<T extends object>(mutator: (current: T) => T) {
   // solid router appears not to provide a way to do this, so here we go
   window.history.replaceState(mutator(window.history.state), "");
 }
