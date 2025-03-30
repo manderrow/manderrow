@@ -154,20 +154,25 @@ pub async fn configure_command(
             ensure_wine_will_load_dll_override(log, steam_metadata.id, "winhttp").await?;
         }
 
-        install_file(
-            // TODO: communicate via IPC
-            None,
-            log,
-            &Reqwest(reqwest::Client::new()),
-            doorstop_url,
-            // suffix is unnecessary here
-            Some(crate::installing::CacheOptions::by_hash(doorstop_hash)),
-            &resolve_steam_app_install_directory(steam_metadata.id)
-                .await?
-                .join("winhttp.dll"),
-            None,
-        )
-        .await?;
+        let doorstop_install_target = resolve_steam_app_install_directory(steam_metadata.id)
+            .await?
+            .join("winhttp.dll");
+        if let Some(doorstop_path) = doorstop_path {
+            tokio::fs::copy(doorstop_path, &doorstop_install_target).await?;
+        } else {
+            install_file(
+                // TODO: communicate via IPC
+                None,
+                log,
+                &Reqwest(reqwest::Client::new()),
+                doorstop_url,
+                // suffix is unnecessary here
+                Some(crate::installing::CacheOptions::by_hash(doorstop_hash)),
+                &doorstop_install_target,
+                None,
+            )
+            .await?;
+        }
 
         if legacy_doorstop {
             command.args(["--doorstop-enable", "true"]);
