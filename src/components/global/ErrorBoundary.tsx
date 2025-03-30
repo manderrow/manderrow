@@ -15,7 +15,7 @@ export const ErrorContext = createContext<ReportErrFn>(
   { name: "Error" },
 );
 
-export default function ErrorBoundary(props: { children: JSX.Element | ((ctx: ReportErrFn) => JSX.Element) }) {
+export default function ErrorBoundary(props: { children: JSX.Element }) {
   const [error, setError] = createSignal<unknown>();
   function onError(e: unknown) {
     if (e instanceof AbortedError) return;
@@ -26,14 +26,7 @@ export default function ErrorBoundary(props: { children: JSX.Element | ((ctx: Re
     <ErrorContext.Provider value={onError}>
       <Show
         when={error()}
-        fallback={catchError(() => {
-          const children = props.children;
-          if (typeof children === "function") {
-            return children(onError);
-          } else {
-            return children;
-          }
-        }, onError)}
+        fallback={catchError(() => props.children, onError)}
       >
         {(err) => <Error err={err()} reset={() => setError(undefined)} />}
       </Show>
