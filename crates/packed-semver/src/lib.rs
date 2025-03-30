@@ -1,3 +1,5 @@
+//! A restricted variant of SemVer that supports only `MAJOR.MINOR.PATCH` with up to 16 total characters.
+
 use std::{
     fmt::{self, Formatter},
     mem::ManuallyDrop,
@@ -8,12 +10,12 @@ use std::{
 use std::sync::atomic::AtomicU32;
 
 use rkyv::{
+    Portable, RelPtr, SerializeUnsized,
     bytecheck::CheckBytes,
     munge::munge,
     primitive::{ArchivedU32, ArchivedU64, FixedUsize},
-    rancor::{fail, Fallible, Source},
+    rancor::{Fallible, Source, fail},
     ser::Writer,
-    Portable, RelPtr, SerializeUnsized,
 };
 
 /// Returns the minimum number of bits required to store the value.
@@ -25,58 +27,58 @@ fn bit_len(value: u64) -> u32 {
 #[error("Too many bits in version")]
 pub struct TooManyBitsError;
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 struct Components {
     digits: u64,
-    minor_exp: u32,
-    major_exp: u32,
+    minor_exp_m1: u32,
+    major_exp_m1: u32,
 }
 
 impl Components {
     #[inline]
     pub fn new(major: u64, minor: u64, patch: u64) -> Self {
-        let minor_exp = patch.checked_ilog10().unwrap_or(0) + 1;
-        let major_exp = minor.checked_ilog10().unwrap_or(0) + 1;
+        let minor_exp_m1 = patch.checked_ilog10().unwrap_or(0);
+        let major_exp_m1 = minor.checked_ilog10().unwrap_or(0);
 
-        let minor_mul = 10u64.pow(minor_exp);
-        let major_mul = 10u64.pow(major_exp);
+        let minor_mul = EXP_LUT[minor_exp_m1 as usize];
+        let major_mul = EXP_LUT[major_exp_m1 as usize];
 
         Self {
             digits: patch + minor * minor_mul + major * minor_mul * major_mul,
-            minor_exp,
-            major_exp,
+            minor_exp_m1,
+            major_exp_m1,
         }
     }
 }
 
+#[doc(hidden)]
 #[derive(Clone, Copy)]
-struct Packer {
-    digit_bits: u32,
-    index_bits: u32,
-    digits_mask: u64,
-    index_mask: u8,
+pub struct Packer {
+    pub digit_bits: u32,
+    pub index_bits: u32,
+    pub digit_mask: u64,
+    pub index_mask: u8,
 }
 
 impl Packer {
     #[inline]
-    pub fn pack(&self, components: Components) -> Result<u64, TooManyBitsError> {
+    fn pack(&self, components: Components) -> Result<u64, TooManyBitsError> {
         let Components {
             digits,
-            minor_exp,
-            major_exp,
+            minor_exp_m1,
+            major_exp_m1,
         } = components;
 
         if bit_len(digits) > self.digit_bits {
             return Err(TooManyBitsError);
         }
 
-        debug_assert!(bit_len(minor_exp.into()) <= self.index_bits);
-        debug_assert!(bit_len(major_exp.into()) <= self.index_bits);
-
-        // println!("{major_exp:b} {minor_exp:b} {digits:b}");
+        debug_assert!(bit_len(minor_exp_m1.into()) <= self.index_bits);
+        debug_assert!(bit_len(major_exp_m1.into()) <= self.index_bits);
 
         Ok(digits << 2
-            | (u64::from(major_exp) << (2 + self.digit_bits + self.index_bits))
-            | (u64::from(minor_exp) << (2 + self.digit_bits)))
+            | (u64::from(major_exp_m1) << (2 + self.digit_bits + self.index_bits))
+            | (u64::from(minor_exp_m1) << (2 + self.digit_bits)))
     }
 
     #[inline]
@@ -84,15 +86,13 @@ impl Packer {
         // discard marker
         let value = value >> 2;
 
-        let minor_exp = (((value >> self.digit_bits) as u8) & self.index_mask) as u32;
-        let major_exp =
-            (((value >> (self.digit_bits + self.index_bits)) as u8) & self.index_mask) as u32;
-        let digits = value & self.digits_mask;
+        let minor_exp_m1 = (((value >> self.digit_bits) as u8) & self.index_mask) as usize;
+        let major_exp_m1 =
+            (((value >> (self.digit_bits + self.index_bits)) as u8) & self.index_mask) as usize;
+        let digits = value & self.digit_mask;
 
-        let minor_mul = 10u64.pow(minor_exp);
-        let major_mul = 10u64.pow(major_exp);
-
-        // println!("{major_exp:b} {minor_exp:b} {digits:b}");
+        let minor_mul = EXP_LUT[minor_exp_m1];
+        let major_mul = EXP_LUT[major_exp_m1];
 
         (
             digits / minor_mul / major_mul,
@@ -100,33 +100,66 @@ impl Packer {
             digits % minor_mul,
         )
     }
+
+    pub fn from_digits(n: u32) -> Self {
+        // base10 packing with bit shifting and base10 "indices" (10^i)
+        let digit_bits = ((n as f64) / 2.0f64.log10()).ceil() as u32;
+        let index_bits = (n as f64).log2().ceil() as u32;
+        Self {
+            digit_bits,
+            index_bits,
+            digit_mask: !0u64 >> (64 - digit_bits),
+            index_mask: !0u8 >> (8 - index_bits),
+        }
+    }
 }
+
+/// Powers of 10, starting from 1, up to and including [`Version::MAX_COMPONENT_DIGITS`].
+const EXP_LUT: [u64; Version::MAX_COMPONENT_DIGITS as usize] = [
+    10,
+    100,
+    1_000,
+    10_000,
+    100_000,
+    1_000_000,
+    10_000_000,
+    100_000_000,
+    1_000_000_000,
+    10_000_000_000,
+    100_000_000_000,
+    1_000_000_000_000,
+];
 
 const INLINE_MARKER: u8 = 0b01;
 
 const INLINE_PACKER: Packer = Packer {
     digit_bits: 24,
     index_bits: 3,
-    digits_mask: 0xff_ff_ff,
+    digit_mask: 0xff_ff_ff,
     index_mask: 0b111,
 };
 
 const OUT_OF_LINE_PACKER: Packer = Packer {
     digit_bits: 47,
     index_bits: 4,
-    digits_mask: 0x7f_ff_ff_ff_ff_ff,
+    digit_mask: 0x7f_ff_ff_ff_ff_ff,
     index_mask: 0b1111,
 };
 
-/// See https://github.com/thunderstore-io/Thunderstore/blob/a4146daa5db13344be647a87f0206c1eb19eb90e/django/thunderstore/repository/consts.py#L4.
-/// and https://github.com/thunderstore-io/Thunderstore/blob/a4146daa5db13344be647a87f0206c1eb19eb90e/django/thunderstore/repository/models/package_version.py#L101-L103
+/// See https://github.com/thunderstore-io/Thunderstore/blob/a4146daa5db13344be647a87f0206c1eb19eb90e/django/thunderstore/repository/consts.py#L4 for some format information.
 ///
 /// The [`PartialEq`], [`Eq`], and [`Hash`] trait impls rely on there being a single canonical representation that is always used for a given version.
 #[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Version(u64);
 
 impl Version {
+    /// According to https://github.com/thunderstore-io/Thunderstore/blob/a4146daa5db13344be647a87f0206c1eb19eb90e/django/thunderstore/repository/models/package_version.py#L101-L103.
     const MAX_LEN: u32 = 16;
+    /// [`MAX_LEN`] minus 2 for the separators.
+    const MAX_TOTAL_DIGITS: u32 = Self::MAX_LEN - 2;
+    /// Each component must have at least one digit, thus we subtract two from the total
+    /// number of digits to find the maximum digits for each component.
+    const MAX_COMPONENT_DIGITS: u32 = Self::MAX_TOTAL_DIGITS - 2;
 
     pub fn new(major: u64, minor: u64, patch: u64) -> Result<Self, TooManyBitsError> {
         let components = Components::new(major, minor, patch);
@@ -261,9 +294,9 @@ where
     C::Error: Source,
 {
     unsafe fn check_bytes(value: *const Self, _: &mut C) -> Result<(), <C as Fallible>::Error> {
-        let value = &*value;
+        let value = unsafe { &*value };
         if value.is_inline() {
-            if (value.repr.inline.to_native() & 0b10) != 0 {
+            if (unsafe { value.repr.inline }.to_native() & 0b10) != 0 {
                 #[derive(Debug, thiserror::Error)]
                 #[error("illegal bit {0} set in version")]
                 struct IllegalBitError(usize);
@@ -272,7 +305,7 @@ where
             }
             Ok(())
         } else {
-            if !value.repr.out_of_line.as_ptr_wrapping().is_aligned() {
+            if !unsafe { value.repr.out_of_line.as_ptr_wrapping() }.is_aligned() {
                 #[derive(Debug, thiserror::Error)]
                 #[error("misaligned out-of-line pointer in version")]
                 struct MisalignedError;
@@ -397,10 +430,10 @@ impl fmt::Binary for Version {
 
 #[cfg(test)]
 mod tests {
-    use super::Version;
+    use super::{Components, Version};
 
     #[test]
-    fn test_version() {
+    fn test_packing_roundtrip() {
         #[track_caller]
         fn case(major: u64, minor: u64, patch: u64) {
             let version = Version::new(major, minor, patch).unwrap();
@@ -427,5 +460,46 @@ mod tests {
         case(69, 4, 2);
         case(31251241231, 0, 0);
         case(69, 201, 131125);
+        case(999_999_999_999, 9, 9);
+    }
+
+    #[test]
+    fn test_calculations() {
+        // base2 packing with bit shifting and bit indices
+        let max_bits =
+            ((((Version::MAX_TOTAL_DIGITS as f64) / 3.0) / 2.0f64.log10()).ceil() as u32) * 3;
+        let index_bits = (max_bits - 1).next_power_of_two().ilog2() + 1;
+
+        assert_eq!(max_bits, 48);
+        assert_eq!(index_bits, 7);
+        assert_eq!(max_bits + index_bits * 2, 62);
+
+        // base10 packing with bit shifting and base10 "indices" (10^i)
+        let max_bits = ((Version::MAX_TOTAL_DIGITS as f64) / 2.0f64.log10()).ceil() as u32;
+        let index_bits = (Version::MAX_TOTAL_DIGITS as f64).log2().ceil() as u32;
+        assert_eq!(max_bits, 47);
+        assert_eq!(index_bits, 4);
+        assert_eq!(max_bits + index_bits * 2, 55);
+    }
+
+    #[test]
+    fn test_components() {
+        assert_eq!(
+            Components::new(999_999_999_999, 9, 9),
+            Components {
+                digits: 999_999_999_999_9_9,
+                minor_exp_m1: 0,
+                major_exp_m1: 0,
+            }
+        );
+
+        assert_eq!(
+            Components::new(9, 9, 999_999_999_999),
+            Components {
+                digits: 9_9_999_999_999_999,
+                minor_exp_m1: 11,
+                major_exp_m1: 0,
+            }
+        );
     }
 }

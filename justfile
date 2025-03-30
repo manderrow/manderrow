@@ -5,20 +5,20 @@ build *ARGS:
 	deno run tauri build {{ARGS}}
 
 fmt:
-	cargo fmt --manifest-path src-tauri/Cargo.toml
 	cargo fmt --manifest-path crates/Cargo.toml --all
+	cargo fmt --manifest-path src-tauri/Cargo.toml
 
 clean:
-	cargo clean --manifest-path src-tauri/Cargo.toml
 	cargo clean --manifest-path crates/Cargo.toml
+	cargo clean --manifest-path src-tauri/Cargo.toml
 
 test:
-	cargo test --manifest-path src-tauri/Cargo.toml
 	cargo test --manifest-path crates/Cargo.toml
+	cargo test --manifest-path src-tauri/Cargo.toml
 
 check:
-	cargo check --manifest-path src-tauri/Cargo.toml
 	cargo check --manifest-path crates/Cargo.toml
+	cargo check --manifest-path src-tauri/Cargo.toml
 
 run-script BIN *ARGS:
 	cargo run --manifest-path crates/Cargo.toml --bin {{BIN}} -- {{ARGS}}

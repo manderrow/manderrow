@@ -1,10 +1,10 @@
 mod spec;
 mod timestamp;
-mod version;
 
 pub use spec::*;
 pub use timestamp::*;
-pub use version::*;
+
+pub use packed_semver::*;
 
 use std::ops::Deref;
 

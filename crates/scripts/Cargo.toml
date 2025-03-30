@@ -7,9 +7,6 @@ edition = "2024"
 [[bin]]
 name = "generate-loader"
 
-[[bin]]
-name = "version-packing-calculator"
-
 [dependencies]
 euclid = "0.22.11"
 sailfish = "0.9.0"

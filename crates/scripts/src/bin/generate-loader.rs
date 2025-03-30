@@ -1,8 +1,3 @@
-#!/usr/bin/env -S rust-script -f
-//! ```cargo
-//! [dependencies]
-//! sailfish = "0.9.0"
-//! ```
 use std::io::Write;
 
 use euclid::{Point2D, Vector2D};

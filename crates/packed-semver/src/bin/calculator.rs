@@ -1,5 +1,4 @@
-#!/usr/bin/env rust-script
-fn main() {
+pub fn main() {
     let max_digits = std::env::args()
         .skip(1)
         .next()
@@ -15,9 +14,10 @@ fn main() {
 
     println!();
 
-    let max_bits = ((max_digits as f64) / 2.0f64.log10()).ceil() as u32;
-    let index_bits = (max_digits as f64).log2().ceil() as u32;
-    println!("Digit bits: {}", max_bits);
-    println!("Index bits: {} * 2", index_bits);
-    println!("          = {}", max_bits + index_bits * 2);
+    let packer = packed_semver::Packer::from_digits(max_digits);
+    println!("Digit bits: {}", packer.digit_bits);
+    println!("Index bits: {} * 2", packer.index_bits);
+    println!("          = {}", packer.digit_bits + packer.index_bits * 2);
+    println!("Digit mask: {:x}", packer.digit_mask);
+    println!("Index mask: {:x}", packer.index_mask);
 }
