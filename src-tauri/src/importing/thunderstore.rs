@@ -184,7 +184,7 @@ pub async fn lookup_profile(
         log,
         reqwest,
         &format!("https://thunderstore.io/api/experimental/legacyprofile/get/{id}/"),
-        Some(crate::installing::CacheOptions::by_url().with_suffix(".r2modpack")),
+        Some(crate::installing::CacheOptions::by_url().with_suffix(".r2z")),
         task_id,
     )
     .await?;
