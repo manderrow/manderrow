@@ -48,7 +48,7 @@ fn get_doorstop_url_and_hash(
     macro_rules! doorstop_artifact {
         ($artifact:literal, $suffix:literal, $hash:literal) => {
             (concat!(
-                "https://github.com/manderrow/UnityDoorstop/releases/download/v4.3.0%2Bmanderrow.5/",
+                "https://github.com/manderrow/UnityDoorstop/releases/download/v4.3.0%2Bmanderrow.6/",
                 $artifact,
                 $suffix
             ), $hash, $suffix)
@@ -56,10 +56,10 @@ fn get_doorstop_url_and_hash(
     }
 
     Ok(match (std::env::consts::OS, std::env::consts::ARCH, uses_proton) {
-        ("linux", "x86_64", false) => doorstop_artifact!("libUnityDoorstop", ".so", "62af896a88e83efec7b25a35b4cd3a6f7cb07bd52f46365fc2be252049b7d2b2"),
+        ("linux", "x86_64", false) => doorstop_artifact!("libUnityDoorstop", ".so", "ffd103d3b7c40651fe4b3787e3d927786e87c3925b715213ed4eb37c55863b1d"),
         ("linux", "x86", false) => todo!(),
-        ("macos", "x86_64", false) => doorstop_artifact!("libUnityDoorstop", ".dylib", "fe5e72eccc8ed6bd602725f48fb9f87732d5334cd45ed876a7b13a95a9c549be"),
-        ("linux", "x86_64", true) | ("windows", "x86_64", false) => doorstop_artifact!("UnityDoorstop", ".dll", "f270dfe26e943586c4ee75244d641761c36ff700107867172010857a18c519d2"),
+        ("macos", "x86_64", false) => doorstop_artifact!("libUnityDoorstop", ".dylib", "ca5b9181be06613fb8198734664534742172286ddc178c4470de99753eeb26f8"),
+        ("linux", "x86_64", true) | ("windows", "x86_64", false) => doorstop_artifact!("UnityDoorstop", ".dll", "76eb9ff7cfa5f486462b654bceb0a854e7b90ca3913ab919825f92cd5d8f3ef3"),
         ("linux", "x86", true) | ("windows", "x86", false) => todo!(),
         (os, arch, uses_proton) => bail!("Unsupported platform combo: (os: {os:?}, arch: {arch:?}, uses_proton: {uses_proton})"),
     })
