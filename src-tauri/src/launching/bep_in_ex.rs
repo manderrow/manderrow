@@ -65,6 +65,8 @@ fn get_doorstop_url_and_hash(
     })
 }
 
+/// Returns the absolute path to the BepInEx installation. If BepInEx has not yet been
+/// installed, this function will take care of that before returning.
 pub async fn get_bep_in_ex_path(log: &slog::Logger, uses_proton: bool) -> Result<PathBuf> {
     let (url, hash) = get_url_and_hash(uses_proton)?;
     let path = crate::launching::LOADERS_DIR.join(hash);
@@ -133,6 +135,7 @@ pub async fn configure_command(
         p
     };
 
+    // note for the future: any paths provided to UnityDoorstop must be absolute.
     command.env("DOORSTOP_ENABLED", "1");
     command.env("DOORSTOP_TARGET_ASSEMBLY", &target_assembly);
     command.env("DOORSTOP_IGNORE_DISABLED_ENV", "0");
@@ -144,6 +147,7 @@ pub async fn configure_command(
     // specify these only if they have values
     // command.env("DOORSTOP_CLR_CORLIB_DIR", "");
     // command.env("DOORSTOP_CLR_RUNTIME_CORECLR_PATH", "");
+    // command.env("DOORSTOP_BOOT_CONFIG_OVERRIDE", "/path/to/boot.config");
 
     let (doorstop_url, doorstop_hash, doorstop_suffix) = get_doorstop_url_and_hash(uses_proton)?;
 

@@ -53,6 +53,12 @@ pub fn init() -> Result<()> {
         })
         .map_err(|_| anyhow!("Already set"))?;
 
+    assert!(home_dir().is_absolute());
+    assert!(cache_dir().is_absolute());
+    assert!(config_dir().is_absolute());
+    assert!(local_data_dir().is_absolute());
+    assert!(runtime_dir().is_absolute());
+
     std::fs::create_dir_all(cache_dir())?;
     std::fs::create_dir_all(local_data_dir())?;
     std::fs::create_dir_all(runtime_dir())?;
