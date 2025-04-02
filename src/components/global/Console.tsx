@@ -115,7 +115,25 @@ export default function Console(props: { conn: ConsoleConnection | undefined }) 
             } else if ("Start" in event) {
               return (
                 <p>
-                  <span class={styles.event__type}>[START]</span> <DisplaySafeOsString string={event.Start.command} />
+                  <span class={styles.event__type}>[START]</span>{" "}
+                  <For each={Object.entries(event.Start.env)}>
+                    {([k, v]) => {
+                      if ("Unicode" in v) {
+                        return (
+                          <>
+                            {k}={JSON.stringify(v.Unicode)}{" "}
+                          </>
+                        );
+                      } else {
+                        return (
+                          <>
+                            {k}={JSON.stringify(v)}{" "}
+                          </>
+                        );
+                      }
+                    }}
+                  </For>
+                  <DisplaySafeOsString string={event.Start.command} />{" "}
                   <For each={event.Start.args}>
                     {(arg) => (
                       <>
