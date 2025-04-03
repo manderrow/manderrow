@@ -25,7 +25,7 @@ fn get_url_and_hash(uses_proton: bool) -> Result<(&'static str, &'static str)> {
     macro_rules! artifact {
         ($target:literal, $hash:literal) => {
             (concat!(
-                "https://github.com/manderrow/BepInEx/releases/download/v5.4.23.2%2Bbuild.17/BepInEx_",
+                "https://github.com/manderrow/BepInEx/releases/download/v5.4.23.2%2Bbuild.18/BepInEx_",
                 $target,
                 "_5.4.23.2.zip"
             ), $hash)
@@ -33,11 +33,11 @@ fn get_url_and_hash(uses_proton: bool) -> Result<(&'static str, &'static str)> {
     }
 
     Ok(match (std::env::consts::OS, std::env::consts::ARCH, uses_proton) {
-        ("linux", "x86_64", false) => artifact!("linux_x64", "19ad62133fe1c548bad68991d6566bce86425a67e9537d05d0feb2cd3513d28d"),
-        ("linux", "x86", false) => artifact!("linux_x86", "ccce243cac71858584d5391c645ae25a866bfcb4112c3885235fce21fb444c2d"),
-        ("macos", "x86_64", false) => artifact!("macos_x64", "8b133359aafd775f900ab4310e008100d44202506140f19d4f2a950a92c8f44c"),
-        ("linux", "x86_64", true) | ("windows", "x86_64", false) => artifact!("win_x64", "6f9e5436f25ab5802695e616077915ccefa1ff0d7e5fab09522e66ee06e04cb2"),
-        ("linux", "x86", true) | ("windows", "x86", false) => artifact!("win_x86", "9238ad80c275a605250804fa7d26f2e47fd417953600fb16012c36f0b1d7de13"),
+        ("linux", "x86_64", false) => artifact!("linux_x64", "a58d07097d87f840be5c3a86644a3580d29067a88bf1e0493bd9a5f54127e288"),
+        ("linux", "x86", false) => artifact!("linux_x86", "c041863887c912f824a71cfc7508e42c4fd42904563b45becb94252c075e4cd2"),
+        ("macos", "x86_64", false) => artifact!("macos_x64", "726415d1de232afa5cfb5bf7a8c1afa9fadb1cfcb5b27eae27ca5bb579bb02e8"),
+        ("linux", "x86_64", true) | ("windows", "x86_64", false) => artifact!("win_x64", "3f7b79c71ba237623c1727d18e5eaa47ef314e9fd53722d575a3fc421ce9250d"),
+        ("linux", "x86", true) | ("windows", "x86", false) => artifact!("win_x86", "69f7799aa2f18bf1539cfe81df967da818d6405dd4d53838139fc1575bfbf102"),
         (os, arch, uses_proton) => bail!("Unsupported platform combo: (os: {os:?}, arch: {arch:?}, uses_proton: {uses_proton})"),
     })
 }
@@ -93,7 +93,8 @@ pub async fn get_bep_in_ex_path(log: &slog::Logger, uses_proton: bool) -> Result
     let (url, cache, path) = if USE_CI {
         (
             get_ci_url(uses_proton)?,
-            Some(crate::installing::CacheOptions::by_url()),
+            // TODO: maybe cache by etag or something?
+            None,
             crate::launching::LOADERS_DIR.join("ci"),
         )
     } else {
