@@ -25,7 +25,7 @@ fn get_url_and_hash(uses_proton: bool) -> Result<(&'static str, &'static str)> {
     macro_rules! artifact {
         ($target:literal, $hash:literal) => {
             (concat!(
-                "https://github.com/manderrow/BepInEx/releases/download/v5.4.23.2%2Bbuild.16/BepInEx_",
+                "https://github.com/manderrow/BepInEx/releases/download/v5.4.23.2%2Bbuild.17/BepInEx_",
                 $target,
                 "_5.4.23.2.zip"
             ), $hash)
@@ -33,11 +33,32 @@ fn get_url_and_hash(uses_proton: bool) -> Result<(&'static str, &'static str)> {
     }
 
     Ok(match (std::env::consts::OS, std::env::consts::ARCH, uses_proton) {
-        ("linux", "x86_64", false) => artifact!("linux_x64", "e4ab751df846565012f75979b55ee4bc0b8232c7cb7227bea073a3e1dddeaf95"),
-        ("linux", "x86", false) => artifact!("linux_x86", "fccc407923e92b18e2d00b71685b5e7721ea5fe5264bbc951269c7452a672bcc"),
-        ("macos", "x86_64", false) => artifact!("macos_x64", "0eced505910fe7c48a2d1e4690d1c9616204ad015c13f8a3cb2d8926903216a5"),
-        ("linux", "x86_64", true) | ("windows", "x86_64", false) => artifact!("win_x64", "cee8243e7333aaf716b4f950b9043df94d5763cb5ff0d486a82bd5671cbafa98"),
-        ("linux", "x86", true) | ("windows", "x86", false) => artifact!("win_x86", "db3649c65243dc78441abc19334016faf4755a5c3fbe9a1a6e1e3142665db925"),
+        ("linux", "x86_64", false) => artifact!("linux_x64", "19ad62133fe1c548bad68991d6566bce86425a67e9537d05d0feb2cd3513d28d"),
+        ("linux", "x86", false) => artifact!("linux_x86", "ccce243cac71858584d5391c645ae25a866bfcb4112c3885235fce21fb444c2d"),
+        ("macos", "x86_64", false) => artifact!("macos_x64", "8b133359aafd775f900ab4310e008100d44202506140f19d4f2a950a92c8f44c"),
+        ("linux", "x86_64", true) | ("windows", "x86_64", false) => artifact!("win_x64", "6f9e5436f25ab5802695e616077915ccefa1ff0d7e5fab09522e66ee06e04cb2"),
+        ("linux", "x86", true) | ("windows", "x86", false) => artifact!("win_x86", "9238ad80c275a605250804fa7d26f2e47fd417953600fb16012c36f0b1d7de13"),
+        (os, arch, uses_proton) => bail!("Unsupported platform combo: (os: {os:?}, arch: {arch:?}, uses_proton: {uses_proton})"),
+    })
+}
+
+fn get_ci_url(uses_proton: bool) -> Result<&'static str> {
+    macro_rules! artifact {
+        ($target:literal) => {
+            concat!(
+                "https://github.com/manderrow/BepInEx/releases/download/ci/BepInEx_",
+                $target,
+                "_5.4.23.2.zip"
+            )
+        };
+    }
+
+    Ok(match (std::env::consts::OS, std::env::consts::ARCH, uses_proton) {
+        ("linux", "x86_64", false) => artifact!("linux_x64"),
+        ("linux", "x86", false) => artifact!("linux_x86"),
+        ("macos", "x86_64", false) => artifact!("macos_x64"),
+        ("linux", "x86_64", true) | ("windows", "x86_64", false) => artifact!("win_x64"),
+        ("linux", "x86", true) | ("windows", "x86", false) => artifact!("win_x86"),
         (os, arch, uses_proton) => bail!("Unsupported platform combo: (os: {os:?}, arch: {arch:?}, uses_proton: {uses_proton})"),
     })
 }
@@ -48,7 +69,7 @@ fn get_doorstop_url_and_hash(
     macro_rules! doorstop_artifact {
         ($artifact:literal, $suffix:literal, $hash:literal) => {
             (concat!(
-                "https://github.com/manderrow/UnityDoorstop/releases/download/v4.3.0%2Bmanderrow.7/",
+                "https://github.com/manderrow/UnityDoorstop/releases/download/v4.3.0%2Bmanderrow.9/",
                 $artifact,
                 $suffix
             ), $hash, $suffix)
@@ -56,10 +77,10 @@ fn get_doorstop_url_and_hash(
     }
 
     Ok(match (std::env::consts::OS, std::env::consts::ARCH, uses_proton) {
-        ("linux", "x86_64", false) => doorstop_artifact!("libUnityDoorstop", ".so", "5e432d64756156dd592006bb9886d562887039de850c003e0396f9335b055a2a"),
+        ("linux", "x86_64", false) => doorstop_artifact!("libUnityDoorstop", ".so", "845e0494a44c88c576765c1ce850a7f883ce2253948c4617c0cffee1635853a6"),
         ("linux", "x86", false) => todo!(),
-        ("macos", "x86_64", false) => doorstop_artifact!("libUnityDoorstop", ".dylib", "a299d293ba1257d99af09ece11ea1f2ffbec0e869807614af31b422a8e681bbe"),
-        ("linux", "x86_64", true) | ("windows", "x86_64", false) => doorstop_artifact!("UnityDoorstop", ".dll", "5196aacfd10680a5ff95568ed537230073fb10aa27cfe1525674574bcb90f80f"),
+        ("macos", "x86_64", false) => doorstop_artifact!("libUnityDoorstop", ".dylib", "8e2ce9c37149c5384a6a18e40ad0d23e1ac750925acbc6b5ba612f6c2f4f1a28"),
+        ("linux", "x86_64", true) | ("windows", "x86_64", false) => doorstop_artifact!("UnityDoorstop", ".dll", "efcea495b5191f3931f8be21b001b2c851e988614f5dce155546e007ef187cf1"),
         ("linux", "x86", true) | ("windows", "x86", false) => todo!(),
         (os, arch, uses_proton) => bail!("Unsupported platform combo: (os: {os:?}, arch: {arch:?}, uses_proton: {uses_proton})"),
     })
@@ -68,8 +89,21 @@ fn get_doorstop_url_and_hash(
 /// Returns the absolute path to the BepInEx installation. If BepInEx has not yet been
 /// installed, this function will take care of that before returning.
 pub async fn get_bep_in_ex_path(log: &slog::Logger, uses_proton: bool) -> Result<PathBuf> {
-    let (url, hash) = get_url_and_hash(uses_proton)?;
-    let path = crate::launching::LOADERS_DIR.join(hash);
+    const USE_CI: bool = false;
+    let (url, cache, path) = if USE_CI {
+        (
+            get_ci_url(uses_proton)?,
+            Some(crate::installing::CacheOptions::by_url()),
+            crate::launching::LOADERS_DIR.join("ci"),
+        )
+    } else {
+        let (url, hash) = get_url_and_hash(uses_proton)?;
+        (
+            url,
+            Some(crate::installing::CacheOptions::by_hash(hash)),
+            crate::launching::LOADERS_DIR.join(hash),
+        )
+    };
 
     install_zip(
         // TODO: communicate via IPC
@@ -77,7 +111,7 @@ pub async fn get_bep_in_ex_path(log: &slog::Logger, uses_proton: bool) -> Result
         log,
         &Reqwest(reqwest::Client::new()),
         url,
-        Some(crate::installing::CacheOptions::by_hash(hash)),
+        cache,
         &path,
         None,
     )
