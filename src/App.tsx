@@ -4,22 +4,23 @@ import "./styles/Markdown.css";
 import { Route, Router } from "@solidjs/router";
 import { platform } from "@tauri-apps/plugin-os";
 import { open } from "@tauri-apps/plugin-shell";
-import { Show, createEffect, createResource, createSignal, onCleanup, onMount } from "solid-js";
+import { Show, createResource, onCleanup, onMount } from "solid-js";
 
+import { relaunch } from "./api/app";
 import { coreResources } from "./globals";
 
+import ErrorBoundary, { Error } from "./components/global/ErrorBoundary";
 import ErrorPage from "./pages/error/Error";
 import GameSelect from "./pages/game_select/GameSelect";
 import Profile from "./pages/profile/Profile";
-import ErrorBoundary, { Error } from "./components/global/ErrorBoundary";
-import { closeSplashscreen, relaunch } from "./api/app";
+import Settings from "./pages/settings/Settings";
+import Splashscreen from "./pages/splashscreen/Splashscreen.tsx";
 
 export default function App() {
   const [fontLoaded] = createResource(async () => {
-    // 64px taken from the title on game select screen
-    await document.fonts.load("64px Inter");
+    await document.fonts.load("16px Inter");
+    document.fonts.load("16px SourceCodePro"); // non-blocking load
   });
-  const [coreResourcesLoaded, setCoreResourcesLoaded] = createSignal(false);
 
   function getLink(event: MouseEvent) {
     if (!(event.target instanceof HTMLElement)) return;
@@ -47,19 +48,7 @@ export default function App() {
     }
   }
 
-  createEffect(() => {
-    if (coreResources.every((resource) => !resource.loading && resource.state !== "unresolved"))
-      setCoreResourcesLoaded(true);
-  });
-
-  createEffect(() => {
-    if (coreResourcesLoaded() && !fontLoaded.loading) {
-      // App ready, close splashscreen and show main window
-      closeSplashscreen();
-    }
-  });
-
-  onMount(async () => {
+  onMount(() => {
     const platformName = platform();
     document.body.dataset.webview = platformName === "macos" || platformName === "ios" ? "safari" : platformName;
 
@@ -75,9 +64,11 @@ export default function App() {
 
   return (
     <Show
-      when={coreResources.every((resource) => !resource.loading)}
+      when={
+        coreResources.every((resource) => !resource.loading && resource.state !== "unresolved") && !fontLoaded.loading
+      }
       fallback={
-        <Show when={coreResources.find((resource) => resource.error != null)?.error}>
+        <Show when={coreResources.find((resource) => resource.error != null)?.error} fallback={<Splashscreen />}>
           {(err) => (
             <Error
               err={err}
@@ -93,6 +84,7 @@ export default function App() {
         <Router>
           <Route path="/" component={GameSelect} />
           <Route path="/profile/:gameId/:profileId?" component={Profile} />
+          <Route path="/settings" component={Settings} />
           <Route path="*path" component={ErrorPage} />
         </Router>
       </ErrorBoundary>

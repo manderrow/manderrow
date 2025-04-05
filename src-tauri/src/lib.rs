@@ -93,7 +93,6 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
         .plugin(tauri_plugin_shell::init())
         .plugin(window_state::init())
         .invoke_handler(tauri::generate_handler![
-            app_commands::close_splashscreen,
             app_commands::relaunch,
             games::commands::get_games,
             games::commands::search_games,

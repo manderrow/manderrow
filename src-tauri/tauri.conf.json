@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "manderrow",
+  "productName": "Manderrow",
   "version": "0.1.0",
-  "identifier": "io.github.jack-the-pro101.manderrow",
+  "identifier": "io.github.manderrow",
   "build": {
     "beforeDevCommand": "deno run dev",
     "devUrl": "http://localhost:1420",
@@ -13,26 +13,14 @@
   "app": {
     "windows": [
       {
-        "title": "Manderrow launching",
-        "label": "splashscreen",
-        "decorations": false,
-        "url": "/pages/splashscreen.html",
-        "visible": false,
-        "center": true,
-        "resizable": false,
-        "transparent": true,
-        "skipTaskbar": true,
-        "width": 448,
-        "height": 280
-      },
-      {
         "title": "Manderrow",
         "label": "main",
-        "width": 1000,
-        "height": 700,
-        "visible": false,
-        "transparent": true,
-        "center": true
+        "width": 1024,
+        "height": 576,
+        "visible": true,
+        "transparent": false,
+        "center": true,
+        "backgroundColor": "#1d2430"
       }
     ],
     "security": {

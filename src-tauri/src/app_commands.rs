@@ -1,21 +1,8 @@
 use std::ffi::OsString;
 
-use tauri::{AppHandle, Manager, Window};
+use tauri::{AppHandle, Manager};
 
-use crate::window_state::WindowExt;
 use crate::CommandError;
-
-#[tauri::command]
-pub async fn close_splashscreen(main_window: Window) {
-    let _ = main_window.restore_state();
-
-    main_window.show().unwrap();
-
-    match main_window.get_webview_window("splashscreen") {
-        Some(win) => win.close().unwrap(),
-        None => { /* Splashscreen window is already closed */ }
-    }
-}
 
 #[tauri::command]
 pub async fn relaunch(app: AppHandle) -> Result<(), CommandError> {
