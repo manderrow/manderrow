@@ -1,5 +1,6 @@
 pub mod bep_in_ex;
 pub mod commands;
+pub mod melon_loader;
 
 use std::sync::LazyLock;
 use std::{panic::AssertUnwindSafe, path::PathBuf};

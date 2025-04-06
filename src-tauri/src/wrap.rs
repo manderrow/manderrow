@@ -18,6 +18,7 @@ use uuid::Uuid;
 
 use crate::games::PackageLoader;
 use crate::ipc::{C2SMessage, Ipc, LogLevel, OutputLine, S2CMessage};
+use crate::util::process::BufferedCommandBuilder;
 
 async fn send_ipc(
     log: &slog::Logger,
@@ -246,31 +247,9 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
         match (profile, loader) {
             (None, Some(_)) => bail!("Cannot launch modded without a profile"),
             (Some(profile), Some(PackageLoader::BepInEx)) => {
-                struct CommandBuilder<'a> {
-                    env: &'a mut HashMap<String, OsString>,
-                    args: &'a mut Vec<OsString>,
-                }
-                impl<'a> crate::launching::bep_in_ex::CommandBuilder for CommandBuilder<'a> {
-                    fn env(&mut self, key: impl AsRef<str>, value: impl AsRef<std::ffi::OsStr>) {
-                        self.env
-                            .insert(key.as_ref().to_owned(), value.as_ref().to_owned());
-                    }
-
-                    fn args(
-                        &mut self,
-                        args: impl IntoIterator<Item = impl AsRef<std::ffi::OsStr>>,
-                    ) {
-                        self.args
-                            .extend(args.into_iter().map(|s| s.as_ref().to_owned()))
-                    }
-
-                    fn arg(&mut self, arg: impl AsRef<std::ffi::OsStr>) {
-                        self.args.push(arg.as_ref().to_owned())
-                    }
-                }
                 crate::launching::bep_in_ex::configure_command(
                     &log,
-                    &mut CommandBuilder {
+                    &mut BufferedCommandBuilder {
                         env: &mut env,
                         args: &mut command_args,
                     },
@@ -278,6 +257,18 @@ pub async fn run(args: lexopt::Parser) -> Result<()> {
                     profile,
                     doorstop_path,
                     legacy_doorstop,
+                )
+                .await?;
+            }
+            (Some(profile), Some(PackageLoader::MelonLoader)) => {
+                crate::launching::melon_loader::configure_command(
+                    &log,
+                    &mut BufferedCommandBuilder {
+                        env: &mut env,
+                        args: &mut command_args,
+                    },
+                    &game,
+                    profile,
                 )
                 .await?;
             }

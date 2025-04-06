@@ -1,5 +1,40 @@
+use std::ffi::{OsStr, OsString};
+
 use anyhow::Result;
 use slog::Logger;
+
+pub trait CommandBuilder {
+    fn env(&mut self, key: impl AsRef<str>, value: impl AsRef<OsStr>);
+
+    fn args(&mut self, args: impl IntoIterator<Item = impl AsRef<OsStr>>);
+
+    fn arg(&mut self, arg: impl AsRef<std::ffi::OsStr>);
+}
+
+#[derive(Debug)]
+pub struct BufferedCommandBuilder<'a> {
+    pub env: &'a mut std::collections::HashMap<String, OsString>,
+    pub args: &'a mut Vec<OsString>,
+}
+
+impl<'a> crate::util::process::CommandBuilder for BufferedCommandBuilder<'a> {
+    fn env(&mut self, key: impl AsRef<str>, value: impl AsRef<std::ffi::OsStr>) {
+        self.env
+            .insert(key.as_ref().to_owned(), value.as_ref().to_owned());
+    }
+
+    fn args(
+        &mut self,
+        args: impl IntoIterator<Item = impl AsRef<std::ffi::OsStr>>,
+    ) {
+        self.args
+            .extend(args.into_iter().map(|s| s.as_ref().to_owned()))
+    }
+
+    fn arg(&mut self, arg: impl AsRef<std::ffi::OsStr>) {
+        self.args.push(arg.as_ref().to_owned())
+    }
+}
 
 #[derive(Clone, Copy)]
 pub struct Pid {

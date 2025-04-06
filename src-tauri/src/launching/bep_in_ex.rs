@@ -1,4 +1,4 @@
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsString;
 use std::path::PathBuf;
 
 use anyhow::{bail, Context as _, Result};
@@ -10,16 +10,9 @@ use crate::games::games_by_id;
 use crate::installing::{fetch_resource_cached_by_hash, install_file, install_zip};
 use crate::profiles::{profile_path, MODS_FOLDER};
 use crate::stores::steam::paths::resolve_steam_app_install_directory;
-use crate::stores::steam::proton::{ensure_wine_will_load_dll_override, uses_proton};
+use crate::stores::steam::proton::{self, ensure_wine_will_load_dll_override, uses_proton};
+use crate::util::process::CommandBuilder;
 use crate::Reqwest;
-
-pub trait CommandBuilder {
-    fn env(&mut self, key: impl AsRef<str>, value: impl AsRef<OsStr>);
-
-    fn args(&mut self, args: impl IntoIterator<Item = impl AsRef<OsStr>>);
-
-    fn arg(&mut self, arg: impl AsRef<std::ffi::OsStr>);
-}
 
 fn get_url_and_hash(uses_proton: bool) -> Result<(&'static str, &'static str)> {
     macro_rules! artifact {
@@ -88,7 +81,7 @@ fn get_doorstop_url_and_hash(
 
 /// Returns the absolute path to the BepInEx installation. If BepInEx has not yet been
 /// installed, this function will take care of that before returning.
-pub async fn get_bep_in_ex_path(log: &slog::Logger, uses_proton: bool) -> Result<PathBuf> {
+async fn get_bep_in_ex_path(log: &slog::Logger, uses_proton: bool) -> Result<PathBuf> {
     const USE_CI: bool = false;
     let (url, cache, path) = if USE_CI {
         (
@@ -156,7 +149,7 @@ pub async fn configure_command(
     command.env("BEPINEX_STANDARD_LOG", "");
 
     let target_assembly = if uses_proton {
-        let mut buf = OsString::from("Z:");
+        let mut buf = proton::linux_root().to_owned();
         const SUFFIX: &str = "/BepInEx/core/BepInEx.Preloader.dll";
         buf.reserve_exact(bep_in_ex.as_os_str().len() + SUFFIX.len());
         buf.push(bep_in_ex.as_os_str());

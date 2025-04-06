@@ -233,7 +233,7 @@
       }
     ],
     "instanceType": "Game",
-    "packageLoader": "BepInEx"
+    "packageLoader": "MelonLoader"
   },
   {
     "id": "boneworks",
