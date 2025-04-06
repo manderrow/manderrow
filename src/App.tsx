@@ -13,7 +13,6 @@ import ErrorBoundary, { ErrorDialog } from "./components/global/ErrorBoundary";
 import ErrorPage from "./pages/error/Error";
 import GameSelect from "./pages/game_select/GameSelect";
 import Profile from "./pages/profile/Profile";
-import Settings from "./pages/settings/Settings";
 import Splashscreen from "./pages/splashscreen/Splashscreen.tsx";
 
 export default function App() {
@@ -84,7 +83,6 @@ export default function App() {
         <Router>
           <Route path="/" component={GameSelect} />
           <Route path="/profile/:gameId/:profileId?" component={Profile} />
-          <Route path="/settings" component={Settings} />
           <Route path="*path" component={ErrorPage} />
         </Router>
       </ErrorBoundary>

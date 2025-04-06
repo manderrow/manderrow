@@ -1,3 +1,4 @@
+use std::ffi::OsStr;
 use std::ops::Range;
 
 use anyhow::{bail, Result};
@@ -24,6 +25,10 @@ pub async fn uses_proton(log: &slog::Logger, game_id: &str) -> Result<bool> {
     } else {
         Ok(false)
     }
+}
+
+pub fn linux_root() -> &'static OsStr {
+    OsStr::new("Z:")
 }
 
 pub async fn ensure_wine_will_load_dll_override(

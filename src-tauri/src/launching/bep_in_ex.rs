@@ -1,4 +1,3 @@
-use std::ffi::OsString;
 use std::path::PathBuf;
 
 use anyhow::{bail, Result};
@@ -9,9 +8,11 @@ use uuid::Uuid;
 
 use crate::installing::{fetch_resource_cached_by_hash_at_path, install_zip};
 use crate::profiles::{profile_path, MODS_FOLDER};
+use crate::stores::steam::proton;
 use crate::Reqwest;
 
 use super::InstructionEmitter;
+
 
 fn get_url_and_hash(uses_proton: bool) -> Result<(&'static str, &'static str)> {
     macro_rules! artifact {
@@ -156,7 +157,7 @@ fn get_doorstop_url_and_hash(uses_proton: bool) -> Result<LibraryArtifact> {
 
 /// Returns the absolute path to the BepInEx installation. If BepInEx has not yet been
 /// installed, this function will take care of that before returning.
-pub async fn get_bep_in_ex_path(log: &slog::Logger, uses_proton: bool) -> Result<PathBuf> {
+async fn get_bep_in_ex_path(log: &slog::Logger, uses_proton: bool) -> Result<PathBuf> {
     const USE_CI: bool = false;
     let (url, cache, path) = if USE_CI {
         (
@@ -215,7 +216,7 @@ pub async fn emit_instructions(
     em.set_var("BEPINEX_STANDARD_LOG", "");
 
     let target_assembly = if uses_proton {
-        let mut buf = OsString::from("Z:");
+        let mut buf = proton::linux_root().to_owned();
         const SUFFIX: &str = "/BepInEx/core/BepInEx.Preloader.dll";
         buf.reserve_exact(bep_in_ex.as_os_str().len() + SUFFIX.len());
         buf.push(bep_in_ex.as_os_str());

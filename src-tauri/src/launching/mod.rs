@@ -1,5 +1,6 @@
 mod bep_in_ex;
 pub mod commands;
+mod melon_loader;
 
 use std::ffi::{OsStr, OsString};
 use std::panic::AssertUnwindSafe;
@@ -262,6 +263,19 @@ pub async fn launch_profile(
                 )
                 .await?;
             }
+            (LaunchTarget::Profile(profile), PackageLoader::MelonLoader) => {
+                crate::launching::melon_loader::emit_instructions(
+                    Some(&app),
+                    &log,
+                    InstructionEmitter {
+                        command: &mut command,
+                    },
+                    game,
+                    profile,
+                    uses_proton,
+                )
+                .await?;
+            }
             (_, loader) => {
                 return Err(anyhow!("The mod loader {loader:?} is not yet supported").into())
             }
@@ -292,8 +306,9 @@ pub async fn launch_profile(
     command.arg("--logs-dir");
     if uses_proton {
         let logs_dir = logs_dir();
-        let mut buf = OsString::with_capacity("Z:".len() + logs_dir.as_os_str().len());
-        buf.push("Z:");
+        let linux_root = crate::stores::steam::proton::linux_root();
+        let mut buf = OsString::with_capacity(linux_root.len() + logs_dir.as_os_str().len());
+        buf.push(linux_root);
         buf.push(logs_dir.as_os_str());
         command.arg(buf);
     } else {
