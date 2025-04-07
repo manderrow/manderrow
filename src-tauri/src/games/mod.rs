@@ -133,10 +133,14 @@ pub enum StorePlatformMetadata<'a> {
     Steam {
         #[serde(rename = "storeIdentifier", borrow)]
         store_identifier: Cow<'a, str>,
+        #[serde(rename = "storePageIdentifier", borrow, default)]
+        store_page_identifier: Option<Cow<'a, str>>,
     },
     SteamDirect {
         #[serde(rename = "storeIdentifier", borrow)]
         store_identifier: Cow<'a, str>,
+        #[serde(rename = "storePageIdentifier", borrow, default)]
+        store_page_identifier: Option<Cow<'a, str>>,
     },
     Epic {
         #[serde(rename = "storeIdentifier", borrow)]
@@ -154,14 +158,22 @@ pub enum StorePlatformMetadata<'a> {
 #[derive(Debug, Clone, Copy)]
 pub struct SteamMetadata<'a> {
     pub id: &'a str,
+    pub page_id: Option<&'a str>,
 }
 
 impl<'a> StorePlatformMetadata<'a> {
     pub fn steam_or_direct(&self) -> Option<SteamMetadata> {
         match self {
-            StorePlatformMetadata::Steam { store_identifier }
-            | StorePlatformMetadata::SteamDirect { store_identifier } => Some(SteamMetadata {
+            StorePlatformMetadata::Steam {
+                store_identifier,
+                store_page_identifier,
+            }
+            | StorePlatformMetadata::SteamDirect {
+                store_identifier,
+                store_page_identifier,
+            } => Some(SteamMetadata {
                 id: &store_identifier,
+                page_id: store_page_identifier.as_deref(),
             }),
             _ => None,
         }
