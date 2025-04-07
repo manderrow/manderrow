@@ -48,7 +48,6 @@ import styles from "./Profile.module.css";
 import sidebarStyles from "./SidebarProfiles.module.css";
 import ImportDialog from "../../components/profile/ImportDialog";
 import TasksDialog from "../../components/global/TasksDialog";
-import SettingsDialog from "../../components/global/SettingsDialog";
 import { settings } from "../../api/settings";
 import { useSearchParamsInPlace } from "../../utils/router";
 import { sendS2CMessage } from "../../api/ipc";
@@ -126,8 +125,6 @@ export default function Profile() {
   }
 
   const [importDialogOpen, setImportDialogOpen] = createSignal(false);
-
-  const [settingsDialogOpen, setSettingsDialogOpen] = createSignal(false);
 
   const [tasksDialogOpen, setTasksDialogOpen] = createSignal(false);
 
@@ -227,11 +224,13 @@ export default function Profile() {
         </section>
         <section class={styles.sidebar__group}>
           <div class={styles.sidebar__otherGrid}>
-            <button on:click={() => setSettingsDialogOpen(true)}>
-              <Fa icon={faGear} class={styles.sidebar__otherGridIcon} />
-              <br />
-              Settings
-            </button>
+            <A href="/settings">
+              <button>
+                <Fa icon={faGear} class={styles.sidebar__otherGridIcon} />
+                <br />
+                Settings
+              </button>
+            </A>
             <button on:click={() => setTasksDialogOpen(true)}>
               <Fa icon={faDownload} class={styles.sidebar__otherGridIcon} />
               <br />
@@ -309,10 +308,6 @@ export default function Profile() {
 
       <Show when={importDialogOpen()}>
         <ImportDialog onDismiss={() => setImportDialogOpen(false)} gameId={params.gameId} />
-      </Show>
-
-      <Show when={settingsDialogOpen()}>
-        <SettingsDialog onDismiss={() => setSettingsDialogOpen(false)} />
       </Show>
 
       <Show when={tasksDialogOpen()}>
