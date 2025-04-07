@@ -4,10 +4,13 @@ import games from "./games.ts";
 import { projectRootDir } from "./paths.ts";
 
 const steamStoreIdentifiers = games.map(
-  (gameInfo) =>
-    gameInfo.storePlatformMetadata.find(
+  (gameInfo) =>{
+    const metadata = gameInfo.storePlatformMetadata.find(
       (meta) => meta.storePlatform === "Steam" || meta.storePlatform === "SteamDirect",
-    )?.storeIdentifier,
+    );
+    if (metadata == null) return null;
+    return metadata.storePageIdentifier ?? metadata.storeIndentifier;
+  },
 );
 
 const textEncoder = new TextEncoder();
