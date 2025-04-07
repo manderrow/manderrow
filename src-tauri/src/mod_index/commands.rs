@@ -1,11 +1,9 @@
 use std::{collections::HashSet, num::NonZeroUsize};
 
+use manderrow_types::mods::{ArchivedModRef, ModId};
 use tauri::AppHandle;
 
-use crate::{
-    mods::{ArchivedModRef, ModId},
-    tasks, CommandError,
-};
+use crate::{tasks, CommandError};
 
 use super::{read_mod_index, SortColumn, SortOption};
 

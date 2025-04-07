@@ -1,22 +1,25 @@
-pub mod bep_in_ex;
+mod bep_in_ex;
 pub mod commands;
 
+use std::ffi::{OsStr, OsString};
+use std::panic::AssertUnwindSafe;
+use std::path::PathBuf;
 use std::sync::LazyLock;
-use std::{panic::AssertUnwindSafe, path::PathBuf};
 
 use anyhow::{anyhow, Context, Result};
+use manderrow_paths::cache_dir;
+use manderrow_types::games::PackageLoader;
 use slog::{info, o};
 use tauri::{ipc::Channel, AppHandle};
 use tokio::process::Command;
 use uuid::Uuid;
 
 use crate::games::games_by_id;
-use crate::ipc::S2CMessage;
+use crate::ipc::{InProcessIpcStateExt, S2CMessage};
 use crate::profiles::{profile_path, read_profile_file};
 use crate::util::hyphenated_uuid;
 use crate::{
     ipc::{C2SMessage, IpcState},
-    paths::cache_dir,
     CommandError,
 };
 
@@ -109,13 +112,8 @@ pub async fn launch_profile(
                 .find_map(|m| m.steam_or_direct())
                 .context("Unsupported store platform")?;
 
-            crate::stores::steam::launching::ensure_launch_args_are_applied(
-                &log,
-                Some(ipc_state.bi(&channel)),
-                game.id,
-                steam_metadata.id,
-            )
-            .await?;
+            let uses_proton =
+                crate::stores::steam::proton::uses_proton(&log, steam_metadata.id).await?;
 
             command = if cfg!(windows) {
                 #[cfg(windows)]
@@ -135,42 +133,98 @@ pub async fn launch_profile(
                 return Err(anyhow!("Unsupported platform for Steam").into());
             };
             command.arg("-applaunch").arg(&**store_identifier);
+
+            if cfg!(windows) || uses_proton {
+                if uses_proton {
+                    // TODO: don't overwrite anything without checking with the user
+                    //       via a doctor's note.
+                    crate::stores::steam::proton::ensure_wine_will_load_dll_override(
+                        &log,
+                        steam_metadata.id,
+                        "winhttp",
+                    )
+                    .await?;
+                }
+
+                todo!("install agent winhttp.dll or other proxy");
+                // let doorstop_install_target =
+                //     resolve_steam_app_install_directory(steam_metadata.id)
+                //         .await?
+                //         .join("winhttp.dll");
+                // if let Some(doorstop_path) = doorstop_path {
+                //     tokio::fs::copy(doorstop_path, &doorstop_install_target).await?;
+                // } else {
+                //     install_file(
+                //         // TODO: communicate via IPC
+                //         None,
+                //         log,
+                //         &Reqwest(reqwest::Client::new()),
+                //         doorstop_url,
+                //         // suffix is unnecessary here
+                //         Some(crate::installing::CacheOptions::by_hash(doorstop_hash)),
+                //         &doorstop_install_target,
+                //         None,
+                //     )
+                //     .await?;
+                // }
+
+                command.arg("{manderrow");
+            } else {
+                crate::stores::steam::launching::ensure_launch_args_are_applied(
+                    &log,
+                    Some(ipc_state.bi(&channel)),
+                    game.id,
+                    steam_metadata.id,
+                )
+                .await?;
+
+                command.arg("{manderrow");
+
+                // this is a very special arg that is handled and removed by the wrapper
+                if let Some(path) = std::env::var_os("MANDERROW_AGENT_PATH") {
+                    command.arg("--agent-path");
+                    command.arg(path);
+                }
+            }
         }
         _ => return Err(anyhow!("Unsupported game store: {store_metadata:?}").into()),
     }
 
-    let (c2s_rx, c2s_tx) = ipc_channel::ipc::IpcOneShotServer::<C2SMessage>::new()
+    let (c2s_rx, c2s_tx) = manderrow_ipc::ipc_channel::ipc::IpcOneShotServer::<C2SMessage>::new()
         .context("Failed to create IPC channel")?;
 
-    command.arg(";");
+    command.arg("--enable");
+
     command.arg("--c2s-tx");
     command.arg(c2s_tx);
+
     if let LaunchTarget::Profile(id) = target {
         command.arg("--profile");
         command.arg(hyphenated_uuid!(id));
     }
 
-    // TODO: use Tauri sidecar
-    if let Some(path) = std::env::var_os("MANDERROW_WRAPPER_STAGE2_PATH") {
-        command.arg("--wrapper-stage2");
-        command.arg(path);
-    }
-
-    if let Some(path) = std::env::var_os("OVERRIDE_DOORSTOP_LIBRARY_PATH") {
-        command.arg("--doorstop-path");
-        command.arg(path);
-    }
-
-    if std::env::var_os("LEGACY_DOORSTOP").is_some() {
-        command.arg("--legacy-doorstop");
-    }
-
     if modded {
-        command.arg("--loader");
-        command.arg(game.package_loader.as_str());
+        match (target, game.package_loader) {
+            (LaunchTarget::Vanilla(_), _) => {}
+            (LaunchTarget::Profile(profile), PackageLoader::BepInEx) => {
+                crate::launching::bep_in_ex::emit_instructions(
+                    &log,
+                    InstructionEmitter {
+                        command: &mut command,
+                    },
+                    game.id,
+                    profile,
+                    std::env::var_os("OVERRIDE_DOORSTOP_LIBRARY_PATH").map(PathBuf::from),
+                )
+                .await?;
+            }
+            (_, loader) => {
+                return Err(anyhow!("The mod loader {loader:?} is not yet supported").into())
+            }
+        }
     }
 
-    command.arg(";");
+    command.arg("manderrow}");
 
     // TODO: find a way to stop this if the launch fails
     crate::ipc::spawn_c2s_pipe(log.clone(), app_handle, channel, c2s_rx)?;
@@ -183,4 +237,30 @@ pub async fn launch_profile(
     info!(log, "Launcher exited with status code {status}");
 
     Ok(())
+}
+
+struct InstructionEmitter<'a> {
+    command: &'a mut Command,
+}
+
+impl<'a> InstructionEmitter<'a> {
+    pub fn load_library(&mut self, path: impl Into<OsString>) {
+        self.command
+            .args(["--insn-load-library".into(), path.into()]);
+    }
+
+    pub fn set_var(&mut self, key: impl AsRef<OsStr>, value: impl AsRef<OsStr>) {
+        let mut kv = key.as_ref().to_owned();
+        kv.push("=");
+        kv.push(value.as_ref());
+        self.command.args(["--insn-set-var".into(), kv]);
+    }
+
+    pub fn prepend_arg(&mut self, arg: impl Into<OsString>) {
+        self.command.args(["--insn-prepend-arg".into(), arg.into()]);
+    }
+
+    pub fn append_arg(&mut self, arg: impl Into<OsString>) {
+        self.command.args(["--insn-append-arg".into(), arg.into()]);
+    }
 }

@@ -1,158 +1,67 @@
-//! Client is the game, server is the Manderrow app.
-
 use std::collections::HashMap;
-use std::ffi::OsString;
+use std::ops::ControlFlow;
 
-use anyhow::{bail, Context as _, Result};
-use ipc_channel::ipc::{IpcError, IpcOneShotServer, IpcReceiver, IpcSender};
+use anyhow::{Context, Result};
+use manderrow_ipc::ipc_channel::ipc::{IpcError, IpcOneShotServer, IpcSender};
 use slog::error;
-use smol_str::SmolStr;
 use tauri::ipc::Channel;
 use tauri::{AppHandle, Manager};
-use triomphe::Arc;
-use uuid::Uuid;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
-pub enum SafeOsString {
-    Unicode(String),
-    NonUnicodeBytes(Vec<u8>),
-    NonUnicodeWide(Vec<u16>),
+pub use manderrow_ipc::*;
+
+pub trait InProcessIpcStateExt {
+    fn bi<'a>(&'a self, channel: &'a Channel<C2SMessage>) -> IpcBiState<'a>;
 }
 
-impl From<OsString> for SafeOsString {
-    fn from(value: OsString) -> Self {
-        match value.into_string() {
-            Ok(s) => Self::Unicode(s),
-            #[cfg(unix)]
-            Err(s) => {
-                use std::os::unix::ffi::OsStrExt;
-                Self::NonUnicodeBytes(s.as_bytes().to_owned())
-            }
-            #[cfg(windows)]
-            Err(s) => {
-                use std::os::windows::ffi::OsStrExt;
-                Self::NonUnicodeWide(s.encode_wide().collect::<Vec<_>>())
-            }
-            #[cfg(not(any(unix, windows)))]
-            Err(s) => compile_error!("Unsupported platform"),
-        }
-    }
-}
-
-#[derive(Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
-pub enum StandardOutputChannel {
-    Out,
-    Err,
-}
-
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-pub enum OutputLine {
-    Unicode(String),
-    Bytes(Vec<u8>),
-}
-
-impl OutputLine {
-    pub fn new(bytes: Vec<u8>) -> Self {
-        String::from_utf8(bytes)
-            .map(|s| OutputLine::Unicode(s))
-            .unwrap_or_else(|e| OutputLine::Bytes(e.into_bytes()))
-    }
-}
-
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-pub struct DoctorFix<T> {
-    pub id: T,
-    pub label: Option<HashMap<String, serde_json::Value>>,
-    pub confirm_label: Option<HashMap<String, serde_json::Value>>,
-    pub description: Option<HashMap<String, serde_json::Value>>,
-}
-
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-pub struct DoctorReport {
-    pub id: Uuid,
-    pub translation_key: String,
-    pub message: Option<String>,
-    pub message_args: Option<HashMap<String, serde_json::Value>>,
-    pub fixes: Vec<DoctorFix<String>>,
-}
-
-#[derive(Debug, Copy, Clone, serde::Deserialize, serde::Serialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum LogLevel {
-    Critical,
-    Error,
-    Warning,
-    Info,
-    Debug,
-    Trace,
-}
-
-impl From<slog::Level> for LogLevel {
-    fn from(value: slog::Level) -> Self {
-        match value {
-            slog::Level::Critical => Self::Critical,
-            slog::Level::Error => Self::Error,
-            slog::Level::Warning => Self::Warning,
-            slog::Level::Info => Self::Info,
-            slog::Level::Debug => Self::Debug,
-            slog::Level::Trace => Self::Trace,
-        }
-    }
-}
-
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-pub enum C2SMessage {
-    Connect {
-        s2c_tx: String,
-    },
-    Disconnect {},
-    Start {
-        command: SafeOsString,
-        args: Vec<SafeOsString>,
-        env: HashMap<String, SafeOsString>,
-    },
-    Log {
-        level: LogLevel,
-        scope: SmolStr,
-        message: String,
-    },
-    Output {
-        channel: StandardOutputChannel,
-        line: OutputLine,
-    },
-    Exit {
-        code: Option<i32>,
-    },
-    Crash {
-        error: String,
-    },
-    DoctorReport(DoctorReport),
-}
-
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-pub enum S2CMessage {
-    Connect,
-    PatientResponse { id: Uuid, choice: String },
-    Kill,
-}
-
-pub struct IpcState {
-    pub s2c_tx: flume::Sender<S2CMessage>,
-    pub s2c_rx: flume::Receiver<S2CMessage>,
-}
-
-impl Default for IpcState {
-    fn default() -> Self {
-        let (s2c_tx, s2c_rx) = flume::bounded(1);
-        Self { s2c_tx, s2c_rx }
-    }
-}
-
-impl IpcState {
-    pub fn bi<'a>(&'a self, channel: &'a Channel<C2SMessage>) -> IpcBiState<'a> {
+impl InProcessIpcStateExt for IpcState {
+    fn bi<'a>(&'a self, channel: &'a Channel<C2SMessage>) -> IpcBiState<'a> {
         IpcBiState {
             ipc_state: self,
             c2s_tx: channel,
+        }
+    }
+}
+
+pub struct IpcBiState<'a> {
+    ipc_state: &'a IpcState,
+    c2s_tx: &'a Channel<C2SMessage>,
+}
+
+impl<'a> IpcBiState<'a> {
+    pub async fn send(&self, message: C2SMessage) -> Result<()> {
+        let c2s_tx = self.c2s_tx.clone();
+        Ok(tokio::task::spawn_blocking(move || c2s_tx.send(message)).await??)
+    }
+
+    pub async fn recv(&self) -> Result<S2CMessage> {
+        Ok(self
+            .ipc_state
+            .s2c_rx
+            .recv_async()
+            .await
+            .context("Channel closed")?)
+    }
+
+    // TODO: share this among Ipc and SpcReceiver
+    pub async fn prompt_patient<T: Send>(
+        &self,
+        translation_key: impl Into<String>,
+        message: Option<String>,
+        message_args: Option<HashMap<String, serde_json::Value>>,
+        fixes: impl IntoIterator<Item = DoctorFix<T>>,
+    ) -> Result<T>
+    where
+        T: serde::Serialize,
+        T: serde::de::DeserializeOwned,
+    {
+        let (mut receiver, msg) =
+            PatientChoiceReceiver::new(translation_key, message, message_args, fixes);
+        self.send(msg).await?;
+        loop {
+            match receiver.process(self.recv().await?)? {
+                ControlFlow::Break(choice) => return Ok(choice),
+                ControlFlow::Continue(r) => receiver = r,
+            }
         }
     }
 }
@@ -234,100 +143,4 @@ fn spawn_s2c_pipe(log: slog::Logger, app_handle: &AppHandle, s2c_tx: String) -> 
             }
         })?;
     Ok(())
-}
-
-/// Inter-process communication.
-pub struct Ipc {
-    pub c2s_tx: IpcSender<C2SMessage>,
-    pub s2c_rx: Arc<tokio::sync::Mutex<IpcReceiver<S2CMessage>>>,
-}
-
-impl Drop for Ipc {
-    fn drop(&mut self) {
-        _ = self.c2s_tx.send(C2SMessage::Disconnect {});
-    }
-}
-
-pub struct IpcBiState<'a> {
-    ipc_state: &'a IpcState,
-    c2s_tx: &'a Channel<C2SMessage>,
-}
-
-impl Ipc {
-    pub async fn send(&self, message: C2SMessage) -> Result<()> {
-        let c2s_tx = self.c2s_tx.clone();
-        Ok(tokio::task::spawn_blocking(move || c2s_tx.send(message)).await??)
-    }
-
-    pub async fn recv(&self) -> Result<S2CMessage> {
-        let s2c_rx = self.s2c_rx.clone();
-        Ok(tokio::task::spawn(async move {
-            let s2c_rx = s2c_rx.lock().await;
-            tokio::task::block_in_place(|| s2c_rx.recv())
-        })
-        .await??)
-    }
-}
-
-impl<'a> IpcBiState<'a> {
-    pub async fn send(&self, message: C2SMessage) -> Result<()> {
-        let c2s_tx = self.c2s_tx.clone();
-        Ok(tokio::task::spawn_blocking(move || c2s_tx.send(message)).await??)
-    }
-
-    pub async fn recv(&self) -> Result<S2CMessage> {
-        Ok(self
-            .ipc_state
-            .s2c_rx
-            .recv_async()
-            .await
-            .context("Channel closed")?)
-    }
-
-    // TODO: share this among Ipc and SpcReceiver
-    pub async fn prompt_patient<T: Send>(
-        &mut self,
-        translation_key: impl Into<String>,
-        message: Option<String>,
-        message_args: Option<HashMap<String, serde_json::Value>>,
-        fixes: impl IntoIterator<Item = DoctorFix<T>>,
-    ) -> Result<T>
-    where
-        T: serde::Serialize,
-        T: serde::de::DeserializeOwned,
-    {
-        let fixes = fixes
-            .into_iter()
-            .map(|fix| {
-                let serde_json::Value::String(id) =
-                    serde_json::to_value(fix.id).expect("Unable to serialize id")
-                else {
-                    panic!("Id must serialize to a string")
-                };
-                DoctorFix { id, ..fix }
-            })
-            .collect::<Vec<_>>();
-        let translation_key = translation_key.into();
-        let id = Uuid::new_v4();
-        self.send(C2SMessage::DoctorReport(DoctorReport {
-            id,
-            translation_key,
-            message,
-            message_args,
-            fixes,
-        }))
-        .await?;
-        let response = self.recv().await?;
-        let S2CMessage::PatientResponse {
-            id: resp_id,
-            choice,
-        } = response
-        else {
-            bail!("Unexpected response from Manderrow: {response:?}")
-        };
-        if resp_id != id {
-            bail!("Received a response for the wrong prompt")
-        }
-        Ok(serde_json::from_value(serde_json::Value::String(choice))?)
-    }
 }

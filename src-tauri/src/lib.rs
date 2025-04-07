@@ -4,6 +4,7 @@
 #![feature(extend_one)]
 #![feature(future_join)]
 #![feature(os_string_truncate)]
+#![feature(panic_backtrace_config)]
 #![feature(path_add_extension)]
 #![feature(ptr_as_uninit)]
 #![feature(ptr_metadata)]
@@ -21,8 +22,6 @@ mod installing;
 mod ipc;
 mod launching;
 mod mod_index;
-mod mods;
-mod paths;
 mod profiles;
 mod settings;
 mod stores;
@@ -31,7 +30,7 @@ mod util;
 mod window_state;
 mod wrap;
 
-use std::{ops::Deref, sync::OnceLock};
+use std::ops::Deref;
 
 use anyhow::{anyhow, bail, Context};
 use ipc::IpcState;
@@ -39,17 +38,6 @@ use ipc::IpcState;
 pub use error::{CommandError, Error};
 use lexopt::ValueExt;
 use tauri::Manager;
-
-static PRODUCT_NAME: OnceLock<String> = OnceLock::new();
-static IDENTIFIER: OnceLock<String> = OnceLock::new();
-
-fn product_name() -> &'static str {
-    PRODUCT_NAME.get().unwrap()
-}
-
-fn identifier() -> &'static str {
-    IDENTIFIER.get().unwrap()
-}
 
 struct Reqwest(reqwest::Client);
 
@@ -138,12 +126,8 @@ pub fn main() -> anyhow::Result<()> {
     }
 
     let ctx = tauri::generate_context!();
-    PRODUCT_NAME
-        .set(ctx.config().product_name.clone().unwrap())
-        .unwrap();
-    IDENTIFIER.set(ctx.config().identifier.clone()).unwrap();
 
-    paths::init().unwrap();
+    manderrow_paths::init().unwrap();
 
     let mut args = lexopt::Parser::from_env();
 
@@ -152,20 +136,7 @@ pub fn main() -> anyhow::Result<()> {
     use lexopt::Arg::*;
     while let Some(arg) = args.next()? {
         match arg {
-            Value(cmd) if cmd == "wrap" => {
-                return tauri::async_runtime::block_on(async move {
-                    match wrap::run(args).await {
-                        Ok(()) => Ok(()),
-                        Err(e) => {
-                            if cfg!(debug_assertions) {
-                                tokio::fs::write("/tmp/manderrow-wrap-crash", &format!("{e:?}"))
-                                    .await?;
-                            }
-                            Err(e)
-                        }
-                    }
-                })
-            }
+            Value(cmd) if cmd == "wrap" => return wrap::run(args),
             Value(cmd) => bail!("Unrecognized command {cmd:?}"),
             Long("relaunch") => relaunch = Some(args.value()?.parse()?),
             arg => return Err(arg.unexpected().into()),

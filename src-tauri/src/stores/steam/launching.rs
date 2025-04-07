@@ -2,6 +2,7 @@ use std::io::Write as _;
 use std::ops::BitOrAssign;
 
 use anyhow::{anyhow, bail, Context as _, Result};
+use manderrow_args::{ARG_END_DELIMITER, ARG_START_DELIMITER};
 use slog::{debug, info};
 use tokio::process::Command;
 
@@ -108,7 +109,7 @@ pub fn generate_launch_options(game: &str) -> Result<String> {
         .into_os_string()
         .into_string()
         .map_err(|s| anyhow!("Non-Unicode executable name: {s:?}"))?;
-    Ok(format!("{bin:?} wrap %command% ; --game {game:?} ;"))
+    Ok(format!("{bin:?} wrap %command% {ARG_START_DELIMITER} --game {game:?} {ARG_END_DELIMITER}"))
 }
 
 pub async fn ensure_launch_args_are_applied(
