@@ -4,17 +4,16 @@ mod timestamp;
 pub use spec::*;
 pub use timestamp::*;
 
-pub use packed_semver::*;
-
 use std::ops::Deref;
 
+use packed_semver::*;
 use rkyv::string::{ArchivedString, StringResolver};
 use rkyv::with::NicheInto;
 use serde::ser::{SerializeMap, SerializeStruct};
 use smol_str::SmolStr;
 
 use crate::util::rkyv::{InternedString, InternedStringNiche, StringIntern};
-use crate::util::serde::{empty_string_as_none, IgnoredAny, SerializeArchivedVec};
+use crate::util::serde::{IgnoredAny, SerializeArchivedVec, empty_string_as_none};
 
 #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
@@ -256,23 +255,23 @@ where
 
 #[cfg(test)]
 mod tests {
+    use packed_semver::Version;
     use rkyv::primitive::FixedIsize;
     use rkyv::rancor::Strategy;
     use rkyv::string::ArchivedString;
     use rkyv::util::AlignedVec;
+    use rkyv::validation::Validator;
     use rkyv::validation::archive::ArchiveValidator;
     use rkyv::validation::shared::SharedValidator;
-    use rkyv::validation::Validator;
     use rkyv::with::NicheInto;
     use rkyv_intern::Interner;
 
-    use crate::mods::{
+    use crate::util::rkyv::{ArchivedInternedString, InternedStringNiche};
+
+    use super::{
         ArchivedModMetadataRef, ArchivedModVersionRef, ArchivedVersion, InlineString,
         InternedString, ModMetadataRef, ModRef, ModVersionRef,
     };
-    use crate::util::rkyv::{ArchivedInternedString, InternedStringNiche};
-
-    use super::Version;
 
     type Serializer<'a, I> = rkyv::rancor::Strategy<
         rkyv_intern::InterningAdapter<
@@ -291,8 +290,8 @@ mod tests {
     where
         T: for<'a> rkyv::Serialize<Serializer<'a, I>>,
         T::Archived: for<'a> rkyv::bytecheck::CheckBytes<
-            Strategy<Validator<ArchiveValidator<'a>, SharedValidator>, rkyv::rancor::Error>,
-        >,
+                Strategy<Validator<ArchiveValidator<'a>, SharedValidator>, rkyv::rancor::Error>,
+            >,
     {
         let buf = rkyv::util::with_arena(|arena| {
             let mut serializer = rkyv_intern::InterningAdapter::new(

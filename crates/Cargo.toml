@@ -1,6 +1,9 @@
 [workspace]
 resolver = "2"
-members = ["macros", "packed-semver", "scripts", "wrapper-stage2"]
+members = ["agent", "args", "ipc", "macros", "packed-semver", "paths", "scripts", "types"]
 
 [workspace.package]
 authors = ["Jack Huang", "Michael Pfaff"]
+
+[profile.release]
+strip = "symbols"

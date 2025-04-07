@@ -22,7 +22,11 @@ search-sublime_fuzzy = ["sublime_fuzzy"]
 tauri-build = { version = "2", features = [] }
 
 [dependencies]
+manderrow-args = { path = "../crates/args" }
+manderrow-ipc = { path = "../crates/ipc" }
 manderrow-macros = { path = "../crates/macros" }
+manderrow-paths = { path = "../crates/paths" }
+manderrow-types = { path = "../crates/types" }
 packed-semver = { path = "../crates/packed-semver" }
 
 tauri = { version = "2", features = ["macos-private-api"] }
@@ -56,7 +60,6 @@ lexopt = "0.3.0"
 parking_lot = "0.12.3"
 pin-project-lite = "0.2.16"
 smol_str = { version = "0.3.2", features = ["serde"] }
-strum = { version = "0.26.3", features = ["derive"] }
 sublime_fuzzy = { version = "0.7.0", optional = true }
 thiserror = "2"
 trie-rs = "0.4.2"
@@ -75,15 +78,11 @@ url = { version = "2.5.4", features = ["serde"] }
 uuid = { version = "1.11.0", features = ["serde"] }
 
 # os, io, networking
-dirs = "6"
 fs4 = { version = "0.13.1", default-features = false, features = ["tokio"] }
 get-locale = { git = "https://git.pfaff.dev/michael/get-locale.rs", version = "0.1.0" }
 reqwest = { version = "0.12.12", features = ["stream"] }
 tempfile = "3.14.0"
 walkdir = "2.5.0"
-
-flume = { version = "0.11.1", features = ["async"] }
-ipc-channel = "0.19.0"
 
 slog = "2.7.0"
 slog-envlogger = "2.2.0"

@@ -3,6 +3,8 @@ use std::collections::HashSet;
 use anyhow::{anyhow, bail, Context};
 use futures::stream::FuturesUnordered;
 use futures::TryStreamExt;
+use manderrow_types::mods::{ModId, ModMetadata, ModVersion};
+use packed_semver::Version;
 use serde::Serialize;
 use tauri::ipc::{Channel, InvokeResponseBody};
 use tauri::{AppHandle, State};
@@ -10,7 +12,6 @@ use tokio_util::compat::FuturesAsyncReadCompatExt;
 use uuid::Uuid;
 
 use crate::mod_index::fetch_mod_index;
-use crate::mods::{ModId, ModMetadata, ModVersion, Version};
 use crate::profiles::profile_path;
 use crate::tasks::{TaskBuilder, TaskError, TaskHandle};
 use crate::{tasks, CommandError, Reqwest};

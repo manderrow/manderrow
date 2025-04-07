@@ -2,8 +2,7 @@ use std::borrow::Cow;
 use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, bail, ensure, Result};
-
-use crate::paths::home_dir;
+use manderrow_paths::home_dir;
 
 #[cfg(windows)]
 pub fn get_steam_install_path_from_registry() -> Result<PathBuf> {

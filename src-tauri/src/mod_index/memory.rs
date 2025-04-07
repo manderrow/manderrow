@@ -3,7 +3,7 @@ use std::ptr::NonNull;
 use rkyv::util::AlignedVec;
 use rkyv::vec::ArchivedVec;
 
-use crate::mods::ArchivedModRef;
+use manderrow_types::mods::ArchivedModRef;
 
 pub struct MemoryModIndex {
     data: NonNull<[u8]>,

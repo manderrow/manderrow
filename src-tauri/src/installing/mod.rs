@@ -18,6 +18,7 @@ use base64::Engine;
 use bytes::{Bytes, BytesMut};
 use fs4::tokio::AsyncFileExt;
 use index::{ArchivedIndex, ArchivedIndexEntryV1, Index, IndexEntryRef, IndexEntryV1, IndexPath};
+use manderrow_paths::cache_dir;
 use slog::{debug, trace};
 use tauri::AppHandle;
 use tempfile::TempDir;
@@ -27,9 +28,8 @@ use walkdir::WalkDir;
 use zip::{result::ZipError, ZipArchive};
 
 use crate::tasks::{self, TaskBuilder, TaskHandle};
-use crate::util::UsizeExt;
+use crate::util::{IoErrorKindExt, UsizeExt};
 use crate::Reqwest;
-use crate::{paths::cache_dir, util::IoErrorKindExt};
 
 const INDEX_FILE_NAME: &str = ".manderrow_content_index";
 
