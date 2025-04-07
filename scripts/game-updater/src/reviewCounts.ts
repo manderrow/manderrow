@@ -4,7 +4,7 @@ import games from "./games.ts";
 import { projectRootDir } from "./paths.ts";
 
 const steamStoreIdentifiers = games.map(
-  (gameInfo) =>{
+  (gameInfo) => {
     const metadata = gameInfo.storePlatformMetadata.find(
       (meta) => meta.storePlatform === "Steam" || meta.storePlatform === "SteamDirect",
     );
