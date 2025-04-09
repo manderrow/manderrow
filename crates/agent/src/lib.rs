@@ -17,38 +17,18 @@ use init::{Instruction, MaybeArgs};
 
 static IPC: OnceLock<Ipc> = OnceLock::new();
 
-fn send_ipc_sync(log: &slog::Logger, message: impl FnOnce() -> C2SMessage) {
+fn send_ipc(log: &slog::Logger, message: impl FnOnce() -> C2SMessage) {
     if let Some(ipc) = IPC.get() {
-        let msg = message();
-        _ = ipc.send(msg);
-    } else {
-        info!(log, "{:?}", message());
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
-enum SendError {
-    #[error(transparent)]
-    Ipc(#[from] manderrow_ipc::SendError),
-    #[error(transparent)]
-    Tokio(#[from] tokio::task::JoinError),
-}
-
-async fn send_ipc(log: &slog::Logger, message: impl FnOnce() -> C2SMessage) {
-    if let Some(ipc) = IPC.get() {
-        let msg = message();
-        _ = tokio::task::spawn_blocking(move || ipc.send(msg))
-            .await
-            .unwrap();
+        _ = ipc.send(message());
     } else {
         info!(log, "{:?}", message());
     }
 }
 
 #[cfg(target_os = "windows")]
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub unsafe extern "stdcall" fn DllMain(
-    _module: HMODULE,
+    _module: *mut std::ffi::c_void, // HMODULE
     reason: isize,
     _res: *const std::ffi::c_void,
 ) -> i32 {
@@ -91,95 +71,86 @@ fn main() {
 
     let log = slog_scope::logger();
 
-    // now we need to run some async code, so do the rest in a tokio runtime
-    tokio::runtime::Builder::new_current_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async {
-            send_ipc(&log, || C2SMessage::Started {
-                pid: std::process::id(),
+    send_ipc(&log, || C2SMessage::Started {
+        pid: std::process::id(),
+    });
+
+    interpret_instructions(args.instructions.drain(..));
+
+    // TODO: replace stdout and stderr with in-process pipes and spawn a thread to listen to them and forward over IPC
+    // let tasks = if let Some(ipc) = ipc {
+    //     fn spawn_output_pipe_task<const TRY_PARSE_LOGS: bool>(
+    //         c2s_tx: &IpcSender<C2SMessage>,
+    //         rdr: impl tokio::io::AsyncRead + Unpin + Send + 'static,
+    //         channel: crate::ipc::StandardOutputChannel,
+    //     ) -> tokio::task::JoinHandle<Result<(), anyhow::Error>> {
+    //         let c2s_tx = c2s_tx.clone();
+    //         tokio::task::spawn(async move {
+    //             let mut rdr = tokio::io::BufReader::new(rdr);
+    //             let mut buf = Vec::new();
+    //             loop {
+    //                 rdr.read_until(b'\n', &mut buf)?;
+    //                 if buf.is_empty() {
+    //                     break Ok(());
+    //                 }
+    //                 if matches!(buf.last(), Some(b'\n')) {
+    //                     buf.pop();
+    //                     if matches!(buf.last(), Some(b'\r')) {
+    //                         buf.pop();
+    //                     }
+    //                 }
+    //                 if TRY_PARSE_LOGS {
+    //                     if let ControlFlow::Break(()) = try_handle_log_record(&c2s_tx, &buf)
+    //                     {
+    //                         buf.clear();
+    //                         continue;
+    //                     }
+    //                 }
+    //                 let line = OutputLine::new(std::mem::take(&mut buf));
+    //                 let c2s_tx = &c2s_tx;
+    //                 _ = tokio::task::block_in_place(move || {
+    //                     c2s_tx.send(C2SMessage::Output { channel, line })
+    //                 });
+    //             }
+    //         })
+    //     }
+    //     Some((
+    //         spawn_output_pipe_task::<false>(
+    //             &ipc.c2s_tx,
+    //             child.stdout.take().unwrap(),
+    //             crate::ipc::StandardOutputChannel::Out,
+    //         ),
+    //         spawn_output_pipe_task::<true>(
+    //             &ipc.c2s_tx,
+    //             child.stderr.take().unwrap(),
+    //             crate::ipc::StandardOutputChannel::Err,
+    //         ),
+    //     ))
+    // } else {
+    //     None
+    // };
+
+    // TODO: intercept process exit to send exit message
+    // send_ipc(log, ipc, || {
+    //     Ok(C2SMessage::Exit {
+    //         code: status.code(),
+    //     })
+    // })?;
+
+    if let Some(ipc) = init::ipc() {
+        std::thread::Builder::new()
+            .name("manderrow-killer".into())
+            .spawn(move || {
+                while let Ok(msg) = ipc.recv() {
+                    match msg {
+                        S2CMessage::Connect => {}
+                        S2CMessage::PatientResponse { .. } => {}
+                        S2CMessage::Kill => std::process::exit(1),
+                    }
+                }
             })
-            .await;
-
-            interpret_instructions(args.instructions.drain(..));
-
-            // TODO: replace stdout and stderr with in-process pipes and spawn a thread to listen to them and forward over IPC
-            // let tasks = if let Some(ipc) = ipc {
-            //     fn spawn_output_pipe_task<const TRY_PARSE_LOGS: bool>(
-            //         c2s_tx: &IpcSender<C2SMessage>,
-            //         rdr: impl tokio::io::AsyncRead + Unpin + Send + 'static,
-            //         channel: crate::ipc::StandardOutputChannel,
-            //     ) -> tokio::task::JoinHandle<Result<(), anyhow::Error>> {
-            //         let c2s_tx = c2s_tx.clone();
-            //         tokio::task::spawn(async move {
-            //             let mut rdr = tokio::io::BufReader::new(rdr);
-            //             let mut buf = Vec::new();
-            //             loop {
-            //                 rdr.read_until(b'\n', &mut buf).await?;
-            //                 if buf.is_empty() {
-            //                     break Ok(());
-            //                 }
-            //                 if matches!(buf.last(), Some(b'\n')) {
-            //                     buf.pop();
-            //                     if matches!(buf.last(), Some(b'\r')) {
-            //                         buf.pop();
-            //                     }
-            //                 }
-            //                 if TRY_PARSE_LOGS {
-            //                     if let ControlFlow::Break(()) = try_handle_log_record(&c2s_tx, &buf)
-            //                     {
-            //                         buf.clear();
-            //                         continue;
-            //                     }
-            //                 }
-            //                 let line = OutputLine::new(std::mem::take(&mut buf));
-            //                 let c2s_tx = &c2s_tx;
-            //                 _ = tokio::task::block_in_place(move || {
-            //                     c2s_tx.send(C2SMessage::Output { channel, line })
-            //                 });
-            //             }
-            //         })
-            //     }
-            //     Some((
-            //         spawn_output_pipe_task::<false>(
-            //             &ipc.c2s_tx,
-            //             child.stdout.take().unwrap(),
-            //             crate::ipc::StandardOutputChannel::Out,
-            //         ),
-            //         spawn_output_pipe_task::<true>(
-            //             &ipc.c2s_tx,
-            //             child.stderr.take().unwrap(),
-            //             crate::ipc::StandardOutputChannel::Err,
-            //         ),
-            //     ))
-            // } else {
-            //     None
-            // };
-
-            // TODO: intercept process exit to send exit message
-            // send_ipc(log, ipc, || {
-            //     Ok(C2SMessage::Exit {
-            //         code: status.code(),
-            //     })
-            // })
-            // .await?;
-
-            if let Some(ipc) = init::ipc() {
-                std::thread::Builder::new()
-                    .name("manderrow-killer".into())
-                    .spawn(move || {
-                        while let Ok(msg) = ipc.recv() {
-                            match msg {
-                                S2CMessage::Connect => {}
-                                S2CMessage::PatientResponse { .. } => {}
-                                S2CMessage::Kill => std::process::exit(1),
-                            }
-                        }
-                    })
-                    .unwrap();
-            }
-        });
+            .unwrap();
+    }
 }
 
 fn interpret_instructions(instructions: impl IntoIterator<Item = Instruction>) {
