@@ -10,7 +10,6 @@ crate-type = ["cdylib"]
 [dependencies]
 manderrow-args = { path = "../args" }
 manderrow-ipc = { path = "../ipc" }
-manderrow-types = { path = "../types" }
 
 lexopt = "0.3.1"
 thiserror = "2.0.12"
