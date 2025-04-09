@@ -2,11 +2,11 @@
 
 use std::ffi::OsString;
 use std::ops::Deref;
+use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 
 use manderrow_ipc::ipc_channel::ipc::{IpcOneShotServer, IpcSender};
 use manderrow_ipc::{C2SMessage, Ipc, S2CMessage};
-use manderrow_types::agent::Instruction;
 use slog::{info, o};
 use uuid::Uuid;
 
@@ -14,6 +14,14 @@ static IPC: OnceLock<Ipc> = OnceLock::new();
 
 pub fn ipc() -> Option<&'static Ipc> {
     IPC.get()
+}
+
+/// An injection instruction.
+pub enum Instruction {
+    LoadLibrary { path: PathBuf },
+    SetVar { kv: OsString, eq_sign: usize },
+    PrependArg { arg: OsString },
+    AppendArg { arg: OsString },
 }
 
 pub struct Args {

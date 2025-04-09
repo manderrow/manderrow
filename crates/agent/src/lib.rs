@@ -9,11 +9,11 @@ mod init;
 use std::ops::ControlFlow;
 use std::sync::OnceLock;
 
-use init::MaybeArgs;
 use manderrow_ipc::ipc_channel::ipc::IpcSender;
 use manderrow_ipc::{C2SMessage, Ipc, LogLevel, S2CMessage};
-use manderrow_types::agent::Instruction;
 use slog::info;
+
+use init::{Instruction, MaybeArgs};
 
 static IPC: OnceLock<Ipc> = OnceLock::new();
 

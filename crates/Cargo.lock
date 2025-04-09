@@ -522,7 +522,6 @@ dependencies = [
  "libloading",
  "manderrow-args",
  "manderrow-ipc",
- "manderrow-types",
  "no-panic",
  "serde",
  "serde_json",
