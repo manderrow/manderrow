@@ -34,8 +34,7 @@ export enum PackageLoader {
 
 export type StorePlatformMetadata =
   | ((
-      | { storePlatform: "Steam" }
-      | { storePlatform: "SteamDirect" }
+      | (({ storePlatform: "Steam" } | { storePlatform: "SteamDirect" }) & { storePageIdentifier: string })
       | { storePlatform: "Epic" }
       | { storePlatform: "Xbox" }
     ) & { storeIdentifier: string })

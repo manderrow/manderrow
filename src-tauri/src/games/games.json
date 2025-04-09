@@ -147,7 +147,8 @@
     "storePlatformMetadata": [
       {
         "storePlatform": "Steam",
-        "storeIdentifier": "1758860"
+        "storeIdentifier": "1758860",
+        "storePageIdentifier": "794260"
       },
       {
         "storePlatform": "Epic",
@@ -728,7 +729,8 @@
     "storePlatformMetadata": [
       {
         "storePlatform": "Steam",
-        "storeIdentifier": "2051980"
+        "storeIdentifier": "2051980",
+        "storePageIdentifier": "1660080"
       }
     ],
     "instanceType": "Game",
