@@ -44,9 +44,9 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
                     log,
                     "Waiting for Steam process {} to shut down", proc.th32ProcessID
                 );
-                manderrow_process_util::Pid {
-                    value: proc.th32ProcessID,
-                }
+                manderrow_process_util::Pid::from_raw(
+                    NonZeroU32::new(proc.th32ProcessID).context("null pid")?,
+                )
                 .wait_for_exit(log)
                 .await?;
             }
@@ -92,9 +92,8 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
         let output = String::from_utf8(output.stdout)?;
 
         for pid in output.lines() {
-            let pid =
-                rustix::process::Pid::from_raw(pid.parse()?).context("Invalid pid from pgrep")?;
-            manderrow_process_util::Pid { value: pid }
+            let pid = pid.parse().context("Invalid pid from pgrep")?;
+            manderrow_process_util::Pid::from_raw(pid)
                 .wait_for_exit(log)
                 .await?;
         }
