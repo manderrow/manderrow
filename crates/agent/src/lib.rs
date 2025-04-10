@@ -69,7 +69,8 @@ fn dtor() {
 
 #[cfg(target_os = "windows")]
 // +whole-archive is necessary to keep the exported proxy functions
-#[link(name = "dll_proxy", kind = "static", modifiers = "+whole-archive")]
+#[cfg_attr(target_env = "msvc", link(name = "dll_proxy_msvc", kind = "static", modifiers = "+whole-archive"))]
+#[cfg_attr(target_env = "gnu", link(name = "dll_proxy_gnu", kind = "static", modifiers = "+whole-archive"))]
 unsafe extern "C" {
     fn loadProxy(module: HMODULE);
 }
