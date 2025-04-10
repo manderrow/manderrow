@@ -88,6 +88,8 @@ pub fn run(args: lexopt::Parser) -> Result<()> {
         // TODO: avoid cloning so much. Not just here. All over dealing with arguments.
         let (manderrow_args, _) = manderrow_args::extract(args.iter().cloned())?;
 
+        let mut log_file = std::fs::File::create("manderrow-wrap.log").unwrap();
+
         let mut manderrow_args = lexopt::Parser::from_args(manderrow_args);
 
         let mut agent_path = None::<PathBuf>;
@@ -101,11 +103,13 @@ pub fn run(args: lexopt::Parser) -> Result<()> {
             }
         }
 
-        let agent_path = agent_path.context("Missing required option --agent-path")?;
-
-        let mut log_file = std::fs::File::create("manderrow-wrap.log").unwrap();
-
         writeln!(log_file, "Agent path: {:?}", agent_path).unwrap();
+        writeln!(
+            log_file,
+            "Args: {:?}",
+            std::env::args_os().collect::<Vec<_>>()
+        )
+        .unwrap();
         writeln!(
             log_file,
             "Env: {:?}",
@@ -118,14 +122,16 @@ pub fn run(args: lexopt::Parser) -> Result<()> {
 
         // TODO: maybe check if running under proton and abort
 
-        {
+        if cfg!(unix) {
             const VAR: &str = if cfg!(target_os = "macos") {
                 "DYLD_INSERT_LIBRARIES"
             } else {
                 "LD_PRELOAD"
             };
             let base = std::env::var_os(VAR).unwrap_or_else(OsString::new);
-            let mut buf = agent_path.into_os_string();
+            let mut buf = agent_path
+                .context("Missing required option --agent-path")?
+                .into_os_string();
             if !base.is_empty() {
                 buf.push(":");
                 buf.push(base);
