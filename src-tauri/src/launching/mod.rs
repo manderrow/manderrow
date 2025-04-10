@@ -10,8 +10,8 @@ use anyhow::{anyhow, Context, Result};
 use manderrow_paths::cache_dir;
 use manderrow_types::games::PackageLoader;
 use slog::{debug, info, o};
-use tauri::AppHandle;
 use tauri::Emitter;
+use tauri::{AppHandle, Manager};
 use tokio::process::Command;
 use uuid::Uuid;
 
@@ -125,16 +125,11 @@ pub async fn launch_profile(
                     "/../crates/target/x86_64-pc-windows-gnu/release/manderrow_agent.dll"
                 )))
             } else {
-                let mut path = std::env::current_exe()
-                    .context("Failed to get current exe path")?
-                    .canonicalize()
-                    .context("Failed to canonicalize current exe path")?;
-                assert!(path.pop());
-                path.push("libmanderrow_agent.dynamic_library");
-                if cfg!(windows) {
-                    path.as_mut_os_string().push(".exe");
-                }
-                AgentSource::Path(path)
+                AgentSource::Path(
+                    app.path()
+                        .resolve("libmanderrow_agent", tauri::path::BaseDirectory::Resource)
+                        .context("Failed to resolve agent path")?,
+                )
             }
         }
     };
