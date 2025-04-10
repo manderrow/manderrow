@@ -25,7 +25,7 @@ fn main() {
 
     match os {
         "windows" => {
-            build_agent(&crates_dir, true);
+            build_agent(&crates_dir, false);
         }
         "linux" => {
             build_agent(&crates_dir, false);
@@ -56,7 +56,7 @@ fn main() {
             from_path.push("libmanderrow_agent.dylib");
         }
         "windows" => {
-            from_path.push("x86_64-pc-windows-gnu");
+            from_path.push("x86_64-pc-windows-msvc");
             from_path.push("release");
             from_path.push("manderrow_agent.dll");
         }
@@ -67,7 +67,7 @@ fn main() {
     tauri_build::build()
 }
 
-fn build_agent(crates_dir: &PathBuf, target_windows: bool) {
+fn build_agent(crates_dir: &PathBuf, proton: bool) {
     let mut command = Command::new(var_os("CARGO").unwrap());
     command.args([
         "build",
@@ -79,7 +79,7 @@ fn build_agent(crates_dir: &PathBuf, target_windows: bool) {
 
     command.arg(crates_dir.join("Cargo.toml"));
 
-    if target_windows {
+    if proton {
         command.args(["--target", "x86_64-pc-windows-gnu"]);
     }
     command.status().unwrap().exit_ok().unwrap();
