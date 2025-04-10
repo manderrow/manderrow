@@ -40,6 +40,7 @@ impl<T> Waiter<T> {
 
 #[cfg(windows)]
 mod sys {
+    use std::hash::Hash;
     use std::mem::{ManuallyDrop, MaybeUninit};
     use std::ops::ControlFlow;
     use std::ptr::NonNull;
@@ -47,7 +48,6 @@ mod sys {
 
     use anyhow::{Context, anyhow};
     use slog::warn;
-    use windows::Win32::Foundation::HANDLE;
     use winsafe::guard::CloseHandleGuard;
     use winsafe::prelude::*;
     use winsafe::{HEVENT, HPROCESS};
@@ -60,7 +60,7 @@ mod sys {
         let (tx, rx) = channel();
         let mut attrs = winsafe::SECURITY_ATTRIBUTES::default();
         attrs.set_bInheritHandle(false);
-        let notification = ManuallyDrop::new(
+        let mut notification = ManuallyDrop::new(
             HEVENT::CreateEvent(Some(&mut attrs), false, false, None)
                 .expect("Failed to create notification event"),
         );
@@ -70,7 +70,9 @@ mod sys {
                 notification: Notification(dup_handle(&*notification)),
             },
             Waiter {
-                handles: vec![HANDLE(notification.ptr())],
+                handles: vec![unsafe {
+                    CloseHandleGuard::new(SendSyncHANDLE::from_unsafe(notification.leak()))
+                }],
                 data: Vec::new(),
                 rx,
             },
@@ -87,18 +89,62 @@ mod sys {
         notification: Notification,
     }
 
-    pub struct Waiter<T> {
-        handles: Vec<HANDLE>,
-        data: Vec<T>,
-        rx: Receiver<(Pid, T)>,
+    #[derive(Debug, PartialEq, Eq, Hash)]
+    #[repr(transparent)]
+    struct SendSyncHANDLE(*mut std::ffi::c_void);
+
+    unsafe impl Send for SendSyncHANDLE {}
+    unsafe impl Sync for SendSyncHANDLE {}
+
+    impl SendSyncHANDLE {
+        pub fn from<T: Handle + Send + Sync>(handle: T) -> Self {
+            unsafe { Self::from_unsafe(handle) }
+        }
+
+        pub unsafe fn from_unsafe<T: Handle>(handle: T) -> Self {
+            Self(handle.ptr())
+        }
     }
 
-    impl<T> Drop for Waiter<T> {
-        fn drop(&mut self) {
-            for &handle in &self.handles {
-                unsafe { windows::Win32::Foundation::CloseHandle(handle).unwrap() };
-            }
+    impl std::fmt::Display for SendSyncHANDLE {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            write!(f, "{:#010x}", self.0 as usize)
         }
+    }
+
+    impl std::fmt::LowerHex for SendSyncHANDLE {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            std::fmt::LowerHex::fmt(&(self.0 as usize), f)
+        }
+    }
+
+    impl std::fmt::UpperHex for SendSyncHANDLE {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            std::fmt::UpperHex::fmt(&(self.0 as usize), f)
+        }
+    }
+
+    impl Handle for SendSyncHANDLE {
+        const NULL: Self = Self(std::ptr::null_mut());
+        const INVALID: Self = Self(-1 as _);
+
+        unsafe fn from_ptr(p: *mut std::ffi::c_void) -> Self {
+            Self(p)
+        }
+
+        unsafe fn as_mut(&mut self) -> &mut *mut std::ffi::c_void {
+            &mut self.0
+        }
+
+        fn ptr(&self) -> *mut std::ffi::c_void {
+            self.0
+        }
+    }
+
+    pub struct Waiter<T> {
+        handles: Vec<CloseHandleGuard<SendSyncHANDLE>>,
+        data: Vec<T>,
+        rx: Receiver<(Pid, T)>,
     }
 
     impl<T> Submitter<T> {
@@ -114,7 +160,7 @@ mod sys {
 
     impl<T> Waiter<T> {
         fn register_pid(&mut self, pid: Pid, data: T) -> ControlFlow<T> {
-            let Ok(proc) = winsafe::HPROCESS::OpenProcess(
+            let Ok(mut proc) = winsafe::HPROCESS::OpenProcess(
                 winsafe::co::PROCESS::SYNCHRONIZE,
                 false,
                 pid.value.get(),
@@ -122,8 +168,8 @@ mod sys {
                 // TODO: verify that the process is not found vs other errors
                 return ControlFlow::Break(data);
             };
-            let proc = ManuallyDrop::new(proc);
-            self.handles.push(HANDLE(proc.ptr()));
+            self.handles
+                .push(unsafe { CloseHandleGuard::new(SendSyncHANDLE::from_unsafe(proc.leak())) });
             self.data.push(data);
             ControlFlow::Continue(())
         }
@@ -171,9 +217,7 @@ mod sys {
                 return Err(anyhow!("Unexpected WAIT_EVENT: {event:?}").into());
             }
             let i = (event.0 - windows::Win32::Foundation::WAIT_OBJECT_0.0) as usize;
-            unsafe {
-                windows::Win32::Foundation::CloseHandle(self.handles.swap_remove(i)).unwrap();
-            }
+            self.handles.swap_remove(i);
             let data = self.data.swap_remove(i);
             Ok(data)
         }
