@@ -120,10 +120,17 @@ pub async fn launch_profile(
         Some(path) => AgentSource::Path(path.into()),
         None => {
             if uses_proton {
-                AgentSource::Embedded(include_bytes!(concat!(
-                    std::env!("CARGO_MANIFEST_DIR"),
-                    "/../crates/target/x86_64-pc-windows-gnu/release/manderrow_agent.dll"
-                )))
+                #[cfg(target_os = "linux")]
+                {
+                    AgentSource::Embedded(include_bytes!(concat!(
+                        std::env!("CARGO_MANIFEST_DIR"),
+                        "/../crates/target/x86_64-pc-windows-gnu/release/manderrow_agent.dll"
+                    )))
+                }
+                #[cfg(not(target_os = "linux"))]
+                {
+                    unreachable!("uses_proton should only be true on Linux")
+                }
             } else {
                 AgentSource::Path(
                     app.path()
