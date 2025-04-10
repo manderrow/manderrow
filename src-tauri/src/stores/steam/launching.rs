@@ -11,6 +11,7 @@ use crate::ipc::{DoctorFix, InProcessIpc, OutputLine};
 pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
     #[cfg(windows)]
     {
+        use std::num::NonZeroU32;
         use std::ptr::NonNull;
 
         use winsafe::prelude::*;
