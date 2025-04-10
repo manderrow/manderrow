@@ -24,14 +24,22 @@ fn send_ipc(log: &slog::Logger, message: impl FnOnce() -> C2SMessage) {
 }
 
 #[cfg(target_os = "windows")]
+#[repr(transparent)]
+pub struct HMODULE(*mut std::ffi::c_void);
+
+#[cfg(target_os = "windows")]
 #[unsafe(no_mangle)]
 pub unsafe extern "stdcall" fn DllMain(
-    _module: *mut std::ffi::c_void, // HMODULE
+    module: HMODULE,
     reason: isize,
     _res: *const std::ffi::c_void,
 ) -> i32 {
     if reason == 1 {
         init();
+
+        unsafe {
+            loadProxy(module);
+        }
     }
 
     1
@@ -57,6 +65,13 @@ unsafe extern "C" {
 fn dtor() {
     // TODO: implement our own IPC that doesn't rely on thread locals so that this won't panic
     deinit(false);
+}
+
+#[cfg(target_os = "windows")]
+// +whole-archive is necessary to keep the exported proxy functions
+#[link(name = "dll_proxy", kind = "static", modifiers = "+whole-archive")]
+unsafe extern "C" {
+    fn loadProxy(module: HMODULE);
 }
 
 fn init() {
