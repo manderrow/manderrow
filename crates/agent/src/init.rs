@@ -1,14 +1,15 @@
 #![deny(unused_must_use)]
 
 use std::ffi::OsString;
+use std::num::NonZeroU32;
 use std::ops::Deref;
 use std::path::PathBuf;
 use std::sync::{Mutex, OnceLock};
 
+use manderrow_ipc::client::Ipc;
 use manderrow_ipc::ipc_channel::ipc::{IpcOneShotServer, IpcSender};
-use manderrow_ipc::{C2SMessage, Ipc, S2CMessage};
+use manderrow_ipc::{C2SMessage, S2CMessage};
 use slog::{info, o};
-use uuid::Uuid;
 
 static IPC: OnceLock<Ipc> = OnceLock::new();
 
@@ -25,8 +26,6 @@ pub enum Instruction {
 }
 
 pub struct Args {
-    pub game: String,
-    pub profile: Option<Uuid>,
     pub instructions: Vec<Instruction>,
 
     pub remaining: Vec<OsString>,
@@ -44,18 +43,8 @@ pub enum InitError {
     #[error(transparent)]
     Args(#[from] manderrow_args::Error),
 
-    #[error("Missing required option --{name}")]
-    MissingRequiredOption { name: &'static str },
-    #[error("Duplicate option --{name}")]
-    DuplicateOption { name: &'static str },
     #[error("Invalid value for option --{name}: {value:?}")]
     InvalidStringOption { name: &'static str, value: OsString },
-    #[error("Invalid value for option --{name}: {value:?}, {error}")]
-    InvalidUuidOption {
-        name: &'static str,
-        value: OsString,
-        error: uuid::Error,
-    },
     #[error(transparent)]
     Lexopt(#[from] lexopt::Error),
 
@@ -71,6 +60,9 @@ pub enum InitError {
     InvalidRecvConnectMessage(S2CMessage),
     #[error("Failed to set global logger")]
     SetGlobalLogger,
+    #[error("Invalid pid: {0}")]
+    InvalidPid(u32),
+
     #[error("Invalid key-value pair to --inject-env: Contains NUL byte")]
     InvalidEnvKVContainsNul,
     #[error("Invalid key-value pair to --inject-env: Missing '='")]
@@ -80,7 +72,9 @@ pub enum InitError {
     IpcAlreadySet,
 }
 
-/// A `None` return value indicates that the Manderrow agent or wrapper is disabled.
+/// Parses arguments and sets up IPC connection.
+///
+/// A `None` return value indicates that the Manderrow agent is disabled.
 pub fn init(args: impl IntoIterator<Item = OsString>) -> Result<MaybeArgs, InitError> {
     let (args, remaining_args) = manderrow_args::extract(args)?;
 
@@ -94,21 +88,33 @@ pub fn init(args: impl IntoIterator<Item = OsString>) -> Result<MaybeArgs, InitE
                 Long("enable") => {
                     enabled = true;
                 }
+                // handled later
+                _ => {}
+            }
+        }
+    }
+    if !enabled {
+        return Ok(MaybeArgs::Disabled(remaining_args));
+    }
+
+    {
+        use lexopt::Arg::*;
+        let mut parsed_args = lexopt::Parser::from_args(args.iter().cloned());
+        while let Some(arg) = parsed_args.next()? {
+            match arg {
                 Long("c2s-tx") => {
-                    let c2s_tx = IpcSender::<C2SMessage>::connect(
-                        parsed_args.value()?.into_string().map_err(|s| {
-                            InitError::InvalidStringOption {
-                                name: "c2s-tx",
-                                value: s,
-                            }
-                        })?,
-                    )
-                    .map_err(InitError::ConnectC2SError)?;
+                    let c2s_tx = parse_string_value(&mut parsed_args, "c2s-tx")?;
+                    let c2s_tx = IpcSender::<C2SMessage>::connect(c2s_tx)
+                        .map_err(InitError::ConnectC2SError)?;
 
                     let (s2c_rx, s2c_tx) =
                         IpcOneShotServer::<S2CMessage>::new().map_err(InitError::CreateS2CError)?;
+                    let pid = std::process::id();
                     c2s_tx
-                        .send(C2SMessage::Connect { s2c_tx })
+                        .send(C2SMessage::Connect {
+                            s2c_tx,
+                            pid: NonZeroU32::new(pid).ok_or(InitError::InvalidPid(pid))?,
+                        })
                         .map_err(InitError::SendConnectError)?;
                     let (s2c_rx, msg) = s2c_rx.accept().map_err(InitError::RecvConnectError)?;
                     if !matches!(msg, S2CMessage::Connect) {
@@ -125,9 +131,6 @@ pub fn init(args: impl IntoIterator<Item = OsString>) -> Result<MaybeArgs, InitE
                 _ => {}
             }
         }
-    }
-    if !enabled {
-        return Ok(MaybeArgs::Disabled(remaining_args));
     }
 
     // then hook up logging
@@ -168,7 +171,7 @@ pub fn init(args: impl IntoIterator<Item = OsString>) -> Result<MaybeArgs, InitE
 
     let log = slog_scope::logger();
 
-    info!(log, "Wrapper started");
+    info!(log, "Agent started");
     info!(log, "{}", crate::crash::DumpEnvironment);
 
     use lexopt::Arg::*;
@@ -176,8 +179,6 @@ pub fn init(args: impl IntoIterator<Item = OsString>) -> Result<MaybeArgs, InitE
     // finally parse args for real
     let mut parsed_args = lexopt::Parser::from_args(args.iter().cloned());
 
-    let mut game = None::<String>;
-    let mut profile = None::<Uuid>;
     let mut instructions = Vec::new();
 
     while let Some(arg) = parsed_args.next()? {
@@ -188,14 +189,6 @@ pub fn init(args: impl IntoIterator<Item = OsString>) -> Result<MaybeArgs, InitE
             Long("c2s-tx") => {
                 // already handled
                 _ = parsed_args.value()?;
-            }
-            Long("profile") => {
-                check_duplicate_option("profile", &profile)?;
-                profile = Some(parse_uuid_value(&mut parsed_args, "profile")?);
-            }
-            Long("game") => {
-                check_duplicate_option("game", &game)?;
-                game = Some(parse_string_value(&mut parsed_args, "game")?);
             }
             Long("insn-load-library") => {
                 instructions.push(Instruction::LoadLibrary {
@@ -230,31 +223,11 @@ pub fn init(args: impl IntoIterator<Item = OsString>) -> Result<MaybeArgs, InitE
         }
     }
 
-    let game = game.ok_or(InitError::MissingRequiredOption { name: "game" })?;
-
     Ok(MaybeArgs::Enabled(Args {
-        game,
-        profile,
         instructions,
         remaining: remaining_args,
         _logger_guard: logger_guard,
     }))
-}
-
-fn check_duplicate_option<T>(name: &'static str, value: &Option<T>) -> Result<(), InitError> {
-    if value.is_some() {
-        return Err(InitError::DuplicateOption { name });
-    } else {
-        Ok(())
-    }
-}
-
-fn check_duplicate_flag(name: &'static str, value: bool) -> Result<(), InitError> {
-    if value {
-        return Err(InitError::DuplicateOption { name });
-    } else {
-        Ok(())
-    }
 }
 
 fn parse_string_value(
@@ -265,16 +238,4 @@ fn parse_string_value(
         .value()?
         .into_string()
         .map_err(|s| InitError::InvalidStringOption { name, value: s })
-}
-
-fn parse_uuid_value(
-    parsed_args: &mut lexopt::Parser,
-    name: &'static str,
-) -> Result<Uuid, InitError> {
-    let value = parsed_args.value()?;
-    Uuid::try_parse_ascii(value.as_encoded_bytes()).map_err(|e| InitError::InvalidUuidOption {
-        name,
-        value,
-        error: e,
-    })
 }

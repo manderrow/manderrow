@@ -34,12 +34,17 @@
   border: 1px solid var(--clr-neutral-8);
 }
 
+.scrollAnchor {
+  overflow-anchor: auto;
+}
+
 .console p {
   font-family: var(--font-monospace);
   color: var(--clr-neutral-2);
   font-size: 0.9rem;
   word-wrap: break-word;
   word-break: break-word;
+  overflow-anchor: none;
 }
 
 .event__type {

@@ -2,12 +2,11 @@ use std::io::Write as _;
 use std::ops::BitOrAssign;
 
 use anyhow::{anyhow, bail, Context as _, Result};
-use manderrow_args::{ARG_END_DELIMITER, ARG_START_DELIMITER};
 use slog::{debug, info};
 use tokio::process::Command;
 
 use super::paths::{get_steam_exe, resolve_steam_directory};
-use crate::ipc::{DoctorFix, IpcBiState, OutputLine};
+use crate::ipc::{DoctorFix, InProcessIpc, OutputLine};
 
 pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
     #[cfg(windows)]
@@ -95,7 +94,7 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
         for pid in output.lines() {
             let pid =
                 rustix::process::Pid::from_raw(pid.parse()?).context("Invalid pid from pgrep")?;
-            crate::util::process::Pid { value: pid }
+            manderrow_process_util::Pid { value: pid }
                 .wait_for_exit(log)
                 .await?;
         }
@@ -103,23 +102,23 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
     Ok(())
 }
 
-pub fn generate_launch_options(game: &str) -> Result<String> {
+pub fn generate_unix_launch_options() -> Result<String> {
     let bin = std::env::current_exe()
-        .unwrap()
+        .context("Failed to get current exe path")?
         .into_os_string()
         .into_string()
         .map_err(|s| anyhow!("Non-Unicode executable name: {s:?}"))?;
-    Ok(format!("{bin:?} wrap %command% {ARG_START_DELIMITER} --game {game:?} {ARG_END_DELIMITER}"))
+    Ok(format!("{bin:?} wrap %command%"))
 }
 
-pub async fn ensure_launch_args_are_applied(
+pub async fn ensure_unix_launch_args_are_applied(
     log: &slog::Logger,
-    mut comms: Option<IpcBiState<'_>>,
-    game: &str,
+    mut comms: Option<&mut InProcessIpc>,
     game_id: &str,
 ) -> Result<(), crate::Error> {
+    let args = generate_unix_launch_options()?;
     loop {
-        let result = apply_launch_args(game, game_id, true, true).await?;
+        let result = apply_launch_args(game_id, &args, true, true).await?;
         if matches!(
             result,
             AppliedLaunchArgs::Applied | AppliedLaunchArgs::Overwrote
@@ -157,7 +156,7 @@ pub async fn ensure_launch_args_are_applied(
                             description: Some(
                                 [(
                                     "launch_options".to_owned(),
-                                    serde_json::Value::from(generate_launch_options(game)?),
+                                    serde_json::Value::from(args.clone()),
                                 )]
                                 .into(),
                             ),
@@ -175,8 +174,8 @@ pub async fn ensure_launch_args_are_applied(
                 Fix::Apply => {
                     kill_steam(log).await?;
                     apply_launch_args(
-                        game,
                         game_id,
+                        &args,
                         matches!(result, AppliedLaunchArgs::Overwrote),
                         false,
                     )
@@ -217,8 +216,8 @@ impl BitOrAssign for AppliedLaunchArgs {
 ///
 /// Returns `true` if a change was made, or would be made if this is a dry run.
 async fn apply_launch_args(
-    game: &str,
     game_id: &str,
+    args: &str,
     overwrite_ok: bool,
     dry_run: bool,
 ) -> Result<AppliedLaunchArgs> {
@@ -226,8 +225,6 @@ async fn apply_launch_args(
     path.push("userdata");
 
     let mut result = AppliedLaunchArgs::Unchanged;
-
-    let launch_options_str = generate_launch_options(game)?;
 
     let mut iter = tokio::fs::read_dir(&path).await?;
     while let Some(e) = iter.next_entry().await? {
@@ -254,23 +251,11 @@ async fn apply_launch_args(
             let rdr = vdf::Reader::new(std::io::BufReader::new(std::fs::File::open(&path)?));
 
             let result = if let Some(ref mut wtr) = wtr {
-                let result = apply_launch_args_inner(
-                    game_id,
-                    overwrite_ok,
-                    &launch_options_str,
-                    rdr,
-                    &mut *wtr,
-                )?;
+                let result = apply_launch_args_inner(game_id, overwrite_ok, args, rdr, &mut *wtr)?;
                 wtr.flush()?;
                 result
             } else {
-                apply_launch_args_inner(
-                    game_id,
-                    overwrite_ok,
-                    &launch_options_str,
-                    rdr,
-                    std::io::empty(),
-                )?
+                apply_launch_args_inner(game_id, overwrite_ok, args, rdr, std::io::empty())?
             };
             drop(wtr);
 
@@ -292,7 +277,7 @@ async fn apply_launch_args(
 fn apply_launch_args_inner<R: std::io::BufRead, W: std::io::Write>(
     game_id: &str,
     overwrite_ok: bool,
-    launch_options_str: &str,
+    args: &str,
     mut rdr: vdf::Reader<R>,
     mut wtr: W,
 ) -> Result<AppliedLaunchArgs> {
@@ -393,7 +378,7 @@ fn apply_launch_args_inner<R: std::io::BufRead, W: std::io::Write>(
                         pre_whitespace,
                         key,
                         mid_whitespace,
-                        value: if value.s != launch_options_str.as_bytes() {
+                        value: if value.s != args.as_bytes() {
                             if !value.s.is_empty() && !overwrite_ok {
                                 bail!("Refusing to overwrite launch options.");
                             }
@@ -401,7 +386,7 @@ fn apply_launch_args_inner<R: std::io::BufRead, W: std::io::Write>(
                                 overwrote: !value.s.is_empty(),
                             };
                             vdf::Str {
-                                s: launch_options_str.as_bytes(),
+                                s: args.as_bytes(),
                                 quoted: true,
                             }
                         } else {
@@ -458,7 +443,7 @@ fn apply_launch_args_inner<R: std::io::BufRead, W: std::io::Write>(
                                         },
                                         mid_whitespace: b"\t\t",
                                         value: vdf::Str {
-                                            s: launch_options_str.as_bytes(),
+                                            s: args.as_bytes(),
                                             quoted: true,
                                         },
                                     },
@@ -492,7 +477,7 @@ fn apply_launch_args_inner<R: std::io::BufRead, W: std::io::Write>(
                                         },
                                         mid_whitespace: b"\t\t",
                                         value: vdf::Str {
-                                            s: launch_options_str.as_bytes(),
+                                            s: args.as_bytes(),
                                             quoted: true,
                                         },
                                     },

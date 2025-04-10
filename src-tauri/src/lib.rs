@@ -71,10 +71,12 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
                     return Err(anyhow!("TAURI_IMMEDIATE_DEVTOOLS only works when the app is compiled with debug assertions enabled").into());
                 }
             }
+
+            assert!(app.manage(IpcState::new(app.handle().clone(), slog_scope::logger())));
+
             Ok(())
         })
         .manage(settings::try_read())
-        .manage(IpcState::default())
         .manage(Reqwest(reqwest::Client::builder().build()?))
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_os::init())
@@ -90,7 +92,8 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
             importing::commands::preview_import_modpack_from_thunderstore_code,
             importing::commands::import_modpack_from_thunderstore_code,
             installing::commands::clear_cache,
-            launching::commands::send_s2c_message,
+            ipc::commands::allocate_ipc_connection,
+            ipc::commands::send_s2c_message,
             launching::commands::launch_profile,
             mod_index::commands::fetch_mod_index,
             mod_index::commands::count_mod_index,
@@ -152,11 +155,11 @@ pub fn main() -> anyhow::Result<()> {
             #[cfg(not(windows))]
             {
                 let pid = rustix::process::Pid::from_raw(pid as i32).context("Invalid pid")?;
-                _ = crate::util::process::Pid { value: pid }.wait_for_exit(log)
+                _ = manderrow_process_util::Pid { value: pid }.wait_for_exit(log)
             }
             #[cfg(windows)]
             {
-                _ = crate::util::process::Pid { value: pid }.wait_for_exit(log)
+                _ = manderrow_process_util::Pid { value: pid }.wait_for_exit(log)
             }
             Ok::<_, anyhow::Error>(())
         })?;

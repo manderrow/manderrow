@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use anyhow::{Context as _, Result};
-use manderrow_ipc::Ipc;
+use manderrow_ipc::client::Ipc;
 use slog::{debug, info};
 
 use crate::ipc::C2SMessage;
@@ -101,15 +101,17 @@ pub fn run(args: lexopt::Parser) -> Result<()> {
             }
         }
 
-        let agent_path = match agent_path {
-            Some(t) => t,
-            None => todo!("Default path via tauri sidecar"),
-        };
+        let agent_path = agent_path.context("Missing required option --agent-path")?;
 
         let mut log_file = std::fs::File::create("manderrow-wrap.log").unwrap();
 
         writeln!(log_file, "Agent path: {:?}", agent_path).unwrap();
-        writeln!(log_file, "Env: {:?}", std::env::vars_os().collect::<Vec<_>>()).unwrap();
+        writeln!(
+            log_file,
+            "Env: {:?}",
+            std::env::vars_os().collect::<Vec<_>>()
+        )
+        .unwrap();
 
         let mut command = Command::new(&command_name);
         command.args(args);

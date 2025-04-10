@@ -7,18 +7,16 @@ mod crash;
 mod init;
 
 use std::ops::ControlFlow;
-use std::sync::OnceLock;
+use std::sync::Once;
 
 use manderrow_ipc::ipc_channel::ipc::IpcSender;
-use manderrow_ipc::{C2SMessage, Ipc, LogLevel, S2CMessage};
+use manderrow_ipc::{C2SMessage, LogLevel, S2CMessage};
 use slog::info;
 
-use init::{Instruction, MaybeArgs};
-
-static IPC: OnceLock<Ipc> = OnceLock::new();
+use init::{Instruction, MaybeArgs, ipc};
 
 fn send_ipc(log: &slog::Logger, message: impl FnOnce() -> C2SMessage) {
-    if let Some(ipc) = IPC.get() {
+    if let Some(ipc) = ipc() {
         _ = ipc.send(message());
     } else {
         info!(log, "{:?}", message());
@@ -33,7 +31,7 @@ pub unsafe extern "stdcall" fn DllMain(
     _res: *const std::ffi::c_void,
 ) -> i32 {
     if reason == 1 {
-        main();
+        init();
     }
 
     1
@@ -41,11 +39,27 @@ pub unsafe extern "stdcall" fn DllMain(
 
 #[cfg(not(target_os = "windows"))]
 #[ctor::ctor]
-fn init() {
-    main();
+fn ctor() {
+    init();
 }
 
-fn main() {
+const DEINIT: Once = Once::new();
+
+#[cfg(not(target_os = "windows"))]
+unsafe extern "C" {
+    fn atexit(f: extern "C" fn());
+
+    fn at_quick_exit(f: extern "C" fn());
+}
+
+#[cfg(not(target_os = "windows"))]
+#[ctor::dtor]
+fn dtor() {
+    // TODO: implement our own IPC that doesn't rely on thread locals so that this won't panic
+    deinit(false);
+}
+
+fn init() {
     std::panic::set_backtrace_style(std::panic::BacktraceStyle::Full);
     std::panic::set_hook(Box::new(|info| {
         crash::report_crash(
@@ -59,6 +73,17 @@ fn main() {
         )
     }));
 
+    #[cfg(not(target_os = "windows"))]
+    {
+        extern "C" fn deinit_c() {
+            // TODO: see note in dtor
+            deinit(false);
+        }
+
+        unsafe { atexit(deinit_c) };
+        unsafe { at_quick_exit(deinit_c) };
+    }
+
     std::fs::write(
         "manderrow-agent-args.txt",
         format!("{:?}", std::env::args_os().collect::<Vec<_>>()),
@@ -70,10 +95,6 @@ fn main() {
     };
 
     let log = slog_scope::logger();
-
-    send_ipc(&log, || C2SMessage::Started {
-        pid: std::process::id(),
-    });
 
     interpret_instructions(args.instructions.drain(..));
 
@@ -130,14 +151,7 @@ fn main() {
     //     None
     // };
 
-    // TODO: intercept process exit to send exit message
-    // send_ipc(log, ipc, || {
-    //     Ok(C2SMessage::Exit {
-    //         code: status.code(),
-    //     })
-    // })?;
-
-    if let Some(ipc) = init::ipc() {
+    if let Some(ipc) = ipc() {
         std::thread::Builder::new()
             .name("manderrow-killer".into())
             .spawn(move || {
@@ -151,6 +165,17 @@ fn main() {
             })
             .unwrap();
     }
+}
+
+fn deinit(send_exit: bool) {
+    DEINIT.call_once(|| {
+        if send_exit {
+            if let Some(ipc) = ipc() {
+                // TODO: send the correct exit code
+                _ = ipc.send(C2SMessage::Exit { code: None });
+            }
+        }
+    });
 }
 
 fn interpret_instructions(instructions: impl IntoIterator<Item = Instruction>) {
@@ -169,10 +194,10 @@ fn interpret_instructions(instructions: impl IntoIterator<Item = Instruction>) {
                 //         unlikely to be an issue for our use case.
                 unsafe { std::env::set_var(key, value) };
             }
-            Instruction::PrependArg { arg } => {
+            Instruction::PrependArg { arg: _ } => {
                 todo!()
             }
-            Instruction::AppendArg { arg } => {
+            Instruction::AppendArg { arg: _ } => {
                 todo!()
             }
         }
