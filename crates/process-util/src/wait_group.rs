@@ -355,11 +355,11 @@ mod sys {
                     if line.is_empty() {
                         continue;
                     }
+                    let line = line.trim_ascii_start();
                     let Some((pid, _)) = line.split_once(|b| *b == b' ') else {
                         bad_output_dump(log, &self.stdout_buf);
                         return Err(anyhow!("Bad output from ps").into());
                     };
-                    let pid = pid.trim_ascii_start();
                     let pid = u32::from_ascii(pid)
                         .context("Bad output from ps")
                         .inspect_err(|_| {
