@@ -67,7 +67,7 @@ mod sys {
         (
             Submitter {
                 tx,
-                notification: dup_handle(&*notification),
+                notification: Notification(dup_handle(&*notification)),
             },
             Waiter {
                 handles: vec![HANDLE(notification.ptr())],
@@ -77,9 +77,14 @@ mod sys {
         )
     }
 
+    struct Notification(CloseHandleGuard<HEVENT>);
+
+    // SAFETY: https://stackoverflow.com/a/12214212/10082531 says handles are thread-safe unless documented otherwise
+    unsafe impl Sync for Notification {}
+
     pub struct Submitter<T> {
         tx: Sender<(Pid, T)>,
-        notification: CloseHandleGuard<HEVENT>,
+        notification: Notification,
     }
 
     pub struct Waiter<T> {
@@ -100,6 +105,7 @@ mod sys {
         pub fn submit(&self, pid: Pid, data: T) -> Result<(), SubmitError> {
             self.tx.send((pid, data)).map_err(|_| SubmitError::Closed)?;
             self.notification
+                .0
                 .SetEvent()
                 .context("Failed to notify waiter")?;
             Ok(())
@@ -177,7 +183,7 @@ mod sys {
         fn clone(&self) -> Self {
             Self {
                 tx: self.tx.clone(),
-                notification: dup_handle(&*self.notification),
+                notification: Notification(dup_handle(&*self.notification.0)),
             }
         }
     }
