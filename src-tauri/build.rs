@@ -47,8 +47,9 @@ fn main() {
     target_dir.push("target");
     let mut to_path = target_dir.join("release");
     to_path.push(format!(
-        "libmanderrow_agent.dynamic_library-{}",
-        native_target
+        "libmanderrow_agent.dynamic_library-{}{}",
+        native_target,
+        if os == "windows" { ".exe" } else { "" }
     ));
 
     let mut from_path = target_dir.clone();
