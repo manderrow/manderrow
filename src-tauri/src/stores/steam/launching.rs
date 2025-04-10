@@ -44,7 +44,7 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
                     log,
                     "Waiting for Steam process {} to shut down", proc.th32ProcessID
                 );
-                crate::util::process::Pid {
+                manderrow_process_util::Pid {
                     value: proc.th32ProcessID,
                 }
                 .wait_for_exit(log)
