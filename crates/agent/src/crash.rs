@@ -7,12 +7,13 @@ use manderrow_ipc::C2SMessage;
 
 use crate::init::ipc;
 
-#[no_panic::no_panic]
+// TODO: figure out what could possibly panic here
+#[cfg_attr(not(windows), no_panic::no_panic)]
 fn forget_on_panic(f: impl FnOnce() -> () + std::panic::UnwindSafe) {
     std::mem::forget(std::panic::catch_unwind(f))
 }
 
-#[no_panic::no_panic]
+#[cfg_attr(not(windows), no_panic::no_panic)]
 #[track_caller]
 pub fn report_crash(error: impl std::fmt::Display) {
     let report = CrashReport::new(error);
