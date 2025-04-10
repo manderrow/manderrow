@@ -30,6 +30,7 @@ mod util;
 mod window_state;
 mod wrap;
 
+use std::num::NonZeroU32;
 use std::ops::Deref;
 
 use anyhow::{anyhow, bail, Context};
@@ -151,16 +152,9 @@ pub fn main() -> anyhow::Result<()> {
     // TODO: remove this when https://github.com/tauri-apps/tauri/pull/12313 is released
     if let Some(pid) = relaunch {
         slog_scope::with_logger(|log| {
+            let pid = NonZeroU32::new(pid).context("null pid")?;
             // ignore errors because the process might die before or during this operation
-            #[cfg(not(windows))]
-            {
-                let pid = rustix::process::Pid::from_raw(pid as i32).context("Invalid pid")?;
-                _ = manderrow_process_util::Pid { value: pid }.wait_for_exit(log)
-            }
-            #[cfg(windows)]
-            {
-                _ = manderrow_process_util::Pid { value: pid }.wait_for_exit(log)
-            }
+            _ = manderrow_process_util::Pid::from_raw(pid).wait_for_exit(log);
             Ok::<_, anyhow::Error>(())
         })?;
     }
