@@ -12,8 +12,14 @@ fn main() {
     println!("cargo::rerun-if-changed={:?}", crates_dir.join("agent"));
     println!("cargo::rerun-if-changed={:?}", crates_dir.join("args"));
     println!("cargo::rerun-if-changed={:?}", crates_dir.join("ipc"));
-    println!("cargo::rerun-if-changed={:?}", crates_dir.join("Cargo.toml"));
-    println!("cargo::rerun-if-changed={:?}", crates_dir.join("Cargo.lock"));
+    println!(
+        "cargo::rerun-if-changed={:?}",
+        crates_dir.join("Cargo.toml")
+    );
+    println!(
+        "cargo::rerun-if-changed={:?}",
+        crates_dir.join("Cargo.lock")
+    );
 
     let native_target = var("TARGET").unwrap();
     let (_arch, rem) = native_target.split_once('-').unwrap();
@@ -46,22 +52,13 @@ fn main() {
     ));
 
     let mut from_path = target_dir.clone();
-    match os {
-        "linux" => {
-            from_path.push("release");
-            from_path.push("libmanderrow_agent.so");
-        }
-        "darwin" => {
-            from_path.push("release");
-            from_path.push("libmanderrow_agent.dylib");
-        }
-        "windows" => {
-            from_path.push("x86_64-pc-windows-msvc");
-            from_path.push("release");
-            from_path.push("manderrow_agent.dll");
-        }
+    from_path.push("release");
+    from_path.push(match os {
+        "linux" => "libmanderrow_agent.so",
+        "darwin" => "libmanderrow_agent.dylib",
+        "windows" => "manderrow_agent.dll",
         _ => panic!("Unsupported target triple: {:?}", native_target),
-    }
+    });
     std::fs::copy(from_path, to_path).unwrap();
 
     tauri_build::build()
