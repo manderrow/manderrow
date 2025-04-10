@@ -131,6 +131,9 @@ pub async fn launch_profile(
                     .context("Failed to canonicalize current exe path")?;
                 assert!(path.pop());
                 path.push("libmanderrow_agent.dynamic_library");
+                if cfg!(windows) {
+                    path.as_mut_os_string().push(".exe");
+                }
                 AgentSource::Path(path)
             }
         }
