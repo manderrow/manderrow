@@ -3,11 +3,11 @@ use std::ops::Range;
 use anyhow::{bail, Result};
 use slog::{debug, trace};
 
-use super::paths::{resolve_steam_app_compat_data_directory, resolve_steam_app_install_directory};
+use super::paths::{resolve_steam_app_compat_data_directory, resolve_app_install_directory};
 
 pub async fn uses_proton(log: &slog::Logger, game_id: &str) -> Result<bool> {
     if cfg!(target_os = "linux") {
-        let install_dir = resolve_steam_app_install_directory(game_id).await?;
+        let install_dir = resolve_app_install_directory(game_id).await?;
         let mut iter = tokio::fs::read_dir(&install_dir).await?;
         while let Some(e) = iter.next_entry().await? {
             let name = e.file_name();

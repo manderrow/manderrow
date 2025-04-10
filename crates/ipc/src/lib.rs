@@ -2,16 +2,17 @@
 #![deny(unused_must_use)]
 #![feature(type_changing_struct_update)]
 
+pub mod client;
+
 pub use bincode;
 pub use ipc_channel;
 
 use std::collections::HashMap;
 use std::ffi::OsString;
 use std::marker::PhantomData;
+use std::num::NonZeroU32;
 use std::ops::ControlFlow;
-use std::sync::Mutex;
 
-use ipc_channel::ipc::{IpcError, IpcReceiver, IpcSender};
 use slog::error;
 use smol_str::SmolStr;
 use uuid::Uuid;
@@ -108,16 +109,12 @@ impl From<slog::Level> for LogLevel {
 pub enum C2SMessage {
     Connect {
         s2c_tx: String,
+        pid: NonZeroU32,
     },
-    Disconnect {},
     Start {
         command: SafeOsString,
         args: Vec<SafeOsString>,
         env: HashMap<String, SafeOsString>,
-    },
-    Started {
-        /// Interpreted as a `u32` on Windows, and an `i32` on Unix.
-        pid: u32,
     },
     Log {
         level: LogLevel,
@@ -142,74 +139,6 @@ pub enum S2CMessage {
     Connect,
     PatientResponse { id: Uuid, choice: String },
     Kill,
-}
-
-pub struct IpcState {
-    pub s2c_tx: flume::Sender<S2CMessage>,
-    pub s2c_rx: flume::Receiver<S2CMessage>,
-}
-
-impl Default for IpcState {
-    fn default() -> Self {
-        let (s2c_tx, s2c_rx) = flume::bounded(1);
-        Self { s2c_tx, s2c_rx }
-    }
-}
-
-/// Inter-process communication.
-pub struct Ipc {
-    pub c2s_tx: Mutex<IpcSender<C2SMessage>>,
-    pub s2c_rx: Mutex<IpcReceiver<S2CMessage>>,
-}
-
-impl Drop for Ipc {
-    fn drop(&mut self) {
-        if let Ok(lock) = self.c2s_tx.try_lock() {
-            _ = lock.send(C2SMessage::Disconnect {});
-        }
-    }
-}
-
-impl Ipc {
-    pub fn send(&self, message: C2SMessage) -> Result<(), SendError> {
-        Ok(self
-            .c2s_tx
-            .lock()
-            .map_err(|_| SendError::Poisoned)?
-            .send(message)?)
-    }
-
-    pub fn recv(&self) -> Result<S2CMessage, RecvError> {
-        self.s2c_rx
-            .lock()
-            .map_err(|_| RecvError::Poisoned)?
-            .recv()
-            .map_err(|e| match e {
-                IpcError::Bincode(e) => RecvError::Decode(e),
-                IpcError::Io(e) => RecvError::Io(e),
-                IpcError::Disconnected => RecvError::Disconnected,
-            })
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum SendError {
-    #[error("failed to encode message: {0}")]
-    Encode(#[from] bincode::Error),
-    #[error("lock is poisoned")]
-    Poisoned,
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum RecvError {
-    #[error("failed to decode message: {0}")]
-    Decode(#[from] bincode::Error),
-    #[error("encountered I/O error: {0}")]
-    Io(#[from] std::io::Error),
-    #[error("lock is poisoned")]
-    Poisoned,
-    #[error("the channel is disconnected")]
-    Disconnected,
 }
 
 pub struct PatientChoiceReceiver<T> {

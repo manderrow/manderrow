@@ -30,7 +30,7 @@ import {
 import { OverlayScrollbarsComponent } from "overlayscrollbars-solid";
 import Fa from "solid-fa";
 
-import Console, { ConsoleConnection } from "../../components/global/Console";
+import Console, { ConsoleConnection, DoctorReports, focusedConnection, setFocusedConnection } from "../../components/global/Console";
 import { PromptDialog } from "../../components/global/Dialog";
 import { ErrorContext } from "../../components/global/ErrorBoundary";
 import SelectDropdown from "../../components/global/SelectDropdown";
@@ -38,7 +38,7 @@ import TabRenderer from "../../components/global/TabRenderer";
 import ModList, { ModInstallContext } from "../../components/profile/ModList";
 import ModSearch from "../../components/profile/ModSearch";
 
-import { createProfile, deleteProfile, getProfileMods, launchProfile, ProfileWithId } from "../../api";
+import { createProfile, deleteProfile, getProfileMods, ProfileWithId } from "../../api";
 import * as globals from "../../globals";
 import { refetchProfiles } from "../../globals";
 import { Refetcher } from "../../types";
@@ -51,6 +51,7 @@ import TasksDialog from "../../components/global/TasksDialog";
 import { settings } from "../../api/settings";
 import { useSearchParamsInPlace } from "../../utils/router";
 import { sendS2CMessage } from "../../api/ipc";
+import { launchProfile } from "../../api/launching";
 
 interface ProfileParams {
   profileId?: string;
@@ -97,18 +98,17 @@ export default function Profile() {
 
   const reportErr = useContext(ErrorContext)!;
 
-  const [connection, setConnection] = createSignal<ConsoleConnection>();
-
   async function launch(modded: boolean) {
     try {
-      const conn = new ConsoleConnection();
-      setConnection(conn);
+      const conn = await ConsoleConnection.allocate();
+      setFocusedConnection(conn);
+      console.log(focusedConnection());
       if (settings().openConsoleOnLaunch.value && searchParams["profile-tab"] !== "logs") {
         setSearchParams({ "profile-tab": "logs" });
       }
       await launchProfile(
+        conn.id,
         params.profileId !== undefined ? { profile: params.profileId } : { vanilla: params.gameId },
-        conn.channel,
         { modded },
       );
     } catch (e) {
@@ -117,16 +117,21 @@ export default function Profile() {
   }
 
   async function killGame() {
-    try {
-      await sendS2CMessage("Kill");
-    } catch (e) {
-      reportErr(e);
+    const conn = focusedConnection();
+    if (conn !== undefined) {
+      try {
+        await sendS2CMessage(conn.id, "Kill");
+      } catch (e) {
+        reportErr(e);
+      }
     }
   }
 
   const [importDialogOpen, setImportDialogOpen] = createSignal(false);
 
   const [tasksDialogOpen, setTasksDialogOpen] = createSignal(false);
+
+  const hasLiveConnection = () => focusedConnection() !== undefined && focusedConnection()?.status() !== "disconnected";
 
   return (
     <main class={styles.main}>
@@ -140,25 +145,26 @@ export default function Profile() {
         </nav>
         <section classList={{ [styles.sidebar__group]: true, [styles.sidebar__mainActions]: true }}>
           <Switch>
-            <Match when={connection()?.status() === "connected"}>
+            <Match when={focusedConnection()?.status() === "connected"}>
               <button on:click={() => killGame()} data-kill>
                 <Fa icon={faSkullCrossbones} /> Kill game
               </button>
             </Match>
-            <Match when={connection() !== undefined && connection()?.status() !== "disconnected"}>
-              <button on:click={() => setConnection(undefined)} data-cancel>
+            <Match when={hasLiveConnection()}>
+              <button on:click={() => setFocusedConnection(undefined)} data-cancel>
                 <Fa icon={faXmark} /> Cancel
               </button>
             </Match>
-            <Match when={true}>
-              <button disabled={params.profileId === undefined} on:click={() => launch(true)} data-modded>
-                <Fa icon={faCirclePlay} /> Start modded
-              </button>
-              <button on:click={() => launch(false)} data-vanilla>
-                <Fa icon={faCirclePlayOutline} /> Start vanilla
-              </button>
-            </Match>
           </Switch>
+          {
+            // TODO: based on hasLiveConnection change the UI of these a bit
+          }
+          <button disabled={params.profileId === undefined} on:click={() => launch(true)} data-modded>
+            <Fa icon={faCirclePlay} /> Start modded
+          </button>
+          <button on:click={() => launch(false)} data-vanilla>
+            <Fa icon={faCirclePlayOutline} /> Start vanilla
+          </button>
         </section>
         <section classList={{ [styles.sidebar__group]: true, [sidebarStyles.sidebar__profiles]: true }}>
           <h3 class={styles.sidebar__profilesTitle}>
@@ -288,7 +294,7 @@ export default function Profile() {
                       name: "Logs",
                       component: (
                         <div class={styles.content__console}>
-                          <Console conn={connection()} />
+                          <Console />
                         </div>
                       ),
                     },
@@ -313,6 +319,8 @@ export default function Profile() {
       <Show when={tasksDialogOpen()}>
         <TasksDialog onDismiss={() => setTasksDialogOpen(false)} />
       </Show>
+
+      <DoctorReports />
     </main>
   );
 }

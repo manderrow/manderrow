@@ -9,30 +9,18 @@ use std::sync::LazyLock;
 use anyhow::{anyhow, Context, Result};
 use manderrow_paths::cache_dir;
 use manderrow_types::games::PackageLoader;
-use slog::{info, o};
-use tauri::{ipc::Channel, AppHandle};
+use slog::{debug, info, o};
+use tauri::AppHandle;
+use tauri::Emitter;
 use tokio::process::Command;
 use uuid::Uuid;
 
 use crate::games::games_by_id;
-use crate::ipc::{InProcessIpcStateExt, S2CMessage};
+use crate::ipc::ConnectionId;
+use crate::ipc::{C2SMessage, IdentifiedC2SMessage, IpcState};
 use crate::profiles::{profile_path, read_profile_file};
-use crate::util::hyphenated_uuid;
-use crate::{
-    ipc::{C2SMessage, IpcState},
-    CommandError,
-};
 
 pub static LOADERS_DIR: LazyLock<PathBuf> = LazyLock::new(|| cache_dir().join("loaders"));
-
-pub async fn send_s2c_message(ipc_state: &IpcState, msg: S2CMessage) -> Result<()> {
-    ipc_state
-        .s2c_tx
-        .send_async(msg)
-        .await
-        .context("Failed to send IPC message")?;
-    Ok(())
-}
 
 #[derive(Debug, Clone, Copy, serde::Deserialize)]
 pub enum LaunchTarget<'a> {
@@ -43,14 +31,15 @@ pub enum LaunchTarget<'a> {
 }
 
 pub async fn launch_profile(
-    app_handle: AppHandle,
+    app: AppHandle,
     ipc_state: &IpcState,
     target: LaunchTarget<'_>,
     modded: bool,
-    channel: Channel<C2SMessage>,
-) -> Result<(), CommandError> {
+    conn_id: ConnectionId,
+) -> Result<(), crate::Error> {
     struct Logger {
-        c2s_tx: AssertUnwindSafe<Channel<C2SMessage>>,
+        app: AssertUnwindSafe<AppHandle>,
+        conn_id: ConnectionId,
     }
 
     impl slog::Drain for Logger {
@@ -63,22 +52,32 @@ pub async fn launch_profile(
             record: &slog::Record<'_>,
             _values: &slog::OwnedKVList,
         ) -> Result<Self::Ok, Self::Err> {
-            _ = tokio::task::block_in_place(|| {
-                self.c2s_tx.send(C2SMessage::Log {
-                    level: record.level().into(),
-                    scope: "manderrow".into(),
-                    message: record.msg().to_string(),
-                })
-            });
+            _ = self.app.emit_to(
+                crate::ipc::EVENT_TARGET,
+                crate::ipc::EVENT_NAME,
+                IdentifiedC2SMessage {
+                    conn_id: self.conn_id,
+                    msg: &C2SMessage::Log {
+                        level: record.level().into(),
+                        scope: "manderrow".into(),
+                        message: record.msg().to_string(),
+                    },
+                },
+            );
             Ok(())
         }
     }
     let log = slog::Logger::root(
         Logger {
-            c2s_tx: AssertUnwindSafe(channel.clone()),
+            app: AssertUnwindSafe(app.clone()),
+            conn_id,
         },
         o!(),
     );
+
+    let mut ipc = ipc_state
+        .connect(conn_id, app.clone())
+        .context("Failed to complete internal IPC connection")?;
 
     let game = match target {
         LaunchTarget::Profile(id) => {
@@ -101,6 +100,45 @@ pub async fn launch_profile(
     let Some(store_metadata) = game.store_platform_metadata.iter().next() else {
         return Err(anyhow!("Unable to launch game").into());
     };
+    enum AgentSource {
+        Path(PathBuf),
+        Embedded(&'static [u8]),
+    }
+    let uses_proton = match store_metadata {
+        crate::games::StorePlatformMetadata::Steam { .. } => {
+            let steam_metadata = game
+                .store_platform_metadata
+                .iter()
+                .find_map(|m| m.steam_or_direct())
+                .context("Unsupported store platform")?;
+
+            crate::stores::steam::proton::uses_proton(&log, steam_metadata.id).await?
+        }
+        _ => false,
+    };
+    let agent_src = match std::env::var_os("MANDERROW_AGENT_PATH") {
+        Some(path) => AgentSource::Path(path.into()),
+        None => {
+            if uses_proton {
+                AgentSource::Embedded(include_bytes!(concat!(
+                    std::env!("CARGO_MANIFEST_DIR"),
+                    "/../crates/target/x86_64-pc-windows-gnu/release/manderrow_agent.dll"
+                )))
+            } else {
+                let mut path = std::env::current_exe()
+                    .context("Failed to get current exe path")?
+                    .canonicalize()
+                    .context("Failed to canonicalize current exe path")?;
+                assert!(path.pop());
+                path.push("libmanderrow_agent.dynamic_library");
+                AgentSource::Path(path)
+            }
+        }
+    };
+    match &agent_src {
+        AgentSource::Path(path) => debug!(log, "Using bundled agent at {:?}", path),
+        AgentSource::Embedded(_) => debug!(log, "Using embedded agent"),
+    }
     let mut command: Command;
     match store_metadata {
         crate::games::StorePlatformMetadata::Steam {
@@ -111,9 +149,6 @@ pub async fn launch_profile(
                 .iter()
                 .find_map(|m| m.steam_or_direct())
                 .context("Unsupported store platform")?;
-
-            let uses_proton =
-                crate::stores::steam::proton::uses_proton(&log, steam_metadata.id).await?;
 
             command = if cfg!(windows) {
                 #[cfg(windows)]
@@ -134,6 +169,8 @@ pub async fn launch_profile(
             };
             command.arg("-applaunch").arg(&**store_identifier);
 
+            command.arg("{manderrow");
+
             if cfg!(windows) || uses_proton {
                 if uses_proton {
                     // TODO: don't overwrite anything without checking with the user
@@ -146,62 +183,51 @@ pub async fn launch_profile(
                     .await?;
                 }
 
-                todo!("install agent winhttp.dll or other proxy");
-                // let doorstop_install_target =
-                //     resolve_steam_app_install_directory(steam_metadata.id)
-                //         .await?
-                //         .join("winhttp.dll");
-                // if let Some(doorstop_path) = doorstop_path {
-                //     tokio::fs::copy(doorstop_path, &doorstop_install_target).await?;
-                // } else {
-                //     install_file(
-                //         // TODO: communicate via IPC
-                //         None,
-                //         log,
-                //         &Reqwest(reqwest::Client::new()),
-                //         doorstop_url,
-                //         // suffix is unnecessary here
-                //         Some(crate::installing::CacheOptions::by_hash(doorstop_hash)),
-                //         &doorstop_install_target,
-                //         None,
-                //     )
-                //     .await?;
-                // }
-
-                command.arg("{manderrow");
+                let agent_install_target =
+                    crate::stores::steam::paths::resolve_app_install_directory(steam_metadata.id)
+                        .await?
+                        .join("winhttp.dll");
+                match agent_src {
+                    AgentSource::Path(agent_path) => {
+                        tokio::fs::copy(&agent_path, &agent_install_target)
+                            .await
+                            .with_context(|| {
+                                format!(
+                                    "Failed to install agent from {:?} at {:?}",
+                                    agent_path, agent_install_target
+                                )
+                            })?;
+                    }
+                    AgentSource::Embedded(agent_bytes) => {
+                        tokio::fs::write(&agent_install_target, agent_bytes)
+                            .await
+                            .with_context(|| {
+                                format!(
+                                    "Failed to install agent from embedded bytes at {:?}",
+                                    agent_install_target
+                                )
+                            })?;
+                    }
+                }
             } else {
-                crate::stores::steam::launching::ensure_launch_args_are_applied(
+                crate::stores::steam::launching::ensure_unix_launch_args_are_applied(
                     &log,
-                    Some(ipc_state.bi(&channel)),
-                    game.id,
+                    Some(&mut ipc),
                     steam_metadata.id,
                 )
                 .await?;
 
-                command.arg("{manderrow");
-
-                // this is a very special arg that is handled and removed by the wrapper
-                if let Some(path) = std::env::var_os("MANDERROW_AGENT_PATH") {
-                    command.arg("--agent-path");
-                    command.arg(path);
-                }
+                let AgentSource::Path(agent_path) = agent_src else {
+                    unreachable!("embedded is only used when uses_proton is true")
+                };
+                command.arg("--agent-path");
+                command.arg(agent_path);
             }
         }
         _ => return Err(anyhow!("Unsupported game store: {store_metadata:?}").into()),
     }
 
-    let (c2s_rx, c2s_tx) = manderrow_ipc::ipc_channel::ipc::IpcOneShotServer::<C2SMessage>::new()
-        .context("Failed to create IPC channel")?;
-
     command.arg("--enable");
-
-    command.arg("--c2s-tx");
-    command.arg(c2s_tx);
-
-    if let LaunchTarget::Profile(id) = target {
-        command.arg("--profile");
-        command.arg(hyphenated_uuid!(id));
-    }
 
     if modded {
         match (target, game.package_loader) {
@@ -224,10 +250,15 @@ pub async fn launch_profile(
         }
     }
 
-    command.arg("manderrow}");
-
     // TODO: find a way to stop this if the launch fails
-    crate::ipc::spawn_c2s_pipe(log.clone(), app_handle, channel, c2s_rx)?;
+    let c2s_tx = ipc_state
+        .spawn_external(log.clone(), app, conn_id)
+        .context("Failed to setup external IPC connection")?;
+
+    command.arg("--c2s-tx");
+    command.arg(c2s_tx);
+
+    command.arg("manderrow}");
 
     info!(log, "Launching game: {command:?}");
     let status = command

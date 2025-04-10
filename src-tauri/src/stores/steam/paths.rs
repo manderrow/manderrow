@@ -188,7 +188,7 @@ pub async fn resolve_steam_app_compat_data_directory(game_id: &str) -> Result<Pa
     Ok(path)
 }
 
-pub async fn resolve_steam_app_install_directory(game_id: &str) -> Result<PathBuf> {
+pub async fn resolve_app_install_directory(game_id: &str) -> Result<PathBuf> {
     let manifest = resolve_steam_app_manifest(game_id).await?;
     tokio::task::block_in_place(|| {
         let mut rdr = vdf::Reader::new(std::fs::File::open(&manifest)?);
