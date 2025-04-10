@@ -72,15 +72,18 @@ export class ConsoleConnection {
   }
 
   handleEvent(event: IdentifiedC2SMessage) {
+    if ("DoctorReport" in event) {
+      setDoctorReports((reports) => [...reports, event]);
+      return;
+    }
+
     if ("Connect" in event) {
       this.setStatus("connected");
     } else if ("Disconnect" in event) {
       this.setStatus("disconnected");
-    } else if ("DoctorReport" in event) {
-      setDoctorReports((reports) => [...reports, event]);
-    } else {
-      this.setEvents((events) => [...events, event]);
     }
+
+    this.setEvents((events) => [...events, event]);
   }
 }
 
