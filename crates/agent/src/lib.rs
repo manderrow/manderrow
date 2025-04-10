@@ -112,6 +112,21 @@ fn init() {
 
     let log = slog_scope::logger();
 
+    if let Some(ipc) = ipc() {
+        std::thread::Builder::new()
+            .name("manderrow-killer".into())
+            .spawn(move || {
+                while let Ok(msg) = ipc.recv() {
+                    match msg {
+                        S2CMessage::Connect => {}
+                        S2CMessage::PatientResponse { .. } => {}
+                        S2CMessage::Kill => std::process::exit(1),
+                    }
+                }
+            })
+            .unwrap();
+    }
+
     interpret_instructions(args.instructions.drain(..));
 
     // TODO: replace stdout and stderr with in-process pipes and spawn a thread to listen to them and forward over IPC
@@ -166,21 +181,6 @@ fn init() {
     // } else {
     //     None
     // };
-
-    if let Some(ipc) = ipc() {
-        std::thread::Builder::new()
-            .name("manderrow-killer".into())
-            .spawn(move || {
-                while let Ok(msg) = ipc.recv() {
-                    match msg {
-                        S2CMessage::Connect => {}
-                        S2CMessage::PatientResponse { .. } => {}
-                        S2CMessage::Kill => std::process::exit(1),
-                    }
-                }
-            })
-            .unwrap();
-    }
 }
 
 fn deinit(send_exit: bool) {
