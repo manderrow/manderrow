@@ -1,0 +1,22 @@
+.{
+    .name = .manderrow_agent,
+
+    .version = "0.0.0",
+
+    .fingerprint = 0x976fd25251d885f2, // Changing this has security and trust implications.
+
+    .minimum_zig_version = "0.14.0",
+
+    .dependencies = .{
+        .dll_proxy = .{
+            .url = "git+https://github.com/manderrow/dll-proxy.git#0343cb851cffa905722dae378fa9b293b2ee8ca7",
+            .hash = "dll_proxy-0.0.0-WDnws40gAACzF6hkWvt8fcGdS3s79HyLmKYgWgQtb8S0",
+        },
+    },
+
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}

@@ -23,59 +23,10 @@ fn send_ipc(log: &slog::Logger, message: impl FnOnce() -> C2SMessage) {
     }
 }
 
-#[cfg(target_os = "windows")]
-#[repr(transparent)]
-pub struct HMODULE(*mut std::ffi::c_void);
-
-#[cfg(target_os = "windows")]
-#[unsafe(no_mangle)]
-pub unsafe extern "stdcall" fn DllMain(
-    module: HMODULE,
-    reason: isize,
-    _res: *const std::ffi::c_void,
-) -> i32 {
-    if reason == 1 {
-        init();
-
-        unsafe {
-            loadProxy(module);
-        }
-    }
-
-    1
-}
-
-#[cfg(not(target_os = "windows"))]
-#[ctor::ctor]
-fn ctor() {
-    init();
-}
-
 const DEINIT: Once = Once::new();
 
-#[cfg(not(target_os = "windows"))]
-unsafe extern "C" {
-    fn atexit(f: extern "C" fn());
-
-    fn at_quick_exit(f: extern "C" fn());
-}
-
-#[cfg(not(target_os = "windows"))]
-#[ctor::dtor]
-fn dtor() {
-    // TODO: implement our own IPC that doesn't rely on thread locals so that this won't panic
-    deinit(false);
-}
-
-#[cfg(target_os = "windows")]
-// +whole-archive is necessary to keep the exported proxy functions
-#[cfg_attr(target_env = "msvc", link(name = "dll_proxy_msvc", kind = "static", modifiers = "+whole-archive"))]
-#[cfg_attr(target_env = "gnu", link(name = "dll_proxy_gnu", kind = "static", modifiers = "+whole-archive"))]
-unsafe extern "C" {
-    fn loadProxy(module: HMODULE);
-}
-
-fn init() {
+#[unsafe(no_mangle)]
+pub extern "C" fn manderrow_agent_init() {
     std::panic::set_backtrace_style(std::panic::BacktraceStyle::Full);
     std::panic::set_hook(Box::new(|info| {
         crash::report_crash(
@@ -88,17 +39,6 @@ fn init() {
             },
         )
     }));
-
-    #[cfg(not(target_os = "windows"))]
-    {
-        extern "C" fn deinit_c() {
-            // TODO: see note in dtor
-            deinit(false);
-        }
-
-        unsafe { atexit(deinit_c) };
-        unsafe { at_quick_exit(deinit_c) };
-    }
 
     std::fs::write(
         "manderrow-agent-args.txt",
@@ -183,7 +123,8 @@ fn init() {
     // };
 }
 
-fn deinit(send_exit: bool) {
+#[unsafe(no_mangle)]
+pub extern "C" fn manderrow_agent_deinit(send_exit: bool) {
     DEINIT.call_once(|| {
         if send_exit {
             if let Some(ipc) = ipc() {
