@@ -15,14 +15,6 @@ use slog::info;
 
 use init::{Instruction, MaybeArgs, ipc};
 
-fn send_ipc(log: &slog::Logger, message: impl FnOnce() -> C2SMessage) {
-    if let Some(ipc) = ipc() {
-        _ = ipc.send(message());
-    } else {
-        info!(log, "{:?}", message());
-    }
-}
-
 const DEINIT: Once = Once::new();
 
 #[unsafe(no_mangle)]
@@ -39,12 +31,6 @@ pub extern "C" fn manderrow_agent_init() {
             },
         )
     }));
-
-    std::fs::write(
-        "manderrow-agent-args.txt",
-        format!("{:?}", std::env::args_os().collect::<Vec<_>>()),
-    )
-    .unwrap();
 
     let MaybeArgs::Enabled(mut args) = init::init(std::env::args_os()).unwrap() else {
         return;
