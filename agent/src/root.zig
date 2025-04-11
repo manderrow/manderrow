@@ -37,10 +37,48 @@ fn entrypoint() void {
     if (builtin.is_test)
         return;
 
+    const log_file: ?std.fs.File = std.fs.cwd().createFile("manderrow-agent.log", .{}) catch null;
+    defer if (log_file) |f| f.close();
+
+    if (log_file) |f| {
+        {
+            // FIXME: this is empty on posix systems
+            f.writeAll("Args:") catch {};
+            var iter = std.process.args();
+            while (iter.next()) |arg| {
+                std.fmt.format(f.writer(), " {s}", .{arg}) catch {};
+            }
+            f.writeAll("\n") catch {};
+        }
+        dump_env: {
+            f.writeAll("Env: {\n") catch {};
+            var map = std.process.getEnvMap(std.heap.c_allocator) catch break :dump_env;
+            defer map.deinit();
+            var iter = map.iterator();
+            while (iter.next()) |entry| {
+                std.fmt.format(f.writer(), "  {s}=\"{}\"\n", .{ entry.key_ptr.*, std.zig.fmtEscapes(entry.value_ptr.*) }) catch {};
+            }
+            f.writeAll("}\n") catch {};
+        }
+    }
+
     atexit(deinit_c);
+
+    if (log_file) |f| {
+        f.writeAll("Set atexit hook\n") catch {};
+    }
+
     at_quick_exit(deinit_c);
 
+    if (log_file) |f| {
+        f.writeAll("Set at_quick_exit hook\n") catch {};
+    }
+
     manderrow_agent_init();
+
+    if (log_file) |f| {
+        f.writeAll("Ran Rust-side init\n") catch {};
+    }
 }
 
 const windows = struct {

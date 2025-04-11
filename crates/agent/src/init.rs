@@ -9,7 +9,7 @@ use std::sync::{Mutex, OnceLock};
 use manderrow_ipc::client::Ipc;
 use manderrow_ipc::ipc_channel::ipc::{IpcOneShotServer, IpcSender};
 use manderrow_ipc::{C2SMessage, S2CMessage};
-use slog::{info, o};
+use slog::{debug, info, o};
 
 static IPC: OnceLock<Ipc> = OnceLock::new();
 
@@ -172,7 +172,7 @@ pub fn init(args: impl IntoIterator<Item = OsString>) -> Result<MaybeArgs, InitE
     let log = slog_scope::logger();
 
     info!(log, "Agent started");
-    info!(log, "{}", crate::crash::DumpEnvironment);
+    debug!(log, "{}", crate::crash::DumpEnvironment);
 
     use lexopt::Arg::*;
 

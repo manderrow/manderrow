@@ -85,7 +85,7 @@ reqwest = { version = "0.12.12", features = ["stream"] }
 tempfile = "3.14.0"
 walkdir = "2.5.0"
 
-slog = "2.7.0"
+slog = { version = "2.7.0", features = ["release_max_level_debug"] }
 slog-envlogger = "2.2.0"
 slog-scope = "4.4.0"
 
