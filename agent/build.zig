@@ -85,6 +85,10 @@ pub fn build(b: *std.Build) !void {
         .root_module = lib_mod,
     });
 
+    if (target.result.os.tag == .windows) {
+        lib.entry = .{ .symbol_name = "DllEntry" };
+    }
+
     lib.step.dependOn(&cargo_build.step);
     lib.addObjectFile(b.path(b.fmt("../crates/target/{s}/release/{s}", .{
         rust_target, switch (target.result.abi) {
