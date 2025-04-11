@@ -5,10 +5,11 @@ use std::path::PathBuf;
 use std::process::Command;
 
 fn main() {
-    let mut crates_dir = PathBuf::from(var_os("CARGO_MANIFEST_DIR").unwrap());
-    assert!(crates_dir.pop());
-    crates_dir.push("crates");
+    let mut root_dir = PathBuf::from(var_os("CARGO_MANIFEST_DIR").unwrap());
+    assert!(root_dir.pop());
+    let crates_dir = root_dir.join("crates");
 
+    println!("cargo::rerun-if-changed={:?}", root_dir.join("agent"));
     println!("cargo::rerun-if-changed={:?}", crates_dir.join("agent"));
     println!("cargo::rerun-if-changed={:?}", crates_dir.join("args"));
     println!("cargo::rerun-if-changed={:?}", crates_dir.join("ipc"));
@@ -29,52 +30,37 @@ fn main() {
         None => (rem, None),
     };
 
-    match os {
-        "windows" => {
-            build_agent(&crates_dir, false);
-        }
-        "linux" => {
-            build_agent(&crates_dir, false);
-            build_agent(&crates_dir, true);
-        }
-        "darwin" => {
-            build_agent(&crates_dir, false);
-        }
-        _ => panic!("Unsupported target triple: {:?}", native_target),
+    let agent_dir = root_dir.join("agent");
+
+    build_agent(&agent_dir, false);
+    if os == "linux" {
+        build_agent(&agent_dir, true);
     }
 
-    let mut target_dir = crates_dir;
-    target_dir.push("target");
-    let mut to_path = target_dir.join("release");
-    to_path.push("libmanderrow_agent");
+    let mut target_dir = agent_dir;
+    target_dir.push("zig-out");
+    let to_path = target_dir.join("libmanderrow_agent");
 
-    let mut from_path = target_dir.clone();
-    from_path.push("release");
+    let mut from_path = target_dir;
+    from_path.push("lib");
     from_path.push(match os {
         "linux" => "libmanderrow_agent.so",
         "darwin" => "libmanderrow_agent.dylib",
         "windows" => "manderrow_agent.dll",
-        _ => panic!("Unsupported target triple: {:?}", native_target),
+        _ => panic!("Unsupported target: {:?}", native_target),
     });
     std::fs::copy(from_path, to_path).unwrap();
 
     tauri_build::build()
 }
 
-fn build_agent(crates_dir: &PathBuf, proton: bool) {
-    let mut command = Command::new(var_os("CARGO").unwrap());
-    command.args([
-        "build",
-        "--package",
-        "manderrow-agent",
-        "--release",
-        "--manifest-path",
-    ]);
-
-    command.arg(crates_dir.join("Cargo.toml"));
+fn build_agent(agent_dir: &PathBuf, proton: bool) {
+    let mut command = Command::new("zig");
+    command.current_dir(agent_dir);
+    command.args(["build", "-Doptimize=ReleaseSafe"]);
 
     if proton {
-        command.args(["--target", "x86_64-pc-windows-gnu"]);
+        command.args(["-Dtarget=x86_64-windows-gnu"]);
     }
     command.status().unwrap().exit_ok().unwrap();
 }
