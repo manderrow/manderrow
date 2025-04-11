@@ -44,9 +44,12 @@ fn entrypoint() void {
         {
             // FIXME: this is empty on posix systems
             f.writeAll("Args:") catch {};
-            var iter = std.process.args();
-            while (iter.next()) |arg| {
-                std.fmt.format(f.writer(), " {s}", .{arg}) catch {};
+            var iter_o = std.process.argsWithAllocator(std.heap.c_allocator) catch null;
+            if (iter_o) |*iter| {
+                defer iter.deinit();
+                while (iter.next()) |arg| {
+                    std.fmt.format(f.writer(), " {s}", .{arg}) catch {};
+                }
             }
             f.writeAll("\n") catch {};
         }
