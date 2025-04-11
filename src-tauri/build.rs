@@ -71,7 +71,7 @@ fn build_agent(agent_dir: &PathBuf, arch: &str, os: &str, abi: Option<&str>, pro
             (None, false) => "",
         },
         match (os, proton) {
-            (_, true) => "gnu",
+            (_, true) | ("windows", _) => "gnu",
             _ => abi.unwrap_or(""),
         }
     ));
