@@ -16,7 +16,7 @@ pub fn build(b: *std.Build) !void {
         .optimize = optimize,
         .link_libc = true,
     });
-    if (target.result.os.tag == .windows) {
+    if (target.result.os.tag == .windows and target.result.abi.isGnu()) {
         for ([_][]const u8{
             "api-ms-win-core-com-l1-1-0",
             "api-ms-win-core-handle-l1-1-0",
