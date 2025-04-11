@@ -23,18 +23,18 @@ fn main() {
     );
 
     let native_target = var("TARGET").unwrap();
-    let (_arch, rem) = native_target.split_once('-').unwrap();
+    let (arch, rem) = native_target.split_once('-').unwrap();
     let (_device, rem) = rem.split_once('-').unwrap();
-    let (os, _abi) = match rem.split_once('-') {
+    let (os, abi) = match rem.split_once('-') {
         Some((os, abi)) => (os, Some(abi)),
         None => (rem, None),
     };
 
     let agent_dir = root_dir.join("agent");
 
-    build_agent(&agent_dir, false);
+    build_agent(&agent_dir, arch, os, abi, false);
     if os == "linux" {
-        build_agent(&agent_dir, true);
+        build_agent(&agent_dir, arch, os, abi, true);
     }
 
     let mut target_dir = agent_dir;
@@ -54,13 +54,26 @@ fn main() {
     tauri_build::build()
 }
 
-fn build_agent(agent_dir: &PathBuf, proton: bool) {
+fn build_agent(agent_dir: &PathBuf, arch: &str, os: &str, abi: Option<&str>, proton: bool) {
     let mut command = Command::new("zig");
     command.current_dir(agent_dir);
     command.args(["build", "-Doptimize=ReleaseSafe"]);
 
-    if proton {
-        command.args(["-Dtarget=x86_64-windows-gnu"]);
-    }
+    command.arg(format!(
+        "-Dtarget={arch}-{}{}{}",
+        match (os, proton) {
+            (_, true) => "windows",
+            ("darwin", _) => "macos",
+            _ => os,
+        },
+        match (abi, proton) {
+            (_, true) | (Some(_), false) => "-",
+            (None, false) => "",
+        },
+        match (os, proton) {
+            (_, true) => "gnu",
+            _ => abi.unwrap_or(""),
+        }
+    ));
     command.status().unwrap().exit_ok().unwrap();
 }
