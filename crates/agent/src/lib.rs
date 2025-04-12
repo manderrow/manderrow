@@ -1,4 +1,5 @@
 #![deny(unused_must_use)]
+#![feature(once_cell_try_insert)]
 #![feature(panic_backtrace_config)]
 
 mod crash;
