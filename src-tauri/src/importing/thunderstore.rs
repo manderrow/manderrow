@@ -215,7 +215,7 @@ pub async fn lookup_profile(
     })
 }
 
-pub fn get_archive_file_path(file: &ZipFile<'_>) -> Result<Option<PathBuf>> {
+pub fn get_archive_file_path<R: Read>(file: &ZipFile<'_, R>) -> Result<Option<PathBuf>> {
     let path = file
         .enclosed_name()
         .with_context(|| format!("File in archive has a bad path: {:?}", file.name()))?;
