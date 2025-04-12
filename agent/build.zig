@@ -10,6 +10,43 @@ pub fn build(b: *std.Build) !void {
         .ReleaseSafe, .ReleaseFast, .ReleaseSmall => true,
     };
 
+    {
+        const lib = try createLib(b, target, optimize, strip);
+
+        b.getInstallStep().dependOn(&b.addInstallArtifact(lib.compile, .{
+            .dest_dir = .{ .override = .lib },
+        }).step);
+
+        const lib_unit_tests = b.addTest(.{
+            .root_module = lib.mod,
+        });
+
+        const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
+
+        const test_step = b.step("test", "Run unit tests");
+        test_step.dependOn(&run_lib_unit_tests.step);
+    }
+
+    const build_all_step = b.step("build-all", "Builds for all supported targets");
+
+    inline for ([_]std.Build.ResolvedTarget{
+        b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .linux, .abi = .gnu }),
+        b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .macos }),
+        b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .windows, .abi = .gnu }),
+    }) |target_2| {
+        const lib_2 = try createLib(b, target_2, optimize, strip);
+        build_all_step.dependOn(&b.addInstallArtifact(lib_2.compile, .{
+            .dest_dir = .{ .override = .lib },
+        }).step);
+    }
+}
+
+fn createLib(
+    b: *std.Build,
+    target: std.Build.ResolvedTarget,
+    optimize: std.builtin.OptimizeMode,
+    strip: bool,
+) !struct { mod: *std.Build.Module, compile: *std.Build.Step.Compile } {
     const lib_mod = b.createModule(.{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
@@ -85,10 +122,6 @@ pub fn build(b: *std.Build) !void {
         .root_module = lib_mod,
     });
 
-    if (target.result.os.tag == .windows) {
-        lib.entry = .{ .symbol_name = "DllEntry" };
-    }
-
     lib.step.dependOn(&cargo_build.step);
     lib.addObjectFile(b.path(b.fmt("../crates/target/{s}/release/{s}", .{
         rust_target, switch (target.result.abi) {
@@ -97,16 +130,5 @@ pub fn build(b: *std.Build) !void {
         },
     })));
 
-    b.getInstallStep().dependOn(&b.addInstallArtifact(lib, .{
-        .dest_dir = .{ .override = .lib },
-    }).step);
-
-    const lib_unit_tests = b.addTest(.{
-        .root_module = lib_mod,
-    });
-
-    const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
-
-    const test_step = b.step("test", "Run unit tests");
-    test_step.dependOn(&run_lib_unit_tests.step);
+    return .{ .mod = lib_mod, .compile = lib };
 }

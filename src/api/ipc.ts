@@ -21,7 +21,7 @@ export interface DoctorFix {
 export type C2SMessage =
   | {
       Connect: {
-        pid: number,
+        pid: number;
       };
     }
   | {
@@ -67,14 +67,12 @@ export type C2SMessage =
       DoctorReport: DoctorReport;
     };
 
-export type S2CMessage =
-  | {
-      PatientResponse: {
-        id: string;
-        choice: string;
-      };
-    }
-  | "Kill";
+export type S2CMessage = {
+  PatientResponse: {
+    id: string;
+    choice: string;
+  };
+};
 
 export async function allocateIpcConnection(): Promise<number> {
   return await wrapInvoke(() => invoke("allocate_ipc_connection", {}));
@@ -82,4 +80,8 @@ export async function allocateIpcConnection(): Promise<number> {
 
 export async function sendS2CMessage(connId: number, msg: S2CMessage): Promise<void> {
   return await wrapInvoke<void>(() => invoke("send_s2c_message", { connId, msg }));
+}
+
+export async function killIpcClient(connId: number): Promise<void> {
+  return await wrapInvoke<void>(() => invoke("kill_ipc_client", { connId }));
 }

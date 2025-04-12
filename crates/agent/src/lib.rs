@@ -1,24 +1,20 @@
 #![deny(unused_must_use)]
-#![feature(os_str_slice)]
 #![feature(panic_backtrace_config)]
-#![feature(slice_split_once)]
 
 mod crash;
-mod init;
 
-use std::ops::ControlFlow;
-use std::sync::Once;
+use std::num::NonZeroU32;
+use std::ptr::NonNull;
+use std::sync::{Once, OnceLock};
 
-use manderrow_ipc::ipc_channel::ipc::IpcSender;
-use manderrow_ipc::{C2SMessage, LogLevel, S2CMessage};
-use slog::info;
-
-use init::{Instruction, MaybeArgs, ipc};
+use manderrow_ipc::client::Ipc;
+use manderrow_ipc::ipc_channel::ipc::{IpcOneShotServer, IpcSender};
+use manderrow_ipc::{C2SMessage, OutputLine, S2CMessage};
 
 const DEINIT: Once = Once::new();
 
 #[unsafe(no_mangle)]
-pub extern "C" fn manderrow_agent_init() {
+pub unsafe extern "C" fn manderrow_agent_init(c2s_tx_ptr: Option<NonNull<u8>>, c2s_tx_len: usize) {
     std::panic::set_backtrace_style(std::panic::BacktraceStyle::Full);
     std::panic::set_hook(Box::new(|info| {
         crash::report_crash(
@@ -32,81 +28,67 @@ pub extern "C" fn manderrow_agent_init() {
         )
     }));
 
-    let MaybeArgs::Enabled(mut args) = init::init(std::env::args_os()).unwrap() else {
-        return;
+    let c2s_tx = match c2s_tx_ptr {
+        Some(s) => Some(
+            std::str::from_utf8(unsafe { NonNull::slice_from_raw_parts(s, c2s_tx_len).as_ref() })
+                .expect("Invalid value for option --c2s-tx"),
+        ),
+        None => None,
     };
 
-    let log = slog_scope::logger();
+    if let Some(c2s_tx) = c2s_tx {
+        connect_ipc(c2s_tx).unwrap();
+    }
+}
 
-    if let Some(ipc) = ipc() {
-        std::thread::Builder::new()
-            .name("manderrow-killer".into())
-            .spawn(move || {
-                while let Ok(msg) = ipc.recv() {
-                    match msg {
-                        S2CMessage::Connect => {}
-                        S2CMessage::PatientResponse { .. } => {}
-                        S2CMessage::Kill => std::process::exit(1),
-                    }
-                }
-            })
-            .unwrap();
+static IPC: OnceLock<Ipc> = OnceLock::new();
+
+fn ipc() -> Option<&'static Ipc> {
+    IPC.get()
+}
+
+#[derive(Debug, thiserror::Error)]
+enum ConnectIpcError {
+    #[error("Failed to connect to c2s channel: {0}")]
+    ConnectC2SError(std::io::Error),
+    #[error("Failed to create s2c channel: {0}")]
+    CreateS2CError(std::io::Error),
+    #[error("Failed to send connect message on c2s channel: {0}")]
+    SendConnectError(manderrow_ipc::bincode::Error),
+    #[error("Failed to receive connect message on s2c channel: {0}")]
+    RecvConnectError(manderrow_ipc::bincode::Error),
+    #[error("Invalid connection message received on s2c channel: {0:?}")]
+    InvalidRecvConnectMessage(S2CMessage),
+    #[error("Invalid pid: {0}")]
+    InvalidPid(u32),
+
+    #[error("Global IPC is already set")]
+    IpcAlreadySet,
+}
+
+fn connect_ipc(c2s_tx: &str) -> Result<(), ConnectIpcError> {
+    let c2s_tx = IpcSender::<C2SMessage>::connect(c2s_tx.to_owned())
+        .map_err(ConnectIpcError::ConnectC2SError)?;
+
+    let (s2c_rx, s2c_tx) =
+        IpcOneShotServer::<S2CMessage>::new().map_err(ConnectIpcError::CreateS2CError)?;
+    let pid = std::process::id();
+    c2s_tx
+        .send(C2SMessage::Connect {
+            s2c_tx,
+            pid: NonZeroU32::new(pid).ok_or(ConnectIpcError::InvalidPid(pid))?,
+        })
+        .map_err(ConnectIpcError::SendConnectError)?;
+    let (s2c_rx, msg) = s2c_rx.accept().map_err(ConnectIpcError::RecvConnectError)?;
+    if !matches!(msg, S2CMessage::Connect) {
+        return Err(ConnectIpcError::InvalidRecvConnectMessage(msg));
     }
 
-    interpret_instructions(args.instructions.drain(..));
-
-    // TODO: replace stdout and stderr with in-process pipes and spawn a thread to listen to them and forward over IPC
-    // let tasks = if let Some(ipc) = ipc {
-    //     fn spawn_output_pipe_task<const TRY_PARSE_LOGS: bool>(
-    //         c2s_tx: &IpcSender<C2SMessage>,
-    //         rdr: impl tokio::io::AsyncRead + Unpin + Send + 'static,
-    //         channel: crate::ipc::StandardOutputChannel,
-    //     ) -> tokio::task::JoinHandle<Result<(), anyhow::Error>> {
-    //         let c2s_tx = c2s_tx.clone();
-    //         tokio::task::spawn(async move {
-    //             let mut rdr = tokio::io::BufReader::new(rdr);
-    //             let mut buf = Vec::new();
-    //             loop {
-    //                 rdr.read_until(b'\n', &mut buf)?;
-    //                 if buf.is_empty() {
-    //                     break Ok(());
-    //                 }
-    //                 if matches!(buf.last(), Some(b'\n')) {
-    //                     buf.pop();
-    //                     if matches!(buf.last(), Some(b'\r')) {
-    //                         buf.pop();
-    //                     }
-    //                 }
-    //                 if TRY_PARSE_LOGS {
-    //                     if let ControlFlow::Break(()) = try_handle_log_record(&c2s_tx, &buf)
-    //                     {
-    //                         buf.clear();
-    //                         continue;
-    //                     }
-    //                 }
-    //                 let line = OutputLine::new(std::mem::take(&mut buf));
-    //                 let c2s_tx = &c2s_tx;
-    //                 _ = tokio::task::block_in_place(move || {
-    //                     c2s_tx.send(C2SMessage::Output { channel, line })
-    //                 });
-    //             }
-    //         })
-    //     }
-    //     Some((
-    //         spawn_output_pipe_task::<false>(
-    //             &ipc.c2s_tx,
-    //             child.stdout.take().unwrap(),
-    //             crate::ipc::StandardOutputChannel::Out,
-    //         ),
-    //         spawn_output_pipe_task::<true>(
-    //             &ipc.c2s_tx,
-    //             child.stderr.take().unwrap(),
-    //             crate::ipc::StandardOutputChannel::Err,
-    //         ),
-    //     ))
-    // } else {
-    //     None
-    // };
+    IPC.set(Ipc {
+        c2s_tx: c2s_tx.into(),
+        s2c_rx: s2c_rx.into(),
+    })
+    .map_err(|_| ConnectIpcError::IpcAlreadySet)
 }
 
 #[unsafe(no_mangle)]
@@ -121,58 +103,76 @@ pub extern "C" fn manderrow_agent_deinit(send_exit: bool) {
     });
 }
 
-fn interpret_instructions(instructions: impl IntoIterator<Item = Instruction>) {
-    for insn in instructions {
-        match insn {
-            Instruction::LoadLibrary { path } => {
-                let lib = unsafe { libloading::Library::new(&path) }
-                    .unwrap_or_else(|e| panic!("Failed to load library {:?}: {}", path, e));
-                // forget the lib so it won't be unloaded
-                std::mem::forget(lib);
-            }
-            Instruction::SetVar { kv, eq_sign } => {
-                let key = kv.slice_encoded_bytes(..eq_sign);
-                let value = kv.slice_encoded_bytes(eq_sign + 1..);
-                // SAFETY: this is technically unsafe except on Windows, but it seems extremely
-                //         unlikely to be an issue for our use case.
-                unsafe { std::env::set_var(key, value) };
-            }
-            Instruction::PrependArg { arg: _ } => {
-                todo!()
-            }
-            Instruction::AppendArg { arg: _ } => {
-                todo!()
-            }
-        }
+#[repr(u8)]
+pub enum StandardOutputChannel {
+    Out,
+    Err,
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn manderrow_agent_send_output_line(
+    channel: StandardOutputChannel,
+    line_ptr: NonNull<u8>,
+    line_len: usize,
+) {
+    let line = unsafe { NonNull::slice_from_raw_parts(line_ptr, line_len).as_ref() };
+    let line = OutputLine::new(line.to_owned());
+    if let Some(ipc) = ipc() {
+        _ = ipc.send(C2SMessage::Output {
+            channel: match channel {
+                StandardOutputChannel::Out => manderrow_ipc::StandardOutputChannel::Out,
+                StandardOutputChannel::Err => manderrow_ipc::StandardOutputChannel::Err,
+            },
+            line,
+        });
     }
 }
 
-fn try_handle_log_record(c2s_tx: &IpcSender<C2SMessage>, buf: &[u8]) -> ControlFlow<()> {
-    if let Some((level, rem)) = buf.split_once(|b| *b == b' ') {
-        if let Some((scope, msg)) = rem.split_once(|b| *b == b' ') {
-            let level = match level {
-                b"fatal" => Some(LogLevel::Critical),
-                b"err" => Some(LogLevel::Error),
-                b"warn" => Some(LogLevel::Warning),
-                b"msg" | b"info" => Some(LogLevel::Info),
-                b"debug" => Some(LogLevel::Debug),
-                _ => None,
-            };
-            if let Some(level) = level {
-                if let Ok(scope) = std::str::from_utf8(scope) {
-                    if scope.chars().all(|c| c.is_ascii_graphic()) {
-                        if let Ok(msg) = std::str::from_utf8(msg) {
-                            _ = c2s_tx.send(C2SMessage::Log {
-                                level,
-                                scope: scope.into(),
-                                message: msg.to_owned(),
-                            });
-                            return ControlFlow::Break(());
-                        }
-                    }
-                }
-            }
-        }
+#[repr(u8)]
+pub enum LogLevel {
+    Critical,
+    Error,
+    Warning,
+    Info,
+    Debug,
+    Trace,
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn manderrow_agent_send_log(
+    level: LogLevel,
+    scope_ptr: NonNull<u8>,
+    scope_len: usize,
+    msg_ptr: NonNull<u8>,
+    msg_len: usize,
+) {
+    let scope = unsafe {
+        std::str::from_utf8_unchecked(NonNull::slice_from_raw_parts(scope_ptr, scope_len).as_ref())
+    };
+    let msg = unsafe {
+        std::str::from_utf8_unchecked(NonNull::slice_from_raw_parts(msg_ptr, msg_len).as_ref())
+    };
+    if let Some(ipc) = ipc() {
+        _ = ipc.send(C2SMessage::Log {
+            level: match level {
+                LogLevel::Critical => manderrow_ipc::LogLevel::Critical,
+                LogLevel::Error => manderrow_ipc::LogLevel::Error,
+                LogLevel::Warning => manderrow_ipc::LogLevel::Warning,
+                LogLevel::Info => manderrow_ipc::LogLevel::Info,
+                LogLevel::Debug => manderrow_ipc::LogLevel::Debug,
+                LogLevel::Trace => manderrow_ipc::LogLevel::Trace,
+            },
+            scope: scope.into(),
+            message: msg.into(),
+        });
     }
-    ControlFlow::Continue(())
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn manderrow_agent_report_crash(msg_ptr: NonNull<u8>, msg_len: usize) {
+    let msg = unsafe { NonNull::slice_from_raw_parts(msg_ptr, msg_len).as_ref() };
+    match std::str::from_utf8(msg) {
+        Ok(msg) => crash::report_crash(msg),
+        Err(_) => crash::report_crash(format_args!("{:x?}", msg)),
+    }
 }

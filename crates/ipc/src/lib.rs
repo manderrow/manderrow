@@ -138,7 +138,6 @@ pub enum C2SMessage {
 pub enum S2CMessage {
     Connect,
     PatientResponse { id: Uuid, choice: String },
-    Kill,
 }
 
 pub struct PatientChoiceReceiver<T> {

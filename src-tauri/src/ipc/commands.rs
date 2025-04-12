@@ -25,3 +25,17 @@ pub async fn send_s2c_message(
         .context("Failed to send IPC message")?;
     Ok(())
 }
+
+#[tauri::command]
+pub async fn kill_ipc_client(
+    ipc_state: State<'_, IpcState>,
+    conn_id: ConnectionId,
+) -> Result<(), CommandError> {
+    let log = slog_scope::logger();
+    let Some(conn) = ipc_state.get_conn(conn_id) else {
+        return Err(anyhow!("No such connection: {conn_id:?}").into());
+    };
+    conn.kill_process(&log)
+        .context("Failed to kill IPC client")?;
+    Ok(())
+}

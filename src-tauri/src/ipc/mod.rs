@@ -53,6 +53,20 @@ impl IpcConnection {
             }
         }
     }
+
+    pub fn kill_process(&self, log: &slog::Logger) -> Result<(), KillError> {
+        let state = self.0.lock();
+        match &*state {
+            IpcConnectionState::InternalConnecting
+            | IpcConnectionState::Internal(_)
+            | IpcConnectionState::ExternalConnecting => Err(KillError::IncompleteConnection),
+            IpcConnectionState::External(conn) => {
+                // TODO: kill button tries soft first, then second click tries hard
+                conn.pid.kill(log, true)?;
+                Ok(())
+            }
+        }
+    }
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -65,6 +79,14 @@ pub enum SendError {
     ExternalSendError(bincode::Error),
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum KillError {
+    #[error("Connection is incomplete")]
+    IncompleteConnection,
+    #[error("Failed to kill the process: {0}")]
+    Other(#[from] anyhow::Error),
+}
+
 struct InternalIpcConnection {
     s2c_tx: tokio::sync::mpsc::Sender<S2CMessage>,
 }
@@ -73,6 +95,7 @@ struct ExternalIpcConnection {
     s2c_tx: IpcSender<S2CMessage>,
     /// The id of the receiver in the set.
     c2s_rx: u64,
+    pid: Pid,
 }
 
 enum IpcConnectionState {
@@ -88,6 +111,7 @@ enum ManagementEvent {
         id: u64,
         c2s_rx: IpcReceiver<C2SMessage>,
         s2c_tx: String,
+        pid: Pid,
     },
     Death {
         id: ConnectionId,
@@ -166,7 +190,7 @@ impl IpcState {
                                         }
                                     };
                                     match event {
-                                        ManagementEvent::ExternalRegistration { id, c2s_rx, s2c_tx } => {
+                                        ManagementEvent::ExternalRegistration { id, c2s_rx, s2c_tx, pid } => {
                                             let mut connections = connections
                                                 .upgradable_read();
                                             let Some(conn) = connections
@@ -205,7 +229,7 @@ impl IpcState {
                                                     continue;
                                                 }
                                             };
-                                            *state = IpcConnectionState::External(ExternalIpcConnection { s2c_tx, c2s_rx });
+                                            *state = IpcConnectionState::External(ExternalIpcConnection { s2c_tx, c2s_rx, pid });
                                             rx_to_id.insert(c2s_rx, id);
                                         }
                                         ManagementEvent::Death { id } => {
@@ -350,17 +374,19 @@ impl IpcState {
                     IdentifiedC2SMessage { conn_id, msg: &msg },
                 );
                 if let C2SMessage::Connect { s2c_tx, pid } = msg {
+                    let pid = Pid::from_raw(pid);
                     if let Err(e) = mgmt_tx.lock().send(ManagementEvent::ExternalRegistration {
                         id: conn_id.0,
                         c2s_rx,
                         s2c_tx,
+                        pid,
                     }) {
                         error!(
                             log,
                             "Failed to send registration request for connection: {}", e
                         );
                     }
-                    if let Err(e) = death_wait_submitter.submit(Pid::from_raw(pid), conn_id) {
+                    if let Err(e) = death_wait_submitter.submit(pid, conn_id) {
                         error!(log, "Failed to send submit pid+id to reaper: {}", e);
                     }
                 } else {

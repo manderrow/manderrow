@@ -5,7 +5,7 @@ use std::panic::AssertUnwindSafe;
 
 use manderrow_ipc::C2SMessage;
 
-use crate::init::ipc;
+use crate::ipc;
 
 // TODO: figure out what could possibly panic here
 #[cfg_attr(not(windows), no_panic::no_panic)]
