@@ -12,7 +12,7 @@ itoa = "1"
 
 slog = "2.7.0"
 
-tokio = { version = "1.42.0", features = ["process", "rt", "time"] }
+tokio = { version = "1.44.2", features = ["process", "rt", "time"] }
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.61.0", features = ["Win32_System_Diagnostics_ToolHelp", "Win32_System_SystemServices", "Win32_System_Threading"] }

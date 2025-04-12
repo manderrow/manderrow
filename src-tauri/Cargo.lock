@@ -2749,7 +2749,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "itoa 1.0.15",
- "rustix 1.0.3",
+ "rustix 1.0.5",
  "slog",
  "thiserror 2.0.12",
  "tokio",
