@@ -50,3 +50,11 @@
 .event__type {
   font-weight: bold;
 }
+
+.scopeToggle {
+  border: 1px solid var(--clr-neutral-8);
+
+  input:checked + & {
+    background-color: var(--clr-neutral-8);
+  }
+}

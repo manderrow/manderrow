@@ -1,12 +1,21 @@
-import { Accessor, For, Match, Setter, Show, Switch, createSignal, useContext } from "solid-js";
+import { Accessor, For, Match, Setter, Show, Switch, createSignal, createUniqueId, useContext } from "solid-js";
 
-import { C2SMessage, DoctorReport, SafeOsString, allocateIpcConnection, sendS2CMessage } from "../../api/ipc";
+import {
+  C2SMessage,
+  DoctorReport,
+  LOG_LEVELS,
+  SafeOsString,
+  allocateIpcConnection,
+  getIpcConnections,
+  sendS2CMessage,
+} from "../../api/ipc";
 import styles from "./Console.module.css";
 import Dialog, { dialogStyles } from "./Dialog";
 import { t } from "../../i18n/i18n";
 import { ErrorContext } from "./ErrorBoundary";
 import { listen } from "@tauri-apps/api/event";
 import SelectDropdown from "./SelectDropdown";
+import { createStore } from "solid-js/store";
 
 const translateUnchecked = t as (key: string, args: Object | undefined) => string;
 
@@ -15,15 +24,25 @@ export type ConnectionStatus = "connecting" | "connected" | "disconnected";
 const connections = new Map<number, ConsoleConnection>();
 const [connectionsUpdate, setConnectionsUpdate] = createSignal(0);
 
-listen<IdentifiedC2SMessage>("ipc_message", (event) => {
-  console.log("ipc_message", event.payload);
-  let conn = connections.get(event.payload.connId);
+function getOrInitConnection(connId: number): ConsoleConnection {
+  let conn = connections.get(connId);
   if (conn === undefined) {
-    conn = new ConsoleConnection(event.payload.connId);
-    connections.set(event.payload.connId, conn);
+    conn = new ConsoleConnection(connId);
+    connections.set(connId, conn);
     setConnectionsUpdate(connectionsUpdate() + 1);
   }
-  conn.handleEvent(event.payload);
+  return conn;
+}
+
+(async () => {
+  for (const conn of await getIpcConnections()) {
+    getOrInitConnection(conn);
+  }
+})();
+
+listen<IdentifiedC2SMessage>("ipc_message", (event) => {
+  console.log("ipc_message", event.payload);
+  getOrInitConnection(event.payload.connId).handleEvent(event.payload);
 });
 
 listen<number>("ipc_closed", (event) => {
@@ -118,6 +137,15 @@ export default function Console() {
     );
   }
 
+  const [visibleLevels, setVisibleLevels] = createStore<{ [k in (typeof LOG_LEVELS)[number]]: boolean }>({
+    CRITICAL: true,
+    ERROR: true,
+    WARN: true,
+    INFO: true,
+    DEBUG: false,
+    TRACE: false,
+  });
+
   return (
     <>
       <h2 class={styles.heading}>
@@ -132,6 +160,25 @@ export default function Console() {
             }
           }}
         />
+        <For each={LOG_LEVELS}>
+          {(level) => {
+            const id = createUniqueId();
+            return (
+              <>
+                <input
+                  id={id}
+                  type="checkbox"
+                  checked={visibleLevels[level]}
+                  on:change={(event) => setVisibleLevels(level, event.target.checked)}
+                  style="display:none"
+                />
+                <label class={styles.scopeToggle} for={id}>
+                  {level}
+                </label>
+              </>
+            );
+          }}
+        </For>
       </h2>
       <div class={styles.console}>
         <For each={focusedConnection()?.events()} fallback={<p>Game not running.</p>}>
@@ -158,10 +205,12 @@ export default function Console() {
               );
             } else if ("Log" in event) {
               return (
-                <p>
-                  <span class={styles.event__type}>[{event.Log.level}]</span> <span>{event.Log.scope}</span>:{" "}
-                  <span>{event.Log.message}</span>
-                </p>
+                <Show when={visibleLevels[event.Log.level]}>
+                  <p>
+                    <span class={styles.event__type}>[{event.Log.level}]</span> <span>{event.Log.scope}</span>:{" "}
+                    <span>{event.Log.message}</span>
+                  </p>
+                </Show>
               );
             } else if ("Connect" in event) {
               return (

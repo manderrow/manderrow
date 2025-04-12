@@ -17,9 +17,26 @@ use triomphe::Arc;
 pub const EVENT_TARGET: &str = "main";
 pub const EVENT_NAME: &str = "ipc_message";
 
-#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]
 pub struct ConnectionId(u64);
+
+impl std::fmt::Display for ConnectionId {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        std::fmt::Display::fmt(&self.0, f)
+    }
+}
+
+impl slog::Value for ConnectionId {
+    fn serialize(
+        &self,
+        record: &slog::Record,
+        key: slog::Key,
+        serializer: &mut dyn slog::Serializer,
+    ) -> slog::Result {
+        self.0.serialize(record, key, serializer)
+    }
+}
 
 #[derive(Clone)]
 pub struct IpcConnection(Arc<Mutex<IpcConnectionState>>);
@@ -108,7 +125,7 @@ enum IpcConnectionState {
 #[derive(serde::Deserialize, serde::Serialize)]
 enum ManagementEvent {
     ExternalRegistration {
-        id: u64,
+        id: ConnectionId,
         c2s_rx: IpcReceiver<C2SMessage>,
         s2c_tx: String,
         pid: Pid,
@@ -128,7 +145,7 @@ pub struct IdentifiedC2SMessage<'a> {
 
 pub struct IpcState {
     next_connection_id: AtomicU64,
-    connections: Arc<RwLock<HashMap<u64, IpcConnection>>>,
+    connections: Arc<RwLock<HashMap<ConnectionId, IpcConnection>>>,
     receiver_handle: std::thread::JoinHandle<()>,
     mgmt_tx: Arc<Mutex<IpcSender<ManagementEvent>>>,
     death_wait_submitter: manderrow_process_util::wait_group::Submitter<ConnectionId>,
@@ -136,7 +153,7 @@ pub struct IpcState {
 
 impl IpcState {
     pub fn new(app: AppHandle, log: slog::Logger) -> Self {
-        let connections: Arc<RwLock<HashMap<u64, IpcConnection>>> = Default::default();
+        let connections: Arc<RwLock<HashMap<ConnectionId, IpcConnection>>> = Default::default();
         // we use an IPC channel here to enable the receiver thread to efficiently
         // receive messages from this and the external channels at the same time
         let (mgmt_tx, mgmt_rx) =
@@ -172,7 +189,7 @@ impl IpcState {
             receiver_handle: std::thread::Builder::new()
                 .name("ipc-receiver".into())
                 .spawn(move || {
-                    let mut rx_to_id = HashMap::<u64, u64>::new();
+                    let mut rx_to_id = HashMap::<u64, ConnectionId>::new();
                     let mut set = ipc_channel::ipc::IpcReceiverSet::new().expect("failed to create IpcReceiverSet");
                     let mgmt_rx = set.add(mgmt_rx).expect("Failed to add management receiver to the set");
                     while let Ok(messages) = set.select() {
@@ -235,7 +252,7 @@ impl IpcState {
                                         ManagementEvent::Death { id } => {
                                             let mut connections = connections.write();
                                             let Some(conn) = connections
-                                                .remove(&id.0) else {
+                                                .remove(&id) else {
                                                     debug!(log, "Received death event for unregistered connection"; "conn_id" => id.0);
                                                     continue;
                                                 };
@@ -280,7 +297,7 @@ impl IpcState {
                                         IpcConnectionState::External(_) => {}
                                     }
 
-                                    if let Err(e) = app.emit_to(EVENT_TARGET, EVENT_NAME, IdentifiedC2SMessage { conn_id: ConnectionId(id), msg: &msg }) {
+                                    if let Err(e) = app.emit_to(EVENT_TARGET, EVENT_NAME, IdentifiedC2SMessage { conn_id: id, msg: &msg }) {
                                         error!(log, "Failed to emit ipc_message event to {}: {}", EVENT_TARGET, e; "conn_id" => id, "rx" => rx);
                                     }
                                 }
@@ -291,7 +308,7 @@ impl IpcState {
                                     };
                                     connections.write().remove(&id);
                                     rx_to_id.remove(&rx);
-                                    if let Err(e) = app.emit_to(EVENT_TARGET, "ipc_closed", ConnectionId(id)) {
+                                    if let Err(e) = app.emit_to(EVENT_TARGET, "ipc_closed", id) {
                                         error!(log, "Failed to emit ipc_closed event to {}: {}", EVENT_TARGET, e; "conn_id" => id, "rx" => rx);
                                     }
                                 }
@@ -306,14 +323,15 @@ impl IpcState {
     }
 
     pub fn alloc(&self) -> ConnectionId {
-        let id = self
-            .next_connection_id
-            .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+        let id = ConnectionId(
+            self.next_connection_id
+                .fetch_add(1, std::sync::atomic::Ordering::Relaxed),
+        );
         self.connections.write().insert(
             id,
             IpcConnection(Arc::new(Mutex::new(IpcConnectionState::InternalConnecting))),
         );
-        ConnectionId(id)
+        id
     }
 
     pub fn connect(
@@ -335,7 +353,11 @@ impl IpcState {
     }
 
     pub fn get_conn(&self, conn_id: ConnectionId) -> Option<IpcConnection> {
-        self.connections.read().get(&conn_id.0).cloned()
+        self.connections.read().get(&conn_id).cloned()
+    }
+
+    pub fn get_conns(&self) -> Vec<ConnectionId> {
+        self.connections.read().keys().copied().collect()
     }
 
     /// The returned string should be passed to [`IpcSender::<C2SMessage>::connect`].
@@ -376,7 +398,7 @@ impl IpcState {
                 if let C2SMessage::Connect { s2c_tx, pid } = msg {
                     let pid = Pid::from_raw(pid);
                     if let Err(e) = mgmt_tx.lock().send(ManagementEvent::ExternalRegistration {
-                        id: conn_id.0,
+                        id: conn_id,
                         c2s_rx,
                         s2c_tx,
                         pid,
@@ -391,7 +413,7 @@ impl IpcState {
                     }
                 } else {
                     warn!(log, "Bad connect message: {:?}", msg);
-                    connections.write().remove(&conn_id.0);
+                    connections.write().remove(&conn_id);
                 }
             })?;
         Ok(name)
