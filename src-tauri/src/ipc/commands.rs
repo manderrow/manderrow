@@ -27,6 +27,13 @@ pub async fn send_s2c_message(
 }
 
 #[tauri::command]
+pub async fn get_ipc_connections(
+    ipc_state: State<'_, IpcState>,
+) -> Result<Vec<ConnectionId>, CommandError> {
+    Ok(ipc_state.get_conns())
+}
+
+#[tauri::command]
 pub async fn kill_ipc_client(
     ipc_state: State<'_, IpcState>,
     conn_id: ConnectionId,

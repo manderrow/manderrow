@@ -18,6 +18,8 @@ export interface DoctorFix {
   description?: Object;
 }
 
+export const LOG_LEVELS = ["CRITICAL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE"] as const;
+
 export type C2SMessage =
   | {
       Connect: {
@@ -36,7 +38,7 @@ export type C2SMessage =
     }
   | {
       Log: {
-        level: "Critical" | "Error" | "Warn" | "Info" | "Debug" | "Trace";
+        level: (typeof LOG_LEVELS)[number];
         scope: string;
         message: string;
       };
@@ -79,9 +81,13 @@ export async function allocateIpcConnection(): Promise<number> {
 }
 
 export async function sendS2CMessage(connId: number, msg: S2CMessage): Promise<void> {
-  return await wrapInvoke<void>(() => invoke("send_s2c_message", { connId, msg }));
+  return await wrapInvoke(() => invoke("send_s2c_message", { connId, msg }));
 }
 
 export async function killIpcClient(connId: number): Promise<void> {
-  return await wrapInvoke<void>(() => invoke("kill_ipc_client", { connId }));
+  return await wrapInvoke(() => invoke("kill_ipc_client", { connId }));
+}
+
+export async function getIpcConnections(): Promise<number[]> {
+  return await wrapInvoke(() => invoke("get_ipc_connections"));
 }
