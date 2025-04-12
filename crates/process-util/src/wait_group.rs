@@ -163,7 +163,7 @@ mod sys {
             let Ok(mut proc) = winsafe::HPROCESS::OpenProcess(
                 winsafe::co::PROCESS::SYNCHRONIZE,
                 false,
-                pid.value.get(),
+                pid.0.get(),
             ) else {
                 // TODO: verify that the process is not found vs other errors
                 return ControlFlow::Break(data);
