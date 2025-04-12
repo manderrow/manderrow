@@ -18,7 +18,14 @@ fn forget_on_panic(f: impl FnOnce() -> () + std::panic::UnwindSafe) {
 pub fn report_crash(error: impl std::fmt::Display) {
     let report = CrashReport::new(error);
     forget_on_panic(AssertUnwindSafe(|| {
-        if let Ok(f) = std::fs::File::create("manderrow-agent-crash.txt") {
+        use std::sync::OnceLock;
+        static TRUNCATE_ONCE: OnceLock<()> = OnceLock::new();
+        if let Ok(f) = std::fs::OpenOptions::new()
+            .write(true)
+            .create(true)
+            .truncate(TRUNCATE_ONCE.try_insert(()).is_ok())
+            .open("manderrow-agent-crash.txt")
+        {
             _ = report.dump(f);
         }
     }));
