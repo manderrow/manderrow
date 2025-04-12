@@ -2750,6 +2750,7 @@ dependencies = [
  "anyhow",
  "itoa 1.0.15",
  "rustix 1.0.5",
+ "serde",
  "slog",
  "thiserror 2.0.12",
  "tokio",

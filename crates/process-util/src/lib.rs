@@ -9,39 +9,32 @@ use std::num::NonZeroU32;
 use anyhow::Result;
 use slog::Logger;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, serde::Deserialize, serde::Serialize)]
+#[serde(transparent)]
 #[repr(transparent)]
-pub struct Pid {
-    #[cfg(windows)]
-    pub value: NonZeroU32,
-    #[cfg(unix)]
-    pub value: rustix::process::Pid,
-}
+pub struct Pid(NonZeroU32);
 
 #[derive(Debug, thiserror::Error)]
 pub enum WaitForExitError {}
 
 impl Pid {
     pub fn from_raw(value: NonZeroU32) -> Self {
-        #[cfg(windows)]
-        {
-            Self { value }
-        }
-        #[cfg(not(windows))]
-        {
-            Self {
-                value: rustix::process::Pid::from_raw(value.cast_signed().get())
-                    .expect("non-zero in, non-zero out"),
-            }
-        }
+        Self(value)
+    }
+
+    #[cfg(unix)]
+    fn rustix_pid(self) -> rustix::process::Pid {
+        rustix::process::Pid::from_raw(self.0.cast_signed().get())
+            .expect("non-zero in, non-zero out")
     }
 
     pub async fn wait_for_exit(self, log: &Logger) -> Result<()> {
-        let pid = self.value;
         #[cfg(windows)]
         {
             use anyhow::bail;
             use winsafe::prelude::*;
+
+            let pid = self.value;
 
             let proc = winsafe::HPROCESS::OpenProcess(
                 winsafe::co::PROCESS::SYNCHRONIZE,
@@ -66,6 +59,8 @@ impl Pid {
             use std::process::Stdio;
             use std::time::Duration;
 
+            let pid = self.rustix_pid();
+
             slog::info!(log, "Waiting for process {pid:?} to shut down");
             // TODO: use https://man.freebsd.org/cgi/man.cgi?query=kvm_getprocs instead of spawning
             // a process every time
@@ -87,6 +82,8 @@ impl Pid {
         {
             use anyhow::bail;
             use slog::info;
+
+            let pid = self.rustix_pid();
 
             let pidfd = match rustix::process::pidfd_open(pid, rustix::process::PidfdFlags::empty())
             {
@@ -112,5 +109,40 @@ impl Pid {
             })
             .await?
         }
+    }
+
+    pub fn kill(self, log: &Logger, hard: bool) -> Result<()> {
+        #[cfg(windows)]
+        {
+            use winsafe::prelude::*;
+
+            // not supported
+            _ = hard;
+
+            let pid = self.value;
+
+            let proc =
+                winsafe::HPROCESS::OpenProcess(winsafe::co::PROCESS::TERMINATE, false, pid.get())?;
+
+            slog::info!(log, "Killing process {pid:?}");
+
+            proc.TerminateProcess(exit_code)?;
+        }
+        #[cfg(unix)]
+        {
+            let pid = self.rustix_pid();
+
+            slog::info!(log, "Killing process {pid:?}");
+
+            rustix::process::kill_process(
+                pid,
+                if hard {
+                    rustix::process::Signal::KILL
+                } else {
+                    rustix::process::Signal::TERM
+                },
+            )?;
+        }
+        Ok(())
     }
 }

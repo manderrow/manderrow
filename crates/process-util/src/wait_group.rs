@@ -322,9 +322,8 @@ mod sys {
 
                 self.p_buf.clear();
                 for &(pid, _) in &self.entries {
-                    self.p_buf.push_str(
-                        itoa::Buffer::new().format(pid.value.as_raw_nonzero().get() as u32),
-                    );
+                    self.p_buf
+                        .push_str(itoa::Buffer::new().format(pid.0.get() as u32));
                 }
 
                 // TODO: use https://man.freebsd.org/cgi/man.cgi?query=kvm_getprocs instead of spawning
@@ -365,9 +364,11 @@ mod sys {
                         .inspect_err(|_| {
                             bad_output_dump(log, &self.stdout_buf);
                         })?;
-                    let Some(i) = self.entries.iter().position(|(other_pid, _)| {
-                        other_pid.value.as_raw_nonzero().get() as u32 == pid
-                    }) else {
+                    let Some(i) = self
+                        .entries
+                        .iter()
+                        .position(|(other_pid, _)| other_pid.0.get() as u32 == pid)
+                    else {
                         return Err(anyhow!("Bad output from ps: unknown pid {}", pid).into());
                     };
                     self.seen_buf[i] = true;

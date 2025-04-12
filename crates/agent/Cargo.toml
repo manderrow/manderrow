@@ -9,22 +9,8 @@ name = "manderrow_agent_rs"
 crate-type = ["staticlib"]
 
 [dependencies]
-manderrow-args = { path = "../args" }
 manderrow-ipc = { path = "../ipc" }
 
-lexopt = "0.3.1"
-thiserror = "2.0.12"
+thiserror = "2"
 
-uuid = "1.11"
-
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
-
-slog = { version = "2.7.0", features = ["release_max_level_debug"] }
-slog-envlogger = "2.2.0"
-slog-scope = "4.4.0"
-slog-term = "2.9.1"
-
-ctor = "0.4.1"
-libloading = "0.8"
 no-panic = "0.1.35"

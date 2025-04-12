@@ -50,7 +50,7 @@ import ImportDialog from "../../components/profile/ImportDialog";
 import TasksDialog from "../../components/global/TasksDialog";
 import { settings } from "../../api/settings";
 import { useSearchParamsInPlace } from "../../utils/router";
-import { sendS2CMessage } from "../../api/ipc";
+import { killIpcClient } from "../../api/ipc";
 import { launchProfile } from "../../api/launching";
 
 interface ProfileParams {
@@ -120,7 +120,7 @@ export default function Profile() {
     const conn = focusedConnection();
     if (conn !== undefined) {
       try {
-        await sendS2CMessage(conn.id, "Kill");
+        await killIpcClient(conn.id);
       } catch (e) {
         reportErr(e);
       }

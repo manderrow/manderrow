@@ -94,6 +94,7 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
             importing::commands::import_modpack_from_thunderstore_code,
             installing::commands::clear_cache,
             ipc::commands::allocate_ipc_connection,
+            ipc::commands::kill_ipc_client,
             ipc::commands::send_s2c_message,
             launching::commands::launch_profile,
             mod_index::commands::fetch_mod_index,
