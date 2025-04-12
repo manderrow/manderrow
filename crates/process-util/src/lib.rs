@@ -34,7 +34,7 @@ impl Pid {
             use anyhow::bail;
             use winsafe::prelude::*;
 
-            let pid = self.value;
+            let pid = self.0;
 
             let proc = winsafe::HPROCESS::OpenProcess(
                 winsafe::co::PROCESS::SYNCHRONIZE,
@@ -119,14 +119,14 @@ impl Pid {
             // not supported
             _ = hard;
 
-            let pid = self.value;
+            let pid = self.0;
 
             let proc =
                 winsafe::HPROCESS::OpenProcess(winsafe::co::PROCESS::TERMINATE, false, pid.get())?;
 
             slog::info!(log, "Killing process {pid:?}");
 
-            proc.TerminateProcess(exit_code)?;
+            proc.TerminateProcess(1)?;
         }
         #[cfg(unix)]
         {
