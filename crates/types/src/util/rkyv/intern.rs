@@ -304,8 +304,8 @@ where
     C::Error: Source,
 {
     fn verify(&self, context: &mut C) -> Result<(), <C as Fallible>::Error> {
-        use rkyv::validation::shared::ValidationState;
         use rkyv::validation::ArchiveContextExt;
+        use rkyv::validation::shared::ValidationState;
 
         if self.offset() == 0 {
             #[derive(Debug, thiserror::Error)]
