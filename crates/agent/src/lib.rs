@@ -2,7 +2,7 @@
 #![feature(once_cell_try_insert)]
 #![feature(panic_backtrace_config)]
 
-mod crash;
+// mod crash;
 
 use std::num::NonZeroU32;
 use std::ptr::NonNull;
@@ -14,19 +14,23 @@ use manderrow_ipc::{C2SMessage, OutputLine, S2CMessage};
 
 const DEINIT: Once = Once::new();
 
+unsafe extern "C" {
+    fn manderrow_agent_crash(msg_ptr: NonNull<u8>, msg_len: usize) -> !;
+}
+
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn manderrow_agent_init(c2s_tx_ptr: Option<NonNull<u8>>, c2s_tx_len: usize) {
     std::panic::set_backtrace_style(std::panic::BacktraceStyle::Full);
     std::panic::set_hook(Box::new(|info| {
-        crash::report_crash(
-            if let Some(&s) = info.payload().downcast_ref::<&'static str>() {
-                s
-            } else if let Some(s) = info.payload().downcast_ref::<String>() {
-                s.as_str()
-            } else {
-                "Box<dyn Any>"
-            },
-        )
+        let msg = if let Some(&s) = info.payload().downcast_ref::<&'static str>() {
+            s
+        } else if let Some(s) = info.payload().downcast_ref::<String>() {
+            s.as_str()
+        } else {
+            "Box<dyn Any>"
+        };
+        unsafe { manderrow_agent_crash(NonNull::from(msg).cast(), msg.len()) }
+        // crash::report_crash(message)
     }));
 
     let c2s_tx = match c2s_tx_ptr {
@@ -85,11 +89,8 @@ fn connect_ipc(c2s_tx: &str) -> Result<(), ConnectIpcError> {
         return Err(ConnectIpcError::InvalidRecvConnectMessage(msg));
     }
 
-    IPC.set(Ipc {
-        c2s_tx: c2s_tx.into(),
-        s2c_rx: s2c_rx.into(),
-    })
-    .map_err(|_| ConnectIpcError::IpcAlreadySet)
+    IPC.set(Ipc::new(c2s_tx, s2c_rx))
+        .map_err(|_| ConnectIpcError::IpcAlreadySet)
 }
 
 #[unsafe(no_mangle)]
@@ -98,7 +99,7 @@ pub extern "C" fn manderrow_agent_deinit(send_exit: bool) {
         if send_exit {
             if let Some(ipc) = ipc() {
                 // TODO: send the correct exit code
-                _ = ipc.send(C2SMessage::Exit { code: None });
+                _ = ipc.send(&C2SMessage::Exit { code: None });
             }
         }
     });
@@ -119,7 +120,7 @@ pub unsafe extern "C" fn manderrow_agent_send_output_line(
     let line = unsafe { NonNull::slice_from_raw_parts(line_ptr, line_len).as_ref() };
     let line = OutputLine::new(line.to_owned());
     if let Some(ipc) = ipc() {
-        _ = ipc.send(C2SMessage::Output {
+        _ = ipc.send(&C2SMessage::Output {
             channel: match channel {
                 StandardOutputChannel::Out => manderrow_ipc::StandardOutputChannel::Out,
                 StandardOutputChannel::Err => manderrow_ipc::StandardOutputChannel::Err,
@@ -154,7 +155,7 @@ pub unsafe extern "C" fn manderrow_agent_send_log(
         std::str::from_utf8_unchecked(NonNull::slice_from_raw_parts(msg_ptr, msg_len).as_ref())
     };
     if let Some(ipc) = ipc() {
-        _ = ipc.send(C2SMessage::Log {
+        _ = ipc.send(&C2SMessage::Log {
             level: match level {
                 LogLevel::Critical => manderrow_ipc::LogLevel::Critical,
                 LogLevel::Error => manderrow_ipc::LogLevel::Error,
@@ -170,10 +171,21 @@ pub unsafe extern "C" fn manderrow_agent_send_log(
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn manderrow_agent_report_crash(msg_ptr: NonNull<u8>, msg_len: usize) {
+pub unsafe extern "C" fn manderrow_agent_send_crash(msg_ptr: NonNull<u8>, msg_len: usize) {
     let msg = unsafe { NonNull::slice_from_raw_parts(msg_ptr, msg_len).as_ref() };
-    match std::str::from_utf8(msg) {
-        Ok(msg) => crash::report_crash(msg),
-        Err(_) => crash::report_crash(format_args!("{:x?}", msg)),
+    let msg = std::str::from_utf8(msg).unwrap_or("<Crash messaged contained invalid UTF-8>");
+    if let Some(ipc) = ipc() {
+        _ = ipc.send(&C2SMessage::Crash {
+            error: msg.to_owned(),
+        });
     }
 }
+
+// #[unsafe(no_mangle)]
+// pub unsafe extern "C" fn manderrow_agent_report_crash(msg_ptr: NonNull<u8>, msg_len: usize) {
+//     let msg = unsafe { NonNull::slice_from_raw_parts(msg_ptr, msg_len).as_ref() };
+//     match std::str::from_utf8(msg) {
+//         Ok(msg) => crash::report_crash(msg),
+//         Err(_) => crash::report_crash(format_args!("{:x?}", msg)),
+//     }
+// }

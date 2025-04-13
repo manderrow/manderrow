@@ -5,10 +5,7 @@ var panicked = std.atomic.Value(bool).init(false);
 
 pub fn panic(msg: []const u8, error_return_trace: ?*std.builtin.StackTrace, ret_addr: ?usize) noreturn {
     _ = error_return_trace;
-    if (!panicked.swap(true, .monotonic)) {
-        rs.report_crash(msg) catch {};
-    }
-    std.debug.defaultPanic(msg, ret_addr);
+    crash(msg, ret_addr);
 }
 
 pub const alloc = std.heap.c_allocator;
@@ -17,6 +14,7 @@ const dll_proxy = @import("dll_proxy");
 
 const Args = @import("Args.zig");
 const rs = @import("rs.zig");
+const stdio = @import("stdio.zig");
 const util = @import("util.zig");
 
 comptime {
@@ -133,7 +131,7 @@ fn entrypoint() void {
         rs.sendLog(.debug, "manderrow_agent", buf.items) catch |e| std.debug.panic("{}", .{e});
     }
 
-    @import("stdio.zig").forwardStdio() catch |e| std.debug.panic("{}", .{e});
+    stdio.forwardStdio() catch |e| std.debug.panic("{}", .{e});
 
     if (log_file) |f| {
         f.writeAll("Hooked stdio for forwarding\n") catch {};
@@ -274,4 +272,77 @@ fn dumpEnv(writer: anytype) !void {
         try writer.print("  {s}=\"{}\"\n", .{ entry.key_ptr.*, std.zig.fmtEscapes(entry.value_ptr.*) });
     }
     try writer.writeAll("}");
+}
+
+fn dumpCrashReport(writer: anytype, msg: []const u8, ret_addr: ?usize) void {
+    writer.print(
+        \\{s}
+        \\
+        \\Backtrace:
+        \\
+    , .{msg}) catch return;
+    if (builtin.strip_debug_info) {
+        writer.print("Unable to dump stack trace: debug info stripped\n", .{}) catch return;
+        return;
+    }
+    const debug_info = std.debug.getSelfDebugInfo() catch |err| {
+        writer.print("Unable to dump stack trace: Unable to open debug info: {s}\n", .{@errorName(err)}) catch return;
+        return;
+    };
+    std.debug.writeCurrentStackTrace(writer, debug_info, .no_color, ret_addr) catch |err| {
+        writer.print("Unable to dump stack trace: {s}\n", .{@errorName(err)}) catch return;
+        return;
+    };
+}
+
+var crash_file_truncate = true;
+var crash_file_open_lock = std.Thread.Mutex.Recursive.init;
+
+export fn manderrow_agent_crash(msg_ptr: [*]const u8, msg_len: usize) noreturn {
+    crash(msg_ptr[0..msg_len], @returnAddress());
+}
+
+fn crash(msg: []const u8, ret_addr: ?usize) noreturn {
+    reportCrashToFile(msg, ret_addr);
+    reportCrashToStderr(msg, ret_addr);
+    rs.sendCrash(msg) catch {};
+    std.posix.abort();
+}
+
+fn reportCrashToFile(msg: []const u8, ret_addr: ?usize) void {
+    var truncated: bool = undefined;
+
+    crash_file_open_lock.lock();
+
+    truncated = crash_file_truncate;
+    crash_file_truncate = false;
+
+    var file = std.fs.cwd().createFile("manderrow-agent-crash.txt", .{
+        .truncate = truncated,
+    }) catch return;
+    defer file.close();
+
+    crash_file_open_lock.unlock();
+
+    if (!truncated) {
+        file.writeAll(
+            \\
+            \\
+            \\==== Next crash ====
+            \\
+            \\
+        ) catch return;
+    }
+
+    dumpCrashReport(file.writer(), msg, ret_addr);
+}
+
+fn reportCrashToStderr(msg: []const u8, ret_addr: ?usize) void {
+    stdio.real_stderr_mutex.lock();
+    defer stdio.real_stderr_mutex.unlock();
+
+    std.debug.lockStdErr();
+    defer std.debug.unlockStdErr();
+
+    dumpCrashReport((stdio.real_stderr orelse std.io.getStdErr()).writer(), msg, ret_addr);
 }

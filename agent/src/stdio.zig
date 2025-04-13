@@ -5,10 +5,13 @@ const alloc = @import("root.zig").alloc;
 
 const rs = @import("rs.zig");
 
+pub var real_stderr: ?std.fs.File = null;
+pub var real_stderr_mutex = std.Thread.Mutex.Recursive.init;
+
 pub fn forwardStdio() !void {
     switch (builtin.os.tag) {
         .windows => {
-            const stderr = std.fs.File{ .handle = GetStdHandlePtr(.err).* };
+            real_stderr = std.fs.File{ .handle = GetStdHandlePtr(.err).* };
             const Channel = struct {
                 channel: rs.StandardOutputChannel,
                 id: StdHandle,
@@ -30,7 +33,7 @@ pub fn forwardStdio() !void {
                 const thread = try std.Thread.spawn(
                     .{},
                     forwardFromPipe,
-                    .{ channel.channel, stderr, std.fs.File{ .handle = rd } },
+                    .{ channel.channel, std.fs.File{ .handle = rd } },
                 );
                 thread.setName("manderrow-std" ++ @tagName(channel.channel) ++ "-forwarder") catch {};
             }
@@ -40,7 +43,7 @@ pub fn forwardStdio() !void {
                 channel: rs.StandardOutputChannel,
                 fd: std.posix.fd_t,
             };
-            const stderr = std.fs.File{ .handle = try std.posix.dup(std.posix.STDERR_FILENO) };
+            real_stderr = std.fs.File{ .handle = try std.posix.dup(std.posix.STDERR_FILENO) };
             inline for ([_]Channel{
                 .{ .channel = .out, .fd = std.posix.STDOUT_FILENO },
                 .{ .channel = .err, .fd = std.posix.STDERR_FILENO },
@@ -50,7 +53,7 @@ pub fn forwardStdio() !void {
                 const thread = try std.Thread.spawn(
                     .{},
                     forwardFromPipe,
-                    .{ channel.channel, stderr, std.fs.File{ .handle = pipe[0] } },
+                    .{ channel.channel, std.fs.File{ .handle = pipe[0] } },
                 );
                 thread.setName("manderrow-std" ++ @tagName(channel.channel) ++ "-forwarder") catch {};
             }
@@ -69,9 +72,7 @@ fn GetStdHandlePtr(handle_id: StdHandle) *std.os.windows.HANDLE {
     };
 }
 
-var stderr_mutex = std.Thread.Mutex{};
-
-fn forwardFromPipe(channel: rs.StandardOutputChannel, stderr: std.fs.File, pipe: std.fs.File) void {
+fn forwardFromPipe(channel: rs.StandardOutputChannel, pipe: std.fs.File) void {
     defer pipe.close();
     var rdr = std.io.bufferedReader(pipe.reader());
     var buf = std.ArrayListUnmanaged(u8){};
@@ -82,9 +83,9 @@ fn forwardFromPipe(channel: rs.StandardOutputChannel, stderr: std.fs.File, pipe:
         rdr.reader().streamUntilDelimiter(buf.writer(alloc), '\n', null) catch |e| switch (e) {
             error.EndOfStream => {},
             else => {
-                stderr_mutex.lock();
-                defer stderr_mutex.unlock();
-                std.fmt.format(stderr.writer(), "Error in stdio forwarder: {}", .{e}) catch {};
+                real_stderr_mutex.lock();
+                defer real_stderr_mutex.unlock();
+                std.fmt.format(real_stderr.?.writer(), "Error in stdio forwarder: {}", .{e}) catch {};
                 return;
             },
         };

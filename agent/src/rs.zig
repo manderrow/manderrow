@@ -3,15 +3,15 @@ const std = @import("std");
 pub extern fn manderrow_agent_init(c2s_tx_ptr: ?[*]const u8, c2s_tx_len: usize) void;
 pub extern fn manderrow_agent_deinit(send_exit: bool) void;
 
-extern fn manderrow_agent_report_crash(msg_ptr: [*]const u8, msg_len: usize) void;
+extern fn manderrow_agent_send_crash(msg_ptr: [*]const u8, msg_len: usize) void;
 
 /// `msg` must consist solely of UTF-8 characters.
-pub fn report_crash(msg: []const u8) !void {
+pub fn sendCrash(msg: []const u8) !void {
     if (!std.unicode.utf8ValidateSlice(msg)) {
         return error.InvalidMessage;
     }
 
-    manderrow_agent_report_crash(msg.ptr, msg.len);
+    manderrow_agent_send_crash(msg.ptr, msg.len);
 }
 
 pub const StandardOutputChannel = enum(u8) {

@@ -1,22 +1,35 @@
 use std::sync::Mutex;
 
-use ipc_channel::ipc::{IpcError, IpcReceiver, IpcSender};
+use ipc_channel::ipc::{IpcError, IpcReceiver, IpcSender, OpaqueIpcSender};
 
 use crate::{C2SMessage, S2CMessage};
 
 /// Inter-process communication.
 pub struct Ipc {
-    pub c2s_tx: Mutex<IpcSender<C2SMessage>>,
-    pub s2c_rx: Mutex<IpcReceiver<S2CMessage>>,
+    c2s_tx: Mutex<Option<OpaqueIpcSender>>,
+    s2c_rx: Mutex<IpcReceiver<S2CMessage>>,
 }
 
 impl Ipc {
-    pub fn send(&self, message: C2SMessage) -> Result<(), SendError> {
-        Ok(self
-            .c2s_tx
-            .lock()
-            .map_err(|_| SendError::Poisoned)?
-            .send(message)?)
+    pub fn new(c2s_tx: IpcSender<C2SMessage>, s2c_rx: IpcReceiver<S2CMessage>) -> Self {
+        Self {
+            c2s_tx: Mutex::new(Some(c2s_tx.to_opaque())),
+            s2c_rx: s2c_rx.into(),
+        }
+    }
+
+    pub fn send(&self, message: &C2SMessage) -> Result<(), SendError> {
+        // god awful API provided by ipc-channel
+        let mut lock = self.c2s_tx.lock().map_err(|_| SendError::Poisoned)?;
+        if let Some(c2s_tx) = lock.take() {
+            let c2s_tx = c2s_tx.to();
+            let r = c2s_tx.send(message);
+            *lock = Some(c2s_tx.to_opaque());
+            r.map_err(Into::into)
+        } else {
+            // this is unreachable, but I don't want to panic
+            Ok(())
+        }
     }
 
     pub fn recv(&self) -> Result<S2CMessage, RecvError> {
