@@ -11,6 +11,7 @@ fmt:
 clean:
 	cargo clean --manifest-path crates/Cargo.toml
 	cargo clean --manifest-path src-tauri/Cargo.toml
+	rm -r agent/.zig-cache
 
 test:
 	cargo test --manifest-path crates/Cargo.toml

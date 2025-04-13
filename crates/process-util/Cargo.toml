@@ -12,6 +12,7 @@ itoa = "1"
 
 slog = "2.7.0"
 
+bincode = "2"
 serde = { version = "1", features = ["derive"] }
 
 tokio = { version = "1.44.2", features = ["process", "rt", "time"] }

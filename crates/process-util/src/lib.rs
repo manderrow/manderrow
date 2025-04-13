@@ -9,7 +9,7 @@ use std::num::NonZeroU32;
 use anyhow::Result;
 use slog::Logger;
 
-#[derive(Clone, Copy, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Copy, serde::Deserialize, serde::Serialize, bincode::Decode, bincode::Encode)]
 #[serde(transparent)]
 #[repr(transparent)]
 pub struct Pid(NonZeroU32);

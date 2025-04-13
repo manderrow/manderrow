@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use ipc_channel::ipc::{IpcError, IpcReceiver, IpcSender, OpaqueIpcSender};
+use ipc_channel::ipc::{IpcReceiver, IpcSender, OpaqueIpcSender};
 
 use crate::{C2SMessage, S2CMessage};
 
@@ -37,28 +37,22 @@ impl Ipc {
             .lock()
             .map_err(|_| RecvError::Poisoned)?
             .recv()
-            .map_err(|e| match e {
-                IpcError::Bincode(e) => RecvError::Decode(e),
-                IpcError::Io(e) => RecvError::Io(e),
-                IpcError::Disconnected => RecvError::Disconnected,
-            })
+            .map_err(Into::into)
     }
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum SendError {
-    #[error("failed to encode message: {0}")]
-    Encode(#[from] bincode::Error),
+    #[error(transparent)]
+    Ipc(#[from] ipc_channel::error::SendError),
     #[error("lock is poisoned")]
     Poisoned,
 }
 
 #[derive(Debug, thiserror::Error)]
 pub enum RecvError {
-    #[error("failed to decode message: {0}")]
-    Decode(#[from] bincode::Error),
-    #[error("encountered I/O error: {0}")]
-    Io(#[from] std::io::Error),
+    #[error(transparent)]
+    Ipc(#[from] ipc_channel::error::RecvError),
     #[error("lock is poisoned")]
     Poisoned,
     #[error("the channel is disconnected")]

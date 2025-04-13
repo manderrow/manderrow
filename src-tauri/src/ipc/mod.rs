@@ -17,7 +17,18 @@ use triomphe::Arc;
 pub const EVENT_TARGET: &str = "main";
 pub const EVENT_NAME: &str = "ipc_message";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    PartialEq,
+    Eq,
+    Hash,
+    serde::Serialize,
+    serde::Deserialize,
+    bincode::Encode,
+    bincode::Decode,
+)]
 #[serde(transparent)]
 pub struct ConnectionId(u64);
 
@@ -93,7 +104,7 @@ pub enum SendError {
     #[error("Connection is incomplete")]
     IncompleteConnection,
     #[error("External connection send failed: {0}")]
-    ExternalSendError(bincode::Error),
+    ExternalSendError(ipc_channel::error::SendError),
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -122,7 +133,6 @@ enum IpcConnectionState {
     External(ExternalIpcConnection),
 }
 
-#[derive(serde::Deserialize, serde::Serialize)]
 enum ManagementEvent {
     ExternalRegistration {
         id: ConnectionId,
@@ -133,6 +143,65 @@ enum ManagementEvent {
     Death {
         id: ConnectionId,
     },
+}
+
+impl bincode::Encode for ManagementEvent {
+    fn encode<E: bincode::enc::Encoder>(
+        &self,
+        encoder: &mut E,
+    ) -> std::result::Result<(), bincode::error::EncodeError> {
+        match self {
+            ManagementEvent::ExternalRegistration {
+                id,
+                c2s_rx,
+                s2c_tx,
+                pid,
+            } => {
+                0u8.encode(encoder)?;
+                id.encode(encoder)?;
+                c2s_rx.encode(encoder)?;
+                s2c_tx.encode(encoder)?;
+                pid.encode(encoder)?;
+                Ok(())
+            }
+            ManagementEvent::Death { id } => {
+                1u8.encode(encoder)?;
+                id.encode(encoder)?;
+                Ok(())
+            }
+        }
+    }
+}
+
+impl bincode::Decode<ipc_channel::ipc::Context> for ManagementEvent {
+    fn decode<D: bincode::de::Decoder<Context = ipc_channel::ipc::Context>>(
+        decoder: &mut D,
+    ) -> std::result::Result<Self, bincode::error::DecodeError> {
+        use bincode::Decode;
+        match u8::decode(decoder)? {
+            0 => {
+                let id = Decode::decode(decoder)?;
+                let c2s_rx = Decode::decode(decoder)?;
+                let s2c_tx = Decode::decode(decoder)?;
+                let pid = Decode::decode(decoder)?;
+                Ok(Self::ExternalRegistration {
+                    id,
+                    c2s_rx,
+                    s2c_tx,
+                    pid,
+                })
+            }
+            1 => {
+                let id = Decode::decode(decoder)?;
+                Ok(Self::Death { id })
+            }
+            tag => Err(bincode::error::DecodeError::UnexpectedVariant {
+                type_name: "ManagementEvent",
+                allowed: const { &bincode::error::AllowedEnumVariants::Range { min: 0, max: 1 } },
+                found: tag.into(),
+            }),
+        }
+    }
 }
 
 #[derive(Clone, serde::Serialize)]
@@ -340,11 +409,14 @@ impl IpcState {
         app: AppHandle,
     ) -> Result<InProcessIpc, ConnectError> {
         let (tx, rx) = tokio::sync::mpsc::channel::<S2CMessage>(1);
-        *self
+        let conn = self
             .get_conn(conn_id)
-            .ok_or(ConnectError::NoSuchConnection(conn_id))?
-            .0
-            .lock() = IpcConnectionState::Internal(InternalIpcConnection { s2c_tx: tx });
+            .ok_or(ConnectError::NoSuchConnection(conn_id))?;
+        let mut state = conn.0.lock();
+        if !matches!(*state, IpcConnectionState::InternalConnecting) {
+            return Err(ConnectError::NoSuchConnection(conn_id));
+        }
+        *state = IpcConnectionState::Internal(InternalIpcConnection { s2c_tx: tx });
         Ok(InProcessIpc {
             conn_id,
             s2c_rx: rx,
@@ -467,7 +539,7 @@ impl InProcessIpc {
         &mut self,
         translation_key: impl Into<String>,
         message: Option<String>,
-        message_args: Option<HashMap<String, serde_json::Value>>,
+        message_args: Option<HashMap<String, String>>,
         fixes: impl IntoIterator<Item = DoctorFix<T>>,
     ) -> Result<T>
     where
