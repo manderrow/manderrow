@@ -6,8 +6,8 @@ pub fn build(b: *std.Build) !void {
     const optimize = b.standardOptimizeOption(.{});
 
     const strip = b.option(bool, "strip", "Forces stripping on all optimization modes") orelse switch (optimize) {
-        .Debug, .ReleaseSafe => false,
-        .ReleaseFast, .ReleaseSmall => true,
+        .Debug => false,
+        .ReleaseSafe, .ReleaseFast, .ReleaseSmall => true,
     };
 
     {
