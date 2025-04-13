@@ -2294,15 +2294,15 @@ dependencies = [
 [[package]]
 name = "ipc-channel"
 version = "0.19.0"
-source = "git+https://github.com/manderrow/ipc-channel#5db649bffe0df84bed122c5b1adccd306eebd7b0"
+source = "git+https://github.com/manderrow/ipc-channel#abacc9e45d3897a8bdbad903510a2a85dfe9a1c8"
 dependencies = [
  "bincode",
  "crossbeam-channel",
  "fnv",
- "lazy_static",
  "libc",
  "mio",
  "rand 0.9.0",
+ "rustix 1.0.5",
  "tempfile",
  "uuid",
  "windows 0.58.0",

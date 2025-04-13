@@ -315,15 +315,15 @@ dependencies = [
 [[package]]
 name = "ipc-channel"
 version = "0.19.0"
-source = "git+https://github.com/manderrow/ipc-channel#5db649bffe0df84bed122c5b1adccd306eebd7b0"
+source = "git+https://github.com/manderrow/ipc-channel#abacc9e45d3897a8bdbad903510a2a85dfe9a1c8"
 dependencies = [
  "bincode",
  "crossbeam-channel",
  "fnv",
- "lazy_static",
  "libc",
  "mio",
  "rand",
+ "rustix",
  "tempfile",
  "uuid",
  "windows 0.58.0",
@@ -340,12 +340,6 @@ name = "itoap"
 version = "1.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9028f49264629065d057f340a86acb84867925865f73bbf8d47b4d149a7e88b8"
-
-[[package]]
-name = "lazy_static"
-version = "1.5.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbd2bcb4c963f2ddae06a2efc7e9f3591312473c50c6685e1f298068316e66fe"
 
 [[package]]
 name = "lexopt"
