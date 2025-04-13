@@ -12,5 +12,3 @@ crate-type = ["staticlib"]
 manderrow-ipc = { path = "../ipc" }
 
 thiserror = "2"
-
-no-panic = "0.1.35"

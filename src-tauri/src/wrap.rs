@@ -9,19 +9,6 @@ use slog::{debug, info};
 
 use crate::ipc::C2SMessage;
 
-fn send_ipc(
-    log: &slog::Logger,
-    ipc: Option<&Ipc>,
-    message: impl FnOnce() -> Result<C2SMessage>,
-) -> Result<()> {
-    if let Some(ipc) = ipc {
-        ipc.send(message()?)?;
-    } else {
-        info!(log, "{:?}", message()?);
-    }
-    Ok(())
-}
-
 struct DisplayArgList;
 impl std::fmt::Display for DisplayArgList {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -73,11 +60,13 @@ pub fn run(args: lexopt::Parser) -> Result<()> {
         let log = slog_scope::logger();
 
         if let Err(e) = inner(args, command, &log) {
-            send_ipc(&log, ipc.as_ref(), || {
-                Ok(C2SMessage::Crash {
+            if let Some(ref ipc) = ipc {
+                ipc.send(&C2SMessage::Crash {
                     error: format!("{e:?}"),
-                })
-            })?;
+                })?;
+            } else {
+                info!(log, "{}", e);
+            }
             Err(e)
         } else {
             Ok(())
