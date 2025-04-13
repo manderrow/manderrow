@@ -14,10 +14,19 @@ use std::num::NonZeroU32;
 use std::ops::ControlFlow;
 
 use slog::error;
-use smol_str::SmolStr;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    serde::Deserialize,
+    serde::Serialize,
+    bincode::Decode,
+    bincode::Encode,
+)]
 pub enum SafeOsString {
     Unicode(String),
     NonUnicodeBytes(Vec<u8>),
@@ -44,13 +53,15 @@ impl From<OsString> for SafeOsString {
     }
 }
 
-#[derive(Debug, Clone, Copy, serde::Deserialize, serde::Serialize)]
+#[derive(
+    Debug, Clone, Copy, serde::Deserialize, serde::Serialize, bincode::Decode, bincode::Encode,
+)]
 pub enum StandardOutputChannel {
     Out,
     Err,
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, bincode::Decode, bincode::Encode)]
 pub enum OutputLine {
     Unicode(String),
     Bytes(Vec<u8>),
@@ -64,24 +75,57 @@ impl OutputLine {
     }
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, bincode::Decode, bincode::Encode)]
 pub struct DoctorFix<T> {
     pub id: T,
-    pub label: Option<HashMap<String, serde_json::Value>>,
-    pub confirm_label: Option<HashMap<String, serde_json::Value>>,
-    pub description: Option<HashMap<String, serde_json::Value>>,
+    pub label: Option<HashMap<String, String>>,
+    pub confirm_label: Option<HashMap<String, String>>,
+    pub description: Option<HashMap<String, String>>,
 }
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(transparent)]
+pub struct UuidWrapper(pub Uuid);
+
+impl<C> bincode::Decode<C> for UuidWrapper {
+    fn decode<D: bincode::de::Decoder<Context = C>>(
+        decoder: &mut D,
+    ) -> Result<Self, bincode::error::DecodeError> {
+        let bytes = bincode::Decode::decode(decoder)?;
+        Ok(Self(Uuid::from_bytes(bytes)))
+    }
+}
+
+impl<'de, C> bincode::BorrowDecode<'de, C> for UuidWrapper {
+    fn borrow_decode<D: bincode::de::BorrowDecoder<'de, Context = C>>(
+        decoder: &mut D,
+    ) -> Result<Self, bincode::error::DecodeError> {
+        let bytes = bincode::BorrowDecode::borrow_decode(decoder)?;
+        Ok(Self(Uuid::from_bytes(bytes)))
+    }
+}
+
+impl bincode::Encode for UuidWrapper {
+    fn encode<E: bincode::enc::Encoder>(
+        &self,
+        encoder: &mut E,
+    ) -> Result<(), bincode::error::EncodeError> {
+        self.0.as_bytes().encode(encoder)
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, bincode::Decode, bincode::Encode)]
 pub struct DoctorReport {
-    pub id: Uuid,
+    pub id: UuidWrapper,
     pub translation_key: String,
     pub message: Option<String>,
-    pub message_args: Option<HashMap<String, serde_json::Value>>,
+    pub message_args: Option<HashMap<String, String>>,
     pub fixes: Vec<DoctorFix<String>>,
 }
 
-#[derive(Debug, Copy, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(
+    Debug, Copy, Clone, serde::Deserialize, serde::Serialize, bincode::Decode, bincode::Encode,
+)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum LogLevel {
     Critical,
@@ -105,7 +149,7 @@ impl From<slog::Level> for LogLevel {
     }
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, bincode::Decode, bincode::Encode)]
 pub enum C2SMessage {
     Connect {
         s2c_tx: String,
@@ -118,7 +162,7 @@ pub enum C2SMessage {
     },
     Log {
         level: LogLevel,
-        scope: SmolStr,
+        scope: String,
         message: String,
     },
     Output {
@@ -134,10 +178,10 @@ pub enum C2SMessage {
     DoctorReport(DoctorReport),
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, bincode::Decode, bincode::Encode)]
 pub enum S2CMessage {
     Connect,
-    PatientResponse { id: Uuid, choice: String },
+    PatientResponse { id: UuidWrapper, choice: String },
 }
 
 pub struct PatientChoiceReceiver<T> {
@@ -149,7 +193,7 @@ impl<T: serde::Serialize> PatientChoiceReceiver<T> {
     pub fn new(
         translation_key: impl Into<String>,
         message: Option<String>,
-        message_args: Option<HashMap<String, serde_json::Value>>,
+        message_args: Option<HashMap<String, String>>,
         fixes: impl IntoIterator<Item = DoctorFix<T>>,
     ) -> (Self, C2SMessage) {
         let fixes = fixes
@@ -171,7 +215,7 @@ impl<T: serde::Serialize> PatientChoiceReceiver<T> {
                 _marker: PhantomData,
             },
             C2SMessage::DoctorReport(DoctorReport {
-                id,
+                id: UuidWrapper(id),
                 translation_key,
                 message,
                 message_args,
@@ -193,7 +237,7 @@ impl<T: serde::de::DeserializeOwned> PatientChoiceReceiver<T> {
             S2CMessage::PatientResponse {
                 id: resp_id,
                 choice,
-            } if resp_id == self.id => Ok(ControlFlow::Break(
+            } if resp_id.0 == self.id => Ok(ControlFlow::Break(
                 serde_json::from_value(serde_json::Value::String(choice))
                     .map_err(PromptError::Decode)?,
             )),

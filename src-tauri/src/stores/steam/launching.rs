@@ -153,13 +153,7 @@ pub async fn ensure_unix_launch_args_are_applied(
                             id: Fix::Retry,
                             label: None,
                             confirm_label: None,
-                            description: Some(
-                                [(
-                                    "launch_options".to_owned(),
-                                    serde_json::Value::from(args.clone()),
-                                )]
-                                .into(),
-                            ),
+                            description: Some([("launch_options".to_owned(), args.clone())].into()),
                         },
                         DoctorFix {
                             id: Fix::Abort,

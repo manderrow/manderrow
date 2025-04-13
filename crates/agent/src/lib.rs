@@ -59,9 +59,9 @@ enum ConnectIpcError {
     #[error("Failed to create s2c channel: {0}")]
     CreateS2CError(std::io::Error),
     #[error("Failed to send connect message on c2s channel: {0}")]
-    SendConnectError(manderrow_ipc::bincode::Error),
+    SendConnectError(#[from] manderrow_ipc::ipc_channel::error::SendError),
     #[error("Failed to receive connect message on s2c channel: {0}")]
-    RecvConnectError(manderrow_ipc::bincode::Error),
+    RecvConnectError(#[from] manderrow_ipc::ipc_channel::error::RecvError),
     #[error("Invalid connection message received on s2c channel: {0:?}")]
     InvalidRecvConnectMessage(S2CMessage),
     #[error("Invalid pid: {0}")]
@@ -78,13 +78,11 @@ fn connect_ipc(c2s_tx: &str) -> Result<(), ConnectIpcError> {
     let (s2c_rx, s2c_tx) =
         IpcOneShotServer::<S2CMessage>::new().map_err(ConnectIpcError::CreateS2CError)?;
     let pid = std::process::id();
-    c2s_tx
-        .send(C2SMessage::Connect {
-            s2c_tx,
-            pid: NonZeroU32::new(pid).ok_or(ConnectIpcError::InvalidPid(pid))?,
-        })
-        .map_err(ConnectIpcError::SendConnectError)?;
-    let (s2c_rx, msg) = s2c_rx.accept().map_err(ConnectIpcError::RecvConnectError)?;
+    c2s_tx.send(C2SMessage::Connect {
+        s2c_tx,
+        pid: NonZeroU32::new(pid).ok_or(ConnectIpcError::InvalidPid(pid))?,
+    })?;
+    let (s2c_rx, msg) = s2c_rx.accept()?;
     if !matches!(msg, S2CMessage::Connect) {
         return Err(ConnectIpcError::InvalidRecvConnectMessage(msg));
     }
