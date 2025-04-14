@@ -3,30 +3,20 @@
 #![feature(type_changing_struct_update)]
 
 pub mod client;
+#[cfg(feature = "doctor")]
+pub mod doctor;
 
 pub use bincode;
 pub use ipc_channel;
 
 use std::collections::HashMap;
 use std::ffi::OsString;
-use std::marker::PhantomData;
 use std::num::NonZeroU32;
-use std::ops::ControlFlow;
 
-use slog::error;
 use uuid::Uuid;
 
-#[derive(
-    Debug,
-    Clone,
-    PartialEq,
-    Eq,
-    Hash,
-    serde::Deserialize,
-    serde::Serialize,
-    bincode::Decode,
-    bincode::Encode,
-)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, bincode::Decode, bincode::Encode)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum SafeOsString {
     Unicode(String),
     NonUnicodeBytes(Vec<u8>),
@@ -53,15 +43,15 @@ impl From<OsString> for SafeOsString {
     }
 }
 
-#[derive(
-    Debug, Clone, Copy, serde::Deserialize, serde::Serialize, bincode::Decode, bincode::Encode,
-)]
+#[derive(Debug, Clone, Copy, bincode::Decode, bincode::Encode)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum StandardOutputChannel {
     Out,
     Err,
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, bincode::Decode, bincode::Encode)]
+#[derive(Debug, Clone, bincode::Decode, bincode::Encode)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum OutputLine {
     Unicode(String),
     Bytes(Vec<u8>),
@@ -75,7 +65,8 @@ impl OutputLine {
     }
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, bincode::Decode, bincode::Encode)]
+#[derive(Debug, Clone, bincode::Decode, bincode::Encode)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct DoctorFix<T> {
     pub id: T,
     pub label: Option<HashMap<String, String>>,
@@ -83,8 +74,9 @@ pub struct DoctorFix<T> {
     pub description: Option<HashMap<String, String>>,
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-#[serde(transparent)]
+#[derive(Debug, Clone)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(transparent))]
 pub struct UuidWrapper(pub Uuid);
 
 impl<C> bincode::Decode<C> for UuidWrapper {
@@ -114,7 +106,8 @@ impl bincode::Encode for UuidWrapper {
     }
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, bincode::Decode, bincode::Encode)]
+#[derive(Debug, Clone, bincode::Decode, bincode::Encode)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct DoctorReport {
     pub id: UuidWrapper,
     pub translation_key: String,
@@ -123,10 +116,9 @@ pub struct DoctorReport {
     pub fixes: Vec<DoctorFix<String>>,
 }
 
-#[derive(
-    Debug, Copy, Clone, serde::Deserialize, serde::Serialize, bincode::Decode, bincode::Encode,
-)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[derive(Debug, Copy, Clone, bincode::Decode, bincode::Encode)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "SCREAMING_SNAKE_CASE"))]
 pub enum LogLevel {
     Critical,
     Error,
@@ -136,6 +128,7 @@ pub enum LogLevel {
     Trace,
 }
 
+#[cfg(feature = "slog")]
 impl From<slog::Level> for LogLevel {
     fn from(value: slog::Level) -> Self {
         match value {
@@ -149,7 +142,8 @@ impl From<slog::Level> for LogLevel {
     }
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, bincode::Decode, bincode::Encode)]
+#[derive(Debug, Clone, bincode::Decode, bincode::Encode)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum C2SMessage {
     Connect {
         s2c_tx: String,
@@ -178,70 +172,9 @@ pub enum C2SMessage {
     DoctorReport(DoctorReport),
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize, bincode::Decode, bincode::Encode)]
+#[derive(Debug, Clone, bincode::Decode, bincode::Encode)]
+#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum S2CMessage {
     Connect,
     PatientResponse { id: UuidWrapper, choice: String },
-}
-
-pub struct PatientChoiceReceiver<T> {
-    id: Uuid,
-    _marker: PhantomData<T>,
-}
-
-impl<T: serde::Serialize> PatientChoiceReceiver<T> {
-    pub fn new(
-        translation_key: impl Into<String>,
-        message: Option<String>,
-        message_args: Option<HashMap<String, String>>,
-        fixes: impl IntoIterator<Item = DoctorFix<T>>,
-    ) -> (Self, C2SMessage) {
-        let fixes = fixes
-            .into_iter()
-            .map(|fix| {
-                let serde_json::Value::String(id) =
-                    serde_json::to_value(fix.id).expect("Unable to serialize id")
-                else {
-                    panic!("Id must serialize to a string")
-                };
-                DoctorFix { id, ..fix }
-            })
-            .collect::<Vec<_>>();
-        let translation_key = translation_key.into();
-        let id = Uuid::new_v4();
-        (
-            Self {
-                id,
-                _marker: PhantomData,
-            },
-            C2SMessage::DoctorReport(DoctorReport {
-                id: UuidWrapper(id),
-                translation_key,
-                message,
-                message_args,
-                fixes,
-            }),
-        )
-    }
-}
-
-#[derive(Debug, thiserror::Error)]
-pub enum PromptError {
-    #[error("failed to decode patient choice received from server: {0}")]
-    Decode(serde_json::Error),
-}
-
-impl<T: serde::de::DeserializeOwned> PatientChoiceReceiver<T> {
-    pub fn process(self, response: S2CMessage) -> Result<ControlFlow<T, Self>, PromptError> {
-        match response {
-            S2CMessage::PatientResponse {
-                id: resp_id,
-                choice,
-            } if resp_id.0 == self.id => Ok(ControlFlow::Break(
-                serde_json::from_value(serde_json::Value::String(choice))
-                    .map_err(PromptError::Decode)?,
-            )),
-            _ => Ok(ControlFlow::Continue(self)),
-        }
-    }
 }

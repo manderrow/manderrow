@@ -23,7 +23,7 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 manderrow-args = { path = "../crates/args" }
-manderrow-ipc = { path = "../crates/ipc" }
+manderrow-ipc = { path = "../crates/ipc", features = ["doctor", "serde", "slog"] }
 manderrow-macros = { path = "../crates/macros" }
 manderrow-paths = { path = "../crates/paths" }
 manderrow-process-util = { path = "../crates/process-util" }
