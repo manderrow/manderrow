@@ -55,6 +55,7 @@ fn reportCrashToFile(msg: []const u8, ret_addr: ?usize) void {
     defer file.close();
 
     if (!truncated) {
+        file.seekFromEnd(0) catch return;
         file.writeAll(
             \\
             \\
