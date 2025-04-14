@@ -7,8 +7,6 @@ pub const std_options: std.Options = .{
     .logFn = logFn,
 };
 
-var panicked = std.atomic.Value(bool).init(false);
-
 pub fn panic(msg: []const u8, error_return_trace: ?*std.builtin.StackTrace, ret_addr: ?usize) noreturn {
     _ = error_return_trace;
     crash.crash(msg, ret_addr);

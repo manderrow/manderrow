@@ -4,10 +4,19 @@ const std = @import("std");
 const rs = @import("rs.zig");
 const stdio = @import("stdio.zig");
 
+threadlocal var thread_crashed = false;
+
 pub fn crash(msg: []const u8, ret_addr: ?usize) noreturn {
-    reportCrashToFile(msg, ret_addr);
-    reportCrashToStderr(msg, ret_addr);
-    rs.sendCrash(msg) catch {};
+    if (!thread_crashed) {
+        thread_crashed = true;
+        reportCrashToFile(msg, ret_addr);
+        reportCrashToStderr(msg, ret_addr);
+        rs.sendCrash(msg) catch {};
+    } else {
+        // we don't want to attempt reporting the crash recursively, so just emit a
+        // breakpoint so that the problem can be investigated with a debugger.
+        @breakpoint();
+    }
     std.posix.abort();
 }
 
@@ -37,7 +46,7 @@ fn dumpCrashReport(writer: anytype, msg: []const u8, ret_addr: ?usize) void {
 }
 
 var crash_file_truncate = true;
-var crash_file_mutex = std.Thread.Mutex.Recursive.init;
+var crash_file_mutex = std.Thread.Mutex{};
 
 fn reportCrashToFile(msg: []const u8, ret_addr: ?usize) void {
     var truncated: bool = undefined;
