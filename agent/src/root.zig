@@ -115,16 +115,16 @@ fn entrypoint(module: if (builtin.os.tag == .windows) std.os.windows.HMODULE els
     if (builtin.is_test)
         return;
 
-    std.debug.attachSegfaultHandler();
-
     log_file = std.fs.cwd().createFile("manderrow-agent.log", .{}) catch null;
 
-    if (log_file) |f| {
-        dumpArgs(f.writer()) catch {};
-        f.writeAll("\n") catch {};
-        dumpEnv(f.writer()) catch {};
-        f.writeAll("\n") catch {};
-    }
+    logger.debug("Agent pre-started", .{});
+
+    std.debug.attachSegfaultHandler();
+
+    logger.debug("Attached segfault handler", .{});
+
+    logger.debug("{}", .{dump_args});
+    logger.debug("{}", .{dump_env});
 
     if (builtin.os.tag != .windows) {
         atexit(deinit_c);
@@ -294,6 +294,20 @@ fn interpret_instructions(instructions: []const Args.Instruction) void {
         }
     }
 }
+
+const dump_args = struct {
+    pub fn format(_: @This(), comptime fmt: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
+        if (fmt.len != 0) @compileError("Unsupported format specifier: " ++ fmt);
+        dumpArgs(writer) catch {};
+    }
+}{};
+
+const dump_env = struct {
+    pub fn format(_: @This(), comptime fmt: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
+        if (fmt.len != 0) @compileError("Unsupported format specifier: " ++ fmt);
+        dumpEnv(writer) catch {};
+    }
+}{};
 
 fn dumpArgs(writer: anytype) !void {
     try writer.writeAll("Args:");
