@@ -3,12 +3,45 @@ const std = @import("std");
 
 const crash = @import("crash.zig");
 
+pub const std_options: std.Options = .{
+    .logFn = logFn,
+};
+
 var panicked = std.atomic.Value(bool).init(false);
 
 pub fn panic(msg: []const u8, error_return_trace: ?*std.builtin.StackTrace, ret_addr: ?usize) noreturn {
     _ = error_return_trace;
     crash.crash(msg, ret_addr);
 }
+
+var log_file: ?std.fs.File = null;
+
+fn logFn(
+    comptime message_level: std.log.Level,
+    comptime scope: @TypeOf(.enum_literal),
+    comptime format: []const u8,
+    args: anytype,
+) void {
+    if (log_file) |f| {
+        f.writer().print("{s} {s} ", .{ @tagName(message_level), @tagName(scope) }) catch {};
+        f.writer().print(format, args) catch {};
+    }
+
+    {
+        var buf = std.ArrayListUnmanaged(u8){};
+        defer buf.deinit(alloc);
+
+        dumpArgs(buf.writer(alloc)) catch {};
+        rs.sendLog(switch (message_level) {
+            .debug => .debug,
+            .info => .info,
+            .warn => .warn,
+            .err => .err,
+        }, scope, buf.items) catch {};
+    }
+}
+
+const logger = std.log.scoped(.manderrow_agent);
 
 pub const alloc = std.heap.c_allocator;
 
@@ -84,8 +117,7 @@ fn entrypoint(module: if (builtin.os.tag == .windows) std.os.windows.HMODULE els
 
     std.debug.attachSegfaultHandler();
 
-    const log_file: ?std.fs.File = std.fs.cwd().createFile("manderrow-agent.log", .{}) catch null;
-    defer if (log_file) |f| f.close();
+    log_file = std.fs.cwd().createFile("manderrow-agent.log", .{}) catch null;
 
     if (log_file) |f| {
         dumpArgs(f.writer()) catch {};
@@ -97,15 +129,11 @@ fn entrypoint(module: if (builtin.os.tag == .windows) std.os.windows.HMODULE els
     if (builtin.os.tag != .windows) {
         atexit(deinit_c);
 
-        if (log_file) |f| {
-            f.writeAll("Set atexit hook\n") catch {};
-        }
+        logger.debug("Set atexit hook", .{});
 
         at_quick_exit(deinit_c);
 
-        if (log_file) |f| {
-            f.writeAll("Set at_quick_exit hook\n") catch {};
-        }
+        logger.debug("Set at_quick_exit hook", .{});
     }
 
     var args = Args.extract() catch |e| switch (e) {
@@ -114,9 +142,7 @@ fn entrypoint(module: if (builtin.os.tag == .windows) std.os.windows.HMODULE els
     };
     defer args.deinit();
 
-    if (log_file) |f| {
-        f.writeAll("Parsed arguments\n") catch {};
-    }
+    logger.debug("Parsed arguments", .{});
 
     var error_message_buf: [4096]u8 = undefined;
     var error_buf: rs.ErrorBuffer = .{
@@ -131,11 +157,9 @@ fn entrypoint(module: if (builtin.os.tag == .windows) std.os.windows.HMODULE els
         },
     }
 
-    if (log_file) |f| {
-        f.writeAll("Ran Rust-side init\n") catch {};
-    }
+    logger.debug("Ran Rust-side init", .{});
 
-    rs.sendLog(.info, "manderrow_agent", "Agent started") catch |e| std.debug.panic("{}", .{e});
+    logger.info("Agent started", .{});
     {
         var buf = std.ArrayListUnmanaged(u8){};
         defer buf.deinit(alloc);
@@ -151,15 +175,11 @@ fn entrypoint(module: if (builtin.os.tag == .windows) std.os.windows.HMODULE els
 
     stdio.forwardStdio() catch |e| std.debug.panic("{}", .{e});
 
-    if (log_file) |f| {
-        f.writeAll("Hooked stdio for forwarding\n") catch {};
-    }
+    logger.debug("Hooked stdio for forwarding", .{});
 
     interpret_instructions(args.instructions);
 
-    if (log_file) |f| {
-        f.writeAll("Interpreted instructions\n") catch {};
-    }
+    logger.debug("Interpreted instructions", .{});
 
     if (builtin.os.tag == .windows) {
         var success = true;
@@ -169,12 +189,10 @@ fn entrypoint(module: if (builtin.os.tag == .windows) std.os.windows.HMODULE els
             else => std.debug.panic("Failed to load actual DLL: {}", .{e}),
         };
 
-        if (log_file) |f| {
-            if (success) {
-                f.writeAll("Loaded proxy\n") catch {};
-            } else {
-                f.writeAll("Unsupported proxy\n") catch {};
-            }
+        if (success) {
+            logger.debug("Loaded proxy", .{});
+        } else {
+            logger.debug("Unsupported proxy", .{});
         }
     }
 }
