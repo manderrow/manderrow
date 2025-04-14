@@ -67,7 +67,7 @@ fn entrypoint_linux_gnu(
         @compileError("Unsupported target ABI " ++ @tagName(builtin.abi));
     }
     std.os.argv = @constCast(argv[0..@intCast(argc)]);
-    entrypoint();
+    entrypoint({});
 }
 
 extern fn _NSGetArgc() *c_int;
@@ -75,10 +75,10 @@ extern fn _NSGetArgv() *[*][*:0]c_char;
 
 fn entrypoint_macos() callconv(.c) void {
     std.os.argv = _NSGetArgv().*[0..@intCast(_NSGetArgc().*)];
-    entrypoint();
+    entrypoint({});
 }
 
-fn entrypoint() void {
+fn entrypoint(module: if (builtin.os.tag == .windows) std.os.windows.HMODULE else void) void {
     if (builtin.is_test)
         return;
 
@@ -160,6 +160,23 @@ fn entrypoint() void {
     if (log_file) |f| {
         f.writeAll("Interpreted instructions\n") catch {};
     }
+
+    if (builtin.os.tag == .windows) {
+        var success = true;
+        dll_proxy.loadProxy(module) catch |e| switch (e) {
+            error.OutOfMemory => @panic("Out of memory"),
+            error.UnsupportedName => success = false,
+            else => std.debug.panic("Failed to load actual DLL: {}", .{e}),
+        };
+
+        if (log_file) |f| {
+            if (success) {
+                f.writeAll("Loaded proxy\n") catch {};
+            } else {
+                f.writeAll("Unsupported proxy\n") catch {};
+            }
+        }
+    }
 }
 
 const windows = struct {
@@ -184,13 +201,7 @@ const windows = struct {
             return std.os.windows.TRUE;
         }
 
-        entrypoint();
-
-        dll_proxy.loadProxy(module) catch |e| switch (e) {
-            error.OutOfMemory => @panic("Out of memory"),
-            error.UnsupportedName => {},
-            else => std.debug.panic("Failed to load actual DLL: {}", .{e}),
-        };
+        entrypoint(module);
 
         return std.os.windows.TRUE;
     }
