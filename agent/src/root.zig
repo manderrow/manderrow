@@ -37,7 +37,7 @@ fn logFn(
             .info => .info,
             .warn => .warn,
             .err => .err,
-        }, scope, buf.items) catch {};
+        }, @tagName(scope), buf.items) catch {};
     }
 }
 
