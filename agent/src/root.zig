@@ -41,7 +41,7 @@ fn logFn(
 
 const logger = std.log.scoped(.manderrow_agent);
 
-pub const alloc = std.heap.c_allocator;
+pub const alloc = std.heap.smp_allocator;
 
 const dll_proxy = @import("dll_proxy");
 
