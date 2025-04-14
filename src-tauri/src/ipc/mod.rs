@@ -547,7 +547,7 @@ impl InProcessIpc {
         T: serde::de::DeserializeOwned,
     {
         let (mut receiver, msg) =
-            PatientChoiceReceiver::new(translation_key, message, message_args, fixes);
+            doctor::PatientChoiceReceiver::new(translation_key, message, message_args, fixes);
         self.send(msg).await?;
         loop {
             match receiver.process(self.recv().await?)? {
