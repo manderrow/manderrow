@@ -111,6 +111,13 @@ fn entrypoint() void {
 
     if (log_file) |f| {
         f.writeAll("Parsed arguments\n") catch {};
+        if (args.c2s_tx) |s| {
+            f.writer().print(
+                \\--c2s-tx: {}
+                \\          {}
+                \\
+            , .{ std.zig.fmtEscapes(s), std.fmt.fmtSliceHexLower(s) }) catch {};
+        }
     }
 
     rs.manderrow_agent_init(if (args.c2s_tx) |s| s.ptr else null, if (args.c2s_tx) |s| s.len else 0);
