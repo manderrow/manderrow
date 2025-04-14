@@ -24,7 +24,7 @@ fn logFn(
 ) void {
     if (log_file) |f| {
         f.writer().print("{s} {s} ", .{ @tagName(message_level), @tagName(scope) }) catch {};
-        f.writer().print(format, args) catch {};
+        f.writer().print(format ++ "\n", args) catch {};
     }
 
     {
