@@ -11,7 +11,6 @@ args: std.process.ArgIterator,
 
 pub fn extract() !@This() {
     var args = try std.process.argsWithAllocator(alloc);
-    defer args.deinit();
 
     var enabled = false;
     var instructions = std.ArrayListUnmanaged(Instruction){};
