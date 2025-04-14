@@ -2294,10 +2294,9 @@ dependencies = [
 [[package]]
 name = "ipc-channel"
 version = "0.19.0"
-source = "git+https://github.com/manderrow/ipc-channel#abacc9e45d3897a8bdbad903510a2a85dfe9a1c8"
+source = "git+https://github.com/manderrow/ipc-channel#64258fd8946516658c4cd45eb264f3528e495de1"
 dependencies = [
  "bincode",
- "crossbeam-channel",
  "fnv",
  "libc",
  "mio",
