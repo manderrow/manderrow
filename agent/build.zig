@@ -104,7 +104,11 @@ fn createLib(
         "build",
         "--package",
         "manderrow-agent",
-        "--release",
+        "--profile",
+        switch (optimize) {
+            .Debug => "dev",
+            .ReleaseSafe, .ReleaseFast, .ReleaseSmall => "release",
+        },
         "--target",
         rust_target,
         "--manifest-path",
