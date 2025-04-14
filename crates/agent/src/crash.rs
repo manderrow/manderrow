@@ -20,10 +20,12 @@ pub fn report_crash(error: impl std::fmt::Display) {
     forget_on_panic(AssertUnwindSafe(|| {
         use std::sync::OnceLock;
         static TRUNCATE_ONCE: OnceLock<()> = OnceLock::new();
+        let truncate = TRUNCATE_ONCE.try_insert(()).is_ok();
         if let Ok(f) = std::fs::OpenOptions::new()
             .write(true)
             .create(true)
-            .truncate(TRUNCATE_ONCE.try_insert(()).is_ok())
+            .truncate(truncate)
+            .append(!truncate)
             .open("manderrow-agent-crash.txt")
         {
             _ = report.dump(f);
