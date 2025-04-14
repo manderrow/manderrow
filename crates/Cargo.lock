@@ -147,21 +147,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "crossbeam-channel"
-version = "0.5.14"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "06ba6d68e24814cb8de6bb986db8222d3a027d15872cabc0d18817bc3c0e4471"
-dependencies = [
- "crossbeam-utils",
-]
-
-[[package]]
-name = "crossbeam-utils"
-version = "0.8.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d0a5c400df2834b80a4c3327b3aad3a4c4cd4de0629063962b03235697506a28"
-
-[[package]]
 name = "cruet"
 version = "0.15.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -315,10 +300,9 @@ dependencies = [
 [[package]]
 name = "ipc-channel"
 version = "0.19.0"
-source = "git+https://github.com/manderrow/ipc-channel#abacc9e45d3897a8bdbad903510a2a85dfe9a1c8"
+source = "git+https://github.com/manderrow/ipc-channel#64258fd8946516658c4cd45eb264f3528e495de1"
 dependencies = [
  "bincode",
- "crossbeam-channel",
  "fnv",
  "libc",
  "mio",
