@@ -1,11 +1,13 @@
 const builtin = @import("builtin");
 const std = @import("std");
 
+const crash = @import("crash.zig");
+
 var panicked = std.atomic.Value(bool).init(false);
 
 pub fn panic(msg: []const u8, error_return_trace: ?*std.builtin.StackTrace, ret_addr: ?usize) noreturn {
     _ = error_return_trace;
-    crash(msg, ret_addr);
+    crash.crash(msg, ret_addr);
 }
 
 pub const alloc = std.heap.c_allocator;
@@ -44,6 +46,9 @@ comptime {
         },
         else => @compileError("Unsupported target OS " ++ @tagName(builtin.os.tag)),
     }
+
+    // export crash function to rust code
+    _ = crash;
 }
 
 extern fn atexit(f: *const fn () callconv(.C) void) void;
@@ -76,6 +81,8 @@ fn entrypoint_macos() callconv(.c) void {
 fn entrypoint() void {
     if (builtin.is_test)
         return;
+
+    std.debug.attachSegfaultHandler();
 
     const log_file: ?std.fs.File = std.fs.cwd().createFile("manderrow-agent.log", .{}) catch null;
     defer if (log_file) |f| f.close();
@@ -111,7 +118,18 @@ fn entrypoint() void {
         f.writeAll("Parsed arguments\n") catch {};
     }
 
-    rs.manderrow_agent_init(if (args.c2s_tx) |s| s.ptr else null, if (args.c2s_tx) |s| s.len else 0);
+    var error_message_buf: [4096]u8 = undefined;
+    var error_buf: rs.ErrorBuffer = .{
+        .errno = 0,
+        .message_buf = &error_message_buf,
+        .message_len = error_message_buf.len,
+    };
+    switch (rs.manderrow_agent_init(if (args.c2s_tx) |s| s.ptr else null, if (args.c2s_tx) |s| s.len else 0, &error_buf)) {
+        .Success => {},
+        else => |_| {
+            crash.crash(&error_message_buf, null);
+        },
+    }
 
     if (log_file) |f| {
         f.writeAll("Ran Rust-side init\n") catch {};
@@ -272,77 +290,4 @@ fn dumpEnv(writer: anytype) !void {
         try writer.print("  {s}=\"{}\"\n", .{ entry.key_ptr.*, std.zig.fmtEscapes(entry.value_ptr.*) });
     }
     try writer.writeAll("}");
-}
-
-fn dumpCrashReport(writer: anytype, msg: []const u8, ret_addr: ?usize) void {
-    writer.print(
-        \\{s}
-        \\
-        \\Backtrace:
-        \\
-    , .{msg}) catch return;
-    if (builtin.strip_debug_info) {
-        writer.print("Unable to dump stack trace: debug info stripped\n", .{}) catch return;
-        return;
-    }
-    const debug_info = std.debug.getSelfDebugInfo() catch |err| {
-        writer.print("Unable to dump stack trace: Unable to open debug info: {s}\n", .{@errorName(err)}) catch return;
-        return;
-    };
-    std.debug.writeCurrentStackTrace(writer, debug_info, .no_color, ret_addr) catch |err| {
-        writer.print("Unable to dump stack trace: {s}\n", .{@errorName(err)}) catch return;
-        return;
-    };
-}
-
-var crash_file_truncate = true;
-var crash_file_open_lock = std.Thread.Mutex.Recursive.init;
-
-export fn manderrow_agent_crash(msg_ptr: [*]const u8, msg_len: usize) noreturn {
-    crash(msg_ptr[0..msg_len], @returnAddress());
-}
-
-fn crash(msg: []const u8, ret_addr: ?usize) noreturn {
-    reportCrashToFile(msg, ret_addr);
-    reportCrashToStderr(msg, ret_addr);
-    rs.sendCrash(msg) catch {};
-    std.posix.abort();
-}
-
-fn reportCrashToFile(msg: []const u8, ret_addr: ?usize) void {
-    var truncated: bool = undefined;
-
-    crash_file_open_lock.lock();
-
-    truncated = crash_file_truncate;
-    crash_file_truncate = false;
-
-    var file = std.fs.cwd().createFile("manderrow-agent-crash.txt", .{
-        .truncate = truncated,
-    }) catch return;
-    defer file.close();
-
-    crash_file_open_lock.unlock();
-
-    if (!truncated) {
-        file.writeAll(
-            \\
-            \\
-            \\==== Next crash ====
-            \\
-            \\
-        ) catch return;
-    }
-
-    dumpCrashReport(file.writer(), msg, ret_addr);
-}
-
-fn reportCrashToStderr(msg: []const u8, ret_addr: ?usize) void {
-    stdio.real_stderr_mutex.lock();
-    defer stdio.real_stderr_mutex.unlock();
-
-    std.debug.lockStdErr();
-    defer std.debug.unlockStdErr();
-
-    dumpCrashReport((stdio.real_stderr orelse std.io.getStdErr()).writer(), msg, ret_addr);
 }

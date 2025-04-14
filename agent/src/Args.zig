@@ -36,7 +36,12 @@ pub fn extract() !@This() {
                 .@"{manderrow" => return error.UnbalancedArgumentDelimiter,
                 .@"manderrow}" => extracting = false,
                 .@"--enable" => enabled = true,
-                .@"--c2s-tx" => c2s_tx = args.next() orelse return error.MissingOptionValue,
+                .@"--c2s-tx" => {
+                    c2s_tx = args.next() orelse return error.MissingOptionValue;
+                    if (!std.unicode.utf8ValidateSlice(c2s_tx.?)) {
+                        return error.InvalidUtf8;
+                    }
+                },
                 .@"--insn-load-library" => try instructions.append(alloc, .{ .load_library = .{
                     .path = args.next() orelse return error.MissingOptionValue,
                 } }),
