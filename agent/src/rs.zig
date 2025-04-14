@@ -1,11 +1,28 @@
 const std = @import("std");
 
-pub extern fn manderrow_agent_init(c2s_tx_ptr: ?[*]const u8, c2s_tx_len: usize) void;
+pub const ErrorBuffer = extern struct {
+    errno: u32,
+    message_buf: [*]u8,
+    message_len: usize,
+};
+
+pub const InitStatusCode = enum(u8) {
+    Success,
+    ConnectC2SError,
+    CreateS2CError,
+    SendConnectError,
+    RecvConnectError,
+    InvalidRecvConnectMessage,
+    InvalidPid,
+    IpcAlreadySet,
+};
+
+pub extern fn manderrow_agent_init(c2s_tx_ptr: ?[*]const u8, c2s_tx_len: usize, error_buf: *ErrorBuffer) InitStatusCode;
 pub extern fn manderrow_agent_deinit(send_exit: bool) void;
 
 extern fn manderrow_agent_send_crash(msg_ptr: [*]const u8, msg_len: usize) void;
 
-/// `msg` must consist solely of UTF-8 characters.
+/// `msg` must consist entirely of UTF-8 characters.
 pub fn sendCrash(msg: []const u8) !void {
     if (!std.unicode.utf8ValidateSlice(msg)) {
         return error.InvalidMessage;
@@ -39,8 +56,8 @@ pub const LogLevel = enum(u8) {
     trace,
 };
 
-/// `scope` must consist solely of ASCII characters in the range `'!'..='~'`.
-/// `msg` must consist solely of UTF-8 characters.
+/// `scope` must consist entirely of ASCII characters in the range `'!'..='~'`.
+/// `msg` must consist entirely of UTF-8 characters.
 extern fn manderrow_agent_send_log(
     level: LogLevel,
     scope_ptr: [*]const u8,
