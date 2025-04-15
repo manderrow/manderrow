@@ -35,6 +35,7 @@ pub fn forwardStdio() !void {
                     forwardFromPipe,
                     .{ channel.channel, std.fs.File{ .handle = rd } },
                 );
+                defer thread.detach();
                 thread.setName("manderrow-std" ++ @tagName(channel.channel) ++ "-forwarder") catch {};
             }
         },
@@ -55,6 +56,7 @@ pub fn forwardStdio() !void {
                     forwardFromPipe,
                     .{ channel.channel, std.fs.File{ .handle = pipe[0] } },
                 );
+                defer thread.detach();
                 thread.setName("manderrow-std" ++ @tagName(channel.channel) ++ "-forwarder") catch {};
             }
         },
