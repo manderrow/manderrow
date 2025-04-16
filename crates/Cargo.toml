@@ -5,9 +5,9 @@ members = ["agent", "args", "ipc", "macros", "packed-semver", "paths", "process-
 [workspace.package]
 authors = ["Jack Huang", "Michael Pfaff"]
 
-[profile.dev]
-panic = "abort"
-
-[profile.release]
-strip = "symbols"
-panic = "abort"
+# [profile.dev]
+# panic = "abort"
+# 
+# [profile.release]
+# strip = "symbols"
+# panic = "abort"
