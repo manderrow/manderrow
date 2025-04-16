@@ -244,13 +244,15 @@ fn interpret_instructions(instructions: []const Args.Instruction) void {
     for (instructions) |insn| {
         switch (insn) {
             .load_library => |ll| {
+                logger.debug("Loading library from \"{}\"", .{std.zig.fmtEscapes(ll.path)});
                 switch (builtin.os.tag) {
                     .windows => {
                         var buf: [std.os.windows.MAX_PATH:0]u16 = undefined;
-                        _ = wtf8ToWtf16LeZChecked(&buf, ll.path) catch |e| switch (e) {
+                        const n = wtf8ToWtf16LeZChecked(&buf, ll.path) catch |e| switch (e) {
                             error.InvalidWtf8 => @panic("Invalid --insn-load-library path: invalid WTF-8"),
                             error.Overflow => @panic("Invalid --insn-load-library path: too long"),
                         };
+                        std.debug.assert(std.mem.len(@as([*:0]const u16, &buf)) == n);
                         if (std.os.windows.kernel32.LoadLibraryW(&buf) == null) {
                             util.windows.panicWindowsError("LoadLibraryW");
                         }
@@ -263,9 +265,10 @@ fn interpret_instructions(instructions: []const Args.Instruction) void {
                     },
                 }
             },
-            .set_var => |ll| {
-                const key = ll.kv[0..ll.eq_sign];
-                const value = ll.kv[ll.eq_sign + 1 .. :0];
+            .set_var => |sv| {
+                const key = sv.kv[0..sv.eq_sign];
+                const value = sv.kv[sv.eq_sign + 1 .. :0];
+                logger.debug("Setting environment variable {s}=\"{}\"", .{ key, std.zig.fmtEscapes(value) });
                 switch (builtin.os.tag) {
                     .windows => {
                         const key_buf = std.unicode.wtf8ToWtf16LeAllocZ(alloc, key) catch |e| switch (e) {
