@@ -134,25 +134,25 @@ fn entrypoint(module: if (builtin.os.tag == .windows) std.os.windows.HMODULE els
         logger.debug("Set at_quick_exit hook", .{});
     }
 
-    // kinda gross, but we need this to execute regardless of the agent's activation
-    // status, but we want it to execute after the agent has loaded (if it is enabled)
-    defer {
-        if (builtin.os.tag == .windows) {
-            var success = true;
-            dll_proxy.loadProxy(module) catch |e| switch (e) {
-                error.OutOfMemory => @panic("Out of memory"),
-                error.UnsupportedName => success = false,
-                else => std.debug.panic("Failed to load actual DLL: {}", .{e}),
-            };
+    startAgent();
 
-            if (success) {
-                logger.debug("Loaded proxy", .{});
-            } else {
-                logger.debug("Unsupported proxy", .{});
-            }
+    if (builtin.os.tag == .windows) {
+        var success = true;
+        dll_proxy.loadProxy(module) catch |e| switch (e) {
+            error.OutOfMemory => @panic("Out of memory"),
+            error.UnsupportedName => success = false,
+            else => std.debug.panic("Failed to load actual DLL: {}", .{e}),
+        };
+
+        if (success) {
+            logger.debug("Loaded proxy", .{});
+        } else {
+            logger.debug("Unsupported proxy", .{});
         }
     }
+}
 
+fn startAgent() void {
     var args = Args.extract() catch |e| switch (e) {
         error.Disabled => return,
         else => std.debug.panic("{}", .{e}),
