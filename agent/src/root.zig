@@ -4,6 +4,7 @@ const std = @import("std");
 const crash = @import("crash.zig");
 
 pub const std_options: std.Options = .{
+    .log_level = .debug,
     .logFn = logFn,
 };
 
