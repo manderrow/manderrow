@@ -51,6 +51,7 @@ fn createLib(
         .root_source_file = b.path("src/root.zig"),
         .target = target,
         .optimize = if (target.result.os.tag == .windows and optimize == .Debug) .ReleaseSafe else optimize,
+        .strip = strip,
         .link_libc = true,
     });
     if (target.result.os.tag == .windows and target.result.abi.isGnu()) {
