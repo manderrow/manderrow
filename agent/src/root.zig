@@ -146,7 +146,7 @@ fn entrypoint() void {
         f.writeAll("Hooked stdio for forwarding\n") catch {};
     }
 
-    interpret_instructions(args.instructions);
+    interpret_instructions(log_file, args.instructions);
 
     if (log_file) |f| {
         f.writeAll("Interpreted instructions\n") catch {};
@@ -199,18 +199,25 @@ fn wtf8ToWtf16LeZChecked(wtf16le: [:0]u16, wtf8: []const u8) error{ InvalidWtf8,
     return n;
 }
 
-fn interpret_instructions(instructions: []const Args.Instruction) void {
+fn interpret_instructions(log_file: ?std.fs.File, instructions: []const Args.Instruction) void {
     for (instructions) |insn| {
         switch (insn) {
             .load_library => |ll| {
                 switch (builtin.os.tag) {
                     .windows => {
                         var buf: [std.os.windows.MAX_PATH:0]u16 = undefined;
-                        _ = wtf8ToWtf16LeZChecked(&buf, ll.path) catch |e| switch (e) {
+                        const n = wtf8ToWtf16LeZChecked(&buf, ll.path) catch |e| switch (e) {
                             error.InvalidWtf8 => @panic("Invalid --insn-load-library path: invalid WTF-8"),
                             error.Overflow => @panic("Invalid --insn-load-library path: too long"),
                         };
+                        std.debug.assert(n == std.mem.len(@as([*:0]u16, &buf)));
                         if (std.os.windows.kernel32.LoadLibraryW(&buf) == null) {
+                            if (log_file) |f| {
+                                f.writer().print("Failed to load library \"{}\"\n  WTF-16: {}\n", .{
+                                    std.zig.fmtEscapes(ll.path),
+                                    std.unicode.fmtUtf16Le(buf[0..n]),
+                                }) catch {};
+                            }
                             util.windows.panicWindowsError("LoadLibraryW");
                         }
                     },
