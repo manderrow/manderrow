@@ -50,7 +50,7 @@ fn createLib(
     const lib_mod = b.createModule(.{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
-        .optimize = optimize,
+        .optimize = if (target.result.os.tag == .windows and optimize == .Debug) .ReleaseSafe else optimize,
         .link_libc = true,
     });
     if (target.result.os.tag == .windows and target.result.abi.isGnu()) {
