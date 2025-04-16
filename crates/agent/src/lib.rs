@@ -7,13 +7,11 @@
 use std::mem::MaybeUninit;
 use std::num::NonZeroU32;
 use std::ptr::NonNull;
-use std::sync::{Once, OnceLock};
+use std::sync::OnceLock;
 
 use manderrow_ipc::client::Ipc;
 use manderrow_ipc::ipc_channel::ipc::{IpcOneShotServer, IpcSender};
 use manderrow_ipc::{C2SMessage, OutputLine, S2CMessage};
-
-const DEINIT: Once = Once::new();
 
 unsafe extern "C" {
     fn manderrow_agent_crash(msg_ptr: NonNull<u8>, msg_len: usize) -> !;
@@ -190,15 +188,12 @@ fn connect_ipc(c2s_tx: &str) -> Result<(), ConnectIpcError> {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn manderrow_agent_deinit(send_exit: bool) {
-    DEINIT.call_once(|| {
-        if send_exit {
-            if let Some(ipc) = ipc() {
-                // TODO: send the correct exit code
-                _ = ipc.send(&C2SMessage::Exit { code: None });
-            }
-        }
-    });
+pub extern "C" fn manderrow_agent_send_exit(code: i32, with_code: bool) {
+    if let Some(ipc) = ipc() {
+        _ = ipc.send(&C2SMessage::Exit {
+            code: if with_code { Some(code) } else { None },
+        });
+    }
 }
 
 #[repr(u8)]

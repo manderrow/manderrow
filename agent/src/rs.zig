@@ -18,7 +18,8 @@ pub const InitStatusCode = enum(u8) {
 };
 
 pub extern fn manderrow_agent_init(c2s_tx_ptr: ?[*]const u8, c2s_tx_len: usize, error_buf: *ErrorBuffer) InitStatusCode;
-pub extern fn manderrow_agent_deinit(send_exit: bool) void;
+
+pub extern fn manderrow_agent_send_exit(code: i32, with_code: bool) void;
 
 extern fn manderrow_agent_send_crash(msg_ptr: [*]const u8, msg_len: usize) void;
 

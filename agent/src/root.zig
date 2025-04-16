@@ -98,7 +98,7 @@ extern fn at_quick_exit(f: *const fn () callconv(.C) void) void;
 
 fn deinit_c() callconv(.C) void {
     // TODO: implement our own IPC that doesn't rely on thread locals so that this won't panic
-    rs.manderrow_agent_deinit(false);
+    // rs.manderrow_agent_send_exit(0, false);
 }
 
 fn entrypoint_linux_gnu(
@@ -219,11 +219,11 @@ const windows = struct {
         _,
     };
 
-    export fn DllMain(
+    noinline fn DllMain(
         hInstDll: std.os.windows.HINSTANCE,
         fdwReasonRaw: u32,
         _: std.os.windows.LPVOID,
-    ) callconv(.winapi) std.os.windows.BOOL {
+    ) std.os.windows.BOOL {
         const module: std.os.windows.HMODULE = @ptrCast(hInstDll);
 
         const fdwReason: FdwReason = @enumFromInt(fdwReasonRaw);
