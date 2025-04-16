@@ -204,11 +204,11 @@ pub async fn emit_instructions(
     // em.set_var("DOORSTOP_CLR_RUNTIME_CORECLR_PATH", "");
     // em.set_var("DOORSTOP_BOOT_CONFIG_OVERRIDE", "/path/to/boot.config");
 
-    let (doorstop_url, doorstop_hash, doorstop_suffix) = get_doorstop_url_and_hash(uses_proton)?;
-
     let doorstop_path = match doorstop_path {
         Some(t) => t,
         None => {
+            let (doorstop_url, doorstop_hash, doorstop_suffix) = get_doorstop_url_and_hash(uses_proton)?;
+
             fetch_resource_cached_by_hash(
                 // TODO: communicate via IPC
                 None,
