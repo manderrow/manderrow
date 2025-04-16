@@ -181,7 +181,7 @@ fn startAgent() void {
     switch (rs.manderrow_agent_init(if (args.c2s_tx) |s| s.ptr else null, if (args.c2s_tx) |s| s.len else 0, &error_buf)) {
         .Success => {},
         else => |_| {
-            crash.crash(&error_message_buf, null);
+            crash.crash(error_message_buf[0..error_buf.message_len], null);
         },
     }
 
