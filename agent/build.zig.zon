@@ -9,8 +9,8 @@
 
     .dependencies = .{
         .dll_proxy = .{
-            .url = "git+https://github.com/manderrow/dll-proxy.git#1c53ef18fd79b2bbd05ee771927e2d8ce7126f2d",
-            .hash = "dll_proxy-0.0.0-WDnws6EgAABzpzTVr3srv-YK5nNqSLmPPBm0zcKLjD8o",
+            .url = "git+https://github.com/manderrow/dll-proxy.git#b61517427d9b8d81e461c7eb5cd899fa9b192527",
+            .hash = "dll_proxy-0.0.0-WDnws2ghAAAEs-neQbWQ7FTaZQ4dsaBmKXYyilIPEn4G",
         },
     },
 
