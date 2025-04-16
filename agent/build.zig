@@ -127,8 +127,13 @@ fn createLib(
     });
 
     lib.step.dependOn(&cargo_build.step);
-    lib.addObjectFile(b.path(b.fmt("../crates/target/{s}/release/{s}", .{
-        rust_target, switch (target.result.abi) {
+    lib.addObjectFile(b.path(b.fmt("../crates/target/{s}/{s}/{s}", .{
+        rust_target,
+        switch (optimize) {
+            .Debug => "debug",
+            .ReleaseSafe, .ReleaseFast, .ReleaseSmall => "release",
+        },
+        switch (target.result.abi) {
             .msvc => "manderrow_agent_rs.lib",
             else => "libmanderrow_agent_rs.a",
         },
