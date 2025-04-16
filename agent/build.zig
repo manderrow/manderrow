@@ -60,6 +60,7 @@ fn createLib(
             "api-ms-win-core-winrt-error-l1-1-0",
             "api-ms-win-downlevel-ole32-l1-1-0",
             "oleaut32",
+            "propsys",
             "unwind",
             "userenv",
             "ws2_32",
