@@ -1,7 +1,9 @@
 const builtin = @import("builtin");
 const std = @import("std");
 
-const alloc = @import("root.zig").alloc;
+const root = @import("root.zig");
+const alloc = root.alloc;
+const logger = root.logger;
 
 const rs = @import("rs.zig");
 
@@ -12,6 +14,7 @@ pub fn forwardStdio() !void {
     switch (builtin.os.tag) {
         .windows => {
             real_stderr = std.fs.File{ .handle = GetStdHandlePtr(.err).* };
+
             const Channel = struct {
                 channel: rs.StandardOutputChannel,
                 id: StdHandle,
@@ -40,11 +43,12 @@ pub fn forwardStdio() !void {
             }
         },
         else => {
+            real_stderr = std.fs.File{ .handle = try std.posix.dup(std.posix.STDERR_FILENO) };
+
             const Channel = struct {
                 channel: rs.StandardOutputChannel,
                 fd: std.posix.fd_t,
             };
-            real_stderr = std.fs.File{ .handle = try std.posix.dup(std.posix.STDERR_FILENO) };
             inline for ([_]Channel{
                 .{ .channel = .out, .fd = std.posix.STDOUT_FILENO },
                 .{ .channel = .err, .fd = std.posix.STDERR_FILENO },
@@ -85,9 +89,7 @@ fn forwardFromPipe(channel: rs.StandardOutputChannel, pipe: std.fs.File) void {
         rdr.reader().streamUntilDelimiter(buf.writer(alloc), '\n', null) catch |e| switch (e) {
             error.EndOfStream => {},
             else => {
-                real_stderr_mutex.lock();
-                defer real_stderr_mutex.unlock();
-                std.fmt.format(real_stderr.?.writer(), "Error in stdio forwarder: {}", .{e}) catch {};
+                logger.err("Error in stdio forwarder: {}", .{e});
                 return;
             },
         };
@@ -102,6 +104,9 @@ fn forwardFromPipe(channel: rs.StandardOutputChannel, pipe: std.fs.File) void {
             continue;
         }
 
+        // forward stdout and stderr to our log file
+        root.logToFile(.info, @tagName(channel), "{s}", .{buf.items});
+
         // forward normally
         rs.sendOutputLine(channel, buf.items);
     }
@@ -115,6 +120,9 @@ fn tryForwardLineAsLogRecord(line: []const u8) bool {
 
     const scope = iter.next() orelse return false;
     const msg = iter.rest();
+
+    // forward other DLLs logging to our log file
+    root.logToFile(level, scope, "{s}", .{msg});
 
     rs.sendLog(level, scope, msg) catch return false;
 

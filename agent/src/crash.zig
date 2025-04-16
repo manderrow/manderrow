@@ -49,21 +49,19 @@ var crash_file_truncate = true;
 var crash_file_mutex = std.Thread.Mutex{};
 
 fn reportCrashToFile(msg: []const u8, ret_addr: ?usize) void {
-    var truncated: bool = undefined;
-
     // don't allow multiple threads to be dumping a crash at once
     crash_file_mutex.lock();
     defer crash_file_mutex.unlock();
 
-    truncated = crash_file_truncate;
+    const truncate = crash_file_truncate;
     crash_file_truncate = false;
 
     var file = std.fs.cwd().createFile("manderrow-agent-crash.txt", .{
-        .truncate = truncated,
+        .truncate = truncate,
     }) catch return;
     defer file.close();
 
-    if (!truncated) {
+    if (!truncate) {
         file.seekFromEnd(0) catch return;
         file.writeAll(
             \\
@@ -78,11 +76,11 @@ fn reportCrashToFile(msg: []const u8, ret_addr: ?usize) void {
 }
 
 fn reportCrashToStderr(msg: []const u8, ret_addr: ?usize) void {
-    stdio.real_stderr_mutex.lock();
-    defer stdio.real_stderr_mutex.unlock();
+    if (stdio.real_stderr != null) stdio.real_stderr_mutex.lock();
+    defer if (stdio.real_stderr != null) stdio.real_stderr_mutex.unlock();
 
-    std.debug.lockStdErr();
-    defer std.debug.unlockStdErr();
+    if (stdio.real_stderr == null) std.debug.lockStdErr();
+    defer if (stdio.real_stderr == null) std.debug.unlockStdErr();
 
     dumpCrashReport((stdio.real_stderr orelse std.io.getStdErr()).writer(), msg, ret_addr);
 }

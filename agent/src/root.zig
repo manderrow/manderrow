@@ -14,6 +14,7 @@ pub fn panic(msg: []const u8, error_return_trace: ?*std.builtin.StackTrace, ret_
 }
 
 var log_file: ?std.fs.File = null;
+var log_file_lock: std.Thread.Mutex.Recursive = .init;
 
 fn logFn(
     comptime message_level: std.log.Level,
@@ -21,26 +22,37 @@ fn logFn(
     comptime format: []const u8,
     args: anytype,
 ) void {
+    const level: rs.LogLevel = switch (message_level) {
+        .debug => .debug,
+        .info => .info,
+        .warn => .warn,
+        .err => .err,
+    };
+
+    logToFile(level, @tagName(scope), format, args);
+
+    var buf: std.ArrayListUnmanaged(u8) = .{};
+    defer buf.deinit(alloc);
+
+    dumpArgs(buf.writer(alloc)) catch return;
+    rs.sendLog(level, @tagName(scope), buf.items) catch return;
+}
+
+pub fn logToFile(
+    message_level: rs.LogLevel,
+    scope: []const u8,
+    comptime format: []const u8,
+    args: anytype,
+) void {
     if (log_file) |f| {
-        f.writer().print("{s} {s} ", .{ @tagName(message_level), @tagName(scope) }) catch {};
-        f.writer().print(format ++ "\n", args) catch {};
-    }
-
-    {
-        var buf = std.ArrayListUnmanaged(u8){};
-        defer buf.deinit(alloc);
-
-        dumpArgs(buf.writer(alloc)) catch {};
-        rs.sendLog(switch (message_level) {
-            .debug => .debug,
-            .info => .info,
-            .warn => .warn,
-            .err => .err,
-        }, @tagName(scope), buf.items) catch {};
+        log_file_lock.lock();
+        defer log_file_lock.unlock();
+        f.writer().print("{s} {s} ", .{ @tagName(message_level), scope }) catch return;
+        f.writer().print(format ++ "\n", args) catch return;
     }
 }
 
-const logger = std.log.scoped(.manderrow_agent);
+pub const logger = std.log.scoped(.manderrow_agent);
 
 pub const alloc = std.heap.smp_allocator;
 
