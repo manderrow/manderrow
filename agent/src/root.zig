@@ -31,11 +31,9 @@ fn logFn(
 
     logToFile(level, @tagName(scope), format, args);
 
-    var buf: std.ArrayListUnmanaged(u8) = .{};
-    defer buf.deinit(alloc);
-
-    dumpArgs(buf.writer(alloc)) catch return;
-    rs.sendLog(level, @tagName(scope), buf.items) catch return;
+    const buf = std.fmt.allocPrint(alloc, format, args) catch return;
+    defer alloc.free(buf);
+    rs.sendLog(level, @tagName(scope), buf) catch return;
 }
 
 pub fn logToFile(
