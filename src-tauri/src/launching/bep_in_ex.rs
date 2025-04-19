@@ -82,7 +82,7 @@ fn get_doorstop_url_and_hash(
     macro_rules! doorstop_artifact {
         ($artifact:literal, $suffix:literal, $hash:literal) => {
             (concat!(
-                "https://github.com/manderrow/UnityDoorstop/releases/download/v4.3.0%2Bmanderrow.10/",
+                "https://github.com/manderrow/UnityDoorstop/releases/download/v4.3.0%2Bmanderrow.11/",
                 $artifact,
                 $suffix
             ), $hash, $suffix)
@@ -94,20 +94,29 @@ fn get_doorstop_url_and_hash(
             ("linux", "x86_64", false) => doorstop_artifact!(
                 "libUnityDoorstop",
                 ".so",
-                "f08156875ac7b24c72f23f4d4eb03f8e4cae53c7a587148563b1cdec4d6542f2"
+                "e5dfd325d541ccb8ffe48589adcc63580d1e56e8411ba54790ac28f35cce59e6"
             ),
             ("linux", "x86", false) => todo!(),
             ("macos", "x86_64", false) => doorstop_artifact!(
                 "libUnityDoorstop",
                 ".dylib",
-                "8a2878d1ee305e8acf54c5c49854dd27d928286eeeac66e6553037964307f413"
+                "c0978c9c0e93ca8e5476f3163445ee9d7aa230b464431e346eca6f403e9020b2"
+            ),
+            ("macos", "aarch64", false) => doorstop_artifact!(
+                "libUnityDoorstop",
+                ".dylib",
+                "a30de38e686de7eb4af7d870c7cd3690b55568670cfa89e352d1e7b78bde6420"
             ),
             ("linux", "x86_64", true) | ("windows", "x86_64", false) => doorstop_artifact!(
                 "UnityDoorstop",
                 ".dll",
-                "e9bac59dbee4bc67a8226402153347a34dabb99d04afa452be848059829a0716"
+                "c7bb92512ab9896ec939d8a36a7df5e29ab79bc2a5823c7ee865522628e48644"
             ),
-            ("linux", "x86", true) | ("windows", "x86", false) => todo!(),
+            ("linux", "x86", true) | ("windows", "x86", false) => doorstop_artifact!(
+                "UnityDoorstop",
+                ".dll",
+                "58adf3c769da9473a2818f570b386f667e4fd560b588177a21c2808e4523c948"
+            ),
             (os, arch, uses_proton) => bail!(
                 "Unsupported platform combo: (os: {os:?}, arch: {arch:?}, uses_proton: {uses_proton})"
             ),
