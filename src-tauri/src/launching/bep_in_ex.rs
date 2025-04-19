@@ -1,4 +1,4 @@
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsString;
 use std::path::PathBuf;
 
 use anyhow::{bail, Result};
@@ -216,7 +216,8 @@ pub async fn emit_instructions(
     let doorstop_path = match doorstop_path {
         Some(t) => t,
         None => {
-            let (doorstop_url, doorstop_hash, doorstop_suffix) = get_doorstop_url_and_hash(uses_proton)?;
+            let (doorstop_url, doorstop_hash, doorstop_suffix) =
+                get_doorstop_url_and_hash(uses_proton)?;
 
             fetch_resource_cached_by_hash(
                 // TODO: communicate via IPC

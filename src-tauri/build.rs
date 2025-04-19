@@ -27,7 +27,10 @@ fn main() {
     );
     println!("cargo::rerun-if-changed={:?}", root_dir.join("agent/src"));
     // if the output file changes, re-run to make sure we use the right version
-    println!("cargo::rerun-if-changed={:?}", root_dir.join("agent/zig-out/libmanderrow_agent"));
+    println!(
+        "cargo::rerun-if-changed={:?}",
+        root_dir.join("agent/zig-out/libmanderrow_agent")
+    );
     println!(
         "cargo::rerun-if-changed={:?}",
         crates_dir.join("Cargo.toml")
