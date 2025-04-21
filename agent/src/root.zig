@@ -6,6 +6,7 @@ const crash = @import("crash.zig");
 pub const std_options: std.Options = .{
     .log_level = .debug,
     .logFn = logFn,
+    .enable_segfault_handler = false,
 };
 
 pub fn panic(msg: []const u8, error_return_trace: ?*std.builtin.StackTrace, ret_addr: ?usize) noreturn {
