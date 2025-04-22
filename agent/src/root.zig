@@ -261,7 +261,7 @@ fn interpret_instructions(instructions: []const Args.Instruction) void {
                 logger.debug("Loading library from \"{}\"", .{std.zig.fmtEscapes(ll.path)});
                 switch (builtin.os.tag) {
                     .windows => {
-                        var buf: [std.os.windows.MAX_PATH:0]u16 = undefined;
+                        var buf: [std.os.windows.PATH_MAX_WIDE:0]u16 = undefined;
                         const n = wtf8ToWtf16LeZChecked(&buf, ll.path) catch |e| switch (e) {
                             error.InvalidWtf8 => @panic("Invalid --insn-load-library path: invalid WTF-8"),
                             error.Overflow => @panic("Invalid --insn-load-library path: too long"),
