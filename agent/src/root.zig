@@ -173,19 +173,7 @@ fn startAgent() void {
 
     logger.debug("Parsed arguments", .{});
 
-    var error_message_buf: [4096]u8 = undefined;
-    var error_buf: rs.ErrorBuffer = .{
-        .errno = 0,
-        .message_buf = &error_message_buf,
-        .message_len = error_message_buf.len,
-    };
-    switch (rs.manderrow_agent_init(if (args.c2s_tx) |s| s.ptr else null, if (args.c2s_tx) |s| s.len else 0, &error_buf)) {
-        .Success => {},
-        else => |_| {
-            crash.crash(error_message_buf[0..error_buf.message_len], null);
-        },
-    }
-
+    startIpc(args.c2s_tx);
     logger.debug("Ran Rust-side init", .{});
 
     logger.info("Agent started", .{});
@@ -209,6 +197,21 @@ fn startAgent() void {
     interpret_instructions(args.instructions);
 
     logger.debug("Interpreted instructions", .{});
+}
+
+fn startIpc(c2s_tx: ?[]const u8) void {
+    var error_message_buf: [4096]u8 = undefined;
+    var error_buf: rs.ErrorBuffer = .{
+        .errno = 0,
+        .message_buf = &error_message_buf,
+        .message_len = error_message_buf.len,
+    };
+    switch (rs.manderrow_agent_init(if (c2s_tx) |s| s.ptr else null, if (c2s_tx) |s| s.len else 0, &error_buf)) {
+        .Success => {},
+        else => |_| {
+            crash.crash(error_message_buf[0..error_buf.message_len], null);
+        },
+    }
 }
 
 const windows = struct {
