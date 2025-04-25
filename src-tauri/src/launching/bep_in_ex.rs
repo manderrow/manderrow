@@ -92,28 +92,28 @@ fn get_doorstop_url_and_hash(
     Ok(
         match (std::env::consts::OS, std::env::consts::ARCH, uses_proton) {
             ("linux", "x86_64", false) => doorstop_artifact!(
-                "libUnityDoorstop",
+                "libUnityDoorstop_x86_64",
                 ".so",
                 "e5dfd325d541ccb8ffe48589adcc63580d1e56e8411ba54790ac28f35cce59e6"
             ),
             ("linux", "x86", false) => todo!(),
             ("macos", "x86_64", false) => doorstop_artifact!(
-                "libUnityDoorstop",
+                "libUnityDoorstop_x86_64",
                 ".dylib",
                 "c0978c9c0e93ca8e5476f3163445ee9d7aa230b464431e346eca6f403e9020b2"
             ),
             ("macos", "aarch64", false) => doorstop_artifact!(
-                "libUnityDoorstop",
+                "libUnityDoorstop_aarch64",
                 ".dylib",
                 "a30de38e686de7eb4af7d870c7cd3690b55568670cfa89e352d1e7b78bde6420"
             ),
             ("linux", "x86_64", true) | ("windows", "x86_64", false) => doorstop_artifact!(
-                "UnityDoorstop",
+                "UnityDoorstop_x86_64",
                 ".dll",
                 "c7bb92512ab9896ec939d8a36a7df5e29ab79bc2a5823c7ee865522628e48644"
             ),
             ("linux", "x86", true) | ("windows", "x86", false) => doorstop_artifact!(
-                "UnityDoorstop",
+                "UnityDoorstop_x86",
                 ".dll",
                 "58adf3c769da9473a2818f570b386f667e4fd560b588177a21c2808e4523c948"
             ),
