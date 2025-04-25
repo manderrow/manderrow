@@ -255,19 +255,26 @@ fn wtf8ToWtf16LeZChecked(wtf16le: [:0]u16, wtf8: []const u8) error{ InvalidWtf8,
 }
 
 fn interpret_instructions(instructions: []const Args.Instruction) void {
+    const PathBuf = if (builtin.os.tag == .windows) [std.os.windows.PATH_MAX_WIDE:0]u16 else void;
+    var path_buf: if (builtin.os.tag == .windows) ?*PathBuf else void = if (builtin.os.tag == .windows) null;
+    defer if (builtin.os.tag == .windows) if (path_buf) |buf| alloc.destroy(buf);
     for (instructions) |insn| {
         switch (insn) {
             .load_library => |ll| {
                 logger.debug("Loading library from \"{}\"", .{std.zig.fmtEscapes(ll.path)});
                 switch (builtin.os.tag) {
                     .windows => {
-                        var buf: [std.os.windows.PATH_MAX_WIDE:0]u16 = undefined;
-                        const n = wtf8ToWtf16LeZChecked(&buf, ll.path) catch |e| switch (e) {
+                        const buf = path_buf orelse blk: {
+                            const buf = alloc.create(PathBuf) catch @panic("Out of memory");
+                            path_buf = buf;
+                            break :blk buf;
+                        };
+                        const n = wtf8ToWtf16LeZChecked(buf, ll.path) catch |e| switch (e) {
                             error.InvalidWtf8 => @panic("Invalid --insn-load-library path: invalid WTF-8"),
                             error.Overflow => @panic("Invalid --insn-load-library path: too long"),
                         };
-                        std.debug.assert(std.mem.len(@as([*:0]const u16, &buf)) == n);
-                        if (std.os.windows.kernel32.LoadLibraryW(&buf) == null) {
+                        std.debug.assert(std.mem.len(@as([*:0]const u16, buf)) == n);
+                        if (std.os.windows.kernel32.LoadLibraryW(buf) == null) {
                             util.windows.panicWindowsError("LoadLibraryW");
                         }
                     },
