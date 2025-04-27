@@ -581,14 +581,28 @@ pub async fn fetch_resource_cached_by_hash(
     suffix: &str,
     task_id: Option<tasks::Id>,
 ) -> Result<PathBuf> {
+    let mut path = cache_dir().join(hash_str);
+    path.as_mut_os_string().push(suffix);
+
+    fetch_resource_cached_by_hash_at_path(app, log, reqwest, url, hash_str, &path, task_id).await?;
+    Ok(path)
+}
+
+pub async fn fetch_resource_cached_by_hash_at_path(
+    app: Option<&AppHandle>,
+    log: &slog::Logger,
+    reqwest: &Reqwest,
+    url: &str,
+    hash_str: &str,
+    path: &Path,
+    task_id: Option<tasks::Id>,
+) -> Result<()> {
     TaskBuilder::with_id(task_id.unwrap_or_else(tasks::allocate_task), url.to_owned())
         .kind(tasks::Kind::Download)
         .progress_unit(tasks::ProgressUnit::Bytes)
         .run_with_handle(app, |handle| async move {
             debug!(log, "Fetching resource from {url:?} cached by hash");
 
-            let mut path = cache_dir().join(hash_str);
-            path.as_mut_os_string().push(suffix);
             let hash = blake3::Hash::from_hex(hash_str)?;
             let hash_on_disk = {
                 let mut hsr = blake3::Hasher::new();
@@ -629,7 +643,7 @@ pub async fn fetch_resource_cached_by_hash(
                 let metadata = tokio::fs::metadata(&path).await?;
                 report_progress_from_file_metadata(app, handle, metadata)?;
             }
-            Ok::<_, anyhow::Error>(path)
+            Ok::<_, anyhow::Error>(())
         })
         .await
         .map_err(Into::into)

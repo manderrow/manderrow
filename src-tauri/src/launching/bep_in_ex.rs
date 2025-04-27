@@ -5,7 +5,7 @@ use anyhow::{bail, Result};
 use tempfile::tempdir;
 use uuid::Uuid;
 
-use crate::installing::{fetch_resource_cached_by_hash, install_zip};
+use crate::installing::{fetch_resource_cached_by_hash_at_path, install_zip};
 use crate::profiles::{profile_path, MODS_FOLDER};
 use crate::Reqwest;
 
@@ -76,16 +76,26 @@ fn get_ci_url(uses_proton: bool) -> Result<&'static str> {
     )
 }
 
-fn get_doorstop_url_and_hash(
-    uses_proton: bool,
-) -> Result<(&'static str, &'static str, &'static str)> {
+struct DoorstopArtifact {
+    url: &'static str,
+    hash: &'static str,
+    suffix: &'static str,
+    pdb_hash: Option<&'static str>,
+}
+
+fn get_doorstop_url_and_hash(uses_proton: bool) -> Result<DoorstopArtifact> {
     macro_rules! doorstop_artifact {
-        ($artifact:literal, $suffix:literal, $hash:literal) => {
-            (concat!(
-                "https://github.com/manderrow/UnityDoorstop/releases/download/v4.3.0%2Bmanderrow.11/",
-                $artifact,
-                $suffix
-            ), $hash, $suffix)
+        ($artifact:literal, $suffix:literal, $hash:literal, pdb_hash=$pdb_hash:expr) => {
+            DoorstopArtifact {
+                url: concat!(
+                    "https://github.com/manderrow/UnityDoorstop/releases/download/v4.3.0%2Bmanderrow.12/",
+                    $artifact,
+                    $suffix,
+                ),
+                hash: $hash,
+                suffix: $suffix,
+                pdb_hash: $pdb_hash,
+            }
         };
     }
 
@@ -94,28 +104,33 @@ fn get_doorstop_url_and_hash(
             ("linux", "x86_64", false) => doorstop_artifact!(
                 "libUnityDoorstop_x86_64",
                 ".so",
-                "e5dfd325d541ccb8ffe48589adcc63580d1e56e8411ba54790ac28f35cce59e6"
+                "d2c7fffbf285b531d80e29b39b17b014d63ed2711d9c2c86dab5aebe9cb610ee",
+                pdb_hash=None
             ),
             ("linux", "x86", false) => todo!(),
             ("macos", "x86_64", false) => doorstop_artifact!(
                 "libUnityDoorstop_x86_64",
                 ".dylib",
-                "c0978c9c0e93ca8e5476f3163445ee9d7aa230b464431e346eca6f403e9020b2"
+                "8bbac3fba744aad6d1496a5566a7ade977c0f611b37ef3f30b4ad7c2e597b0ef",
+                pdb_hash=None
             ),
             ("macos", "aarch64", false) => doorstop_artifact!(
                 "libUnityDoorstop_aarch64",
                 ".dylib",
-                "a30de38e686de7eb4af7d870c7cd3690b55568670cfa89e352d1e7b78bde6420"
+                "73a01a38e2d5169a8642f016142b98b94814927b0e40460e06c3a1b296431393",
+                pdb_hash=None
             ),
             ("linux", "x86_64", true) | ("windows", "x86_64", false) => doorstop_artifact!(
                 "UnityDoorstop_x86_64",
                 ".dll",
-                "c7bb92512ab9896ec939d8a36a7df5e29ab79bc2a5823c7ee865522628e48644"
+                "6f3a88d24030ea8e1f76bd1f069ec2bc6a8e47c961ec629844576059e1f3e5b2",
+                pdb_hash=Some("92d461f1b049229e57a2112e832ce7043898201de84e5325eab22723ecb528d9")
             ),
             ("linux", "x86", true) | ("windows", "x86", false) => doorstop_artifact!(
                 "UnityDoorstop_x86",
                 ".dll",
-                "58adf3c769da9473a2818f570b386f667e4fd560b588177a21c2808e4523c948"
+                "5a8076b745234a03a0c406c3e94005d6ed6a12171e9a79ae47d32f550fd9c0fb",
+                pdb_hash=Some("97f220e8520e81b34b7852f7c56e9dc8683ebd84ceabbc21172135ccb3f6182b")
             ),
             (os, arch, uses_proton) => bail!(
                 "Unsupported platform combo: (os: {os:?}, arch: {arch:?}, uses_proton: {uses_proton})"
@@ -216,20 +231,58 @@ pub async fn emit_instructions(
     let doorstop_path = match doorstop_path {
         Some(t) => t,
         None => {
-            let (doorstop_url, doorstop_hash, doorstop_suffix) =
-                get_doorstop_url_and_hash(uses_proton)?;
+            let DoorstopArtifact {
+                url,
+                hash,
+                suffix,
+                pdb_hash,
+            } = get_doorstop_url_and_hash(uses_proton)?;
 
-            fetch_resource_cached_by_hash(
+            let mut path = manderrow_paths::cache_dir().join(hash);
+
+            match tokio::fs::create_dir(&path).await {
+                Ok(()) => {}
+                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {}
+                Err(e) => return Err(e.into()),
+            }
+
+            path.push(hash);
+
+            if let Some(pdb_hash) = pdb_hash {
+                path.as_mut_os_string().push(".pdb");
+
+                fetch_resource_cached_by_hash_at_path(
+                    // TODO: communicate via IPC
+                    None,
+                    log,
+                    &Reqwest(reqwest::Client::new()),
+                    url,
+                    pdb_hash,
+                    &path,
+                    None,
+                )
+                .await?;
+
+                let len = path.as_mut_os_string().len();
+                path.as_mut_os_string()
+                    .truncate(len - 4);
+            }
+
+            path.as_mut_os_string().push(suffix);
+
+            fetch_resource_cached_by_hash_at_path(
                 // TODO: communicate via IPC
                 None,
                 log,
                 &Reqwest(reqwest::Client::new()),
-                doorstop_url,
-                doorstop_hash,
-                doorstop_suffix,
+                url,
+                hash,
+                &path,
                 None,
             )
-            .await?
+            .await?;
+
+            path
         }
     };
 
