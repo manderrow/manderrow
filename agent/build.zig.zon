@@ -5,7 +5,7 @@
 
     .fingerprint = 0x976fd25251d885f2, // Changing this has security and trust implications.
 
-    .minimum_zig_version = "0.14.0",
+    .minimum_zig_version = "0.15.0-dev.386+2e35fdd03",
 
     .dependencies = .{
         .dll_proxy = .{
