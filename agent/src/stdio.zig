@@ -13,7 +13,7 @@ pub var real_stderr_mutex = std.Thread.Mutex.Recursive.init;
 pub fn forwardStdio() !void {
     switch (builtin.os.tag) {
         .windows => {
-            real_stderr = std.fs.File{ .handle = GetStdHandlePtr(.err).* };
+            real_stderr = .{ .handle = GetStdHandlePtr(.err).* };
 
             const Channel = struct {
                 channel: rs.StandardOutputChannel,
@@ -43,7 +43,7 @@ pub fn forwardStdio() !void {
             }
         },
         else => {
-            real_stderr = std.fs.File{ .handle = try std.posix.dup(std.posix.STDERR_FILENO) };
+            real_stderr = .{ .handle = try std.posix.dup(std.posix.STDERR_FILENO) };
 
             const Channel = struct {
                 channel: rs.StandardOutputChannel,
@@ -81,7 +81,7 @@ fn GetStdHandlePtr(handle_id: StdHandle) *std.os.windows.HANDLE {
 fn forwardFromPipe(channel: rs.StandardOutputChannel, pipe: std.fs.File) void {
     defer pipe.close();
     var rdr = std.io.bufferedReader(pipe.reader());
-    var buf = std.ArrayListUnmanaged(u8){};
+    var buf: std.ArrayListUnmanaged(u8) = .empty;
     defer buf.deinit(alloc);
     while (true) {
         defer buf.clearRetainingCapacity();

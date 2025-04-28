@@ -46,7 +46,7 @@ fn dumpCrashReport(writer: anytype, msg: []const u8, ret_addr: ?usize) void {
 }
 
 var crash_file_truncate = true;
-var crash_file_mutex = std.Thread.Mutex{};
+var crash_file_mutex: std.Thread.Mutex = .{};
 
 fn reportCrashToFile(msg: []const u8, ret_addr: ?usize) void {
     // don't allow multiple threads to be dumping a crash at once

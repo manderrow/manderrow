@@ -178,7 +178,7 @@ fn startAgent() void {
 
     logger.info("Agent started", .{});
     {
-        var buf = std.ArrayListUnmanaged(u8){};
+        var buf: std.ArrayListUnmanaged(u8) = .empty;
         defer buf.deinit(alloc);
 
         dumpArgs(buf.writer(alloc)) catch {};

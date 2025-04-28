@@ -13,7 +13,7 @@ pub fn extract() !@This() {
     var args = try std.process.argsWithAllocator(alloc);
 
     var enabled = false;
-    var instructions = std.ArrayListUnmanaged(Instruction){};
+    var instructions: std.ArrayListUnmanaged(Instruction) = .empty;
     errdefer instructions.deinit(alloc);
     var c2s_tx: ?[:0]const u8 = null;
 
