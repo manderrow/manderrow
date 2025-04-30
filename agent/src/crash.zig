@@ -56,9 +56,16 @@ fn reportCrashToFile(msg: []const u8, ret_addr: ?usize) void {
     const truncate = crash_file_truncate;
     crash_file_truncate = false;
 
-    var file = std.fs.cwd().createFile("manderrow-agent-crash.txt", .{
-        .truncate = truncate,
-    }) catch return;
+    const paths = @import("paths.zig");
+    const logs_dir = paths.getOrInitLogsDir(null);
+    var file = switch (builtin.os.tag) {
+        .windows => logs_dir.createFileW(&paths.logFileName("crash").data, .{
+            .truncate = false,
+        }),
+        else => logs_dir.createFileZ(&paths.logFileName("crash").data, .{
+            .truncate = false,
+        }),
+    } catch return;
     defer file.close();
 
     if (!truncate) {

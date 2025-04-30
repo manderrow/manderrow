@@ -2,7 +2,10 @@ const builtin = @import("builtin");
 const std = @import("std");
 
 const alloc = @import("root.zig").alloc;
+const openOrCreateDir = @import("paths.zig").openOrCreateDir;
 
+log_to_file: bool,
+logs_dir: ?std.fs.Dir,
 c2s_tx: ?[:0]const u8,
 instructions: []Instruction,
 
@@ -17,6 +20,9 @@ pub fn extract() !@This() {
     errdefer instructions.deinit(alloc);
     var c2s_tx: ?[:0]const u8 = null;
 
+    var log_to_file = false;
+    var logs_dir: ?std.fs.Dir = null;
+
     var extracting = false;
     while (args.next()) |arg| {
         if (extracting) {
@@ -24,6 +30,8 @@ pub fn extract() !@This() {
                 @"{manderrow",
                 @"manderrow}",
                 @"--enable",
+                @"--log-to-file",
+                @"--logs-dir",
                 @"--c2s-tx",
                 @"--insn-load-library",
                 @"--insn-set-var",
@@ -35,6 +43,11 @@ pub fn extract() !@This() {
                 .@"{manderrow" => return error.UnbalancedArgumentDelimiter,
                 .@"manderrow}" => extracting = false,
                 .@"--enable" => enabled = true,
+                .@"--log-to-file" => log_to_file = true,
+                .@"--logs-dir" => {
+                    const path = args.next() orelse return error.MissingOptionValue;
+                    logs_dir = try @import("paths.zig").openOrCreateDir(u8, std.fs.cwd(), path);
+                },
                 .@"--c2s-tx" => {
                     c2s_tx = args.next() orelse return error.MissingOptionValue;
                     if (!std.unicode.utf8ValidateSlice(c2s_tx.?)) {
@@ -82,6 +95,8 @@ pub fn extract() !@This() {
     }
 
     return .{
+        .log_to_file = log_to_file,
+        .logs_dir = logs_dir,
         .c2s_tx = c2s_tx,
         .instructions = try instructions.toOwnedSlice(alloc),
 

@@ -2,6 +2,7 @@ const builtin = @import("builtin");
 const std = @import("std");
 
 const crash = @import("crash.zig");
+const paths = @import("paths.zig");
 
 pub const std_options: std.Options = .{
     .log_level = .debug,
@@ -125,8 +126,6 @@ fn entrypoint(module: if (builtin.os.tag == .windows) std.os.windows.HMODULE els
     if (builtin.is_test)
         return;
 
-    log_file = std.fs.cwd().createFile("manderrow-agent.log", .{}) catch null;
-
     logger.debug("Agent pre-started", .{});
 
     std.debug.attachSegfaultHandler();
@@ -165,11 +164,21 @@ fn entrypoint(module: if (builtin.os.tag == .windows) std.os.windows.HMODULE els
 }
 
 fn startAgent() void {
+    paths.start_time = std.time.milliTimestamp();
+
     var args = Args.extract() catch |e| switch (e) {
         error.Disabled => return,
         else => std.debug.panic("{}", .{e}),
     };
     defer args.deinit();
+
+    if (args.log_to_file) {
+        const logs_dir = paths.getOrInitLogsDir(args.logs_dir);
+        log_file = switch (builtin.os.tag) {
+            .windows => logs_dir.createFileW(&paths.logFileName("log").data, .{}) catch null,
+            else => logs_dir.createFileZ(&paths.logFileName("log").data, .{}) catch null,
+        };
+    }
 
     logger.debug("Parsed arguments", .{});
 
