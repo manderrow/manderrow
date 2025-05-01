@@ -10,8 +10,12 @@ pub fn build(b: *std.Build) !void {
         .ReleaseSafe, .ReleaseFast, .ReleaseSmall => true,
     };
 
+    const build_zig_zon = b.createModule(.{
+        .root_source_file = b.path("build.zig.zon"),
+    });
+
     {
-        const lib = try createLib(b, target, optimize, strip);
+        const lib = try createLib(b, target, optimize, strip, build_zig_zon);
 
         b.getInstallStep().dependOn(&b.addInstallArtifact(lib.compile, .{
             .dest_dir = .{ .override = .lib },
@@ -36,7 +40,7 @@ pub fn build(b: *std.Build) !void {
         b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .macos }),
         b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .windows, .abi = .gnu }),
     }) |target_2| {
-        const lib_2 = try createLib(b, target_2, optimize, strip);
+        const lib_2 = try createLib(b, target_2, optimize, strip, build_zig_zon);
         build_all_step.dependOn(&b.addInstallArtifact(lib_2.compile, .{
             .dest_dir = .{ .override = .lib },
         }).step);
@@ -48,6 +52,7 @@ fn createLib(
     target: std.Build.ResolvedTarget,
     optimize: std.builtin.OptimizeMode,
     strip: bool,
+    build_zig_zon: *std.Build.Module,
 ) !struct { mod: *std.Build.Module, compile: *std.Build.Step.Compile } {
     const lib_mod = b.createModule(.{
         .root_source_file = b.path("src/root.zig"),
@@ -71,6 +76,8 @@ fn createLib(
             lib_mod.linkSystemLibrary(lib_name, .{});
         }
     }
+
+    lib_mod.addImport("build.zig.zon", build_zig_zon);
 
     const dll_proxy_dep = b.dependency("dll_proxy", .{
         .target = target,

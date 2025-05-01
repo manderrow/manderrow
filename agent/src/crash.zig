@@ -1,6 +1,8 @@
 const builtin = @import("builtin");
 const std = @import("std");
 
+const build_zig_zon = @import("build.zig.zon");
+
 const rs = @import("rs.zig");
 const stdio = @import("stdio.zig");
 
@@ -43,6 +45,31 @@ fn dumpCrashReport(writer: anytype, msg: []const u8, ret_addr: ?usize) void {
         writer.print("Unable to dump stack trace: {s}\n", .{@errorName(err)}) catch return;
         return;
     };
+    writer.print(std.fmt.comptimePrint(
+        \\
+        \\Version: {s}
+        \\
+    , .{build_zig_zon.version}), .{}) catch return;
+    if (hashSelfExe() catch |e| blk: {
+        writer.print("Binary hash: error {}", .{e}) catch return;
+        break :blk null;
+    }) |hash| {
+        writer.print("Binary hash: {}", .{std.fmt.fmtSliceHexLower(&hash)}) catch return;
+    }
+}
+
+fn hashSelfExe() ![32]u8 {
+    var f = try std.fs.openSelfExe(.{});
+    var hsr = std.crypto.hash.Blake3.init(.{});
+    var buf: [4096]u8 = undefined;
+    while (true) {
+        const n = try f.read(&buf);
+        if (n == 0) break;
+        hsr.update(buf[0..n]);
+    }
+    var hash: [32]u8 = undefined;
+    hsr.final(&hash);
+    return hash;
 }
 
 var crash_file_truncate = true;
