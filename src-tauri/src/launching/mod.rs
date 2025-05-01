@@ -124,7 +124,7 @@ pub async fn launch_profile(
                 {
                     AgentSource::Embedded(include_bytes!(concat!(
                         std::env!("CARGO_MANIFEST_DIR"),
-                        "/../crates/target/x86_64-pc-windows-gnu/release/manderrow_agent.dll"
+                        "/../agent/zig-out/lib/manderrow_agent.dll"
                     )))
                 }
                 #[cfg(not(target_os = "linux"))]
