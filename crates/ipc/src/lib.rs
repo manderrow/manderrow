@@ -6,7 +6,6 @@ pub mod client;
 #[cfg(feature = "doctor")]
 pub mod doctor;
 
-pub use bincode;
 pub use ipc_channel;
 
 use std::collections::HashMap;
@@ -15,7 +14,7 @@ use std::num::NonZeroU32;
 
 use uuid::Uuid;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash, bincode::Decode, bincode::Encode)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum SafeOsString {
     Unicode(String),
@@ -43,14 +42,14 @@ impl From<OsString> for SafeOsString {
     }
 }
 
-#[derive(Debug, Clone, Copy, bincode::Decode, bincode::Encode)]
+#[derive(Debug, Clone, Copy, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum StandardOutputChannel {
     Out,
     Err,
 }
 
-#[derive(Debug, Clone, bincode::Decode, bincode::Encode)]
+#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum OutputLine {
     Unicode(String),
@@ -65,7 +64,7 @@ impl OutputLine {
     }
 }
 
-#[derive(Debug, Clone, bincode::Decode, bincode::Encode)]
+#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct DoctorFix<T> {
     pub id: T,
@@ -74,49 +73,17 @@ pub struct DoctorFix<T> {
     pub description: Option<HashMap<String, String>>,
 }
 
-#[derive(Debug, Clone)]
-#[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
-#[cfg_attr(feature = "serde", serde(transparent))]
-pub struct UuidWrapper(pub Uuid);
-
-impl<C> bincode::Decode<C> for UuidWrapper {
-    fn decode<D: bincode::de::Decoder<Context = C>>(
-        decoder: &mut D,
-    ) -> Result<Self, bincode::error::DecodeError> {
-        let bytes = bincode::Decode::decode(decoder)?;
-        Ok(Self(Uuid::from_bytes(bytes)))
-    }
-}
-
-impl<'de, C> bincode::BorrowDecode<'de, C> for UuidWrapper {
-    fn borrow_decode<D: bincode::de::BorrowDecoder<'de, Context = C>>(
-        decoder: &mut D,
-    ) -> Result<Self, bincode::error::DecodeError> {
-        let bytes = bincode::BorrowDecode::borrow_decode(decoder)?;
-        Ok(Self(Uuid::from_bytes(bytes)))
-    }
-}
-
-impl bincode::Encode for UuidWrapper {
-    fn encode<E: bincode::enc::Encoder>(
-        &self,
-        encoder: &mut E,
-    ) -> Result<(), bincode::error::EncodeError> {
-        self.0.as_bytes().encode(encoder)
-    }
-}
-
-#[derive(Debug, Clone, bincode::Decode, bincode::Encode)]
+#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub struct DoctorReport {
-    pub id: UuidWrapper,
+    pub id: Uuid,
     pub translation_key: String,
     pub message: Option<String>,
     pub message_args: Option<HashMap<String, String>>,
     pub fixes: Vec<DoctorFix<String>>,
 }
 
-#[derive(Debug, Copy, Clone, bincode::Decode, bincode::Encode)]
+#[derive(Debug, Copy, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "SCREAMING_SNAKE_CASE"))]
 pub enum LogLevel {
@@ -142,7 +109,7 @@ impl From<slog::Level> for LogLevel {
     }
 }
 
-#[derive(Debug, Clone, bincode::Decode, bincode::Encode)]
+#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum C2SMessage {
     Connect {
@@ -172,9 +139,9 @@ pub enum C2SMessage {
     DoctorReport(DoctorReport),
 }
 
-#[derive(Debug, Clone, bincode::Decode, bincode::Encode)]
+#[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum S2CMessage {
     Connect,
-    PatientResponse { id: UuidWrapper, choice: String },
+    PatientResponse { id: Uuid, choice: String },
 }

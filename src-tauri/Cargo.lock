@@ -2294,17 +2294,19 @@ dependencies = [
 [[package]]
 name = "ipc-channel"
 version = "0.19.0"
-source = "git+https://github.com/manderrow/ipc-channel#64258fd8946516658c4cd45eb264f3528e495de1"
+source = "git+https://github.com/manderrow/ipc-channel#ec9f42929c202097bc805e8143c358c4199c70bf"
 dependencies = [
- "bincode",
+ "bytecheck",
  "fnv",
  "libc",
  "mio",
  "rand 0.9.0",
+ "rkyv",
  "rustix 1.0.5",
  "tempfile",
+ "thiserror 2.0.12",
  "uuid",
- "windows 0.58.0",
+ "windows 0.61.1",
 ]
 
 [[package]]
@@ -2701,8 +2703,8 @@ dependencies = [
 name = "manderrow-ipc"
 version = "0.1.0"
 dependencies = [
- "bincode",
  "ipc-channel",
+ "rkyv",
  "serde",
  "serde_json",
  "slog",
@@ -2734,8 +2736,8 @@ name = "manderrow-process-util"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "bincode",
  "itoa 1.0.15",
+ "rkyv",
  "rustix 1.0.5",
  "serde",
  "slog",

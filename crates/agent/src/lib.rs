@@ -173,7 +173,7 @@ fn connect_ipc(c2s_tx: &str) -> Result<(), ConnectIpcError> {
         IpcOneShotServer::<S2CMessage>::new().map_err(ConnectIpcError::CreateS2CError)?;
     let pid = std::process::id();
     c2s_tx
-        .send(C2SMessage::Connect {
+        .send(&C2SMessage::Connect {
             s2c_tx,
             pid: NonZeroU32::new(pid).ok_or(ConnectIpcError::InvalidPid)?,
         })

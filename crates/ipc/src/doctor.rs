@@ -4,7 +4,7 @@ use std::ops::ControlFlow;
 
 use uuid::Uuid;
 
-use crate::{C2SMessage, DoctorFix, DoctorReport, S2CMessage, UuidWrapper};
+use crate::{C2SMessage, DoctorFix, DoctorReport, S2CMessage};
 
 pub struct PatientChoiceReceiver<T> {
     id: Uuid,
@@ -37,7 +37,7 @@ impl<T: serde::Serialize> PatientChoiceReceiver<T> {
                 _marker: PhantomData,
             },
             C2SMessage::DoctorReport(DoctorReport {
-                id: UuidWrapper(id),
+                id,
                 translation_key,
                 message,
                 message_args,
@@ -59,7 +59,7 @@ impl<T: serde::de::DeserializeOwned> PatientChoiceReceiver<T> {
             S2CMessage::PatientResponse {
                 id: resp_id,
                 choice,
-            } if resp_id.0 == self.id => Ok(ControlFlow::Break(
+            } if resp_id == self.id => Ok(ControlFlow::Break(
                 serde_json::from_value(serde_json::Value::String(choice))
                     .map_err(PromptError::Decode)?,
             )),

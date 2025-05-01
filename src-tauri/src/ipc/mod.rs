@@ -26,8 +26,9 @@ pub const EVENT_NAME: &str = "ipc_message";
     Hash,
     serde::Serialize,
     serde::Deserialize,
-    bincode::Encode,
-    bincode::Decode,
+    rkyv::Archive,
+    rkyv::Serialize,
+    rkyv::Deserialize,
 )]
 #[serde(transparent)]
 pub struct ConnectionId(u64);
@@ -74,7 +75,7 @@ impl IpcConnection {
                 let s2c_tx = conn.s2c_tx.clone();
                 drop(state);
                 tokio::task::spawn_blocking(move || {
-                    s2c_tx.send(msg).map_err(SendError::ExternalSendError)
+                    s2c_tx.send(&msg).map_err(SendError::ExternalSendError)
                 })
                 .await
                 .expect("task panicked")
@@ -133,6 +134,7 @@ enum IpcConnectionState {
     External(ExternalIpcConnection),
 }
 
+#[derive(rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 enum ManagementEvent {
     ExternalRegistration {
         id: ConnectionId,
@@ -143,65 +145,6 @@ enum ManagementEvent {
     Death {
         id: ConnectionId,
     },
-}
-
-impl bincode::Encode for ManagementEvent {
-    fn encode<E: bincode::enc::Encoder>(
-        &self,
-        encoder: &mut E,
-    ) -> std::result::Result<(), bincode::error::EncodeError> {
-        match self {
-            ManagementEvent::ExternalRegistration {
-                id,
-                c2s_rx,
-                s2c_tx,
-                pid,
-            } => {
-                0u8.encode(encoder)?;
-                id.encode(encoder)?;
-                c2s_rx.encode(encoder)?;
-                s2c_tx.encode(encoder)?;
-                pid.encode(encoder)?;
-                Ok(())
-            }
-            ManagementEvent::Death { id } => {
-                1u8.encode(encoder)?;
-                id.encode(encoder)?;
-                Ok(())
-            }
-        }
-    }
-}
-
-impl bincode::Decode<ipc_channel::ipc::Context> for ManagementEvent {
-    fn decode<D: bincode::de::Decoder<Context = ipc_channel::ipc::Context>>(
-        decoder: &mut D,
-    ) -> std::result::Result<Self, bincode::error::DecodeError> {
-        use bincode::Decode;
-        match u8::decode(decoder)? {
-            0 => {
-                let id = Decode::decode(decoder)?;
-                let c2s_rx = Decode::decode(decoder)?;
-                let s2c_tx = Decode::decode(decoder)?;
-                let pid = Decode::decode(decoder)?;
-                Ok(Self::ExternalRegistration {
-                    id,
-                    c2s_rx,
-                    s2c_tx,
-                    pid,
-                })
-            }
-            1 => {
-                let id = Decode::decode(decoder)?;
-                Ok(Self::Death { id })
-            }
-            tag => Err(bincode::error::DecodeError::UnexpectedVariant {
-                type_name: "ManagementEvent",
-                allowed: const { &bincode::error::AllowedEnumVariants::Range { min: 0, max: 1 } },
-                found: tag.into(),
-            }),
-        }
-    }
 }
 
 #[derive(Clone, serde::Serialize)]
@@ -237,7 +180,7 @@ impl IpcState {
                 .spawn(move || loop {
                     match death_waiter.wait_for_any(&log) {
                         Ok(id) => {
-                            if let Err(e) = mgmt_tx.send(ManagementEvent::Death { id }) {
+                            if let Err(e) = mgmt_tx.send(&ManagementEvent::Death { id }) {
                                 error!(
                                     log,
                                     "Failed to send death event to ipc-receiver thread: {}", e
@@ -303,7 +246,7 @@ impl IpcState {
                                                     continue;
                                                 }
                                             };
-                                            if let Err(e) = s2c_tx.send(S2CMessage::Connect) {
+                                            if let Err(e) = s2c_tx.send(&S2CMessage::Connect) {
                                                 error!(log, "Failed to send s2c connect message: {}", e);
                                             }
                                             let c2s_rx = match set.add(c2s_rx) {
@@ -469,7 +412,7 @@ impl IpcState {
                 );
                 if let C2SMessage::Connect { s2c_tx, pid } = msg {
                     let pid = Pid::from_raw(pid);
-                    if let Err(e) = mgmt_tx.lock().send(ManagementEvent::ExternalRegistration {
+                    if let Err(e) = mgmt_tx.lock().send(&ManagementEvent::ExternalRegistration {
                         id: conn_id,
                         c2s_rx,
                         s2c_tx,
