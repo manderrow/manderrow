@@ -1,14 +1,14 @@
 use crate::Pid;
 
-pub fn wait_group<T>() -> (Submitter<T>, Waiter<T>) {
+pub fn wait_group() -> (Submitter, Waiter) {
     let (submitter, waiter) = sys::wait_group();
     (Submitter(submitter), Waiter(waiter))
 }
 
 #[derive(Clone)]
-pub struct Submitter<T>(sys::Submitter<T>);
+pub struct Submitter(sys::Submitter);
 
-pub struct Waiter<T>(sys::Waiter<T>);
+pub struct Waiter(sys::Waiter);
 
 #[derive(Debug, thiserror::Error)]
 pub enum SubmitError {
@@ -26,14 +26,14 @@ pub enum WaitError {
     Other(#[from] anyhow::Error),
 }
 
-impl<T> Submitter<T> {
-    pub fn submit(&self, pid: Pid, data: T) -> Result<(), SubmitError> {
+impl Submitter {
+    pub fn submit(&self, pid: Pid, data: u64) -> Result<(), SubmitError> {
         self.0.submit(pid, data)
     }
 }
 
-impl<T> Waiter<T> {
-    pub fn wait_for_any(&mut self, log: &slog::Logger) -> Result<T, WaitError> {
+impl Waiter {
+    pub fn wait_for_any(&mut self, log: &slog::Logger) -> Result<u64, WaitError> {
         self.0.wait_for_any(log)
     }
 }
@@ -56,7 +56,7 @@ mod sys {
 
     use super::{SubmitError, WaitError};
 
-    pub fn wait_group<T>() -> (Submitter<T>, Waiter<T>) {
+    pub fn wait_group() -> (Submitter, Waiter) {
         let (tx, rx) = channel();
         let mut attrs = winsafe::SECURITY_ATTRIBUTES::default();
         attrs.set_bInheritHandle(false);
@@ -84,8 +84,8 @@ mod sys {
     // SAFETY: https://stackoverflow.com/a/12214212/10082531 says handles are thread-safe unless documented otherwise
     unsafe impl Sync for Notification {}
 
-    pub struct Submitter<T> {
-        tx: Sender<(Pid, T)>,
+    pub struct Submitter {
+        tx: Sender<(Pid, u64)>,
         notification: Notification,
     }
 
@@ -147,8 +147,8 @@ mod sys {
         rx: Receiver<(Pid, T)>,
     }
 
-    impl<T> Submitter<T> {
-        pub fn submit(&self, pid: Pid, data: T) -> Result<(), SubmitError> {
+    impl Submitter {
+        pub fn submit(&self, pid: Pid, data: u64) -> Result<(), SubmitError> {
             self.tx.send((pid, data)).map_err(|_| SubmitError::Closed)?;
             self.notification
                 .0
@@ -158,8 +158,8 @@ mod sys {
         }
     }
 
-    impl<T> Waiter<T> {
-        fn register_pid(&mut self, pid: Pid, data: T) -> ControlFlow<T> {
+    impl Waiter {
+        fn register_pid(&mut self, pid: Pid, data: u64) -> ControlFlow<u64> {
             let Ok(mut proc) = winsafe::HPROCESS::OpenProcess(
                 winsafe::co::PROCESS::SYNCHRONIZE,
                 false,
@@ -174,7 +174,7 @@ mod sys {
             ControlFlow::Continue(())
         }
 
-        pub fn wait_for_any(&mut self, log: &slog::Logger) -> Result<T, WaitError> {
+        pub fn wait_for_any(&mut self, log: &slog::Logger) -> Result<u64, WaitError> {
             if self.handles.is_empty() {
                 let (pid, data) = self.rx.recv().map_err(|_| WaitError::Closed)?;
                 if let ControlFlow::Break(data) = self.register_pid(pid, data) {
@@ -223,7 +223,7 @@ mod sys {
         }
     }
 
-    impl<T> Clone for Submitter<T> {
+    impl Clone for Submitter {
         fn clone(&self) -> Self {
             Self {
                 tx: self.tx.clone(),
@@ -282,27 +282,27 @@ mod sys {
     }
 
     #[derive(Clone)]
-    pub struct Submitter<T> {
-        tx: Sender<(Pid, T)>,
+    pub struct Submitter {
+        tx: Sender<(Pid, u64)>,
     }
 
     pub struct Waiter<T> {
-        entries: Vec<(Pid, T)>,
-        rx: Receiver<(Pid, T)>,
+        entries: Vec<(Pid, u64)>,
+        rx: Receiver<(Pid, u64)>,
         // TODO: replace with a bit set
         seen_buf: Vec<bool>,
         p_buf: String,
         stdout_buf: Vec<u8>,
     }
 
-    impl<T> Submitter<T> {
-        pub fn submit(&self, pid: Pid, data: T) -> Result<(), SubmitError> {
+    impl Submitter {
+        pub fn submit(&self, pid: Pid, data: u64) -> Result<(), SubmitError> {
             self.tx.send((pid, data)).map_err(|_| SubmitError::Closed)
         }
     }
 
-    impl<T> Waiter<T> {
-        pub fn wait_for_any(&mut self, log: &slog::Logger) -> Result<T, WaitError> {
+    impl Waiter {
+        pub fn wait_for_any(&mut self, log: &slog::Logger) -> Result<u64, WaitError> {
             loop {
                 let try_more = if self.entries.is_empty() {
                     self.entries
@@ -393,41 +393,130 @@ mod sys {
 
 #[cfg(target_os = "linux")]
 mod sys {
-    use std::marker::PhantomData;
+    use std::{marker::PhantomData, mem::MaybeUninit, os::fd::OwnedFd};
+
+    use anyhow::{Context, anyhow};
 
     use crate::Pid;
 
     use super::{SubmitError, WaitError};
 
-    pub fn wait_group<T>() -> (Submitter<T>, Waiter<T>) {
+    pub fn wait_group() -> (Submitter, Waiter) {
+        let epoll = rustix::event::epoll::create(rustix::event::epoll::CreateFlags::empty())
+            .expect("Failed to create epoll object");
+        let notification = rustix::event::eventfd(0, rustix::event::EventfdFlags::empty())
+            .expect("Failed to create eventfd object");
+        rustix::event::epoll::add(
+            &epoll,
+            &notification,
+            rustix::event::epoll::EventData::new_u64(u64::MAX),
+            rustix::event::epoll::EventFlags::IN,
+        )
+        .expect("Failed to register notification event with epoll object");
         (
             Submitter {
-                _marker: PhantomData,
+                epoll: epoll.try_clone().expect("Failed to clone epoll fd"),
+                notification: notification
+                    .try_clone()
+                    .expect("Failed to clone notification fd"),
             },
             Waiter {
-                _marker: PhantomData,
+                epoll,
+                notification,
+                event_buf: Vec::with_capacity(16),
+                count: 1,
             },
         )
     }
 
-    #[derive(Clone)]
-    pub struct Submitter<T> {
-        _marker: PhantomData<T>,
+    pub struct Submitter {
+        epoll: OwnedFd,
+        notification: OwnedFd,
     }
 
-    pub struct Waiter<T> {
-        _marker: PhantomData<T>,
-    }
-
-    impl<T> Submitter<T> {
-        pub fn submit(&self, pid: Pid, data: T) -> Result<(), SubmitError> {
-            todo!()
+    impl Clone for Submitter {
+        fn clone(&self) -> Self {
+            Self {
+                epoll: self.epoll.try_clone().expect("Failed to clone epoll fd"),
+                notification: self
+                    .notification
+                    .try_clone()
+                    .expect("Failed to clone notification fd"),
+            }
         }
     }
 
-    impl<T> Waiter<T> {
-        pub fn wait_for_any(&mut self, log: &slog::Logger) -> Result<T, WaitError> {
-            todo!()
+    pub struct Waiter {
+        epoll: OwnedFd,
+        notification: OwnedFd,
+        event_buf: Vec<rustix::event::epoll::Event>,
+        count: usize,
+    }
+
+    unsafe impl Send for Waiter {}
+    unsafe impl Sync for Waiter {}
+
+    impl Submitter {
+        pub fn submit(&self, pid: Pid, data: u64) -> Result<(), SubmitError> {
+            if data == u64::MAX {
+                return Err(SubmitError::Other(anyhow!(
+                    "Reserved data value: {}",
+                    u64::MAX
+                )));
+            }
+            let pidfd = match rustix::process::pidfd_open(
+                pid.rustix_pid(),
+                rustix::process::PidfdFlags::empty(),
+            ) {
+                Ok(t) => t,
+                Err(rustix::io::Errno::SRCH) => return Err(SubmitError::Closed),
+                Err(errno) => return Err(SubmitError::Other(anyhow!("pidfd_open errno={errno}"))),
+            };
+            rustix::event::epoll::add(
+                &self.epoll,
+                pidfd,
+                rustix::event::epoll::EventData::new_u64(data),
+                rustix::event::epoll::EventFlags::IN,
+            )
+            .context("Failed to register pidfd with epoll object")?;
+            // notify that there is a new one added
+            rustix::io::write(&self.notification, &1u64.to_ne_bytes())
+                .context("Failed to write to notification eventfd")?;
+            Ok(())
+        }
+    }
+
+    impl Waiter {
+        pub fn wait_for_any(&mut self, log: &slog::Logger) -> Result<u64, WaitError> {
+            loop {
+                let (events, _) = rustix::event::epoll::wait(
+                    &self.epoll,
+                    self.event_buf.spare_capacity_mut(),
+                    None,
+                )
+                .context("Failed to wait on epoll object")?;
+                for event in events {
+                    let flags = event.flags;
+                    assert!(flags.contains(rustix::event::epoll::EventFlags::IN));
+                    if event.data.u64() == u64::MAX {
+                        // new items registered
+                        let mut buf = MaybeUninit::<u64>::uninit();
+                        let (bytes, _) = rustix::io::read(&self.notification, buf.as_bytes_mut())
+                            .context("Failed to read from notification eventfd")?;
+                        assert_eq!(bytes.len(), 8);
+                        let count = unsafe { buf.assume_init() };
+                        self.count = self
+                            .count
+                            .checked_add(usize::try_from(count).context("count too large")?)
+                            .context("count too large")?;
+                        self.event_buf.reserve(self.count);
+                        break;
+                    } else {
+                        self.count -= 1;
+                        return Ok(event.data.u64());
+                    }
+                }
+            }
         }
     }
 }

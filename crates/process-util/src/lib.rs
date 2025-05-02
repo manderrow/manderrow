@@ -1,5 +1,6 @@
 #![deny(unused_must_use)]
 #![feature(int_from_ascii)]
+#![feature(maybe_uninit_as_bytes)]
 #![feature(slice_split_once)]
 
 pub mod wait_group;
@@ -9,7 +10,7 @@ use std::num::NonZeroU32;
 use anyhow::Result;
 use slog::Logger;
 
-#[derive(Clone, Copy, serde::Deserialize, serde::Serialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+#[derive(Debug, Clone, Copy, serde::Deserialize, serde::Serialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[serde(transparent)]
 #[repr(transparent)]
 pub struct Pid(NonZeroU32);

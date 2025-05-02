@@ -160,7 +160,7 @@ pub struct IpcState {
     connections: Arc<RwLock<HashMap<ConnectionId, IpcConnection>>>,
     receiver_handle: std::thread::JoinHandle<()>,
     mgmt_tx: Arc<Mutex<IpcSender<ManagementEvent>>>,
-    death_wait_submitter: manderrow_process_util::wait_group::Submitter<ConnectionId>,
+    death_wait_submitter: manderrow_process_util::wait_group::Submitter,
 }
 
 impl IpcState {
@@ -180,6 +180,7 @@ impl IpcState {
                 .spawn(move || loop {
                     match death_waiter.wait_for_any(&log) {
                         Ok(id) => {
+                            let id = ConnectionId(id);
                             if let Err(e) = mgmt_tx.send(&ManagementEvent::Death { id }) {
                                 error!(
                                     log,
@@ -423,7 +424,7 @@ impl IpcState {
                             "Failed to send registration request for connection: {}", e
                         );
                     }
-                    if let Err(e) = death_wait_submitter.submit(pid, conn_id) {
+                    if let Err(e) = death_wait_submitter.submit(pid, conn_id.0) {
                         error!(log, "Failed to send submit pid+id to reaper: {}", e);
                     }
                 } else {

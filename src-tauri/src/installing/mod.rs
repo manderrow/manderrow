@@ -636,7 +636,7 @@ pub async fn fetch_resource_cached_by_hash_at_path(
                 };
                 debug!(log, "Cached resource at {path:?}");
                 if hash_on_disk != hash {
-                    bail!("Bad hash of downloaded resource: expected {hash}, found {hash_on_disk}");
+                    bail!("Bad hash of downloaded resource at {path:?}: expected {hash}, found {hash_on_disk}");
                 }
             } else {
                 debug!(log, "Resource is cached at {path:?}");

@@ -189,9 +189,12 @@ pub async fn launch_profile(
                 }
 
                 let agent_install_target =
-                    crate::stores::steam::paths::resolve_app_install_directory(steam_metadata.id)
-                        .await?
-                        .join("winhttp.dll");
+                    crate::stores::steam::paths::resolve_app_install_directory(
+                        &log,
+                        steam_metadata.id,
+                    )
+                    .await?
+                    .join("winhttp.dll");
                 match agent_src {
                     AgentSource::Path(agent_path) => {
                         tokio::fs::copy(&agent_path, &agent_install_target)
@@ -243,7 +246,7 @@ pub async fn launch_profile(
                     InstructionEmitter {
                         command: &mut command,
                     },
-                    game.id,
+                    game,
                     profile,
                     std::env::var_os("OVERRIDE_DOORSTOP_LIBRARY_PATH").map(PathBuf::from),
                 )

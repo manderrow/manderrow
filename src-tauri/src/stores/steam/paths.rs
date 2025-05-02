@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 
 use anyhow::{anyhow, bail, ensure, Result};
 use manderrow_paths::home_dir;
+use slog::warn;
 
 #[cfg(windows)]
 pub fn get_steam_install_path_from_registry() -> Result<PathBuf> {
@@ -160,12 +161,19 @@ pub async fn resolve_steam_library_folders() -> Result<Vec<PathBuf>> {
     Ok(locations)
 }
 
-pub async fn resolve_steam_app_manifest(game_id: &str) -> Result<PathBuf> {
+/// The `game_id` is Steam's numerical id for the game.
+pub async fn resolve_steam_app_manifest(log: &slog::Logger, game_id: &str) -> Result<PathBuf> {
     let target_name = format!("appmanifest_{game_id}.acf");
 
     let library_folders = resolve_steam_library_folders().await?;
     for (i, path) in library_folders.iter().enumerate() {
-        let mut iter = tokio::fs::read_dir(&path).await?;
+        let mut iter = match tokio::fs::read_dir(&path).await {
+            Ok(t) => t,
+            Err(e) => {
+                warn!(log, "Failed to read steam library folder at {:?}", path);
+                continue;
+            }
+        };
         while let Some(e) = iter.next_entry().await? {
             let name = e.file_name();
             if name.eq_ignore_ascii_case(&target_name) {
@@ -176,20 +184,25 @@ pub async fn resolve_steam_app_manifest(game_id: &str) -> Result<PathBuf> {
         }
     }
     Err(anyhow!(
-        "Unable to locate game app manifest in {library_folders:?}"
+        "Unable to locate game app manifest for {game_id:?} in {library_folders:?}"
     ))
 }
 
-pub async fn resolve_steam_app_compat_data_directory(game_id: &str) -> Result<PathBuf> {
-    let mut path = resolve_steam_app_manifest(game_id).await?;
+/// The `game_id` is Steam's numerical id for the game.
+pub async fn resolve_steam_app_compat_data_directory(
+    log: &slog::Logger,
+    game_id: &str,
+) -> Result<PathBuf> {
+    let mut path = resolve_steam_app_manifest(log, game_id).await?;
     ensure!(path.pop(), "This should not be");
     path.push("compatdata");
     path.push(game_id);
     Ok(path)
 }
 
-pub async fn resolve_app_install_directory(game_id: &str) -> Result<PathBuf> {
-    let manifest = resolve_steam_app_manifest(game_id).await?;
+/// The `game_id` is Steam's numerical id for the game.
+pub async fn resolve_app_install_directory(log: &slog::Logger, game_id: &str) -> Result<PathBuf> {
+    let manifest = resolve_steam_app_manifest(log, game_id).await?;
     tokio::task::block_in_place(|| {
         let mut rdr = vdf::Reader::new(std::fs::File::open(&manifest)?);
         let Some(vdf::Event::GroupStart { key, .. }) = rdr.next()? else {
