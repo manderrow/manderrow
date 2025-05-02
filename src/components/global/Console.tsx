@@ -1,110 +1,23 @@
-import { Accessor, For, Match, Setter, Show, Switch, createSignal, createUniqueId, useContext } from "solid-js";
+import { For, Match, Show, Switch, createUniqueId, useContext } from "solid-js";
 
-import {
-  C2SMessage,
-  DoctorReport,
-  LOG_LEVELS,
-  SafeOsString,
-  allocateIpcConnection,
-  getIpcConnections,
-  sendS2CMessage,
-} from "../../api/ipc";
+import { LOG_LEVELS, SafeOsString, sendS2CMessage } from "../../api/ipc";
 import styles from "./Console.module.css";
 import Dialog, { dialogStyles } from "./Dialog";
 import { t } from "../../i18n/i18n";
 import { ErrorContext } from "./ErrorBoundary";
-import { listen } from "@tauri-apps/api/event";
 import SelectDropdown from "./SelectDropdown";
 import { createStore } from "solid-js/store";
+import {
+  connections,
+  connectionsUpdate,
+  doctorReports,
+  focusedConnection,
+  IdentifiedDoctorReport,
+  setDoctorReports,
+  setFocusedConnection,
+} from "../../console";
 
 const translateUnchecked = t as (key: string, args: Object | undefined) => string;
-
-export type ConnectionStatus = "connecting" | "connected" | "disconnected";
-
-const connections = new Map<number, ConsoleConnection>();
-const [connectionsUpdate, setConnectionsUpdate] = createSignal(0);
-
-function getOrInitConnection(connId: number): ConsoleConnection {
-  let conn = connections.get(connId);
-  if (conn === undefined) {
-    conn = new ConsoleConnection(connId);
-    connections.set(connId, conn);
-    setConnectionsUpdate(connectionsUpdate() + 1);
-  }
-  return conn;
-}
-
-(async () => {
-  for (const conn of await getIpcConnections()) {
-    getOrInitConnection(conn);
-  }
-})();
-
-listen<IdentifiedC2SMessage>("ipc_message", (event) => {
-  console.log("ipc_message", event.payload);
-  getOrInitConnection(event.payload.connId).handleEvent(event.payload);
-});
-
-listen<number>("ipc_closed", (event) => {
-  console.log("ipc_closed", event.payload);
-  let conn = connections.get(event.payload);
-  if (conn !== undefined) {
-    conn.setStatus("disconnected");
-  }
-});
-
-type IdentifiedC2SMessage = C2SMessage & { connId: number };
-type IdentifiedDoctorReport = { connId: number; DoctorReport: DoctorReport };
-
-const [doctorReports, setDoctorReports] = createSignal<IdentifiedDoctorReport[]>([]);
-
-export class ConsoleConnection {
-  readonly id: number;
-  readonly status: Accessor<ConnectionStatus>;
-  readonly setStatus: (value: ConnectionStatus) => void;
-  // TODO: don't use a signal for these
-  readonly events: Accessor<C2SMessage[]>;
-  readonly setEvents: Setter<C2SMessage[]>;
-
-  constructor(id: number) {
-    this.id = id;
-    const [status, setStatus] = createSignal<ConnectionStatus>("connecting");
-    this.status = status;
-    this.setStatus = setStatus;
-    const [events, setEvents] = createSignal<C2SMessage[]>([]);
-    this.events = events;
-    this.setEvents = setEvents;
-  }
-
-  static async allocate(): Promise<ConsoleConnection> {
-    const connId = await allocateIpcConnection();
-    if (connections.has(connId)) throw new Error("Illegal state");
-    const conn = new ConsoleConnection(connId);
-    connections.set(connId, conn);
-    setConnectionsUpdate(connectionsUpdate() + 1);
-    console.log(connId, conn, connections);
-    return conn;
-  }
-
-  clear() {
-    this.setEvents([]);
-  }
-
-  handleEvent(event: IdentifiedC2SMessage) {
-    if ("DoctorReport" in event) {
-      setDoctorReports((reports) => [...reports, event]);
-      return;
-    }
-
-    if ("Connect" in event) {
-      this.setStatus("connected");
-    } else if ("Disconnect" in event) {
-      this.setStatus("disconnected");
-    }
-
-    this.setEvents((events) => [...events, event]);
-  }
-}
 
 export function DoctorReports() {
   return (
@@ -122,8 +35,6 @@ export function DoctorReports() {
     </For>
   );
 }
-
-export const [focusedConnection, setFocusedConnection] = createSignal<ConsoleConnection>();
 
 export default function Console() {
   function getSelectConnectionOptions() {
@@ -264,6 +175,12 @@ export default function Console() {
               return (
                 <p>
                   <span class={styles.event__type}>[CRASH]</span> <span>{event.Crash.error}</span>
+                </p>
+              );
+            } else if ("Error" in event) {
+              return (
+                <p>
+                  <span class={styles.event__type}>[ERROR]</span> <span>{(event.Error.error as any).toString()}</span>
                 </p>
               );
             }

@@ -1,7 +1,6 @@
 import { Channel, invoke } from "@tauri-apps/api/core";
 import { Game, ModListing, ModMetadata, ModPackage, ModVersion } from "./types";
 import { invokeWithListener, Listener, TaskEvent, Id as TaskId } from "./api/tasks";
-import { C2SMessage } from "./api/ipc";
 
 /**
  * An error thrown from native code.

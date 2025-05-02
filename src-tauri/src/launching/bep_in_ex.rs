@@ -3,6 +3,7 @@ use std::path::PathBuf;
 
 use anyhow::{bail, Result};
 use manderrow_types::games::Game;
+use tauri::AppHandle;
 use tempfile::tempdir;
 use uuid::Uuid;
 
@@ -77,25 +78,38 @@ fn get_ci_url(uses_proton: bool) -> Result<&'static str> {
     )
 }
 
-struct DoorstopArtifact {
+struct PdbArtifact {
+    url: &'static str,
+    hash: &'static str,
+}
+
+struct LibraryArtifact {
     url: &'static str,
     hash: &'static str,
     suffix: &'static str,
-    pdb_hash: Option<&'static str>,
+    pdb: Option<PdbArtifact>,
 }
 
-fn get_doorstop_url_and_hash(uses_proton: bool) -> Result<DoorstopArtifact> {
+fn get_doorstop_url_and_hash(uses_proton: bool) -> Result<LibraryArtifact> {
+    macro_rules! doorstop_url {
+        ($artifact:literal, $suffix:literal) => {
+            concat!(
+                "https://github.com/manderrow/UnityDoorstop/releases/download/v4.3.0%2Bmanderrow.12/",
+                $artifact,
+                $suffix,
+            )
+        };
+    }
     macro_rules! doorstop_artifact {
         ($artifact:literal, $suffix:literal, $hash:literal, pdb_hash=$pdb_hash:expr) => {
-            DoorstopArtifact {
-                url: concat!(
-                    "https://github.com/manderrow/UnityDoorstop/releases/download/v4.3.0%2Bmanderrow.12/",
-                    $artifact,
-                    $suffix,
-                ),
+            LibraryArtifact {
+                url: doorstop_url!($artifact, $suffix),
                 hash: $hash,
                 suffix: $suffix,
-                pdb_hash: $pdb_hash,
+                pdb: ($pdb_hash).map(|hash| PdbArtifact {
+                    url: doorstop_url!($artifact, ".pdb"),
+                    hash,
+                }),
             }
         };
     }
@@ -178,6 +192,7 @@ pub async fn get_bep_in_ex_path(log: &slog::Logger, uses_proton: bool) -> Result
 }
 
 pub async fn emit_instructions(
+    app: Option<&AppHandle>,
     log: &slog::Logger,
     mut em: InstructionEmitter<'_>,
     game: &Game<'_>,
@@ -240,11 +255,11 @@ pub async fn emit_instructions(
     let doorstop_path = match doorstop_path {
         Some(t) => t,
         None => {
-            let DoorstopArtifact {
+            let LibraryArtifact {
                 url,
                 hash,
                 suffix,
-                pdb_hash,
+                pdb,
             } = get_doorstop_url_and_hash(uses_proton)?;
 
             let mut path = manderrow_paths::cache_dir().join(hash);
@@ -257,16 +272,15 @@ pub async fn emit_instructions(
 
             path.push(hash);
 
-            if let Some(pdb_hash) = pdb_hash {
+            if let Some(pdb) = pdb {
                 path.as_mut_os_string().push(".pdb");
 
                 fetch_resource_cached_by_hash_at_path(
-                    // TODO: communicate via IPC
-                    None,
+                    app,
                     log,
                     &Reqwest(reqwest::Client::new()),
-                    url,
-                    pdb_hash,
+                    pdb.url,
+                    pdb.hash,
                     &path,
                     None,
                 )
@@ -279,8 +293,7 @@ pub async fn emit_instructions(
             path.as_mut_os_string().push(suffix);
 
             fetch_resource_cached_by_hash_at_path(
-                // TODO: communicate via IPC
-                None,
+                app,
                 log,
                 &Reqwest(reqwest::Client::new()),
                 url,

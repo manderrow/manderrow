@@ -30,9 +30,9 @@ import {
 import { OverlayScrollbarsComponent } from "overlayscrollbars-solid";
 import Fa from "solid-fa";
 
-import Console, { ConsoleConnection, DoctorReports, focusedConnection, setFocusedConnection } from "../../components/global/Console";
+import Console, { DoctorReports } from "../../components/global/Console";
 import { PromptDialog } from "../../components/global/Dialog";
-import { ErrorContext } from "../../components/global/ErrorBoundary";
+import { ErrorDialog } from "../../components/global/ErrorBoundary";
 import SelectDropdown from "../../components/global/SelectDropdown";
 import TabRenderer from "../../components/global/TabRenderer";
 import ModList, { ModInstallContext } from "../../components/profile/ModList";
@@ -52,6 +52,7 @@ import { settings } from "../../api/settings";
 import { useSearchParamsInPlace } from "../../utils/router";
 import { killIpcClient } from "../../api/ipc";
 import { launchProfile } from "../../api/launching";
+import { ConsoleConnection, focusedConnection, setFocusedConnection } from "../../console";
 
 interface ProfileParams {
   profileId?: string;
@@ -96,23 +97,34 @@ export default function Profile() {
     }
   });
 
-  const reportErr = useContext(ErrorContext)!;
+  // track launch errors here instead of reporting to the error boundary to avoid rebuilding the UI
+  const [err, setErr] = createSignal<unknown>();
 
   async function launch(modded: boolean) {
     try {
       const conn = await ConsoleConnection.allocate();
-      setFocusedConnection(conn);
-      console.log(focusedConnection());
-      if (settings().openConsoleOnLaunch.value && searchParams["profile-tab"] !== "logs") {
-        setSearchParams({ "profile-tab": "logs" });
+      try {
+        setFocusedConnection(conn);
+        console.log(focusedConnection());
+        if (settings().openConsoleOnLaunch.value && searchParams["profile-tab"] !== "logs") {
+          setSearchParams({ "profile-tab": "logs" });
+        }
+        await launchProfile(
+          conn.id,
+          params.profileId !== undefined ? { profile: params.profileId } : { vanilla: params.gameId },
+          { modded },
+        );
+      } catch (error) {
+        conn.handleEvent({
+          connId: conn.id,
+          Error: {
+            error,
+          },
+        });
+        setErr(error);
       }
-      await launchProfile(
-        conn.id,
-        params.profileId !== undefined ? { profile: params.profileId } : { vanilla: params.gameId },
-        { modded },
-      );
     } catch (e) {
-      reportErr(e);
+      setErr(e);
     }
   }
 
@@ -121,8 +133,14 @@ export default function Profile() {
     if (conn !== undefined) {
       try {
         await killIpcClient(conn.id);
-      } catch (e) {
-        reportErr(e);
+      } catch (error) {
+        conn.handleEvent({
+          connId: conn.id,
+          Error: {
+            error,
+          },
+        });
+        setErr(error);
       }
     }
   }
@@ -321,6 +339,8 @@ export default function Profile() {
       </Show>
 
       <DoctorReports />
+
+      <Show when={err()}>{(err) => <ErrorDialog err={err()} reset={() => setErr(undefined)} />}</Show>
     </main>
   );
 }

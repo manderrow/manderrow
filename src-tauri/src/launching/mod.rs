@@ -7,7 +7,7 @@ use std::path::PathBuf;
 use std::sync::LazyLock;
 
 use anyhow::{anyhow, Context, Result};
-use manderrow_paths::cache_dir;
+use manderrow_paths::{cache_dir, logs_dir};
 use manderrow_types::games::PackageLoader;
 use slog::{debug, info, o};
 use tauri::Emitter;
@@ -242,6 +242,7 @@ pub async fn launch_profile(
             (LaunchTarget::Vanilla(_), _) => {}
             (LaunchTarget::Profile(profile), PackageLoader::BepInEx) => {
                 crate::launching::bep_in_ex::emit_instructions(
+                    Some(&app),
                     &log,
                     InstructionEmitter {
                         command: &mut command,
@@ -265,6 +266,17 @@ pub async fn launch_profile(
 
     command.arg("--c2s-tx");
     command.arg(c2s_tx);
+
+    command.arg("--log-to-file");
+    command.arg("--logs-dir");
+    if uses_proton {
+        command.arg(logs_dir());
+    } else {
+        let logs_dir = logs_dir();
+        let mut buf = OsString::with_capacity("Z:".len() + logs_dir.as_os_str().len());
+        buf.push(logs_dir.as_os_str());
+        command.arg(buf);
+    }
 
     command.arg("manderrow}");
 

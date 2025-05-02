@@ -18,6 +18,7 @@ static CACHE_DIR: OnceLock<PathBuf> = OnceLock::new();
 static CONFIG_DIR: OnceLock<PathBuf> = OnceLock::new();
 static LOCAL_DATA_DIR: OnceLock<PathBuf> = OnceLock::new();
 static RUNTIME_DIR: OnceLock<PathBuf> = OnceLock::new();
+static LOGS_DIR: OnceLock<PathBuf> = OnceLock::new();
 
 #[derive(Debug, thiserror::Error)]
 pub enum InitError {
@@ -97,6 +98,7 @@ pub fn init() -> Result<(), InitError> {
                 }),
         ),
     )?;
+    set("logs", &LOGS_DIR, Some(local_data_dir().join("logs")))?;
 
     Ok(())
 }
@@ -119,4 +121,8 @@ pub fn local_data_dir() -> &'static PathBuf {
 
 pub fn runtime_dir() -> &'static PathBuf {
     RUNTIME_DIR.get().unwrap()
+}
+
+pub fn logs_dir() -> &'static PathBuf {
+    LOGS_DIR.get().unwrap()
 }

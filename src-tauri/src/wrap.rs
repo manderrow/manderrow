@@ -111,25 +111,25 @@ pub fn run(args: lexopt::Parser) -> Result<()> {
 
         // TODO: maybe check if running under proton and abort
 
-        if cfg!(unix) {
-            const VAR: &str = if cfg!(target_os = "macos") {
-                "DYLD_INSERT_LIBRARIES"
-            } else {
-                "LD_PRELOAD"
-            };
-            let base = std::env::var_os(VAR).unwrap_or_else(OsString::new);
-            let mut buf = agent_path
-                .context("Missing required option --agent-path")?
-                .into_os_string();
-            if !base.is_empty() {
-                buf.push(":");
-                buf.push(base);
+        if let Some(agent_path) = agent_path {
+            if cfg!(unix) {
+                const VAR: &str = if cfg!(target_os = "macos") {
+                    "DYLD_INSERT_LIBRARIES"
+                } else {
+                    "LD_PRELOAD"
+                };
+                let base = std::env::var_os(VAR).unwrap_or_else(OsString::new);
+                let mut buf = agent_path.into_os_string();
+                if !base.is_empty() {
+                    buf.push(":");
+                    buf.push(base);
+                }
+
+                debug!(log, "Injecting {VAR} {buf:?}");
+                writeln!(log_file, "Injecting {VAR} {buf:?}").unwrap();
+
+                command.env(VAR, buf);
             }
-
-            debug!(log, "Injecting {VAR} {buf:?}");
-            writeln!(log_file, "Injecting {VAR} {buf:?}").unwrap();
-
-            command.env(VAR, buf);
         }
 
         let mut child = match command.spawn() {
