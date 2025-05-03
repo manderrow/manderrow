@@ -46,7 +46,19 @@ pub fn extract() !@This() {
                 .@"--log-to-file" => log_to_file = true,
                 .@"--logs-dir" => {
                     const path = args.next() orelse return error.MissingOptionValue;
-                    logs_dir = try @import("paths.zig").openOrCreateDir(u8, std.fs.cwd(), path);
+                    const os_path = switch (builtin.os.tag) {
+                        .windows => blk: {
+                            const buf = try alloc.allocSentinel(u16, try std.unicode.calcWtf16LeLen(path), 0);
+                            const n = try std.unicode.wtf8ToWtf16Le(buf, path);
+                            std.debug.assert(n == buf.len);
+                            break :blk buf;
+                        },
+                        else => path,
+                    };
+                    defer if (builtin.os.tag == .windows) {
+                        alloc.free(os_path);
+                    };
+                    logs_dir = try @import("paths.zig").openOrCreateDir(std.fs.cwd(), os_path);
                 },
                 .@"--c2s-tx" => {
                     c2s_tx = args.next() orelse return error.MissingOptionValue;

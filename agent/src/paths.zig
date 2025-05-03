@@ -67,7 +67,7 @@ fn defaultLogsDir() !std.fs.Dir {
     var app_data_local_dir = try appDataLocalDir();
     defer app_data_local_dir.close();
 
-    return openOrCreateDir(os_char, app_data_local_dir, osStrLiteral("logs"));
+    return openOrCreateDir(app_data_local_dir, osStrLiteral("logs"));
 }
 
 /// This will create the directory if it does not exist.
@@ -77,7 +77,7 @@ fn appDataLocalDir() !std.fs.Dir {
     var data_local_dir = try dataLocalDir();
     defer data_local_dir.close();
 
-    return openOrCreateDir(os_char, data_local_dir, osStrLiteral(switch (builtin.os.tag) {
+    return openOrCreateDir(data_local_dir, osStrLiteral(switch (builtin.os.tag) {
         .macos, .windows => "Manderrow",
         else => "manderrow",
     }));
@@ -90,26 +90,14 @@ pub fn osStrLiteral(comptime path: [:0]const u8) [:0]const os_char {
     };
 }
 
-pub fn openOrCreateDir(comptime Char: type, dir: Dir, sub_path: [:0]const Char) !Dir {
+pub fn openOrCreateDir(dir: Dir, sub_path: [:0]const os_char) !Dir {
     switch (builtin.os.tag) {
         .windows => {
-            switch (Char) {
-                u16 => {
-                    dir.makeDirW(sub_path) catch |e| switch (e) {
-                        error.PathAlreadyExists => {},
-                        else => return e,
-                    };
-                    return dir.openDirW(sub_path, .{});
-                },
-                u8 => {
-                    dir.makeDir(sub_path) catch |e| switch (e) {
-                        error.PathAlreadyExists => {},
-                        else => return e,
-                    };
-                    return dir.openDir(sub_path, .{});
-                },
-                else => @compileError("Unsupported Char type: " ++ @typeName(Char)),
-            }
+            dir.makeDirW(sub_path) catch |e| switch (e) {
+                error.PathAlreadyExists => {},
+                else => return e,
+            };
+            return dir.openDirW(sub_path, .{});
         },
         else => {
             dir.makeDirZ(sub_path) catch |e| switch (e) {
