@@ -86,10 +86,10 @@ fn reportCrashToFile(msg: []const u8, ret_addr: ?usize) void {
     const paths = @import("paths.zig");
     const logs_dir = paths.getOrInitLogsDir(null);
     var file = switch (builtin.os.tag) {
-        .windows => logs_dir.createFileW(&paths.logFileName("crash").data, .{
+        .windows => logs_dir.createFileW(&paths.logFileName("crash"), .{
             .truncate = false,
         }),
-        else => logs_dir.createFileZ(&paths.logFileName("crash").data, .{
+        else => logs_dir.createFileZ(&paths.logFileName("crash"), .{
             .truncate = false,
         }),
     } catch return;

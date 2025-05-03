@@ -175,8 +175,8 @@ fn startAgent() void {
     if (args.log_to_file) {
         const logs_dir = paths.getOrInitLogsDir(args.logs_dir);
         log_file = switch (builtin.os.tag) {
-            .windows => logs_dir.createFileW(&paths.logFileName("log").data, .{}) catch null,
-            else => logs_dir.createFileZ(&paths.logFileName("log").data, .{}) catch null,
+            .windows => logs_dir.createFileW(&paths.logFileName("log"), .{}) catch null,
+            else => logs_dir.createFileZ(&paths.logFileName("log"), .{}) catch null,
         };
     }
 

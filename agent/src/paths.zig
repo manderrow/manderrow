@@ -25,20 +25,20 @@ const log_file_ts_len = std.fmt.count(log_file_ts_fmt, .{ 0, 0, 0, 0, 0, 0, 0 })
 
 pub fn LogFileName(comptime label_utf8: [:0]const u8) type {
     return struct {
-        data: [label.len + log_file_ts_len:0]os_char,
+        pub const Data = [label.len + log_file_ts_len:0]os_char;
 
         const label = "manderrow-agent-" ++ osStrLiteral(label_utf8);
     };
 }
 
-pub fn logFileName(comptime label: [:0]const u8) LogFileName(label) {
+pub fn logFileName(comptime label: [:0]const u8) LogFileName(label).Data {
     const T = LogFileName(label);
-    var buf: T = .{ .data = undefined };
-    @memcpy(buf.data[0..T.label.len], T.label);
+    var data: T.Data = undefined;
+    @memcpy(data[0..T.label.len], T.label);
     // If your clock goes backwards, you have a problem.
     const time: u64 = std.math.cast(u64, start_time) orelse {
-        @memcpy(buf.data[T.label.len..], comptime osStrLiteral(std.fmt.comptimePrint(log_file_ts_fmt, .{ 0, 0, 0, 0, 0, 0, 0 })));
-        return buf;
+        @memcpy(data[T.label.len..], comptime osStrLiteral(std.fmt.comptimePrint(log_file_ts_fmt, .{ 0, 0, 0, 0, 0, 0, 0 })));
+        return data;
     };
     const ms: u10 = @intCast(time % 1000);
     var ts = @import("time.zig").decodeUnixTime(@divTrunc(time, 1000));
@@ -51,15 +51,15 @@ pub fn logFileName(comptime label: [:0]const u8) LogFileName(label) {
         .windows => {
             var utf8_buf: [log_file_ts_len]u8 = undefined;
             const utf8_ts = std.fmt.bufPrint(&utf8_buf, log_file_ts_fmt, args) catch unreachable;
-            const n = std.unicode.utf8ToUtf16Le(buf.data[T.label.len..], utf8_ts) catch unreachable;
-            std.debug.assert(n == buf.data[T.label.len..].len);
+            const n = std.unicode.utf8ToUtf16Le(data[T.label.len..], utf8_ts) catch unreachable;
+            std.debug.assert(n == data[T.label.len..].len);
         },
         else => {
-            const slice = std.fmt.bufPrint(buf.data[T.label.len..], log_file_ts_fmt, args) catch unreachable;
-            std.debug.assert(buf.data[T.label.len..].len == slice.len);
+            const slice = std.fmt.bufPrint(data[T.label.len..], log_file_ts_fmt, args) catch unreachable;
+            std.debug.assert(data[T.label.len..].len == slice.len);
         },
     }
-    return buf;
+    return data;
 }
 
 /// This will create the directory if it does not exist.
@@ -198,7 +198,8 @@ fn SHGetKnownFolder(fid: std.os.windows.KNOWNFOLDERID) !Dir {
     const path = path_o.?;
     defer CoTaskMemFree(path);
 
-    return std.fs.openDirAbsoluteW(path, .{});
+    const prefixed_path = try std.os.windows.wToPrefixedFileW(null, std.mem.span(path));
+    return std.fs.openDirAbsoluteW(prefixed_path.span(), .{});
 }
 
 // this is missing from the Zig std.c bindings on Linux
@@ -213,11 +214,27 @@ pub extern "api-ms-win-core-com-l1-1-0" fn SHGetKnownFolderPath(
 
 pub extern "wsmsvc" fn CoTaskMemFree(ptr: ?*anyopaque) void;
 
-test "findLogsDir" {
-    _ = try defaultLogsDir();
+test "dataLocalDir" {
+    var dir = try dataLocalDir();
+    dir.close();
+}
+
+test "appDataLocalDir" {
+    var dir = try appDataLocalDir();
+    dir.close();
+}
+
+test "defaultLogsDir" {
+    var dir = try defaultLogsDir();
+    dir.close();
 }
 
 test "logFileName" {
     start_time = 1745980904000;
-    try std.testing.expectEqualStrings("manderrow-agent-crash-2025-04-30T02:41:44.000Z.log", &logFileName("crash").data);
+    const expected = "manderrow-agent-crash-2025-04-30T02:41:44.000Z.log";
+    const actual = logFileName("crash");
+    switch (builtin.os.tag) {
+        .windows => try std.testing.expectEqualSlices(u16, std.unicode.utf8ToUtf16LeStringLiteral(expected), &actual),
+        else => try std.testing.expectEqualStrings(expected, &actual),
+    }
 }
