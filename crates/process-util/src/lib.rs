@@ -10,7 +10,16 @@ use std::num::NonZeroU32;
 use anyhow::Result;
 use slog::Logger;
 
-#[derive(Debug, Clone, Copy, serde::Deserialize, serde::Serialize, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    serde::Deserialize,
+    serde::Serialize,
+    rkyv::Archive,
+    rkyv::Serialize,
+    rkyv::Deserialize,
+)]
 #[serde(transparent)]
 #[repr(transparent)]
 pub struct Pid(NonZeroU32);
