@@ -186,30 +186,27 @@ fn homeDir() !std.fs.Dir {
 }
 
 fn SHGetKnownFolder(fid: std.os.windows.KNOWNFOLDERID) !Dir {
-    var path_o: ?[*:0]u16 = null;
-    switch (std.os.windows.HRESULT_CODE(SHGetKnownFolderPath(&fid, 0, null, &path_o))) {
+    // store this on the heap to minimize stack usage.
+    const buf = try std.heap.smp_allocator.create([std.os.windows.PATH_MAX_WIDE:0]u16);
+    defer std.heap.smp_allocator.destroy(buf);
+    switch (std.os.windows.HRESULT_CODE(SHGetFolderPathEx(&fid, 0, null, buf, buf.len))) {
         .SUCCESS => {},
-        else => |e| {
-            std.debug.assert(path_o == null);
-            return std.os.windows.unexpectedError(e);
-        },
+        else => |e| return std.os.windows.unexpectedError(e),
     }
 
-    const path = path_o.?;
-    defer CoTaskMemFree(path);
-
-    const prefixed_path = try std.os.windows.wToPrefixedFileW(null, std.mem.span(path));
+    const prefixed_path = try std.os.windows.wToPrefixedFileW(null, std.mem.span(@as([*:0]u16, buf)));
     return std.fs.openDirAbsoluteW(prefixed_path.span(), .{});
 }
 
 // this is missing from the Zig std.c bindings on Linux
 pub extern "c" fn getpwuid_r(uid: std.posix.uid_t, pw: *std.c.passwd, buf: [*]u8, buflen: usize, pwretp: *?*std.c.passwd) c_int;
 
-pub extern "api-ms-win-core-com-l1-1-0" fn SHGetKnownFolderPath(
+pub extern "api-ms-win-core-com-l1-1-0" fn SHGetFolderPathEx(
     rfid: *const std.os.windows.KNOWNFOLDERID,
     dwFlags: std.os.windows.DWORD,
     hToken: ?std.os.windows.HANDLE,
-    ppszPath: *?std.os.windows.PWSTR,
+    pszPath: std.os.windows.PWSTR,
+    cchPath: std.os.windows.UINT,
 ) std.os.windows.HRESULT;
 
 pub extern "wsmsvc" fn CoTaskMemFree(ptr: ?*anyopaque) void;
