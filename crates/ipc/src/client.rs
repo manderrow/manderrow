@@ -1,6 +1,6 @@
 use std::sync::Mutex;
 
-use ipc_channel::ipc::{IpcReceiver, IpcSender, OpaqueIpcSender};
+use ipc_channel::ipc::{IpcReceiver, IpcSender};
 
 use crate::{C2SMessage, S2CMessage};
 
