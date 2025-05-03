@@ -46,7 +46,7 @@ pub fn extract() !@This() {
                 .@"--log-to-file" => log_to_file = true,
                 .@"--logs-dir" => {
                     const path = args.next() orelse return error.MissingOptionValue;
-                    const os_path = switch (builtin.os.tag) {
+                    var os_path = switch (builtin.os.tag) {
                         .windows => blk: {
                             const buf = try alloc.allocSentinel(u16, try std.unicode.calcWtf16LeLen(path), 0);
                             const n = try std.unicode.wtf8ToWtf16Le(buf, path);
@@ -58,6 +58,17 @@ pub fn extract() !@This() {
                     defer if (builtin.os.tag == .windows) {
                         alloc.free(os_path);
                     };
+                    switch (builtin.os.tag) {
+                        .windows => {
+                            if (std.fs.path.isAbsoluteWindowsWTF16(os_path)) {
+                                const new_path_tmp = try std.os.windows.wToPrefixedFileW(null, os_path);
+                                const new_path = try alloc.dupeZ(u16, new_path_tmp.span());
+                                alloc.free(os_path);
+                                os_path = new_path;
+                            }
+                        },
+                        else => {},
+                    }
                     logs_dir = try @import("paths.zig").openOrCreateDir(std.fs.cwd(), os_path);
                 },
                 .@"--c2s-tx" => {
