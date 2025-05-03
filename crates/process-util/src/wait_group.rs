@@ -97,10 +97,6 @@ mod sys {
     unsafe impl Sync for SendSyncHANDLE {}
 
     impl SendSyncHANDLE {
-        pub fn from<T: Handle + Send + Sync>(handle: T) -> Self {
-            unsafe { Self::from_unsafe(handle) }
-        }
-
         pub unsafe fn from_unsafe<T: Handle>(handle: T) -> Self {
             Self(handle.ptr())
         }
@@ -141,10 +137,10 @@ mod sys {
         }
     }
 
-    pub struct Waiter<T> {
+    pub struct Waiter {
         handles: Vec<CloseHandleGuard<SendSyncHANDLE>>,
-        data: Vec<T>,
-        rx: Receiver<(Pid, T)>,
+        data: Vec<u64>,
+        rx: Receiver<(Pid, u64)>,
     }
 
     impl Submitter {
@@ -267,7 +263,7 @@ mod sys {
 
     use super::{SubmitError, WaitError};
 
-    pub fn wait_group<T>() -> (Submitter<T>, Waiter<T>) {
+    pub fn wait_group() -> (Submitter, Waiter) {
         let (tx, rx) = channel();
         (
             Submitter { tx },
@@ -286,7 +282,7 @@ mod sys {
         tx: Sender<(Pid, u64)>,
     }
 
-    pub struct Waiter<T> {
+    pub struct Waiter {
         entries: Vec<(Pid, u64)>,
         rx: Receiver<(Pid, u64)>,
         // TODO: replace with a bit set
@@ -393,7 +389,7 @@ mod sys {
 
 #[cfg(target_os = "linux")]
 mod sys {
-    use std::{marker::PhantomData, mem::MaybeUninit, os::fd::OwnedFd};
+    use std::{mem::MaybeUninit, os::fd::OwnedFd};
 
     use anyhow::{Context, anyhow};
 
@@ -488,6 +484,7 @@ mod sys {
 
     impl Waiter {
         pub fn wait_for_any(&mut self, log: &slog::Logger) -> Result<u64, WaitError> {
+            _ = log;
             loop {
                 let (events, _) = rustix::event::epoll::wait(
                     &self.epoll,
