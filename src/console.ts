@@ -1,11 +1,6 @@
 import { Accessor, Setter, createSignal } from "solid-js";
 
-import {
-  C2SMessage,
-  DoctorReport,
-  allocateIpcConnection,
-  getIpcConnections,
-} from "./api/ipc";
+import { C2SMessage, DoctorReport, allocateIpcConnection, getIpcConnections } from "./api/ipc";
 import { listen } from "@tauri-apps/api/event";
 
 export type ConnectionStatus = "connecting" | "connected" | "disconnected";
@@ -58,6 +53,7 @@ export class ConsoleConnection {
   // TODO: don't use a signal for these
   readonly events: Accessor<Event[]>;
   readonly setEvents: Setter<Event[]>;
+  readonly createdTime: Date;
 
   constructor(id: number) {
     this.id = id;
@@ -67,6 +63,7 @@ export class ConsoleConnection {
     const [events, setEvents] = createSignal<Event[]>([]);
     this.events = events;
     this.setEvents = setEvents;
+    this.createdTime = new Date();
   }
 
   static async allocate(): Promise<ConsoleConnection> {

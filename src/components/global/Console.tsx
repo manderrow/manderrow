@@ -1,4 +1,4 @@
-import { For, Match, Show, Switch, createUniqueId, useContext } from "solid-js";
+import { For, Match, Show, Switch, createRenderEffect, createUniqueId, onMount, useContext } from "solid-js";
 
 import { LOG_LEVELS, SafeOsString, sendS2CMessage } from "../../api/ipc";
 import styles from "./Console.module.css";
@@ -57,41 +57,107 @@ export default function Console() {
     TRACE: false,
   });
 
+  let consoleContainer!: HTMLDivElement;
+
+  onMount(() => {
+    createRenderEffect(() => {
+      focusedConnection()?.events().length;
+
+      // If no overflow yet, don't try to set overflowed to true by returning here
+      if (
+        consoleContainer.scrollHeight === consoleContainer.clientHeight &&
+        consoleContainer.dataset.overflowed === "false"
+      )
+        return;
+
+      // If at bottom of scroll, scroll to the new bottom position after DOM updates,
+      // and set overflowed to true to stop always scrolling to bottom
+      if (
+        consoleContainer.scrollHeight - consoleContainer.clientHeight <= consoleContainer.scrollTop + 1 ||
+        consoleContainer.dataset.overflowed === "false"
+      ) {
+        queueMicrotask(() => {
+          consoleContainer.scrollTop = consoleContainer.scrollHeight - consoleContainer.clientHeight;
+          consoleContainer.dataset.overflowed = "true";
+        });
+      }
+    });
+  });
+
   return (
     <>
-      <h2 class={styles.heading}>
-        <span class={styles.statusIndicator} data-connected={focusedConnection()?.status() === "connected"}></span>
-        {focusedConnection()?.status() === "connected" ? "Connected" : "Disconnected"}{" "}
-        <SelectDropdown
-          label={{ labelText: "value" }}
-          options={getSelectConnectionOptions()}
-          onChanged={(id, selected) => {
-            if (selected) {
-              setFocusedConnection(connections.get(id));
-            }
-          }}
-        />
-        <For each={LOG_LEVELS}>
-          {(level) => {
-            const id = createUniqueId();
-            return (
-              <>
-                <input
-                  id={id}
-                  type="checkbox"
-                  checked={visibleLevels[level]}
-                  on:change={(event) => setVisibleLevels(level, event.target.checked)}
-                  style="display:none"
-                />
-                <label class={styles.scopeToggle} for={id}>
-                  {level}
-                </label>
-              </>
-            );
-          }}
-        </For>
-      </h2>
-      <div class={styles.console}>
+      <header class={styles.header}>
+        <div class={styles.header__options}>
+          <div class={styles.header__group}>
+            <div class={styles.header__subgroup}>
+              <p>View log:</p>
+              <SelectDropdown
+                label={{ labelText: "value" }}
+                options={getSelectConnectionOptions()}
+                onChanged={(id, selected) => {
+                  if (selected) {
+                    setFocusedConnection(connections.get(id));
+                  }
+                }}
+              />
+            </div>
+            <div class={styles.header__subgroup}>
+              <label for="line-wrap">Line wrap</label>
+              <input type="checkbox" name="line-wrap" id="line-wrap" checked />
+            </div>
+            <div class={styles.header__subgroup}>
+              <input
+                type="text"
+                name="log-search"
+                id="log-search"
+                placeholder="Search log..."
+                class={styles.logSearch}
+              />
+            </div>
+          </div>
+          <div class={styles.header__group}>
+            <div classList={{ [styles.header__subgroup]: true, [styles.toggleList]: true }}>
+              <For each={LOG_LEVELS}>
+                {(level) => {
+                  const id = createUniqueId();
+                  return (
+                    <>
+                      <input
+                        id={id}
+                        type="checkbox"
+                        checked={visibleLevels[level]}
+                        on:change={(event) => setVisibleLevels(level, event.target.checked)}
+                        style="display:none"
+                      />
+                      <label class={styles.scopeToggle} for={id}>
+                        {level}
+                      </label>
+                    </>
+                  );
+                }}
+              </For>
+            </div>
+            <div classList={{ [styles.header__subgroup]: true, [styles.toggleList]: true }}>
+              Scope toggles go here in future
+            </div>
+          </div>
+        </div>
+        <div class={styles.header__group}>
+          <div>
+            <p class={styles.header__liveLogText}>
+              {focusedConnection()?.status() !== "disconnected" ? "Live log" : "Created at"}
+            </p>
+            {focusedConnection()?.status() !== "disconnected" ? (
+              <span class={styles.statusIndicator} data-connected={focusedConnection()?.status() === "connected"}>
+                {focusedConnection()?.status() === "connected" ? "Connected" : "Disconnected"}
+              </span>
+            ) : (
+              focusedConnection().createdTime.toLocaleString()
+            )}
+          </div>
+        </div>
+      </header>
+      <div class={styles.console} ref={consoleContainer} data-overflowed="false">
         <For each={focusedConnection()?.events()} fallback={<p>Game not running.</p>}>
           {(event) => {
             if ("Output" in event) {
@@ -186,7 +252,6 @@ export default function Console() {
             }
           }}
         </For>
-        <div class={styles.scrollAnchor} />
       </div>
     </>
   );
