@@ -123,5 +123,6 @@ fn build_agent(
             _ => abi.unwrap_or(""),
         }
     ));
+    command.arg(format!("-Dwine={}", proton));
     command.status().unwrap().exit_ok().unwrap();
 }

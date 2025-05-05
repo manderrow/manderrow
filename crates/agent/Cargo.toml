@@ -4,6 +4,9 @@ version = "0.1.0"
 authors.workspace = true
 edition = "2024"
 
+[features]
+unix-on-wine = ["manderrow-ipc/unix-on-wine"]
+
 [lib]
 name = "manderrow_agent_rs"
 crate-type = ["staticlib"]

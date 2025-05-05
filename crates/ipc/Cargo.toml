@@ -10,6 +10,8 @@ doctor = ["dep:serde", "dep:serde_json"]
 serde = ["dep:serde", "serde/derive", "uuid/serde"]
 slog = ["dep:slog"]
 
+unix-on-wine = ["ipc-channel/unix-on-wine"]
+
 [dependencies]
 thiserror = "2"
 
