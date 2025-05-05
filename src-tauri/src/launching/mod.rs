@@ -272,6 +272,7 @@ pub async fn launch_profile(
     if uses_proton {
         let logs_dir = logs_dir();
         let mut buf = OsString::with_capacity("Z:".len() + logs_dir.as_os_str().len());
+        buf.push("Z:");
         buf.push(logs_dir.as_os_str());
         command.arg(buf);
     } else {
