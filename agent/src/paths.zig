@@ -16,6 +16,9 @@ pub fn getOrInitLogsDir(override: ?Dir) Dir {
     }
 
     defer init_logs_dir_lock.unlock();
+    if (logs_dir) |dir| {
+        return dir;
+    }
     logs_dir = override orelse defaultLogsDir() catch std.fs.cwd();
     return logs_dir.?;
 }
