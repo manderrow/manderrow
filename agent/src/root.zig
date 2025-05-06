@@ -326,6 +326,11 @@ noinline fn dumpStackHeight() void {
     const sp = @frameAddress();
     const height = windows.initialFrameAddress - sp;
     logger.debug("Stack height is {} (initial: 0x{x:0>16}, current: 0x{x:0>16})", .{ height, windows.initialFrameAddress, sp });
+
+    const tib = &std.os.windows.teb().NtTib;
+    const base = @intFromPtr(tib.StackBase);
+    const limit = @intFromPtr(tib.StackLimit);
+    logger.debug("Max stack height is {} (base: 0x{x:0>16}, limit: 0x{x:0>16})", .{ base - limit, base, limit });
 }
 
 fn interpret_instructions(instructions: []const Args.Instruction) void {
