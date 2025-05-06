@@ -258,6 +258,7 @@ pub async fn launch_profile(
                     game,
                     profile,
                     std::env::var_os("OVERRIDE_DOORSTOP_LIBRARY_PATH").map(PathBuf::from),
+                    uses_proton,
                 )
                 .await?;
             }
@@ -267,13 +268,25 @@ pub async fn launch_profile(
         }
     }
 
-    // TODO: find a way to stop this if the launch fails
     let c2s_tx = ipc_state
         .spawn_external(log.clone(), app, conn_id)
         .context("Failed to setup external IPC connection")?;
 
+    struct FailureGuard<'a> {
+        c2s_tx: &'a str,
+    }
+    impl Drop for FailureGuard<'_> {
+        fn drop(&mut self) {
+            // connect and drop so it will disconnect, closing the socket
+            _ = manderrow_ipc::ipc_channel::platform::OsIpcSender::connect(self.c2s_tx);
+        }
+    }
+
+    // TODO: come up with something nicer than this
+    let failure_guard = FailureGuard { c2s_tx: &c2s_tx };
+
     command.arg("--c2s-tx");
-    command.arg(c2s_tx);
+    command.arg(&c2s_tx);
 
     command.arg("--log-to-file");
     command.arg("--logs-dir");
@@ -294,6 +307,10 @@ pub async fn launch_profile(
         .status()
         .await
         .context("Failed to wait for subprocess to exit")?;
+
+    // no failure, forget the guard.
+    std::mem::forget(failure_guard);
+
     info!(log, "Launcher exited with status code {status}");
 
     Ok(())

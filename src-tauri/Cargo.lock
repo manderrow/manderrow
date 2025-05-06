@@ -2294,13 +2294,12 @@ dependencies = [
 [[package]]
 name = "ipc-channel"
 version = "0.19.0"
-source = "git+https://github.com/manderrow/ipc-channel#b5c005f084bc916a587b22e12952a797619b3123"
+source = "git+https://github.com/manderrow/ipc-channel#00c38c65031bf86458a22260d4e4fa1b3a87f1d1"
 dependencies = [
  "bytecheck",
  "rand 0.9.0",
  "rkyv",
  "rustix 1.0.5",
- "tempfile",
  "thiserror 2.0.12",
  "uuid",
  "windows 0.61.1",

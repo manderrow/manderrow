@@ -166,7 +166,7 @@ enum ConnectIpcError {
 }
 
 fn connect_ipc(c2s_tx: &str) -> Result<(), ConnectIpcError> {
-    let c2s_tx = IpcSender::<C2SMessage>::connect(c2s_tx.to_owned())
+    let c2s_tx = IpcSender::<C2SMessage>::connect(c2s_tx)
         .map_err(ConnectIpcError::ConnectC2SError)?;
 
     let (s2c_rx, s2c_tx) =

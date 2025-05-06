@@ -97,7 +97,7 @@ pub fn run(args: lexopt::Parser) -> Result<()> {
         .unwrap();
 
         let ipc = if let Some(c2s_tx) = c2s_tx {
-            let c2s_tx = IpcSender::<C2SMessage>::connect(c2s_tx)?;
+            let c2s_tx = IpcSender::<C2SMessage>::connect(&c2s_tx)?;
 
             let (s2c_rx, s2c_tx) =
                 manderrow_ipc::ipc_channel::ipc::IpcOneShotServer::<S2CMessage>::new()?;

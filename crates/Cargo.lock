@@ -183,12 +183,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "fastrand"
-version = "2.3.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "37909eebbb50d72f9059c3b6d82c0463f2ff062c9e95845c43a6c9c0355411be"
-
-[[package]]
 name = "filetime"
 version = "0.2.25"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -274,13 +268,12 @@ dependencies = [
 [[package]]
 name = "ipc-channel"
 version = "0.19.0"
-source = "git+https://github.com/manderrow/ipc-channel#b5c005f084bc916a587b22e12952a797619b3123"
+source = "git+https://github.com/manderrow/ipc-channel#00c38c65031bf86458a22260d4e4fa1b3a87f1d1"
 dependencies = [
  "bytecheck",
  "rand",
  "rkyv",
  "rustix",
- "tempfile",
  "thiserror",
  "uuid",
  "windows",
@@ -868,19 +861,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
-]
-
-[[package]]
-name = "tempfile"
-version = "3.19.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "7437ac7763b9b123ccf33c338a5cc1bac6f69b45a136c19bdd8a65e3916435bf"
-dependencies = [
- "fastrand",
- "getrandom 0.3.2",
- "once_cell",
- "rustix",
- "windows-sys 0.59.0",
 ]
 
 [[package]]

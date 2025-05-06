@@ -198,20 +198,11 @@ pub async fn emit_instructions(
     game: &Game<'_>,
     profile_id: Uuid,
     doorstop_path: Option<PathBuf>,
+    uses_proton: bool,
 ) -> anyhow::Result<()> {
     let bep_in_ex = get_bep_in_ex_path(log, false).await?;
 
     let profile_path = profile_path(profile_id);
-
-    let uses_proton = if let Some(metadata) = game
-        .store_platform_metadata
-        .iter()
-        .find_map(|m| m.steam_or_direct())
-    {
-        crate::stores::steam::proton::uses_proton(log, metadata.id).await?
-    } else {
-        false
-    };
 
     let temp_dir = tempdir()?.into_path();
 

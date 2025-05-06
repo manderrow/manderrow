@@ -239,7 +239,7 @@ impl IpcState {
                                                 }; "conn_id" => id);
                                                 continue;
                                             }
-                                            let s2c_tx = match IpcSender::connect(s2c_tx.clone()) {
+                                            let s2c_tx = match IpcSender::connect(&s2c_tx) {
                                                 Ok(t) => t,
                                                 Err(e) => {
                                                     drop(state);
