@@ -62,6 +62,7 @@ pub fn logFileName(comptime label: [:0]const u8) LogFileName(label).Data {
             std.debug.assert(data[T.label.len..].len == slice.len);
         },
     }
+    data[data.len] = 0;
     return data;
 }
 
