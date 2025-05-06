@@ -191,13 +191,7 @@ fn startAgent() void {
     };
     defer args.deinit();
 
-    if (args.log_to_file) {
-        const logs_dir = paths.getOrInitLogsDir(args.logs_dir);
-        log_file = switch (builtin.os.tag) {
-            .windows => logs_dir.createFileW(&paths.logFileName("log"), .{}) catch null,
-            else => logs_dir.createFileZ(&paths.logFileName("log"), .{}) catch null,
-        };
-    }
+    const open_log_file_result = if (args.log_to_file) openLogFile(args.logs_dir);
 
     logger.debug("Parsed arguments", .{});
 
@@ -208,6 +202,10 @@ fn startAgent() void {
         },
         .stderr => {},
     }
+
+    open_log_file_result catch |e| {
+        logger.err("Failed to open log file: {}", .{e});
+    };
 
     logger.info("Agent started", .{});
     {
@@ -251,6 +249,14 @@ fn startAgent() void {
     interpret_instructions(args.instructions);
 
     logger.debug("Interpreted instructions", .{});
+}
+
+fn openLogFile(logs_dir_override: ?std.fs.Dir) !void {
+    const logs_dir = paths.getOrInitLogsDir(logs_dir_override);
+    log_file = switch (builtin.os.tag) {
+        .windows => try logs_dir.createFileW(&paths.logFileName("log"), .{}),
+        else => try logs_dir.createFileZ(&paths.logFileName("log"), .{}),
+    };
 }
 
 fn startIpc(c2s_tx: ?[]const u8) void {
