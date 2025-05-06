@@ -269,6 +269,10 @@ fn startIpc(c2s_tx: ?[]const u8) void {
 }
 
 const windows = struct {
+    comptime {
+        if (builtin.os.tag != .windows) @compileError("Windows-only code cannot be accessed from " ++ @tagName(builtin.os.tag));
+    }
+
     const FdwReason = enum(std.os.windows.DWORD) {
         PROCESS_DETACH = 0,
         PROCESS_ATTACH = 1,
@@ -276,6 +280,8 @@ const windows = struct {
         THREAD_DETACH = 3,
         _,
     };
+
+    var initialFrameAddress: usize = 0;
 
     noinline fn DllMain(
         hInstDll: std.os.windows.HINSTANCE,
@@ -289,6 +295,8 @@ const windows = struct {
         if (fdwReason != .PROCESS_ATTACH) {
             return std.os.windows.TRUE;
         }
+
+        initialFrameAddress = @frameAddress();
 
         entrypoint(module);
 
@@ -306,6 +314,12 @@ fn wtf8ToWtf16LeZChecked(wtf16le: [:0]u16, wtf8: []const u8) error{ InvalidWtf8,
     const n = try std.unicode.wtf8ToWtf16Le(wtf16le, wtf8);
     wtf16le[n] = 0;
     return n;
+}
+
+noinline fn dumpStackHeight() void {
+    const sp = @frameAddress();
+    const height = windows.initialFrameAddress - sp;
+    logger.debug("Stack height is {} (initial: 0x{x:0>16}, current: 0x{x:0>16})", .{ height, windows.initialFrameAddress, sp });
 }
 
 fn interpret_instructions(instructions: []const Args.Instruction) void {
@@ -328,6 +342,9 @@ fn interpret_instructions(instructions: []const Args.Instruction) void {
                             error.Overflow => @panic("Invalid --insn-load-library path: too long"),
                         };
                         std.debug.assert(std.mem.len(@as([*:0]const u16, buf)) == n);
+                        if (builtin.os.tag == .windows) {
+                            dumpStackHeight();
+                        }
                         if (std.os.windows.kernel32.LoadLibraryW(buf) == null) {
                             util.windows.panicWindowsError("LoadLibraryW");
                         }
