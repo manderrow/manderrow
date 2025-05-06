@@ -23,7 +23,7 @@ pub fn getOrInitLogsDir(override: ?Dir) Dir {
     return logs_dir.?;
 }
 
-const log_file_ts_fmt = "-{:0>4}-{:0>2}-{:0>2}T{:0>2}:{:0>2}:{:0>2}.{:0>3}Z.log";
+const log_file_ts_fmt = "-{:0>4}-{:0>2}-{:0>2}T{:0>2}-{:0>2}-{:0>2}.{:0>3}Z.log";
 const log_file_ts_len = std.fmt.count(log_file_ts_fmt, .{ 0, 0, 0, 0, 0, 0, 0 });
 
 pub fn LogFileName(comptime label_utf8: [:0]const u8) type {
