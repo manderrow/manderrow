@@ -1,5 +1,15 @@
 const std = @import("std");
 
+const build_options = @import("build_options");
+const ipc = @import("ipc.zig");
+const LogLevel = ipc.LogLevel;
+
+comptime {
+    if (build_options.ipc_mode != .ipc_channel) {
+        @compileError("Attempted to access Rust IPC implementation when ipc_mode is not .ipc_channel");
+    }
+}
+
 pub const ErrorBuffer = extern struct {
     errno: u32,
     message_buf: [*]u8,
@@ -47,15 +57,6 @@ extern fn manderrow_agent_send_output_line(
 pub fn sendOutputLine(channel: StandardOutputChannel, line: []const u8) void {
     manderrow_agent_send_output_line(channel, line.ptr, line.len);
 }
-
-pub const LogLevel = enum(u8) {
-    critical,
-    err,
-    warn,
-    info,
-    debug,
-    trace,
-};
 
 /// `scope` must consist entirely of ASCII characters in the range `'!'..='~'`.
 /// `msg` must consist entirely of UTF-8 characters.

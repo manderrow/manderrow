@@ -88,10 +88,13 @@ impl IpcConnection {
         match &*state {
             IpcConnectionState::InternalConnecting
             | IpcConnectionState::Internal(_)
-            | IpcConnectionState::ExternalConnecting => Err(KillError::IncompleteConnection),
-            IpcConnectionState::External(conn) => {
+            | IpcConnectionState::ExternalConnecting
+            | IpcConnectionState::External(ExternalIpcConnection { pid: None, .. }) => {
+                Err(KillError::IncompleteConnection)
+            }
+            IpcConnectionState::External(ExternalIpcConnection { pid: Some(pid), .. }) => {
                 // TODO: kill button tries soft first, then second click tries hard
-                conn.pid.kill(log, true)?;
+                pid.kill(log, true)?;
                 Ok(())
             }
         }
@@ -124,7 +127,7 @@ struct ExternalIpcConnection {
     s2c_tx: IpcSender<S2CMessage>,
     /// The id of the receiver in the set.
     c2s_rx: u64,
-    pid: Pid,
+    pid: Option<Pid>,
 }
 
 enum IpcConnectionState {
@@ -140,7 +143,6 @@ enum ManagementEvent {
         id: ConnectionId,
         c2s_rx: IpcReceiver<C2SMessage>,
         s2c_tx: String,
-        pid: Pid,
     },
     Death {
         id: ConnectionId,
@@ -160,7 +162,6 @@ pub struct IpcState {
     connections: Arc<RwLock<HashMap<ConnectionId, IpcConnection>>>,
     receiver_handle: std::thread::JoinHandle<()>,
     mgmt_tx: Arc<Mutex<IpcSender<ManagementEvent>>>,
-    death_wait_submitter: manderrow_process_util::wait_group::Submitter,
 }
 
 impl IpcState {
@@ -220,7 +221,7 @@ impl IpcState {
                                         }
                                     };
                                     match event {
-                                        ManagementEvent::ExternalRegistration { id, c2s_rx, s2c_tx, pid } => {
+                                        ManagementEvent::ExternalRegistration { id, c2s_rx, s2c_tx } => {
                                             let mut connections = connections
                                                 .upgradable_read();
                                             let Some(conn) = connections
@@ -259,7 +260,7 @@ impl IpcState {
                                                     continue;
                                                 }
                                             };
-                                            *state = IpcConnectionState::External(ExternalIpcConnection { s2c_tx, c2s_rx, pid });
+                                            *state = IpcConnectionState::External(ExternalIpcConnection { s2c_tx, c2s_rx, pid: None });
                                             rx_to_id.insert(c2s_rx, id);
                                         }
                                         ManagementEvent::Death { id } => {
@@ -301,13 +302,24 @@ impl IpcState {
                                         warn!(log, "Inconsistent internal state for connection (unknown)"; "conn_id" => id, "rx" => rx);
                                         continue;
                                     };
-                                    let state = conn.0.lock();
-                                    match &*state {
+                                    let mut state = conn.0.lock();
+                                    match &mut *state {
                                         IpcConnectionState::InternalConnecting | IpcConnectionState::Internal(_) | IpcConnectionState::ExternalConnecting => {
                                             warn!(log, "Inconsistent internal state for connection (not External)"; "conn_id" => id, "rx" => rx);
                                             continue;
                                         }
-                                        IpcConnectionState::External(_) => {}
+                                        IpcConnectionState::External(conn) => {
+                                            match msg {
+                                                C2SMessage::Started { pid } => {
+                                                    let pid = Pid::from_raw(pid);
+                                                    conn.pid = Some(pid);
+                                                    if let Err(e) = death_wait_submitter.submit(pid, id.0) {
+                                                        error!(log, "Failed to send submit pid+id to reaper: {}", e);
+                                                    }
+                                                }
+                                                _ => {}
+                                            }
+                                        }
                                     }
 
                                     if let Err(e) = app.emit_to(EVENT_TARGET, EVENT_NAME, IdentifiedC2SMessage { conn_id: id, msg: &msg }) {
@@ -331,7 +343,6 @@ impl IpcState {
                 })
                 .expect("failed to spawn ipc-receiver thread"),
             mgmt_tx: Arc::new(mgmt_tx.into()),
-            death_wait_submitter,
         }
     }
 
@@ -394,7 +405,6 @@ impl IpcState {
 
         let connections = self.connections.clone();
         let mgmt_tx = self.mgmt_tx.clone();
-        let death_wait_submitter = self.death_wait_submitter.clone();
 
         std::thread::Builder::new()
             .name(format!("ipc-receiver-server-{}", name))
@@ -411,21 +421,16 @@ impl IpcState {
                     EVENT_NAME,
                     IdentifiedC2SMessage { conn_id, msg: &msg },
                 );
-                if let C2SMessage::Connect { s2c_tx, pid } = msg {
-                    let pid = Pid::from_raw(pid);
+                if let C2SMessage::Connect { s2c_tx } = msg {
                     if let Err(e) = mgmt_tx.lock().send(&ManagementEvent::ExternalRegistration {
                         id: conn_id,
                         c2s_rx,
                         s2c_tx,
-                        pid,
                     }) {
                         error!(
                             log,
                             "Failed to send registration request for connection: {}", e
                         );
-                    }
-                    if let Err(e) = death_wait_submitter.submit(pid, conn_id.0) {
-                        error!(log, "Failed to send submit pid+id to reaper: {}", e);
                     }
                 } else {
                     warn!(log, "Bad connect message: {:?}", msg);

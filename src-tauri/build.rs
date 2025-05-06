@@ -123,6 +123,8 @@ fn build_agent(
             _ => abi.unwrap_or(""),
         }
     ));
-    command.arg(format!("-Dwine={}", proton));
+    if proton {
+        command.arg("-Dipc-mode=stderr");
+    }
     command.status().unwrap().exit_ok().unwrap();
 }

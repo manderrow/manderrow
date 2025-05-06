@@ -1,8 +1,15 @@
 const builtin = @import("builtin");
 const std = @import("std");
+const dll_proxy = @import("dll_proxy");
 
+const build_options = @import("build_options");
+const Args = @import("Args.zig");
 const crash = @import("crash.zig");
+const ipc = @import("ipc.zig");
 const paths = @import("paths.zig");
+const rs = @import("rs.zig");
+const stdio = @import("stdio.zig");
+const util = @import("util.zig");
 
 pub const std_options: std.Options = .{
     .log_level = .debug,
@@ -24,22 +31,31 @@ fn logFn(
     comptime format: []const u8,
     args: anytype,
 ) void {
-    const level: rs.LogLevel = switch (message_level) {
+    const level: ipc.LogLevel = switch (message_level) {
         .debug => .debug,
         .info => .info,
         .warn => .warn,
         .err => .err,
     };
 
-    logToFile(level, @tagName(scope), format, args);
+    logToLogFile(level, @tagName(scope), format, args);
 
-    const buf = std.fmt.allocPrint(alloc, format, args) catch return;
-    defer alloc.free(buf);
-    rs.sendLog(level, @tagName(scope), buf) catch return;
+    switch (build_options.ipc_mode) {
+        .ipc_channel => {
+            const buf = std.fmt.allocPrint(alloc, format, args) catch return;
+            defer alloc.free(buf);
+            rs.sendLog(level, @tagName(scope), buf) catch return;
+        },
+        .stderr => {
+            std.debug.lockStdErr();
+            defer std.debug.unlockStdErr();
+            logToFile(std.io.getStdErr(), level, @tagName(scope), format, args);
+        },
+    }
 }
 
-pub fn logToFile(
-    message_level: rs.LogLevel,
+pub fn logToLogFile(
+    message_level: ipc.LogLevel,
     scope: []const u8,
     comptime format: []const u8,
     args: anytype,
@@ -47,21 +63,24 @@ pub fn logToFile(
     if (log_file) |f| {
         log_file_lock.lock();
         defer log_file_lock.unlock();
-        f.writer().print("{s} {s} ", .{ @tagName(message_level), scope }) catch return;
-        f.writer().print(format ++ "\n", args) catch return;
+        logToFile(f, message_level, scope, format, args);
     }
+}
+
+pub fn logToFile(
+    file: std.fs.File,
+    message_level: ipc.LogLevel,
+    scope: []const u8,
+    comptime format: []const u8,
+    args: anytype,
+) void {
+    file.writer().print("{s} {s} ", .{ @tagName(message_level), scope }) catch return;
+    file.writer().print(format ++ "\n", args) catch return;
 }
 
 pub const logger = std.log.scoped(.manderrow_agent);
 
 pub const alloc = std.heap.smp_allocator;
-
-const dll_proxy = @import("dll_proxy");
-
-const Args = @import("Args.zig");
-const rs = @import("rs.zig");
-const stdio = @import("stdio.zig");
-const util = @import("util.zig");
 
 comptime {
     // export entrypoints
@@ -182,8 +201,13 @@ fn startAgent() void {
 
     logger.debug("Parsed arguments", .{});
 
-    startIpc(args.c2s_tx);
-    logger.debug("Ran Rust-side init", .{});
+    switch (build_options.ipc_mode) {
+        .ipc_channel => {
+            startIpc(args.c2s_tx);
+            logger.debug("Ran Rust-side init", .{});
+        },
+        .stderr => {},
+    }
 
     logger.info("Agent started", .{});
     {
@@ -191,15 +215,36 @@ fn startAgent() void {
         defer buf.deinit(alloc);
 
         dumpArgs(buf.writer(alloc)) catch {};
-        rs.sendLog(.debug, "manderrow_agent", buf.items) catch |e| std.debug.panic("{}", .{e});
+        switch (build_options.ipc_mode) {
+            .ipc_channel => {
+                rs.sendLog(.debug, "manderrow_agent", buf.items) catch |e| logger.warn("{}", .{e});
+            },
+            .stderr => {
+                logger.debug("{s}", .{buf.items});
+            },
+        }
 
         buf.clearRetainingCapacity();
 
         dumpEnv(buf.writer(alloc)) catch {};
-        rs.sendLog(.debug, "manderrow_agent", buf.items) catch |e| std.debug.panic("{}", .{e});
+        switch (build_options.ipc_mode) {
+            .ipc_channel => {
+                rs.sendLog(.debug, "manderrow_agent", buf.items) catch |e| logger.warn("{}", .{e});
+            },
+            .stderr => {
+                logger.debug("{s}", .{buf.items});
+            },
+        }
     }
 
-    stdio.forwardStdio() catch |e| std.debug.panic("{}", .{e});
+    switch (build_options.ipc_mode) {
+        .ipc_channel => {
+            stdio.forwardStdio() catch |e| std.debug.panic("{}", .{e});
+        },
+        .stderr => {
+            // let the wrapper handle it
+        },
+    }
 
     logger.debug("Hooked stdio for forwarding", .{});
 

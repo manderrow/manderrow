@@ -22,9 +22,7 @@ export const LOG_LEVELS = ["CRITICAL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE"
 
 export type C2SMessage =
   | {
-      Connect: {
-        pid: number;
-      };
+      Connect: {};
     }
   | {
       Disconnect: {};
@@ -34,6 +32,11 @@ export type C2SMessage =
         command: SafeOsString;
         args: SafeOsString[];
         env: { [key: string]: SafeOsString };
+      };
+    }
+  | {
+      Started: {
+        pid: number;
       };
     }
   | {

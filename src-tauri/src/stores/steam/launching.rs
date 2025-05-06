@@ -102,21 +102,30 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
     Ok(())
 }
 
-pub fn generate_unix_launch_options() -> Result<String> {
+pub enum WrapperMode {
+    Ipc,
+    Injection,
+}
+
+pub fn generate_launch_options(mode: WrapperMode) -> Result<String> {
     let bin = std::env::current_exe()
         .context("Failed to get current exe path")?
         .into_os_string()
         .into_string()
         .map_err(|s| anyhow!("Non-Unicode executable name: {s:?}"))?;
-    Ok(format!("{bin:?} wrap %command%"))
+    Ok(format!("{bin:?} wrap-{} %command%", match mode {
+        WrapperMode::Ipc => "with-ipc",
+        WrapperMode::Injection => "with-injection",
+    }))
 }
 
 pub async fn ensure_unix_launch_args_are_applied(
     log: &slog::Logger,
     mut comms: Option<&mut InProcessIpc>,
     game_id: &str,
+    mode: WrapperMode,
 ) -> Result<(), crate::Error> {
-    let args = generate_unix_launch_options()?;
+    let args = generate_launch_options(mode)?;
     loop {
         let result = apply_launch_args(game_id, &args, true, true).await?;
         if matches!(

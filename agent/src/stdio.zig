@@ -4,7 +4,7 @@ const std = @import("std");
 const root = @import("root.zig");
 const alloc = root.alloc;
 const logger = root.logger;
-
+const ipc = @import("ipc.zig");
 const rs = @import("rs.zig");
 
 pub var real_stderr: ?std.fs.File = null;
@@ -105,7 +105,7 @@ fn forwardFromPipe(channel: rs.StandardOutputChannel, pipe: std.fs.File) void {
         }
 
         // forward stdout and stderr to our log file
-        root.logToFile(.info, @tagName(channel), "{s}", .{buf.items});
+        root.logToLogFile(.info, @tagName(channel), "{s}", .{buf.items});
 
         // forward normally
         rs.sendOutputLine(channel, buf.items);
@@ -114,7 +114,7 @@ fn forwardFromPipe(channel: rs.StandardOutputChannel, pipe: std.fs.File) void {
 
 fn tryForwardLineAsLogRecord(line: []const u8) bool {
     var iter = std.mem.splitScalar(u8, line, ' ');
-    const level = std.meta.stringToEnum(rs.LogLevel, iter.first()) orelse {
+    const level = std.meta.stringToEnum(ipc.LogLevel, iter.first()) orelse {
         return false;
     };
 
@@ -122,7 +122,7 @@ fn tryForwardLineAsLogRecord(line: []const u8) bool {
     const msg = iter.rest();
 
     // forward other DLLs logging to our log file
-    root.logToFile(level, scope, "{s}", .{msg});
+    root.logToLogFile(level, scope, "{s}", .{msg});
 
     rs.sendLog(level, scope, msg) catch return false;
 

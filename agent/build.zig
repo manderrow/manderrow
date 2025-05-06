@@ -1,5 +1,10 @@
 const std = @import("std");
 
+const IpcMode = enum {
+    ipc_channel,
+    stderr,
+};
+
 pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
 
@@ -10,6 +15,7 @@ pub fn build(b: *std.Build) !void {
         .ReleaseSafe, .ReleaseFast, .ReleaseSmall => true,
     };
 
+    const ipc = b.option(IpcMode, "ipc-mode", "Determines the IPC mechanism used") orelse .ipc_channel;
     const wine = b.option(bool, "wine", "Compiles ipc-channel with the unix-on-wine feature") orelse false;
 
     const build_zig_zon = b.createModule(.{
@@ -17,7 +23,7 @@ pub fn build(b: *std.Build) !void {
     });
 
     {
-        const lib = try createLib(b, target, optimize, strip, wine, build_zig_zon);
+        const lib = try createLib(b, target, optimize, strip, wine, ipc, build_zig_zon);
 
         b.getInstallStep().dependOn(&b.addInstallArtifact(lib.compile, .{
             .dest_dir = .{ .override = .lib },
@@ -40,6 +46,7 @@ pub fn build(b: *std.Build) !void {
     const Cfg = struct {
         target: std.Build.ResolvedTarget,
         wine: bool = false,
+        ipc: IpcMode = .ipc_channel,
     };
 
     inline for ([_]Cfg{
@@ -47,8 +54,9 @@ pub fn build(b: *std.Build) !void {
         .{ .target = b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .macos }) },
         .{ .target = b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .windows, .abi = .gnu }) },
         .{ .target = b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .windows, .abi = .gnu }), .wine = true },
+        .{ .target = b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .windows, .abi = .gnu }), .ipc = .stderr },
     }) |cfg| {
-        const lib_2 = try createLib(b, cfg.target, optimize, strip, cfg.wine, build_zig_zon);
+        const lib_2 = try createLib(b, cfg.target, optimize, strip, cfg.wine, cfg.ipc, build_zig_zon);
         build_all_step.dependOn(&b.addInstallArtifact(lib_2.compile, .{
             .dest_dir = .{ .override = .lib },
         }).step);
@@ -61,6 +69,7 @@ fn createLib(
     optimize: std.builtin.OptimizeMode,
     strip: bool,
     wine: bool,
+    ipc: IpcMode,
     build_zig_zon: *std.Build.Module,
 ) !struct { mod: *std.Build.Module, compile: *std.Build.Step.Compile } {
     const lib_mod = b.createModule(.{
@@ -87,6 +96,9 @@ fn createLib(
     }
 
     lib_mod.addImport("build.zig.zon", build_zig_zon);
+    const options = b.addOptions();
+    options.addOption(IpcMode, "ipc_mode", ipc);
+    lib_mod.addOptions("build_options", options);
 
     const dll_proxy_dep = b.dependency("dll_proxy", .{
         .target = target,
@@ -119,48 +131,50 @@ fn createLib(
         },
     });
 
-    const cargo_build = b.addSystemCommand(&.{
-        "cargo",
-        "build",
-        "--package",
-        "manderrow-agent",
-        "--profile",
-        switch (optimize) {
-            .Debug => "dev",
-            .ReleaseSafe, .ReleaseFast, .ReleaseSmall => "release",
-        },
-        "--target",
-        rust_target,
-        "--manifest-path",
-    });
-    cargo_build.addFileArg(b.path("../crates/Cargo.toml"));
-    if (wine) {
-        cargo_build.addArgs(&.{ "--features", "unix-on-wine" });
-    }
-    // cargo_build.addFileInput(b.path("../crates/Cargo.lock"));
-    // cargo_build.addFileInput(b.path("../crates/args"));
-    // cargo_build.addFileInput(b.path("../crates/ipc"));
-    // cargo_build.addFileInput(b.path("../crates/agent"));
-    cargo_build.has_side_effects = true;
-
     const lib = b.addLibrary(.{
         .linkage = .dynamic,
         .name = "manderrow_agent",
         .root_module = lib_mod,
     });
 
-    lib.step.dependOn(&cargo_build.step);
-    lib.addObjectFile(b.path(b.fmt("../crates/target/{s}/{s}/{s}", .{
-        rust_target,
-        switch (optimize) {
-            .Debug => "debug",
-            .ReleaseSafe, .ReleaseFast, .ReleaseSmall => "release",
-        },
-        switch (target.result.abi) {
-            .msvc => "manderrow_agent_rs.lib",
-            else => "libmanderrow_agent_rs.a",
-        },
-    })));
+    if (ipc == .ipc_channel) {
+        const cargo_build = b.addSystemCommand(&.{
+            "cargo",
+            "build",
+            "--package",
+            "manderrow-agent",
+            "--profile",
+            switch (optimize) {
+                .Debug => "dev",
+                .ReleaseSafe, .ReleaseFast, .ReleaseSmall => "release",
+            },
+            "--target",
+            rust_target,
+            "--manifest-path",
+        });
+        cargo_build.addFileArg(b.path("../crates/Cargo.toml"));
+        if (wine) {
+            cargo_build.addArgs(&.{ "--features", "unix-on-wine" });
+        }
+        // cargo_build.addFileInput(b.path("../crates/Cargo.lock"));
+        // cargo_build.addFileInput(b.path("../crates/args"));
+        // cargo_build.addFileInput(b.path("../crates/ipc"));
+        // cargo_build.addFileInput(b.path("../crates/agent"));
+        cargo_build.has_side_effects = true;
+
+        lib.step.dependOn(&cargo_build.step);
+        lib.addObjectFile(b.path(b.fmt("../crates/target/{s}/{s}/{s}", .{
+            rust_target,
+            switch (optimize) {
+                .Debug => "debug",
+                .ReleaseSafe, .ReleaseFast, .ReleaseSmall => "release",
+            },
+            switch (target.result.abi) {
+                .msvc => "manderrow_agent_rs.lib",
+                else => "libmanderrow_agent_rs.a",
+            },
+        })));
+    }
 
     return .{ .mod = lib_mod, .compile = lib };
 }

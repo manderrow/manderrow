@@ -49,6 +49,15 @@ pub enum StandardOutputChannel {
     Err,
 }
 
+impl StandardOutputChannel {
+    pub const fn name(self) -> &'static str {
+        match self {
+            StandardOutputChannel::Out => "out",
+            StandardOutputChannel::Err => "err",
+        }
+    }
+}
+
 #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
 pub enum OutputLine {
@@ -114,12 +123,14 @@ impl From<slog::Level> for LogLevel {
 pub enum C2SMessage {
     Connect {
         s2c_tx: String,
-        pid: NonZeroU32,
     },
     Start {
         command: SafeOsString,
         args: Vec<SafeOsString>,
         env: HashMap<String, SafeOsString>,
+    },
+    Started {
+        pid: NonZeroU32,
     },
     Log {
         level: LogLevel,

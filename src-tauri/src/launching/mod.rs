@@ -19,6 +19,7 @@ use crate::games::games_by_id;
 use crate::ipc::ConnectionId;
 use crate::ipc::{C2SMessage, IdentifiedC2SMessage, IpcState};
 use crate::profiles::{profile_path, read_profile_file};
+use crate::stores::steam::launching::WrapperMode;
 
 pub static LOADERS_DIR: LazyLock<PathBuf> = LazyLock::new(|| cache_dir().join("loaders"));
 
@@ -176,6 +177,20 @@ pub async fn launch_profile(
 
             command.arg("{manderrow");
 
+            if !cfg!(windows) {
+                crate::stores::steam::launching::ensure_unix_launch_args_are_applied(
+                    &log,
+                    Some(&mut ipc),
+                    steam_metadata.id,
+                    if uses_proton {
+                        WrapperMode::Ipc
+                    } else {
+                        WrapperMode::Injection
+                    },
+                )
+                .await?;
+            }
+
             if cfg!(windows) || uses_proton {
                 if uses_proton {
                     // TODO: don't overwrite anything without checking with the user
@@ -218,13 +233,6 @@ pub async fn launch_profile(
                     }
                 }
             } else {
-                crate::stores::steam::launching::ensure_unix_launch_args_are_applied(
-                    &log,
-                    Some(&mut ipc),
-                    steam_metadata.id,
-                )
-                .await?;
-
                 let AgentSource::Path(agent_path) = agent_src else {
                     unreachable!("embedded is only used when uses_proton is true")
                 };

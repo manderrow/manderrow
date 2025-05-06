@@ -4,10 +4,6 @@ use std::path::PathBuf;
 use std::process::Command;
 
 use anyhow::{Context as _, Result};
-use manderrow_ipc::client::Ipc;
-use slog::{debug, info};
-
-use crate::ipc::C2SMessage;
 
 struct DisplayArgList;
 impl std::fmt::Display for DisplayArgList {
@@ -47,33 +43,13 @@ pub fn run(args: lexopt::Parser) -> Result<()> {
     fn inner1(mut args: lexopt::Parser) -> Result<()> {
         use lexopt::Arg::*;
 
-        let command = match args.next()?.context("Missing required argument BINARY")? {
+        let command_name = match args.next()?.context("Missing required argument BINARY")? {
             Value(s) => s,
             arg => return Err(arg.unexpected().into()),
         };
 
         let args = args.raw_args()?.collect::<Vec<_>>();
 
-        // TODO: IPC connection for crash reporting
-        let ipc = None::<Ipc>;
-
-        let log = slog_scope::logger();
-
-        if let Err(e) = inner(args, command, &log) {
-            if let Some(ref ipc) = ipc {
-                ipc.send(&C2SMessage::Crash {
-                    error: format!("{e:?}"),
-                })?;
-            } else {
-                info!(log, "{}", e);
-            }
-            Err(e)
-        } else {
-            Ok(())
-        }
-    }
-
-    fn inner(args: Vec<OsString>, command_name: OsString, log: &slog::Logger) -> Result<()> {
         // TODO: avoid cloning so much. Not just here. All over dealing with arguments.
         let (manderrow_args, _) = manderrow_args::extract(args.iter().cloned())?;
 
@@ -109,8 +85,6 @@ pub fn run(args: lexopt::Parser) -> Result<()> {
         let mut command = Command::new(&command_name);
         command.args(args);
 
-        // TODO: maybe check if running under proton and abort
-
         if let Some(agent_path) = agent_path {
             if cfg!(unix) {
                 const VAR: &str = if cfg!(target_os = "macos") {
@@ -125,7 +99,6 @@ pub fn run(args: lexopt::Parser) -> Result<()> {
                     buf.push(base);
                 }
 
-                debug!(log, "Injecting {VAR} {buf:?}");
                 writeln!(log_file, "Injecting {VAR} {buf:?}").unwrap();
 
                 command.env(VAR, buf);

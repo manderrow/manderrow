@@ -2,6 +2,7 @@ const builtin = @import("builtin");
 const std = @import("std");
 
 const build_zig_zon = @import("build.zig.zon");
+const build_options = @import("build_options");
 
 const rs = @import("rs.zig");
 const stdio = @import("stdio.zig");
@@ -13,7 +14,9 @@ pub fn crash(msg: []const u8, ret_addr: ?usize) noreturn {
         thread_crashed = true;
         reportCrashToFile(msg, ret_addr);
         reportCrashToStderr(msg, ret_addr);
-        rs.sendCrash(msg) catch {};
+        if (build_options.ipc_mode == .ipc_channel) {
+            rs.sendCrash(msg) catch {};
+        }
     } else {
         // we don't want to attempt reporting the crash recursively, so just emit a
         // breakpoint so that the problem can be investigated with a debugger.
