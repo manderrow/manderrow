@@ -361,7 +361,7 @@ fn interpret_instructions(instructions: []const Args.Instruction) void {
                         }
                     },
                     else => {
-                        if (std.c.dlopen(ll.path, .{}) == null) {
+                        if (std.c.dlopen(ll.path, .{ .LAZY = true }) == null) {
                             const msg = if (std.c.dlerror()) |s| std.mem.span(s) else "No error message";
                             std.debug.panic("dlopen: {s}", .{msg});
                         }
