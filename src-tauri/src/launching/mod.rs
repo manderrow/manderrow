@@ -255,6 +255,7 @@ pub async fn launch_profile(
                     &log,
                     InstructionEmitter {
                         command: &mut command,
+                        insns: true,
                     },
                     game,
                     profile,
@@ -269,6 +270,7 @@ pub async fn launch_profile(
                     &log,
                     InstructionEmitter {
                         command: &mut command,
+                        insns: true,
                     },
                     game,
                     profile,
@@ -333,15 +335,32 @@ pub async fn launch_profile(
 
 struct InstructionEmitter<'a> {
     command: &'a mut Command,
+    insns: bool,
 }
 
 impl<'a> InstructionEmitter<'a> {
+    fn start_insns(&mut self) {
+        if !self.insns {
+            self.command.arg("{manderrow");
+            self.insns = true;
+        }
+    }
+
+    fn end_insns(&mut self) {
+        if self.insns {
+            self.command.arg("manderrow}");
+            self.insns = false;
+        }
+    }
+
     pub fn load_library(&mut self, path: impl Into<OsString>) {
+        self.start_insns();
         self.command
             .args(["--insn-load-library".into(), path.into()]);
     }
 
     pub fn set_var(&mut self, key: impl AsRef<OsStr>, value: impl AsRef<OsStr>) {
+        self.start_insns();
         let mut kv = key.as_ref().to_owned();
         kv.push("=");
         kv.push(value.as_ref());
@@ -349,10 +368,17 @@ impl<'a> InstructionEmitter<'a> {
     }
 
     pub fn prepend_arg(&mut self, arg: impl Into<OsString>) {
+        self.start_insns();
         self.command.args(["--insn-prepend-arg".into(), arg.into()]);
     }
 
     pub fn append_arg(&mut self, arg: impl Into<OsString>) {
+        self.start_insns();
         self.command.args(["--insn-append-arg".into(), arg.into()]);
+    }
+
+    pub fn raw_arg(&mut self, arg: impl Into<OsString>) {
+        self.end_insns();
+        self.command.arg(arg.into());
     }
 }

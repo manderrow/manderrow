@@ -75,8 +75,8 @@ pub async fn emit_instructions(
 ) -> anyhow::Result<()> {
     let (loader_path, lib_file_name) = get_path(log, uses_proton, profile_id).await?;
 
-    em.append_arg("--melonloader.basedir");
-    em.append_arg(if uses_proton {
+    em.raw_arg("--melonloader.basedir");
+    em.raw_arg(if uses_proton {
         let mut buf = proton::linux_root().to_owned();
         buf.reserve_exact(loader_path.as_os_str().len());
         buf.push(loader_path.as_os_str());
