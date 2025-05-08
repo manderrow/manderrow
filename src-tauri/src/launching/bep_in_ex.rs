@@ -94,7 +94,7 @@ fn get_doorstop_url_and_hash(uses_proton: bool) -> Result<LibraryArtifact> {
     macro_rules! doorstop_url {
         ($artifact:literal, $suffix:literal) => {
             concat!(
-                "https://github.com/manderrow/UnityDoorstop/releases/download/v4.3.0%2Bmanderrow.12/",
+                "https://github.com/manderrow/UnityDoorstop/releases/download/v4.3.0%2Bmanderrow.13/",
                 $artifact,
                 $suffix,
             )
@@ -119,33 +119,33 @@ fn get_doorstop_url_and_hash(uses_proton: bool) -> Result<LibraryArtifact> {
             ("linux", "x86_64", false) => doorstop_artifact!(
                 "libUnityDoorstop_x86_64",
                 ".so",
-                "d2c7fffbf285b531d80e29b39b17b014d63ed2711d9c2c86dab5aebe9cb610ee",
+                "8c32b03bcd032c8bcaa6a171a784d492740464a350eeb8f0e2a7a113561fe7fd",
                 pdb_hash=None
             ),
             ("linux", "x86", false) => todo!(),
             ("macos", "x86_64", false) => doorstop_artifact!(
                 "libUnityDoorstop_x86_64",
                 ".dylib",
-                "8bbac3fba744aad6d1496a5566a7ade977c0f611b37ef3f30b4ad7c2e597b0ef",
+                "a78e67b47afdeb123efdb2a5d718c2cecf8f113ad6733c38bd288505e63bf619",
                 pdb_hash=None
             ),
             ("macos", "aarch64", false) => doorstop_artifact!(
                 "libUnityDoorstop_aarch64",
                 ".dylib",
-                "73a01a38e2d5169a8642f016142b98b94814927b0e40460e06c3a1b296431393",
+                "880f5d5621b06b89f06c09f0074951cb8682e21b0812fe4b921d2c4ead8b095d",
                 pdb_hash=None
             ),
             ("linux", "x86_64", true) | ("windows", "x86_64", false) => doorstop_artifact!(
                 "UnityDoorstop_x86_64",
                 ".dll",
-                "6f3a88d24030ea8e1f76bd1f069ec2bc6a8e47c961ec629844576059e1f3e5b2",
-                pdb_hash=Some("92d461f1b049229e57a2112e832ce7043898201de84e5325eab22723ecb528d9")
+                "d23c17b1e0bac06d04ed74d4b18c1f53ae8961b629dcc394f9d518b1627d356a",
+                pdb_hash=Some("d134d7910d590ca3e8e84c05666957e0d533c8ec72608a567d2d18b11a6b55e8")
             ),
             ("linux", "x86", true) | ("windows", "x86", false) => doorstop_artifact!(
                 "UnityDoorstop_x86",
                 ".dll",
-                "5a8076b745234a03a0c406c3e94005d6ed6a12171e9a79ae47d32f550fd9c0fb",
-                pdb_hash=Some("97f220e8520e81b34b7852f7c56e9dc8683ebd84ceabbc21172135ccb3f6182b")
+                "2eed43e51349a83b4fdef4b5ea542072ae184a58909803423bcc9630da375fbb",
+                pdb_hash=Some("cb821d88a3972bb88d7ff393ebf7e63aeb0984636bb8ba99a385d91cb413d4cf")
             ),
             (os, arch, uses_proton) => bail!(
                 "Unsupported platform combo: (os: {os:?}, arch: {arch:?}, uses_proton: {uses_proton})"
