@@ -19,26 +19,26 @@
   "dependencies": {
     "@fortawesome/free-regular-svg-icons": "^6.7.2",
     "@fortawesome/free-solid-svg-icons": "^6.7.2",
-    "@solid-primitives/i18n": "2.2.0",
-    "@solid-primitives/pagination": "^0.4.0",
+    "@solid-primitives/i18n": "2.2.1",
+    "@solid-primitives/pagination": "^0.4.1",
     "@solidjs/router": "^0.15.3",
-    "@tauri-apps/api": "^2.4.0",
+    "@tauri-apps/api": "^2.5.0",
     "@tauri-apps/plugin-clipboard-manager": "^2.2.2",
     "@tauri-apps/plugin-os": "^2.2.1",
-    "@tauri-apps/plugin-shell": "^2.2.0",
+    "@tauri-apps/plugin-shell": "^2.2.1",
     "@thisbeyond/solid-dnd": "0.7.5",
-    "dompurify": "^3.2.4",
-    "marked": "^15.0.7",
+    "dompurify": "^3.2.5",
+    "marked": "^15.0.11",
     "marked-alert": "^2.1.2",
     "overlayscrollbars": "^2.11.1",
     "overlayscrollbars-solid": "^0.5.6",
     "solid-fa": "^0.2.0",
-    "solid-js": "^1.9.5"
+    "solid-js": "^1.9.6"
   },
   "devDependencies": {
-    "@tauri-apps/cli": "^2.4.0",
-    "typescript": "^5.8.2",
-    "vite": "^6.2.2",
+    "@tauri-apps/cli": "^2.5.0",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.4",
     "vite-plugin-solid": "^2.11.6"
   },
   "pnpm": {

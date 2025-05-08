@@ -1,9 +1,9 @@
 use anyhow::Result;
+use manderrow_types::mods::{ModMetadata, ModVersion};
 use smol_str::SmolStr;
 use tauri::{AppHandle, State};
 use uuid::Uuid;
 
-use crate::mods::{ModMetadata, ModVersion};
 use crate::{tasks, CommandError, Reqwest};
 
 use super::ProfileWithId;

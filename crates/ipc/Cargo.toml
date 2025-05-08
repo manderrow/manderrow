@@ -1,0 +1,26 @@
+[package]
+name = "manderrow-ipc"
+version = "0.1.0"
+authors.workspace = true
+edition = "2024"
+
+[features]
+doctor = ["dep:serde", "dep:serde_json"]
+
+serde = ["dep:serde", "serde/derive", "uuid/serde"]
+slog = ["dep:slog"]
+
+unix-on-wine = ["ipc-channel/unix-on-wine"]
+
+[dependencies]
+thiserror = "2"
+
+serde = { version = "1", optional = true }
+serde_json = { version = "1", optional = true }
+
+uuid = { version = "1.11.0" }
+
+ipc-channel = { git = "https://github.com/manderrow/ipc-channel", version = "0.19.0" }
+
+slog = { version = "2.7.0", default-features = false, optional = true }
+rkyv = { version = "0.8.10", features = ["uuid-1"] }

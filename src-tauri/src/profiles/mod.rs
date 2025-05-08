@@ -6,14 +6,14 @@ use std::sync::LazyLock;
 use anyhow::{Context as _, Result};
 use futures::stream::FuturesOrdered;
 use futures::StreamExt as _;
+use manderrow_paths::local_data_dir;
+use manderrow_types::mods::{ModAndVersion, ModMetadata, ModVersion};
 use slog::error;
 use smol_str::SmolStr;
 use tauri::AppHandle;
 use uuid::Uuid;
 
 use crate::installing::{install_zip, uninstall_package};
-use crate::mods::{ModAndVersion, ModMetadata, ModVersion};
-use crate::paths::local_data_dir;
 use crate::util::{hyphenated_uuid, IoErrorKindExt as _};
 use crate::{tasks, Reqwest};
 

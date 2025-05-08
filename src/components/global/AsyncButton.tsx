@@ -1,5 +1,5 @@
 import { Accessor, createEffect, createSignal, JSX, Show } from "solid-js";
-import { Error } from "./ErrorBoundary";
+import { ErrorDialog } from "./ErrorBoundary";
 import { createProgressProxyStore, Listener, Progress } from "../../api/tasks";
 import { SimpleProgressIndicator } from "./Progress";
 
@@ -23,7 +23,7 @@ export function AsyncButton(props: {
         }
       })}
     >
-      {(err) => <Error err={err()} reset={() => setErr(undefined)} />}
+      {(err) => <ErrorDialog err={err()} reset={() => setErr(undefined)} />}
     </Show>
   );
 }

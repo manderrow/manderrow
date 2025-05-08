@@ -9,7 +9,7 @@ import { Show, createResource, onCleanup, onMount } from "solid-js";
 import { relaunch } from "./api/app";
 import { coreResources } from "./globals";
 
-import ErrorBoundary, { Error } from "./components/global/ErrorBoundary";
+import ErrorBoundary, { ErrorDialog } from "./components/global/ErrorBoundary";
 import ErrorPage from "./pages/error/Error";
 import GameSelect from "./pages/game_select/GameSelect";
 import Profile from "./pages/profile/Profile";
@@ -70,7 +70,7 @@ export default function App() {
       fallback={
         <Show when={coreResources.find((resource) => resource.error != null)?.error} fallback={<Splashscreen />}>
           {(err) => (
-            <Error
+            <ErrorDialog
               err={err}
               reset={async () => {
                 await relaunch();
