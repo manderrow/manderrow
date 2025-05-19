@@ -1,82 +1,164 @@
-import { Channel } from "@tauri-apps/api/core";
-import { Accessor, For, Match, Setter, Switch, createEffect, createSignal, onCleanup, useContext } from "solid-js";
+import { For, Match, Show, Switch, createRenderEffect, createUniqueId, onMount, useContext } from "solid-js";
 
-import { C2SMessage, DoctorReport, SafeOsString, sendS2CMessage } from "../../api/ipc";
+import { LOG_LEVELS, SafeOsString, sendS2CMessage } from "../../api/ipc";
 import styles from "./Console.module.css";
 import Dialog, { dialogStyles } from "./Dialog";
 import { t } from "../../i18n/i18n";
 import { ErrorContext } from "./ErrorBoundary";
+import SelectDropdown from "./SelectDropdown";
+import { createStore } from "solid-js/store";
+import {
+  connections,
+  connectionsUpdate,
+  doctorReports,
+  focusedConnection,
+  IdentifiedDoctorReport,
+  setDoctorReports,
+  setFocusedConnection,
+} from "../../console";
 
 const translateUnchecked = t as (key: string, args: Object | undefined) => string;
 
-export type ConnectionStatus = "connecting" | "connected" | "disconnected";
-
-export class ConsoleConnection {
-  readonly channel: Channel<C2SMessage>;
-  readonly status: Accessor<ConnectionStatus>;
-  readonly setStatus: (value: ConnectionStatus) => void;
-  // TODO: don't use a signal for these
-  readonly events: Accessor<C2SMessage[]>;
-  readonly setEvents: Setter<C2SMessage[]>;
-
-  constructor() {
-    this.channel = new Channel<C2SMessage>();
-    const [status, setStatus] = createSignal<ConnectionStatus>("connecting");
-    this.status = status;
-    this.setStatus = setStatus;
-    const [events, setEvents] = createSignal<C2SMessage[]>([]);
-    this.events = events;
-    this.setEvents = setEvents;
-  }
-
-  clear() {
-    this.setEvents([]);
-  }
-
-  close() {
-    this.channel.onmessage = () => {};
-  }
+export function DoctorReports() {
+  return (
+    <For each={doctorReports()}>
+      {(report, i) => (
+        <DoctorDialog
+          report={report}
+          onDismiss={() => {
+            setDoctorReports((reports) => {
+              return [...reports.slice(0, i()), ...reports.slice(i() + 1)];
+            });
+          }}
+        />
+      )}
+    </For>
+  );
 }
 
-export default function Console(props: { conn: ConsoleConnection | undefined }) {
-  const [doctorReports, setDoctorReports] = createSignal<DoctorReport[]>([]);
-
-  function handleLogEvent(event: C2SMessage) {
-    if (props.conn !== undefined) {
-      if ("Connect" in event) {
-        props.conn.setStatus("connected");
-      } else if ("Disconnect" in event) {
-        props.conn.setStatus("disconnected");
-      } else if ("DoctorReport" in event) {
-        setDoctorReports((reports) => [...reports, event.DoctorReport]);
-      } else {
-        props.conn.setEvents((events) => [...events, event]);
-      }
-    }
+export default function Console() {
+  function getSelectConnectionOptions() {
+    // track updates
+    connectionsUpdate();
+    return Object.fromEntries(
+      Array.from(connections.keys()).map((id) => [
+        id.toString(),
+        { value: id, selected: id === focusedConnection()?.id },
+      ]),
+    );
   }
 
-  createEffect<ConsoleConnection | undefined>((prevConn) => {
-    if (prevConn !== props.conn) {
-      if (prevConn !== undefined) {
-        prevConn.close();
-      }
-      if (props.conn !== undefined) {
-        props.conn.channel.onmessage = handleLogEvent;
-      }
-    }
-    return props.conn;
+  const [visibleLevels, setVisibleLevels] = createStore<{ [k in (typeof LOG_LEVELS)[number]]: boolean }>({
+    CRITICAL: true,
+    ERROR: true,
+    WARN: true,
+    INFO: true,
+    DEBUG: false,
+    TRACE: false,
   });
 
-  onCleanup(() => props.conn?.close());
+  let consoleContainer!: HTMLDivElement;
+
+  onMount(() => {
+    createRenderEffect(() => {
+      focusedConnection()?.events().length;
+
+      // If no overflow yet, don't try to set overflowed to true by returning here
+      if (
+        consoleContainer.scrollHeight === consoleContainer.clientHeight &&
+        consoleContainer.dataset.overflowed === "false"
+      )
+        return;
+
+      // If at bottom of scroll, scroll to the new bottom position after DOM updates,
+      // and set overflowed to true to stop always scrolling to bottom
+      if (
+        consoleContainer.scrollHeight - consoleContainer.clientHeight <= consoleContainer.scrollTop + 1 ||
+        consoleContainer.dataset.overflowed === "false"
+      ) {
+        queueMicrotask(() => {
+          consoleContainer.scrollTop = consoleContainer.scrollHeight - consoleContainer.clientHeight;
+          consoleContainer.dataset.overflowed = "true";
+        });
+      }
+    });
+  });
 
   return (
     <>
-      <h2 class={styles.heading}>
-        <span class={styles.statusIndicator} data-connected={props.conn?.status() === "connected"}></span>
-        {props.conn?.status() === "connected" ? "Connected" : "Disconnected"}{" "}
-      </h2>
-      <div class={styles.console}>
-        <For each={props.conn?.events()} fallback={<p>Game not running.</p>}>
+      <header class={styles.header}>
+        <div class={styles.header__options}>
+          <div class={styles.header__group}>
+            <div class={styles.header__subgroup}>
+              <p>View log:</p>
+              <SelectDropdown
+                label={{ labelText: "value" }}
+                options={getSelectConnectionOptions()}
+                onChanged={(id, selected) => {
+                  if (selected) {
+                    setFocusedConnection(connections.get(id));
+                  }
+                }}
+              />
+            </div>
+            <div class={styles.header__subgroup}>
+              <label for="line-wrap">Line wrap</label>
+              <input type="checkbox" name="line-wrap" id="line-wrap" checked />
+            </div>
+            <div class={styles.header__subgroup}>
+              <input
+                type="text"
+                name="log-search"
+                id="log-search"
+                placeholder="Search log..."
+                class={styles.logSearch}
+              />
+            </div>
+          </div>
+          <div class={styles.header__group}>
+            <div classList={{ [styles.header__subgroup]: true, [styles.toggleList]: true }}>
+              <For each={LOG_LEVELS}>
+                {(level) => {
+                  const id = createUniqueId();
+                  return (
+                    <>
+                      <input
+                        id={id}
+                        type="checkbox"
+                        checked={visibleLevels[level]}
+                        on:change={(event) => setVisibleLevels(level, event.target.checked)}
+                        style="display:none"
+                      />
+                      <label class={styles.scopeToggle} for={id}>
+                        {level}
+                      </label>
+                    </>
+                  );
+                }}
+              </For>
+            </div>
+            <div classList={{ [styles.header__subgroup]: true, [styles.toggleList]: true }}>
+              Scope toggles go here in future
+            </div>
+          </div>
+        </div>
+        <div class={styles.header__group}>
+          <div>
+            <p class={styles.header__liveLogText}>
+              {focusedConnection()?.status() !== "disconnected" ? "Live log" : "Created at"}
+            </p>
+            {focusedConnection()?.status() !== "disconnected" ? (
+              <span class={styles.statusIndicator} data-connected={focusedConnection()?.status() === "connected"}>
+                {focusedConnection()?.status() === "connected" ? "Connected" : "Disconnected"}
+              </span>
+            ) : (
+              focusedConnection().createdTime.toLocaleString()
+            )}
+          </div>
+        </div>
+      </header>
+      <div class={styles.console} ref={consoleContainer} data-overflowed="false">
+        <For each={focusedConnection()?.events()} fallback={<p>Game not running.</p>}>
           {(event) => {
             if ("Output" in event) {
               let line: string;
@@ -100,16 +182,18 @@ export default function Console(props: { conn: ConsoleConnection | undefined }) 
               );
             } else if ("Log" in event) {
               return (
-                <p>
-                  <span class={styles.event__type}>[{event.Log.level}]</span> <span>{event.Log.scope}</span>:{" "}
-                  <span>{event.Log.message}</span>
-                </p>
+                <Show when={visibleLevels[event.Log.level]}>
+                  <p>
+                    <span class={styles.event__type}>[{event.Log.level}]</span> <span>{event.Log.scope}</span>:{" "}
+                    <span>{event.Log.message}</span>
+                  </p>
+                </Show>
               );
             } else if ("Connect" in event) {
               return (
                 <p>
-                  <span class={styles.event__type}>[CONNECT]</span>
-                  {" Wrapper connected to Manderrow"}
+                  <span class={styles.event__type}>[CONNECT]</span> Agent connected to Manderrow from process{" "}
+                  {event.Connect.pid}
                 </p>
               );
             } else if ("Start" in event) {
@@ -147,10 +231,10 @@ export default function Console(props: { conn: ConsoleConnection | undefined }) 
             } else if ("Exit" in event) {
               return (
                 <p>
-                  <span class={styles.event__type}>{Object.keys(event)[0]}</span>{" "}
-                  <Switch fallback={JSON.stringify(Object.values(event)[0])}>
-                    <Match when={event.Exit}>{event.Exit.code}</Match>
-                  </Switch>
+                  <span class={styles.event__type}>[EXIT]</span>{" "}
+                  <Show when={event.Exit.code} fallback="Unknown exit code">
+                    <span>{event.Exit.code}</span>
+                  </Show>
                 </p>
               );
             } else if ("Crash" in event) {
@@ -159,21 +243,14 @@ export default function Console(props: { conn: ConsoleConnection | undefined }) 
                   <span class={styles.event__type}>[CRASH]</span> <span>{event.Crash.error}</span>
                 </p>
               );
+            } else if ("Error" in event) {
+              return (
+                <p>
+                  <span class={styles.event__type}>[ERROR]</span> <span>{(event.Error.error as any).toString()}</span>
+                </p>
+              );
             }
           }}
-        </For>
-
-        <For each={doctorReports()}>
-          {(report, i) => (
-            <DoctorDialog
-              report={report}
-              onDismiss={() => {
-                setDoctorReports((reports) => {
-                  return [...reports.slice(0, i()), ...reports.slice(i() + 1)];
-                });
-              }}
-            />
-          )}
         </For>
       </div>
     </>
@@ -191,52 +268,48 @@ function DisplaySafeOsString(props: { string: SafeOsString }) {
   );
 }
 
-function DoctorDialog(props: { report: DoctorReport; onDismiss: () => void }) {
+function DoctorDialog(props: { report: IdentifiedDoctorReport; onDismiss: () => void }) {
   const reportErr = useContext(ErrorContext)!;
+
+  const report = () => props.report.DoctorReport;
 
   return (
     <Dialog>
       <div class={dialogStyles.dialog__container}>
         <h2 class={dialogStyles.dialog__title}>Uh oh!</h2>
         <p class={styles.dialog__message}>
-          {translateUnchecked(
-            props.report.message ?? `doctor.${props.report.translation_key}.message`,
-            props.report.message_args,
-          )}
+          {translateUnchecked(report().message ?? `doctor.${report().translation_key}.message`, report().message_args)}
         </p>
 
         <ul>
-          <For each={props.report.fixes}>
+          <For each={report().fixes}>
             {(fix) => (
               <li>
-                <div>
-                  {translateUnchecked(`doctor.${props.report.translation_key}.fixes.${fix.id}.label`, fix.label)}
-                </div>
+                <div>{translateUnchecked(`doctor.${report().translation_key}.fixes.${fix.id}.label`, fix.label)}</div>
                 <div>
                   {translateUnchecked(
-                    `doctor.${props.report.translation_key}.fixes.${fix.id}.description`,
+                    `doctor.${report().translation_key}.fixes.${fix.id}.description`,
                     fix.description,
                   )}
                 </div>
                 <button
                   on:click={async () => {
                     try {
-                      await sendS2CMessage({
+                      await sendS2CMessage(props.report.connId, {
                         PatientResponse: {
-                          id: props.report.id,
+                          id: report().id,
                           choice: fix.id,
                         },
                       });
                     } catch (e) {
                       reportErr(e);
                     } finally {
-                      console.log("Dismissing");
                       props.onDismiss();
                     }
                   }}
                 >
                   {translateUnchecked(
-                    `doctor.${props.report.translation_key}.fixes.${fix.id}.confirm_label`,
+                    `doctor.${report().translation_key}.fixes.${fix.id}.confirm_label`,
                     fix.confirm_label,
                   )}
                 </button>

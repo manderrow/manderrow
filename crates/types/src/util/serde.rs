@@ -1,5 +1,5 @@
 use rkyv::vec::ArchivedVec;
-use serde::{ser::SerializeSeq, Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, ser::SerializeSeq};
 
 use super::rkyv::ArchivedInternedString;
 

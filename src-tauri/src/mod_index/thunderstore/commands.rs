@@ -1,7 +1,7 @@
+use packed_semver::Version;
 use tauri::ipc::InvokeResponseBody;
 use tauri::{AppHandle, State};
 
-use crate::mods::Version;
 use crate::{tasks, CommandError, Reqwest};
 
 use super::ModMarkdown;
