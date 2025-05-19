@@ -164,6 +164,8 @@ mod sys {
                 // TODO: verify that the process is not found vs other errors
                 return ControlFlow::Break(data);
             };
+            assert!(!self.handles.is_empty());
+            assert_eq!(self.handles.len() - 1, self.data.len());
             self.handles
                 .push(unsafe { CloseHandleGuard::new(SendSyncHANDLE::from_unsafe(proc.leak())) });
             self.data.push(data);
@@ -171,51 +173,58 @@ mod sys {
         }
 
         pub fn wait_for_any(&mut self, log: &slog::Logger) -> Result<u64, WaitError> {
-            if self.handles.is_empty() {
-                let (pid, data) = self.rx.recv().map_err(|_| WaitError::Closed)?;
-                if let ControlFlow::Break(data) = self.register_pid(pid, data) {
-                    return Ok(data);
+            loop {
+                assert!(!self.handles.is_empty());
+                assert_eq!(self.handles.len() - 1, self.data.len());
+                if self.handles.len() == 1 {
+                    let (pid, data) = self.rx.recv().map_err(|_| WaitError::Closed)?;
+                    if let ControlFlow::Break(data) = self.register_pid(pid, data) {
+                        return Ok(data);
+                    }
                 }
-            }
-            while let Ok((pid, data)) = self.rx.try_recv() {
-                if let ControlFlow::Break(data) = self.register_pid(pid, data) {
-                    return Ok(data);
+                while let Ok((pid, data)) = self.rx.try_recv() {
+                    if let ControlFlow::Break(data) = self.register_pid(pid, data) {
+                        return Ok(data);
+                    }
                 }
-            }
-            let count = std::cmp::min(
-                self.handles.len(),
-                windows::Win32::System::SystemServices::MAXIMUM_WAIT_OBJECTS as usize,
-            );
-            if count != self.handles.len() {
-                // TODO: iterate over chunks, put a timeout on every chunk, repeat until
-                //       we find something
-                warn!(
-                    log,
-                    "Truncating list of process handles (length: {}) due to Windows API limitations",
-                    self.handles.len()
+                let count = std::cmp::min(
+                    self.handles.len(),
+                    windows::Win32::System::SystemServices::MAXIMUM_WAIT_OBJECTS as usize,
                 );
-            }
-            let event = unsafe {
-                windows::Win32::System::Threading::WaitForMultipleObjects(
-                    NonNull::slice_from_raw_parts(
-                        NonNull::from(&self.handles[..count]).cast(),
-                        count,
+                if count != self.handles.len() {
+                    // TODO: iterate over chunks, put a timeout on every chunk, repeat until
+                    //       we find something
+                    warn!(
+                        log,
+                        "Truncating list of process handles (length: {}) due to Windows API limitations",
+                        self.handles.len()
+                    );
+                }
+                let event = unsafe {
+                    windows::Win32::System::Threading::WaitForMultipleObjects(
+                        NonNull::slice_from_raw_parts(
+                            NonNull::from(&self.handles[..count]).cast(),
+                            count,
+                        )
+                        .as_ref(),
+                        false,
+                        windows::Win32::System::Threading::INFINITE,
                     )
-                    .as_ref(),
-                    false,
-                    windows::Win32::System::Threading::INFINITE,
-                )
-            };
-            if !(windows::Win32::Foundation::WAIT_OBJECT_0.0
-                ..(windows::Win32::Foundation::WAIT_OBJECT_0.0 + count as u32))
-                .contains(&event.0)
-            {
-                return Err(anyhow!("Unexpected WAIT_EVENT: {event:?}").into());
+                };
+                const WAIT_OBJECT_0: u32 = windows::Win32::Foundation::WAIT_OBJECT_0.0;
+                return match event.0 {
+                    // notification
+                    WAIT_OBJECT_0 => continue,
+                    // other valid event
+                    event if (WAIT_OBJECT_0..(WAIT_OBJECT_0 + count as u32)).contains(&event) => {
+                        let i = (event - WAIT_OBJECT_0) as usize;
+                        self.handles.swap_remove(i);
+                        let data = self.data.swap_remove(i - 1);
+                        Ok(data)
+                    }
+                    event => Err(anyhow!("Unexpected WAIT_EVENT: {event}").into()),
+                };
             }
-            let i = (event.0 - windows::Win32::Foundation::WAIT_OBJECT_0.0) as usize;
-            self.handles.swap_remove(i);
-            let data = self.data.swap_remove(i);
-            Ok(data)
         }
     }
 
