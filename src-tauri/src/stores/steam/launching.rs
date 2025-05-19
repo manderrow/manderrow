@@ -113,10 +113,13 @@ pub fn generate_launch_options(mode: WrapperMode) -> Result<String> {
         .into_os_string()
         .into_string()
         .map_err(|s| anyhow!("Non-Unicode executable name: {s:?}"))?;
-    Ok(format!("{bin:?} wrap-{} %command%", match mode {
-        WrapperMode::Ipc => "with-ipc",
-        WrapperMode::Injection => "with-injection",
-    }))
+    Ok(format!(
+        "{bin:?} wrap-{} %command%",
+        match mode {
+            WrapperMode::Ipc => "with-ipc",
+            WrapperMode::Injection => "with-injection",
+        }
+    ))
 }
 
 pub async fn ensure_unix_launch_args_are_applied(
