@@ -13,7 +13,7 @@ use std::{
 };
 
 use anyhow::{anyhow, bail, Result};
-use futures::FutureExt;
+use futures_util::FutureExt;
 use tauri::{AppHandle, Emitter};
 use tokio::{
     select,

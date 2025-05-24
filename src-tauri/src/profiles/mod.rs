@@ -4,8 +4,8 @@ use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 
 use anyhow::{Context as _, Result};
-use futures::stream::FuturesOrdered;
-use futures::StreamExt as _;
+use futures_util::stream::FuturesOrdered;
+use futures_util::StreamExt as _;
 use manderrow_paths::local_data_dir;
 use manderrow_types::mods::{ModAndVersion, ModMetadata, ModVersion};
 use slog::error;

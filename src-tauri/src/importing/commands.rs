@@ -1,8 +1,8 @@
 use std::collections::HashSet;
 
 use anyhow::{anyhow, bail, Context};
-use futures::stream::FuturesUnordered;
-use futures::TryStreamExt;
+use futures_util::stream::FuturesUnordered;
+use futures_util::TryStreamExt;
 use manderrow_types::mods::{ModId, ModMetadata, ModVersion};
 use packed_semver::Version;
 use serde::Serialize;
@@ -324,7 +324,7 @@ async fn import_onto_profile(
                                 })?;
 
                                 tokio::io::copy(
-                                    &mut futures::io::AllowStdIo::new(file).compat(),
+                                    &mut futures_util::io::AllowStdIo::new(file).compat(),
                                     &mut target_file,
                                 )
                                 .await

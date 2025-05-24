@@ -10,7 +10,7 @@ mod private {
     use std::io::Result;
 
     use bytes::Bytes;
-    use futures::{Stream, TryStreamExt};
+    use futures_util::{Stream, TryStreamExt};
     use reqwest::Response;
 
     pub type ReqwestBytesStream = impl Stream<Item = Result<Bytes>>;

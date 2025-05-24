@@ -70,7 +70,7 @@ triomphe = "0.1.14"
 blake3 = { version = "1.5.5", features = ["mmap", "serde"] }
 
 # async
-futures = "0.3.31"
+futures-util = { version = "0.3.31", features = ["io"] }
 tokio = { version = "1.44.2", features = ["macros", "process"] }
 tokio-util = { version = "0.7.13", features = ["compat", "io"] }
 

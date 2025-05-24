@@ -107,7 +107,7 @@ pub async fn fetch_mod_index(
 
                     let started_at = std::time::Instant::now();
 
-                    futures::future::try_join_all(chunk_urls.into_iter().map(|url| async {
+                    futures_util::future::try_join_all(chunk_urls.into_iter().map(|url| async {
                         let log = log.clone();
                         let app_handle = app.clone();
                         tokio::task::spawn(async move {
