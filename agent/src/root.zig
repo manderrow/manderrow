@@ -304,7 +304,7 @@ const windows = struct {
 
         initialFrameAddress = @frameAddress();
 
-        entrypoint(module);
+        @call(.never_inline, entrypoint, .{module});
 
         return std.os.windows.TRUE;
     }
