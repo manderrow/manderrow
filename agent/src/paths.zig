@@ -49,7 +49,7 @@ pub fn logFileName(comptime label: [:0]const u8) LogFileName(label).Data {
         // not dealing with this.
         ts.year = 9999;
     }
-    const args = .{ ts.year, @intFromEnum(ts.month), ts.day, ts.hour, ts.minute, ts.second, ms };
+    const args = .{ ts.year, @intFromEnum(ts.month), @as(u6, ts.day_index) + 1, ts.hour, ts.minute, ts.second, ms };
     switch (builtin.os.tag) {
         .windows => {
             var utf8_buf: [log_file_ts_len]u8 = undefined;
@@ -232,7 +232,7 @@ test "defaultLogsDir" {
 
 test "logFileName" {
     start_time = 1745980904000;
-    const expected = "manderrow-agent-crash-2025-04-30T02:41:44.000Z.log";
+    const expected = "manderrow-agent-crash-2025-04-30T02-41-44.000Z.log";
     const actual = logFileName("crash");
     switch (builtin.os.tag) {
         .windows => try std.testing.expectEqualSlices(u16, std.unicode.utf8ToUtf16LeStringLiteral(expected), &actual),
