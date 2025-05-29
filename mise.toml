@@ -2,4 +2,4 @@
 deno = "latest"
 just = "latest"
 rust = "nightly"
-zig = "ref:master"
+zig = "master"
