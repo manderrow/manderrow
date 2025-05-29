@@ -60,6 +60,7 @@ pub fn run(args: lexopt::Parser) -> Result<()> {
         let mut agent_path = None::<PathBuf>;
 
         while let Some(arg) = manderrow_args.next()? {
+            // NOTE: this can break if an unhandled option's value happens to be `--agent-path`
             match arg {
                 lexopt::Arg::Long("agent-path") => {
                     agent_path = Some(manderrow_args.value()?.into());

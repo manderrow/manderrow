@@ -102,6 +102,7 @@ pub fn extract() !@This() {
                 },
             }
         } else {
+            // NOTE: this will break if a user or game decides to use one of these delimiters as an argument
             const token = std.meta.stringToEnum(enum {
                 @"{manderrow",
                 @"manderrow}",

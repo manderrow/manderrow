@@ -74,6 +74,7 @@ pub fn run(args: lexopt::Parser) -> Result<()> {
         let mut c2s_tx = None::<String>;
 
         while let Some(arg) = manderrow_args.next()? {
+            // NOTE: this can break if an unhandled option's value happens to be `--c2s-tx`
             match arg {
                 lexopt::Arg::Long("c2s-tx") => {
                     c2s_tx = Some(manderrow_args.value()?.parse()?);
