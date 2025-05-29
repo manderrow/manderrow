@@ -114,14 +114,6 @@ comptime {
     _ = crash;
 }
 
-extern fn atexit(f: *const fn () callconv(.C) void) void;
-extern fn at_quick_exit(f: *const fn () callconv(.C) void) void;
-
-fn deinit_c() callconv(.C) void {
-    // TODO: implement our own IPC that doesn't rely on thread locals so that this won't panic
-    // rs.manderrow_agent_send_exit(0, false);
-}
-
 fn entrypoint_linux_gnu(
     argc: c_int,
     argv: [*][*:0]u8,
@@ -153,16 +145,6 @@ fn entrypoint(module: if (builtin.os.tag == .windows) std.os.windows.HMODULE els
 
     logger.debug("{}", .{dump_args});
     logger.debug("{}", .{dump_env});
-
-    if (builtin.os.tag != .windows) {
-        atexit(deinit_c);
-
-        logger.debug("Set atexit hook", .{});
-
-        at_quick_exit(deinit_c);
-
-        logger.debug("Set at_quick_exit hook", .{});
-    }
 
     startAgent();
 
