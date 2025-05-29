@@ -209,6 +209,24 @@ impl IpcState {
                     while let Ok(messages) = set.select() {
                         for msg in messages {
                             use ipc_channel::ipc::IpcSelectionResult::*;
+                            let handle_death_event = |rx_to_id: &mut HashMap::<u64, ConnectionId>, id: ConnectionId| {
+                                let mut connections = connections.write();
+                                let Some(conn) = connections
+                                    .remove(&id) else {
+                                        debug!(log, "Received death event for unregistered connection"; "conn_id" => id.0);
+                                        return;
+                                    };
+                                let state = conn.0.lock();
+                                match &*state {
+                                    IpcConnectionState::External(ExternalIpcConnection { c2s_rx, .. }) => {
+                                        rx_to_id.remove(c2s_rx);
+                                    }
+                                    _ => {}
+                                }
+                                if let Err(e) = app.emit_to(EVENT_TARGET, "ipc_closed", id) {
+                                    error!(log, "Failed to emit ipc_closed event to {}: {}", EVENT_TARGET, e; "conn_id" => id.0);
+                                }
+                            };
                             match msg {
                                 MessageReceived(id, msg) if id == mgmt_rx => {
                                     let event = match msg
@@ -264,22 +282,7 @@ impl IpcState {
                                             rx_to_id.insert(c2s_rx, id);
                                         }
                                         ManagementEvent::Death { id } => {
-                                            let mut connections = connections.write();
-                                            let Some(conn) = connections
-                                                .remove(&id) else {
-                                                    debug!(log, "Received death event for unregistered connection"; "conn_id" => id.0);
-                                                    continue;
-                                                };
-                                            let state = conn.0.lock();
-                                            match &*state {
-                                                IpcConnectionState::External(ExternalIpcConnection { c2s_rx, .. }) => {
-                                                    rx_to_id.remove(c2s_rx);
-                                                }
-                                                _ => {}
-                                            }
-                                            if let Err(e) = app.emit_to(EVENT_TARGET, "ipc_closed", id) {
-                                                error!(log, "Failed to emit ipc_closed event to {}: {}", EVENT_TARGET, e; "conn_id" => id.0);
-                                            }
+                                            handle_death_event(&mut rx_to_id, id);
                                         }
                                     }
                                 }
@@ -303,6 +306,7 @@ impl IpcState {
                                         continue;
                                     };
                                     let mut state = conn.0.lock();
+                                    let mut started_but_already_dead = false;
                                     match &mut *state {
                                         IpcConnectionState::InternalConnecting | IpcConnectionState::Internal(_) | IpcConnectionState::ExternalConnecting => {
                                             warn!(log, "Inconsistent internal state for connection (not External)"; "conn_id" => id, "rx" => rx);
@@ -313,8 +317,14 @@ impl IpcState {
                                                 C2SMessage::Started { pid } => {
                                                     let pid = Pid::from_raw(pid);
                                                     conn.pid = Some(pid);
-                                                    if let Err(e) = death_wait_submitter.submit(pid, id.0) {
-                                                        error!(log, "Failed to send submit pid+id to reaper: {}", e);
+                                                    match death_wait_submitter.submit(pid, id.0) {
+                                                        Ok(()) => {}
+                                                        Err(manderrow_process_util::wait_group::SubmitError::Closed) => {
+                                                            started_but_already_dead = true;
+                                                        }
+                                                        Err(manderrow_process_util::wait_group::SubmitError::Other(e)) => {
+                                                            error!(log, "Failed to send submit pid+id to reaper: {}", e);
+                                                        }
                                                     }
                                                 }
                                                 _ => {}
@@ -324,6 +334,11 @@ impl IpcState {
 
                                     if let Err(e) = app.emit_to(EVENT_TARGET, EVENT_NAME, IdentifiedC2SMessage { conn_id: id, msg: &msg }) {
                                         error!(log, "Failed to emit ipc_message event to {}: {}", EVENT_TARGET, e; "conn_id" => id, "rx" => rx);
+                                    }
+
+                                    if started_but_already_dead {
+                                        // the process has already died, clear it out
+                                        handle_death_event(&mut rx_to_id, id);
                                     }
                                 }
                                 ChannelClosed(rx) => {
