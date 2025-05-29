@@ -41,7 +41,7 @@ jobs:
 
       - uses: mlugg/setup-zig@v1
         with:
-          version: 0.15.0-dev.386+2e35fdd03
+          version: 0.15.0-dev.649+e28b4027e
 
       - name: Install frontend dependencies
         run: deno install
