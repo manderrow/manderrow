@@ -180,7 +180,7 @@ pub async fn get_bep_in_ex_path(
             get_ci_url(uses_proton)?,
             // TODO: maybe cache by etag or something?
             None,
-            crate::launching::LOADERS_DIR.join("ci"),
+            crate::launching::LOADERS_DIR.join("BepInEx-ci"),
         ),
     };
 
