@@ -204,7 +204,7 @@ pub async fn get_bep_in_ex_path(
 pub async fn emit_instructions(
     app: Option<&AppHandle>,
     log: &slog::Logger,
-    mut em: InstructionEmitter<'_>,
+    em: &mut InstructionEmitter<'_>,
     game: &Game<'_>,
     profile_id: Uuid,
     version: BepInExVersion,

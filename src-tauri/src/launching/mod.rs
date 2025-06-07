@@ -249,12 +249,14 @@ pub async fn launch_profile(
         match (target, game.package_loader) {
             (LaunchTarget::Vanilla(_), _) => {}
             (LaunchTarget::Profile(profile), PackageLoader::BepInEx) => {
+                let mut em = InstructionEmitter {
+                    command: &mut command,
+                    insns: true,
+                };
                 bep_in_ex::emit_instructions(
                     Some(&app),
                     &log,
-                    InstructionEmitter {
-                        command: &mut command,
-                    },
+                    &mut em,
                     game,
                     profile,
                     match std::env::var_os("BEPINEX_CI") {
@@ -265,6 +267,7 @@ pub async fn launch_profile(
                     uses_proton,
                 )
                 .await?;
+                em.start_insns();
             }
             (_, loader) => {
                 return Err(anyhow!("The mod loader {loader:?} is not yet supported").into())
@@ -322,26 +325,53 @@ pub async fn launch_profile(
 
 struct InstructionEmitter<'a> {
     command: &'a mut Command,
+    insns: bool,
 }
 
 impl<'a> InstructionEmitter<'a> {
-    pub fn load_library(&mut self, path: impl Into<OsString>) {
+    fn start_insns(&mut self) {
+        if !self.insns {
+            self.command.arg("{manderrow");
+            self.insns = true;
+        }
+    }
+
+    fn end_insns(&mut self) {
+        if self.insns {
+            self.command.arg("manderrow}");
+            self.insns = false;
+        }
+    }
+
+    pub fn load_library(&mut self, path: impl AsRef<OsStr>) {
+        self.start_insns();
         self.command
-            .args(["--insn-load-library".into(), path.into()]);
+            .args(["--insn-load-library".as_ref(), path.as_ref()]);
     }
 
     pub fn set_var(&mut self, key: impl AsRef<OsStr>, value: impl AsRef<OsStr>) {
+        self.start_insns();
         let mut kv = key.as_ref().to_owned();
         kv.push("=");
         kv.push(value.as_ref());
-        self.command.args(["--insn-set-var".into(), kv]);
+        self.command
+            .args([AsRef::<OsStr>::as_ref("--insn-set-var"), kv.as_ref()]);
     }
 
-    pub fn prepend_arg(&mut self, arg: impl Into<OsString>) {
-        self.command.args(["--insn-prepend-arg".into(), arg.into()]);
+    pub fn prepend_arg(&mut self, arg: impl AsRef<OsStr>) {
+        self.start_insns();
+        self.command
+            .args(["--insn-prepend-arg".as_ref(), arg.as_ref()]);
     }
 
-    pub fn append_arg(&mut self, arg: impl Into<OsString>) {
-        self.command.args(["--insn-append-arg".into(), arg.into()]);
+    pub fn append_arg(&mut self, arg: impl AsRef<OsStr>) {
+        self.start_insns();
+        self.command
+            .args(["--insn-append-arg".as_ref(), arg.as_ref()]);
+    }
+
+    pub fn raw_arg(&mut self, arg: impl AsRef<OsStr>) {
+        self.end_insns();
+        self.command.arg(arg.as_ref());
     }
 }
