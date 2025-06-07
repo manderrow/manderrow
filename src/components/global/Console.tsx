@@ -170,84 +170,99 @@ export default function Console() {
                 throw Error();
               }
               return (
-                <p>
+                <>
                   <span class={styles.event__type}>
                     <Switch>
-                      <Match when={event.Output.channel === "Out"}>[OUT]</Match>
-                      <Match when={event.Output.channel === "Err"}>[ERR]</Match>
+                      <Match when={event.Output.channel === "Out"}>OUT</Match>
+                      <Match when={event.Output.channel === "Err"}>ERR</Match>
                     </Switch>
-                  </span>{" "}
-                  {line}
-                </p>
+                  </span>
+                  <span class={styles.event__scope}></span>
+                  <span class={styles.event__message}>{line}</span>
+                </>
               );
             } else if ("Log" in event) {
               return (
                 <Show when={visibleLevels[event.Log.level]}>
-                  <p>
-                    <span class={styles.event__type}>[{event.Log.level}]</span> <span>{event.Log.scope}</span>:{" "}
-                    <span>{event.Log.message}</span>
-                  </p>
+                  <span class={styles.event__type}>{event.Log.level}</span>
+                  <span class={styles.event__scope}>
+                    <span>{event.Log.scope}</span>:
+                  </span>
+                  <span class={styles.event__message}>{event.Log.message}</span>
                 </Show>
               );
             } else if ("Connect" in event) {
               return (
-                <p>
-                  <span class={styles.event__type}>[CONNECT]</span> Agent connected to Manderrow from process{" "}
-                  {event.Connect.pid}
-                </p>
+                <>
+                  <span class={styles.event__type}>CONNECT</span>
+                  <span class={styles.event__scope}></span>
+                  <span class={styles.event__message}>
+                    Agent connected to Manderrow from process <span>{event.Connect.pid}</span>
+                  </span>
+                </>
               );
             } else if ("Start" in event) {
               return (
-                <p>
-                  <span class={styles.event__type}>[START]</span>{" "}
-                  <For each={Object.entries(event.Start.env)}>
-                    {([k, v]) => {
-                      if ("Unicode" in v) {
-                        return (
-                          <>
-                            {k}={JSON.stringify(v.Unicode)}{" "}
-                          </>
-                        );
-                      } else {
-                        return (
-                          <>
-                            {k}={JSON.stringify(v)}{" "}
-                          </>
-                        );
-                      }
-                    }}
-                  </For>
-                  <DisplaySafeOsString string={event.Start.command} />{" "}
-                  <For each={event.Start.args}>
-                    {(arg) => (
-                      <>
-                        {" "}
-                        <DisplaySafeOsString string={arg} />
-                      </>
-                    )}
-                  </For>
-                </p>
+                <>
+                  <span class={styles.event__type}>START</span>
+                  <span class={styles.event__scope}></span>
+                  <span class={styles.event__message}>
+                    <For each={Object.entries(event.Start.env)}>
+                      {([k, v]) => {
+                        if ("Unicode" in v) {
+                          return (
+                            <>
+                              {k}={JSON.stringify(v.Unicode)}{" "}
+                            </>
+                          );
+                        } else {
+                          return (
+                            <>
+                              {k}={JSON.stringify(v)}{" "}
+                            </>
+                          );
+                        }
+                      }}
+                    </For>
+                    <DisplaySafeOsString string={event.Start.command} />{" "}
+                    <For each={event.Start.args}>
+                      {(arg) => (
+                        <>
+                          {" "}
+                          <DisplaySafeOsString string={arg} />
+                        </>
+                      )}
+                    </For>
+                  </span>
+                </>
               );
             } else if ("Exit" in event) {
               return (
-                <p>
-                  <span class={styles.event__type}>[EXIT]</span>{" "}
-                  <Show when={event.Exit.code} fallback="Unknown exit code">
-                    <span>{event.Exit.code}</span>
-                  </Show>
-                </p>
+                <>
+                  <span class={styles.event__type}>EXIT</span>
+                  <span class={styles.event__scope}></span>
+                  <span class={styles.event__message}>
+                    <Show when={event.Exit.code} fallback="Unknown exit code">
+                      <span>{event.Exit.code}</span>
+                    </Show>
+                  </span>
+                </>
               );
             } else if ("Crash" in event) {
               return (
-                <p>
-                  <span class={styles.event__type}>[CRASH]</span> <span>{event.Crash.error}</span>
-                </p>
+                <>
+                  <span class={styles.event__type}>CRASH</span>
+                  <span class={styles.event__scope}></span>
+                  <span class={styles.event__message}>{event.Crash.error}</span>
+                </>
               );
             } else if ("Error" in event) {
               return (
-                <p>
-                  <span class={styles.event__type}>[ERROR]</span> <span>{(event.Error.error as any).toString()}</span>
-                </p>
+                <>
+                  <span class={styles.event__type}>ERROR</span>
+                  <span class={styles.event__scope}></span>
+                  <span class={styles.event__message}>{(event.Error.error as any).toString()}</span>
+                </>
               );
             }
           }}

@@ -190,4 +190,5 @@
   flex-direction: column;
   flex-grow: 1;
   margin-right: -1em;
+  overflow: hidden;
 }
