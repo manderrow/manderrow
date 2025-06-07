@@ -57,14 +57,5 @@ const gamePlatforms = await Promise.all(
 
 for (let i = 0; i < gamePlatforms.length; i++) {
   const platforms = gamePlatforms[i];
-  console.log(games[i].thunderstoreId);
-  if (platforms.win) {
-    console.log("  - Windows");
-  }
-  if (platforms.mac) {
-    console.log("  - macOS");
-  }
-  if (platforms.linux) {
-    console.log("  - Linux");
-  }
+  console.log(JSON.stringify({game: games[i].thunderstoreId, win: platforms.win, mac: platforms.mac, linux: platforms.linux }));
 }
