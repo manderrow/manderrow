@@ -209,6 +209,7 @@ pub async fn emit_instructions(
     profile_id: Uuid,
     version: BepInExVersion,
     doorstop_path: Option<PathBuf>,
+    legacy_doorstop: bool,
     uses_proton: bool,
 ) -> anyhow::Result<()> {
     let bep_in_ex = get_bep_in_ex_path(log, version, false).await?;
@@ -253,6 +254,30 @@ pub async fn emit_instructions(
     // em.set_var("DOORSTOP_CLR_CORLIB_DIR", "");
     // em.set_var("DOORSTOP_CLR_RUNTIME_CORECLR_PATH", "");
     // em.set_var("DOORSTOP_BOOT_CONFIG_OVERRIDE", "/path/to/boot.config");
+
+    if legacy_doorstop {
+        em.raw_arg("--doorstop-enable");
+        em.raw_arg("true");
+
+        em.raw_arg("--doorstop-target-assembly");
+        em.raw_arg(&target_assembly);
+
+        em.raw_arg("--doorstop-mono-debug-enabled");
+        em.raw_arg("false");
+
+        em.raw_arg("--doorstop-mono-debug-address");
+        em.raw_arg("127.0.0.1:10000");
+
+        em.raw_arg("--doorstop-mono-debug-suspend");
+        em.raw_arg("false");
+
+        // specify these only if they have values
+        // especially --doorstop-mono-dll-search-path-override, which will
+        // cause the doorstop to fail if given an empty string
+        // command.args(["--doorstop-mono-dll-search-path-override", ""]);
+        // command.args(["--doorstop-clr-corlib-dir", ""]);
+        // command.args(["--doorstop-clr-runtime-coreclr-path", ""]);
+    }
 
     let doorstop_path = match doorstop_path {
         Some(t) => t,

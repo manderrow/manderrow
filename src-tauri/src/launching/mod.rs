@@ -264,6 +264,9 @@ pub async fn launch_profile(
                         _ => bep_in_ex::BepInExVersion::Stable,
                     },
                     std::env::var_os("OVERRIDE_DOORSTOP_LIBRARY_PATH").map(PathBuf::from),
+                    std::env::var_os("LEGACY_DOORSTOP")
+                        .map(|s| s != "0")
+                        .unwrap_or(false),
                     uses_proton,
                 )
                 .await?;
