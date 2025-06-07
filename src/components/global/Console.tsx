@@ -233,7 +233,7 @@ function ConsoleEvent(event: Event, visibleLevels: VisibleLevels, searchInput: (
     case "Log":
       return (
         <>
-          <span class={styles.event__type} style={displayStyle()}>
+          <span class={styles.event__type} style={displayStyle()} data-type={event.level}>
             {event.level}
           </span>
           <span class={styles.event__scope} style={displayStyle()}>
@@ -247,7 +247,7 @@ function ConsoleEvent(event: Event, visibleLevels: VisibleLevels, searchInput: (
     case "Connect":
       return (
         <>
-          <span class={styles.event__type} style={displayStyle()}>
+          <span class={styles.event__type} style={displayStyle()} data-type="CONNECT">
             CONNECT
           </span>
           <span class={styles.event__scope} style={displayStyle()}></span>
@@ -296,7 +296,7 @@ function ConsoleEvent(event: Event, visibleLevels: VisibleLevels, searchInput: (
     case "Started":
       return (
         <>
-          <span class={styles.event__type} style={displayStyle()}>
+          <span class={styles.event__type} style={displayStyle()} data-type="STARTED">
             STARTED
           </span>
           <span class={styles.event__scope} style={displayStyle()}></span>
@@ -322,7 +322,7 @@ function ConsoleEvent(event: Event, visibleLevels: VisibleLevels, searchInput: (
     case "Crash":
       return (
         <>
-          <span class={styles.event__type} style={displayStyle()}>
+          <span class={styles.event__type} style={displayStyle()} data-type="CRASH">
             CRASH
           </span>
           <span class={styles.event__scope} style={displayStyle()}></span>
@@ -334,7 +334,7 @@ function ConsoleEvent(event: Event, visibleLevels: VisibleLevels, searchInput: (
     case "Error":
       return (
         <>
-          <span class={styles.event__type} style={displayStyle()}>
+          <span class={styles.event__type} style={displayStyle()} data-type="ERROR">
             ERROR
           </span>
           <span class={styles.event__scope} style={displayStyle()}></span>

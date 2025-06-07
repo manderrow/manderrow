@@ -93,6 +93,16 @@
   word-break: break-word;
 }
 
+.event__type:is([data-type="STARTED"], [data-type="CONNECT"]) {
+  background-color: green;
+  color: var(--clr-neutral-0);
+}
+
+.event__type:is([data-type="ERROR"], [data-type="CRASH"]) {
+  background-color: red;
+  color: var(--clr-neutral-0);
+}
+
 .event__type {
   font-weight: bold;
   display: flex;
