@@ -249,7 +249,7 @@ pub async fn launch_profile(
         match (target, game.package_loader) {
             (LaunchTarget::Vanilla(_), _) => {}
             (LaunchTarget::Profile(profile), PackageLoader::BepInEx) => {
-                crate::launching::bep_in_ex::emit_instructions(
+                bep_in_ex::emit_instructions(
                     Some(&app),
                     &log,
                     InstructionEmitter {
@@ -257,6 +257,10 @@ pub async fn launch_profile(
                     },
                     game,
                     profile,
+                    match std::env::var_os("BEPINEX_CI") {
+                        Some(s) if !s.is_empty() && s != "0" => bep_in_ex::BepInExVersion::Ci,
+                        _ => bep_in_ex::BepInExVersion::Stable,
+                    },
                     std::env::var_os("OVERRIDE_DOORSTOP_LIBRARY_PATH").map(PathBuf::from),
                     uses_proton,
                 )

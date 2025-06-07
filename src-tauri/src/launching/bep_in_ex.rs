@@ -154,24 +154,34 @@ fn get_doorstop_url_and_hash(uses_proton: bool) -> Result<LibraryArtifact> {
     )
 }
 
+#[derive(Clone, Copy)]
+pub enum BepInExVersion {
+    Stable,
+    Ci,
+}
+
 /// Returns the absolute path to the BepInEx installation. If BepInEx has not yet been
 /// installed, this function will take care of that before returning.
-pub async fn get_bep_in_ex_path(log: &slog::Logger, uses_proton: bool) -> Result<PathBuf> {
-    const USE_CI: bool = false;
-    let (url, cache, path) = if USE_CI {
-        (
+pub async fn get_bep_in_ex_path(
+    log: &slog::Logger,
+    version: BepInExVersion,
+    uses_proton: bool,
+) -> Result<PathBuf> {
+    let (url, cache, path) = match version {
+        BepInExVersion::Stable => {
+            let (url, hash) = get_url_and_hash(uses_proton)?;
+            (
+                url,
+                Some(crate::installing::CacheOptions::by_hash(hash)),
+                crate::launching::LOADERS_DIR.join(hash),
+            )
+        }
+        BepInExVersion::Ci => (
             get_ci_url(uses_proton)?,
             // TODO: maybe cache by etag or something?
             None,
             crate::launching::LOADERS_DIR.join("ci"),
-        )
-    } else {
-        let (url, hash) = get_url_and_hash(uses_proton)?;
-        (
-            url,
-            Some(crate::installing::CacheOptions::by_hash(hash)),
-            crate::launching::LOADERS_DIR.join(hash),
-        )
+        ),
     };
 
     install_zip(
@@ -197,10 +207,11 @@ pub async fn emit_instructions(
     mut em: InstructionEmitter<'_>,
     game: &Game<'_>,
     profile_id: Uuid,
+    version: BepInExVersion,
     doorstop_path: Option<PathBuf>,
     uses_proton: bool,
 ) -> anyhow::Result<()> {
-    let bep_in_ex = get_bep_in_ex_path(log, false).await?;
+    let bep_in_ex = get_bep_in_ex_path(log, version, false).await?;
 
     let profile_path = profile_path(profile_id);
 
