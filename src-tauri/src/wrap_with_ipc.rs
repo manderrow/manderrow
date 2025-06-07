@@ -116,6 +116,7 @@ pub fn run(args: lexopt::Parser) -> Result<()> {
 
         let _guard = if let Some(ipc) = &ipc {
             struct Logger {
+                log_file: std::sync::Mutex<std::fs::File>,
                 ipc: AssertUnwindSafe<Arc<Ipc>>,
             }
 
@@ -129,18 +130,26 @@ pub fn run(args: lexopt::Parser) -> Result<()> {
                     record: &slog::Record<'_>,
                     _values: &slog::OwnedKVList,
                 ) -> Result<Self::Ok, Self::Err> {
-                    _ = tokio::task::block_in_place(|| {
-                        self.ipc.send(&C2SMessage::Log {
+                    tokio::task::block_in_place(|| {
+                        if let Ok(mut log_file) = self.log_file.lock() {
+                            _ = writeln!(&mut *log_file, "{} manderrow_wrap {}", record.level(), record.msg());
+                        }
+                        if let Err(e) = self.ipc.send(&C2SMessage::Log {
                             level: record.level().into(),
                             scope: "manderrow_wrap".into(),
                             message: record.msg().to_string(),
-                        })
+                        }) {
+                            if let Ok(mut log_file) = self.log_file.lock() {
+                                _ = writeln!(&mut *log_file, "error manderrow_wrap failed to send log message over IPC: {e}");
+                            }
+                        }
                     });
                     Ok(())
                 }
             }
             slog_scope::set_global_logger(slog::Logger::root(
                 Logger {
+                    log_file: log_file.into(),
                     ipc: AssertUnwindSafe(ipc.clone()),
                 },
                 o!(),
