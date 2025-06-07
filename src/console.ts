@@ -37,12 +37,12 @@ listen<number>("ipc_closed", (event) => {
   }
 });
 
-type Event = C2SMessage | FrontendEvent;
+export type Event = C2SMessage | FrontendEvent;
 
-type FrontendEvent = { Error: { error: unknown } };
+type FrontendEvent = { type: "Error"; error: unknown };
 
 type IdentifiedC2SMessage = C2SMessage & { connId: number };
-export type IdentifiedDoctorReport = { connId: number; DoctorReport: DoctorReport };
+export type IdentifiedDoctorReport = DoctorReport & { connId: number };
 
 export const [doctorReports, setDoctorReports] = createSignal<IdentifiedDoctorReport[]>([]);
 
@@ -81,14 +81,14 @@ export class ConsoleConnection {
   }
 
   handleEvent(event: IdentifiedC2SMessage | FrontendEvent) {
-    if ("DoctorReport" in event) {
+    if (event.type === "DoctorReport") {
       setDoctorReports((reports) => [...reports, event]);
       return;
     }
 
-    if ("Connect" in event) {
+    if (event.type === "Connect") {
       this.setStatus("connected");
-    } else if ("Disconnect" in event) {
+    } else if (event.type === "Disconnect") {
       this.setStatus("disconnected");
     }
 

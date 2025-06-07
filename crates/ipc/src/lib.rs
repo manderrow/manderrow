@@ -120,6 +120,7 @@ impl From<slog::Level> for LogLevel {
 
 #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(tag = "type"))]
 pub enum C2SMessage {
     Connect {
         s2c_tx: String,
@@ -152,6 +153,7 @@ pub enum C2SMessage {
 
 #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, rkyv::Deserialize)]
 #[cfg_attr(feature = "serde", derive(serde::Deserialize, serde::Serialize))]
+#[cfg_attr(feature = "serde", serde(tag = "type"))]
 pub enum S2CMessage {
     Connect,
     PatientResponse { id: Uuid, choice: String },

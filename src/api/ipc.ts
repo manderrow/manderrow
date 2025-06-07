@@ -4,6 +4,7 @@ import { wrapInvoke } from "../api";
 export type SafeOsString = { Unicode: string } | { NonUnicodeBytes: number[] } | { NonUnicodeWide: number[] };
 
 export interface DoctorReport {
+  type: "DoctorReport";
   id: string;
   translation_key: string;
   message?: string;
@@ -22,55 +23,47 @@ export const LOG_LEVELS = ["CRITICAL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE"
 
 export type C2SMessage =
   | {
-      Connect: {};
+      type: "Connect";
     }
   | {
-      Disconnect: {};
+      type: "Disconnect";
     }
   | {
-      Start: {
-        command: SafeOsString;
-        args: SafeOsString[];
-        env: { [key: string]: SafeOsString };
-      };
+      type: "Start";
+      command: SafeOsString;
+      args: SafeOsString[];
+      env: { [key: string]: SafeOsString };
     }
   | {
-      Started: {
-        pid: number;
-      };
+      type: "Started";
+      pid: number;
     }
   | {
-      Log: {
-        level: (typeof LOG_LEVELS)[number];
-        scope: string;
-        message: string;
-      };
+      type: "Log";
+      level: (typeof LOG_LEVELS)[number];
+      scope: string;
+      message: string;
     }
   | {
-      Output: {
-        channel: "Out" | "Err";
-        line:
-          | {
-              Unicode: string;
-            }
-          | {
-              Bytes: number[];
-            };
-      };
+      type: "Output";
+      channel: "Out" | "Err";
+      line:
+        | {
+            Unicode: string;
+          }
+        | {
+            Bytes: number[];
+          };
     }
   | {
-      Exit: {
-        code?: number;
-      };
+      type: "Exit";
+      code?: number;
     }
   | {
-      Crash: {
-        error: string;
-      };
+      type: "Crash";
+      error: string;
     }
-  | {
-      DoctorReport: DoctorReport;
-    };
+  | DoctorReport;
 
 export type S2CMessage = {
   PatientResponse: {
