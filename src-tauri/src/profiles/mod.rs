@@ -231,7 +231,7 @@ pub async fn uninstall_profile_mod(id: Uuid, owner: &str, name: &str) -> Result<
     path.push(MANIFEST_FILE_NAME);
     tokio::fs::remove_file(&path)
         .await
-        .context("Failed to remove manifest file")?;
+        .with_context(|| format!("Failed to remove manifest file at {path:?}"))?;
     path.pop();
 
     // keep_changes is true so that configs and any other changes are
