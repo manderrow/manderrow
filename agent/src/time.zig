@@ -4,7 +4,6 @@ const epoch = std.time.epoch;
 
 /// Unix timestamp.
 pub const Timestamp = packed struct {
-    /// Range is restricted to that supported by `decodeUnixTime`.
     year: u16,
     month: epoch.Month,
     /// [0, 31]
@@ -17,18 +16,6 @@ pub const Timestamp = packed struct {
     second: u6,
 };
 
-/// Length of regular year.
-const days_per_year = 365;
-const days_per_4_years = 4 * 365 + 1;
-const days_per_century = 100 * 365 + 25 - 1;
-const days_per_4_centuries = 400 * 365 + 100 - 4 + 1;
-/// Magic day number of the epoch (but really of the previous? March).
-const day_n_epoch = 719468;
-
-/// This is based on the implementation found [here](https://de.wikipedia.org/wiki/Unixzeit#Beispiel-Implementierung).
-///
-/// This function is licensed under the [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/deed.en).
-///
 /// - *time* is measured in seconds.
 pub fn decodeUnixTime(time: u64) Timestamp {
     const epoch_secs: epoch.EpochSeconds = .{ .secs = time };
