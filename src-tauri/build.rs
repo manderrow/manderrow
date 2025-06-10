@@ -1,7 +1,8 @@
 #![feature(exit_status_error)]
 
 use std::env::{var, var_os};
-use std::path::PathBuf;
+use std::hash::Hasher;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
 #[derive(Clone, Copy)]
@@ -17,20 +18,6 @@ fn main() {
     assert!(root_dir.pop());
     let crates_dir = root_dir.join("crates");
 
-    println!(
-        "cargo::rerun-if-changed={:?}",
-        root_dir.join("agent/build.zig")
-    );
-    println!(
-        "cargo::rerun-if-changed={:?}",
-        root_dir.join("agent/build.zig.zon")
-    );
-    println!("cargo::rerun-if-changed={:?}", root_dir.join("agent/src"));
-    // if the output file changes, re-run to make sure we use the right version
-    println!(
-        "cargo::rerun-if-changed={:?}",
-        root_dir.join("agent/zig-out/libmanderrow_agent")
-    );
     println!(
         "cargo::rerun-if-changed={:?}",
         crates_dir.join("Cargo.toml")
@@ -66,31 +53,87 @@ fn main() {
 
     let agent_dir = root_dir.join("agent");
 
-    build_agent(&agent_dir, env, false);
-    if os == "linux" {
-        build_agent(&agent_dir, env, true);
-    }
+    let out_dir = PathBuf::from(std::env::var_os("OUT_DIR").unwrap());
 
-    let mut zig_out_dir = agent_dir;
-    zig_out_dir.push("zig-out");
+    let (native_out_dir, host_out_dir) = std::thread::scope(|scope| {
+        let native_out_dir = scope.spawn(|| build_agent(&agent_dir, &out_dir, env, false, false));
 
-    let to_path = zig_out_dir.join("libmanderrow_agent");
+        let host_out_dir = if os == "linux" {
+            scope.spawn(|| build_agent(&agent_dir, &out_dir, env, true, false));
+            Some(scope.spawn(|| build_agent(&agent_dir, &out_dir, env, false, true)))
+        } else {
+            None
+        };
 
-    let mut from_path = zig_out_dir;
-    from_path.push("lib");
-    from_path.push(match os {
-        "linux" => "libmanderrow_agent.so",
-        "darwin" => "libmanderrow_agent.dylib",
-        "windows" => "manderrow_agent.dll",
-        _ => panic!("Unsupported target: {:?}", target),
+        // scope.spawn(|| zig_build(&root_dir.join("wrapper-stage2"), env, &[]));
+
+        (
+            native_out_dir.join().unwrap(),
+            host_out_dir.map(|h| h.join().unwrap()),
+        )
     });
-    std::fs::copy(from_path, to_path).unwrap();
+
+    let mut to_path = agent_dir;
+    to_path.push("zig-out");
+    std::fs::create_dir_all(&to_path).unwrap();
+    to_path.push("libmanderrow_agent");
+    copy(
+        &native_out_dir.join("lib").join(match env.os {
+            "linux" => "libmanderrow_agent.so",
+            "darwin" => "libmanderrow_agent.dylib",
+            "windows" => "manderrow_agent.dll",
+            os => panic!("Unsupported OS: {os:?}"),
+        }),
+        // This is kinda weird. We need Tauri to have access to it, so can't use anything under OUT_DIR (based on profile).
+        &to_path,
+    );
 
     tauri_build::build()
 }
 
+fn copy(from: &Path, to: &Path) {
+    match std::fs::copy(from, to) {
+        Ok(_) => {}
+        Err(e) => panic!("Failed to copy from {from:?} to {to:?}: {e}"),
+    }
+}
+
 fn build_agent(
-    agent_dir: &PathBuf,
+    agent_dir: &Path,
+    out_dir: &Path,
+    env: Env,
+    proton: bool,
+    host_lib: bool,
+) -> PathBuf {
+    assert!(!proton || !host_lib);
+    let mut out_dir = out_dir.join("agent");
+    if proton {
+        out_dir.as_mut_os_string().push("-proton");
+    }
+    if host_lib {
+        out_dir.as_mut_os_string().push("-host_lib");
+    }
+    zig_build(
+        agent_dir,
+        &out_dir,
+        Env {
+            os: if proton { "windows" } else { env.os },
+            abi: if proton { None } else { env.abi },
+            ..env
+        },
+        if proton {
+            &["-Dipc-mode=wine_unixlib"]
+        } else if host_lib {
+            &["-Dhost-lib=true"]
+        } else {
+            &[]
+        },
+    )
+}
+
+fn zig_build(
+    dir: &Path,
+    out_dir: &Path,
     Env {
         arch,
         os,
@@ -98,33 +141,44 @@ fn build_agent(
         debug,
         ..
     }: Env,
-    proton: bool,
-) {
+    args: &[&str],
+) -> PathBuf {
+    println!("cargo::rerun-if-changed={:?}", dir.join("build.zig"));
+    println!("cargo::rerun-if-changed={:?}", dir.join("build.zig.zon"));
+    println!("cargo::rerun-if-changed={:?}", dir.join("src"));
+
     let mut command = Command::new("zig");
-    command.current_dir(agent_dir);
-    command.args([
-        "build",
-        &format!("-Doptimize={}", if debug { "Debug" } else { "ReleaseSafe" }),
-    ]);
+    command.current_dir(dir);
+    command.arg("build");
+
+    command.arg("--cache-dir");
+    command.arg(out_dir.join("cache"));
+
+    let out_dir = out_dir.join("out");
+    command.arg("-p");
+    command.arg(&out_dir);
+
+    if !debug {
+        command.arg("-Drelease");
+    }
 
     command.arg(format!(
         "-Dtarget={arch}-{}{}{}",
-        match (os, proton) {
-            (_, true) => "windows",
-            ("darwin", _) => "macos",
+        match os {
+            "darwin" => "macos",
             _ => os,
         },
-        match (abi, proton) {
-            (_, true) | (Some(_), false) => "-",
-            (None, false) => "",
+        match (abi, os) {
+            (Some(_), _) | (_, "windows") => "-",
+            (None, _) => "",
         },
-        match (os, proton) {
-            (_, true) | ("windows", _) => "gnu",
+        match os {
+            "windows" => "gnu",
             _ => abi.unwrap_or(""),
         }
     ));
-    if proton {
-        command.arg("-Dipc-mode=stderr");
-    }
+    command.args(args);
     command.status().unwrap().exit_ok().unwrap();
+
+    out_dir
 }

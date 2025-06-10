@@ -6,3 +6,8 @@ pub const LogLevel = enum(u8) {
     debug,
     trace,
 };
+
+pub const StandardOutputChannel = enum(u8) {
+    out,
+    err,
+};

@@ -399,13 +399,13 @@ function DoctorDialog(props: { report: IdentifiedDoctorReport; onDismiss: () => 
                   )}
                 </div>
                 <button
+                  type="button"
                   on:click={async () => {
                     try {
                       await sendS2CMessage(props.report.connId, {
-                        PatientResponse: {
-                          id: props.report.id,
-                          choice: fix.id,
-                        },
+                        type: "PatientResponse",
+                        id: props.report.id,
+                        choice: fix.id,
                       });
                     } catch (e) {
                       reportErr(e);

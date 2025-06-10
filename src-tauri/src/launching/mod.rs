@@ -20,6 +20,7 @@ use crate::ipc::ConnectionId;
 use crate::ipc::{C2SMessage, IdentifiedC2SMessage, IpcState};
 use crate::profiles::{profile_path, read_profile_file};
 use crate::stores::steam::launching::WrapperMode;
+use crate::stores::steam::proton::host_path_to_win_path;
 
 pub static LOADERS_DIR: LazyLock<PathBuf> = LazyLock::new(|| cache_dir().join("loaders"));
 
@@ -117,6 +118,10 @@ pub async fn launch_profile(
         }
         _ => false,
     };
+    let host_agent_path = app
+        .path()
+        .resolve("libmanderrow_agent", tauri::path::BaseDirectory::Resource)
+        .context("Failed to resolve agent path")?;
     let agent_src = match std::env::var_os("MANDERROW_AGENT_PATH") {
         Some(path) => AgentSource::Path(path.into()),
         None => {
@@ -124,8 +129,8 @@ pub async fn launch_profile(
                 #[cfg(target_os = "linux")]
                 {
                     AgentSource::Embedded(include_bytes!(concat!(
-                        std::env!("CARGO_MANIFEST_DIR"),
-                        "/../agent/zig-out/lib/manderrow_agent.dll"
+                        env!("OUT_DIR"),
+                        "/agent-proton/out/lib/manderrow_agent.dll"
                     )))
                 }
                 #[cfg(not(target_os = "linux"))]
@@ -133,11 +138,7 @@ pub async fn launch_profile(
                     unreachable!("uses_proton should only be true on Linux")
                 }
             } else {
-                AgentSource::Path(
-                    app.path()
-                        .resolve("libmanderrow_agent", tauri::path::BaseDirectory::Resource)
-                        .context("Failed to resolve agent path")?,
-                )
+                AgentSource::Path(host_agent_path.clone())
             }
         }
     };
@@ -182,11 +183,7 @@ pub async fn launch_profile(
                     &log,
                     Some(&mut ipc),
                     steam_metadata.id,
-                    if uses_proton {
-                        WrapperMode::Ipc
-                    } else {
-                        WrapperMode::Injection
-                    },
+                    WrapperMode::Injection,
                 )
                 .await?;
             }
@@ -241,6 +238,28 @@ pub async fn launch_profile(
             }
         }
         _ => return Err(anyhow!("Unsupported game store: {store_metadata:?}").into()),
+    }
+
+    if uses_proton {
+        command.arg("--agent-host-path");
+
+        let path = cache_dir().join("manderrow-agent.dll.so");
+        tokio::fs::write(
+            &path,
+            include_bytes!(concat!(
+                env!("OUT_DIR"),
+                "/agent-host_lib/out/lib/libmanderrow_agent.so"
+            )),
+        )
+        .await
+        .with_context(|| {
+            format!(
+                "Failed to install host agent from {:?} at {:?}",
+                host_agent_path, path
+            )
+        })?;
+
+        command.arg(host_path_to_win_path(&path));
     }
 
     command.arg("--enable");
@@ -302,10 +321,7 @@ pub async fn launch_profile(
     command.arg("--logs-dir");
     if uses_proton {
         let logs_dir = logs_dir();
-        let mut buf = OsString::with_capacity("Z:".len() + logs_dir.as_os_str().len());
-        buf.push("Z:");
-        buf.push(logs_dir.as_os_str());
-        command.arg(buf);
+        command.arg(host_path_to_win_path(logs_dir));
     } else {
         command.arg(logs_dir());
     }

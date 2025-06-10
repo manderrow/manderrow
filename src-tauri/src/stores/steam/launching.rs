@@ -140,6 +140,7 @@ pub async fn ensure_unix_launch_args_are_applied(
             enum Fix {
                 Apply,
                 Retry,
+                Ignore,
                 Abort,
             }
             let Some(ipc) = &mut comms else {
@@ -168,6 +169,12 @@ pub async fn ensure_unix_launch_args_are_applied(
                             description: Some([("launch_options".to_owned(), args.clone())].into()),
                         },
                         DoctorFix {
+                            id: Fix::Ignore,
+                            label: None,
+                            confirm_label: None,
+                            description: None,
+                        },
+                        DoctorFix {
                             id: Fix::Abort,
                             label: None,
                             confirm_label: None,
@@ -189,6 +196,7 @@ pub async fn ensure_unix_launch_args_are_applied(
                     break;
                 }
                 Fix::Retry => {}
+                Fix::Ignore => break,
                 Fix::Abort => return Err(crate::Error::Aborted),
             }
         } else {

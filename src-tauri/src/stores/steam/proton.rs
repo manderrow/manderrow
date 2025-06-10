@@ -1,4 +1,4 @@
-use std::ops::Range;
+use std::{ffi::OsString, ops::Range, path::{Path, PathBuf}};
 
 use anyhow::{bail, Result};
 use slog::{debug, trace};
@@ -141,6 +141,13 @@ fn reg_add_in_section(
     } else {
         Ok(replaced)
     }
+}
+
+pub fn host_path_to_win_path(path: &Path) -> PathBuf {
+    let mut buf = OsString::with_capacity("Z:".len() + path.as_os_str().len());
+    buf.push("Z:");
+    buf.push(path.as_os_str());
+    PathBuf::from(buf)
 }
 
 #[cfg(test)]

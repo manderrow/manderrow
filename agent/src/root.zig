@@ -10,6 +10,7 @@ const paths = @import("paths.zig");
 const rs = @import("rs.zig");
 const stdio = @import("stdio.zig");
 const util = @import("util.zig");
+const windows = @import("windows.zig");
 
 pub const std_options: std.Options = .{
     .log_level = .debug,
@@ -41,7 +42,7 @@ fn logFn(
     logToLogFile(level, @tagName(scope), format, args);
 
     switch (build_options.ipc_mode) {
-        .ipc_channel => {
+        .ipc_channel, .wine_unixlib => {
             const buf = std.fmt.allocPrint(alloc, format, args) catch return;
             defer alloc.free(buf);
             rs.sendLog(level, @tagName(scope), buf) catch return;
@@ -83,31 +84,39 @@ pub const logger = std.log.scoped(.manderrow_agent);
 pub const alloc = std.heap.smp_allocator;
 
 comptime {
-    // export entrypoints
-    switch (builtin.os.tag) {
-        .windows => {
-            _ = windows;
-        },
-        .macos => {
-            @export(&[1]*const fn () callconv(.C) void{entrypoint_macos}, .{
-                .section = "__DATA,__mod_init_func",
-                .name = "init_array",
-            });
-        },
-        .linux => {
-            if (builtin.abi.isGnu()) {
-                @export(&[1]*const fn (
-                    argc: c_int,
-                    argv: [*][*:0]u8,
-                ) callconv(.C) void{entrypoint_linux_gnu}, .{
-                    .section = ".init_array",
+    if (build_options.host_lib) {
+        // export IPC functions
+        _ = rs.impl;
+
+        // TODO: see if this can be used on macOS too
+        _ = @import("wine_unixlib_host.zig");
+    } else {
+        // export entrypoints
+        switch (builtin.os.tag) {
+            .windows => {
+                _ = windows;
+            },
+            .macos => {
+                @export(&[1]*const fn () callconv(.C) void{entrypoint_macos}, .{
+                    .section = "__DATA,__mod_init_func",
                     .name = "init_array",
                 });
-            } else {
-                @compileError("Unsupported target ABI " ++ @tagName(builtin.abi));
-            }
-        },
-        else => @compileError("Unsupported target OS " ++ @tagName(builtin.os.tag)),
+            },
+            .linux => {
+                if (builtin.abi.isGnu()) {
+                    @export(&[1]*const fn (
+                        argc: c_int,
+                        argv: [*][*:0]u8,
+                    ) callconv(.C) void{entrypoint_linux_gnu}, .{
+                        .section = ".init_array",
+                        .name = "init_array",
+                    });
+                } else {
+                    @compileError("Unsupported target ABI " ++ @tagName(builtin.abi));
+                }
+            },
+            else => @compileError("Unsupported target OS " ++ @tagName(builtin.os.tag)),
+        }
     }
 
     // export crash function to rust code
@@ -133,7 +142,7 @@ fn entrypoint_macos() callconv(.c) void {
     entrypoint({});
 }
 
-fn entrypoint(module: if (builtin.os.tag == .windows) std.os.windows.HMODULE else void) void {
+pub fn entrypoint(module: if (builtin.os.tag == .windows) std.os.windows.HMODULE else void) void {
     if (builtin.is_test)
         return;
 
@@ -177,8 +186,21 @@ fn startAgent() void {
 
     logger.debug("Parsed arguments", .{});
 
+    logger.debug("{}", .{dump_args});
+    logger.debug("{}", .{dump_env});
+
     switch (build_options.ipc_mode) {
-        .ipc_channel => {
+        .ipc_channel, .wine_unixlib => |t| {
+            if (t == .wine_unixlib) {
+                const path = std.unicode.wtf8ToWtf16LeAllocZ(alloc, args.agent_host_path orelse @panic("Missing required option --agent-host-path")) catch |err| switch (err) {
+                    // already validated
+                    error.InvalidWtf8 => unreachable,
+                    error.OutOfMemory => @panic("Out of memory"),
+                };
+                defer alloc.free(path);
+                rs.impl.init(path);
+            }
+
             startIpc(args.c2s_tx);
             logger.debug("Ran Rust-side init", .{});
         },
@@ -196,7 +218,7 @@ fn startAgent() void {
 
         dumpArgs(buf.writer(alloc)) catch {};
         switch (build_options.ipc_mode) {
-            .ipc_channel => {
+            .ipc_channel, .wine_unixlib => {
                 rs.sendLog(.debug, "manderrow_agent", buf.items) catch |e| logger.warn("{}", .{e});
             },
             .stderr => {
@@ -208,7 +230,7 @@ fn startAgent() void {
 
         dumpEnv(buf.writer(alloc)) catch {};
         switch (build_options.ipc_mode) {
-            .ipc_channel => {
+            .ipc_channel, .wine_unixlib => {
                 rs.sendLog(.debug, "manderrow_agent", buf.items) catch |e| logger.warn("{}", .{e});
             },
             .stderr => {
@@ -218,7 +240,7 @@ fn startAgent() void {
     }
 
     switch (build_options.ipc_mode) {
-        .ipc_channel => {
+        .ipc_channel, .wine_unixlib => {
             stdio.forwardStdio() catch |e| std.debug.panic("{}", .{e});
         },
         .stderr => {
@@ -255,42 +277,6 @@ fn startIpc(c2s_tx: ?[]const u8) void {
         },
     }
 }
-
-const windows = struct {
-    comptime {
-        if (builtin.os.tag != .windows) @compileError("Windows-only code cannot be accessed from " ++ @tagName(builtin.os.tag));
-    }
-
-    const FdwReason = enum(std.os.windows.DWORD) {
-        PROCESS_DETACH = 0,
-        PROCESS_ATTACH = 1,
-        THREAD_ATTACH = 2,
-        THREAD_DETACH = 3,
-        _,
-    };
-
-    var initialFrameAddress: usize = 0;
-
-    noinline fn DllMain(
-        hInstDll: std.os.windows.HINSTANCE,
-        fdwReasonRaw: u32,
-        _: std.os.windows.LPVOID,
-    ) std.os.windows.BOOL {
-        const module: std.os.windows.HMODULE = @ptrCast(hInstDll);
-
-        const fdwReason: FdwReason = @enumFromInt(fdwReasonRaw);
-
-        if (fdwReason != .PROCESS_ATTACH) {
-            return std.os.windows.TRUE;
-        }
-
-        initialFrameAddress = @frameAddress();
-
-        @call(.never_inline, entrypoint, .{module});
-
-        return std.os.windows.TRUE;
-    }
-};
 
 // make it available to Zig's start.zig
 pub const DllMain = if (builtin.os.tag == .windows) windows.DllMain;

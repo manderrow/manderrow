@@ -46,6 +46,11 @@
           "confirm_label": "I did it",
           "description": "You'll need to paste the following string in the Launch Options field for the game in Steam: {{ launch_options }}"
         },
+        "ignore": {
+          "label": "Trust me, I know what I'm doing",
+          "confirm_label": "Ignore",
+          "description": "Whatever you say, pal. You're on your own!"
+        },
         "abort": {
           "label": "I don't want to",
           "confirm_label": "Abort",

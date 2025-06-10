@@ -66,10 +66,9 @@ export type C2SMessage =
   | DoctorReport;
 
 export type S2CMessage = {
-  PatientResponse: {
-    id: string;
-    choice: string;
-  };
+  type: "PatientResponse";
+  id: string;
+  choice: string;
 };
 
 export async function allocateIpcConnection(): Promise<number> {

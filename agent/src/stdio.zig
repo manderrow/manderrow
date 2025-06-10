@@ -16,7 +16,7 @@ pub fn forwardStdio() !void {
             real_stderr = .{ .handle = GetStdHandlePtr(.err).* };
 
             const Channel = struct {
-                channel: rs.StandardOutputChannel,
+                channel: ipc.StandardOutputChannel,
                 id: StdHandle,
             };
             inline for ([_]Channel{
@@ -46,7 +46,7 @@ pub fn forwardStdio() !void {
             real_stderr = .{ .handle = try std.posix.dup(std.posix.STDERR_FILENO) };
 
             const Channel = struct {
-                channel: rs.StandardOutputChannel,
+                channel: ipc.StandardOutputChannel,
                 fd: std.posix.fd_t,
             };
             inline for ([_]Channel{
@@ -78,7 +78,7 @@ fn GetStdHandlePtr(handle_id: StdHandle) *std.os.windows.HANDLE {
     };
 }
 
-fn forwardFromPipe(channel: rs.StandardOutputChannel, pipe: std.fs.File) void {
+fn forwardFromPipe(channel: ipc.StandardOutputChannel, pipe: std.fs.File) void {
     defer pipe.close();
     var rdr = std.io.bufferedReader(pipe.reader());
     var buf: std.ArrayListUnmanaged(u8) = .empty;
