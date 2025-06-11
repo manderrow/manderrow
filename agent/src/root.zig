@@ -87,9 +87,6 @@ comptime {
     if (build_options.host_lib) {
         // export IPC functions
         _ = rs.impl;
-
-        // TODO: see if this can be used on macOS too
-        _ = @import("wine_unixlib_host.zig");
     } else {
         // export entrypoints
         switch (builtin.os.tag) {

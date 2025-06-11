@@ -268,7 +268,7 @@ pub async fn launch_profile(
         .with_context(|| format!("Failed to install host agent from embedded bytes at {path:?}"))?;
 
         command.arg("--agent-host-path");
-        command.arg(host_path_to_win_path(&path));
+        command.arg(&path);
     }
 
     command.arg("--enable");

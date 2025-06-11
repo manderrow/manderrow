@@ -114,9 +114,6 @@ pub fn extract() !@This() {
                 },
                 .@"--agent-host-path" => {
                     agent_host_path = args.next() orelse return error.MissingOptionValue;
-                    if (!std.unicode.wtf8ValidateSlice(agent_host_path.?)) {
-                        return error.InvalidWtf8;
-                    }
                 },
             }
         } else {
