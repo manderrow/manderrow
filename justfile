@@ -1,5 +1,8 @@
+export RUST_BACKTRACE := "1"
+export RUST_LOG := "debug"
+
 run *ARGS:
-	RUST_BACKTRACE=1 RUST_LOG=${RUST_LOG:-debug} deno run tauri dev {{ARGS}}
+	deno run tauri dev {{ARGS}}
 
 build *ARGS:
 	deno run tauri build {{ARGS}}
