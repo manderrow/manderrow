@@ -1,40 +1,46 @@
 const builtin = @import("builtin");
 const std = @import("std");
 
-const proto = @import("wine_unixlib_proto.zig");
+const ipc = @import("ipc.zig");
 const rs = @import("rs.zig");
 
-export const __wine_unix_call_funcs = blk: {
-    var funcs: [proto.proxy_exports.len]*const anyopaque = undefined;
-    for (proto.proxy_exports, &funcs) |name, *func| {
-        func.* = &@field(@This(), name);
-    }
-    break :blk funcs;
-};
+// these must be kept in-sync with the definitions in wine_unixlib_proto.zig
 
-pub fn manderrow_agent_init(args: *proto.InitArgs) std.os.windows.NTSTATUS {
-    args.status = rs.impl.manderrow_agent_init(args.c2s_tx_ptr, args.c2s_tx_len, args.error_buf);
+pub export fn manderrow_agent_init(
+    c2s_tx_ptr: ?[*]const u8,
+    c2s_tx_len: usize,
+    error_buf: *rs.ErrorBuffer,
+) rs.InitStatusCode {
+    return rs.impl.manderrow_agent_init(c2s_tx_ptr, c2s_tx_len, error_buf);
+}
+
+pub export fn manderrow_agent_send_exit(code: i32, with_code: bool) std.os.windows.NTSTATUS {
+    rs.impl.manderrow_agent_send_exit(code, with_code);
     return .SUCCESS;
 }
 
-pub fn manderrow_agent_send_exit(args: *proto.SendExitArgs) std.os.windows.NTSTATUS {
-    rs.impl.manderrow_agent_send_exit(args.code, args.with_code);
+pub export fn manderrow_agent_send_crash(msg_ptr: [*]const u8, msg_len: usize) std.os.windows.NTSTATUS {
+    rs.impl.manderrow_agent_send_crash(msg_ptr, msg_len);
     return .SUCCESS;
 }
 
-pub fn manderrow_agent_send_crash(args: *proto.SendCrashArgs) std.os.windows.NTSTATUS {
-    rs.impl.manderrow_agent_send_crash(args.msg_ptr, args.msg_len);
-    return .SUCCESS;
-}
-
-pub fn manderrow_agent_send_output_line(args: *proto.SendOutputLineArgs) std.os.windows.NTSTATUS {
-    rs.impl.manderrow_agent_send_output_line(args.channel, args.line_ptr, args.line_len);
+pub export fn manderrow_agent_send_output_line(
+    channel: ipc.StandardOutputChannel,
+    line_ptr: [*]const u8,
+    line_len: usize,
+) std.os.windows.NTSTATUS {
+    rs.impl.manderrow_agent_send_output_line(channel, line_ptr, line_len);
     return .SUCCESS;
 }
 
 /// `scope` must consist entirely of ASCII characters in the range `'!'..='~'`.
 /// `msg` must consist entirely of UTF-8 characters.
-pub fn manderrow_agent_send_log(args: *proto.SendLogArgs) std.os.windows.NTSTATUS {
-    rs.impl.manderrow_agent_send_log(args.level, args.scope_ptr, args.scope_len, args.msg_ptr, args.msg_len);
-    return .SUCCESS;
+pub export fn manderrow_agent_send_log(
+    level: ipc.LogLevel,
+    scope_ptr: [*]const u8,
+    scope_len: usize,
+    msg_ptr: [*]const u8,
+    msg_len: usize,
+) void {
+    rs.impl.manderrow_agent_send_log(level, scope_ptr, scope_len, msg_ptr, msg_len);
 }

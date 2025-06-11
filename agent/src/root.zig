@@ -192,13 +192,13 @@ fn startAgent() void {
     switch (build_options.ipc_mode) {
         .ipc_channel, .wine_unixlib => |t| {
             if (t == .wine_unixlib) {
-                const path = std.unicode.wtf8ToWtf16LeAllocZ(alloc, args.agent_host_path orelse @panic("Missing required option --agent-host-path")) catch |err| switch (err) {
+                const path = std.unicode.wtf8ToWtf16LeAllocZ(alloc, args.dlfcn_host_path orelse @panic("Missing required option --dlfcn-host-path")) catch |err| switch (err) {
                     // already validated
                     error.InvalidWtf8 => unreachable,
                     error.OutOfMemory => @panic("Out of memory"),
                 };
                 defer alloc.free(path);
-                rs.impl.init(path);
+                rs.impl.init(path, args.agent_host_path orelse @panic("Missing required option --agent-host-path"));
             }
 
             startIpc(args.c2s_tx);

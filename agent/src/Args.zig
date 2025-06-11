@@ -8,6 +8,7 @@ log_to_file: bool,
 logs_dir: ?std.fs.Dir,
 c2s_tx: ?[:0]const u8,
 instructions: []Instruction,
+dlfcn_host_path: ?[:0]const u8,
 agent_host_path: ?[:0]const u8,
 
 /// Holds allocations. Not meant to be used directly.
@@ -20,6 +21,7 @@ pub fn extract() !@This() {
     var instructions: std.ArrayListUnmanaged(Instruction) = .empty;
     errdefer instructions.deinit(alloc);
     var c2s_tx: ?[:0]const u8 = null;
+    var dlfcn_host_path: ?[:0]const u8 = null;
     var agent_host_path: ?[:0]const u8 = null;
 
     var log_to_file = false;
@@ -40,6 +42,7 @@ pub fn extract() !@This() {
                 @"--insn-prepend-arg",
                 @"--insn-append-arg",
                 @"--agent-path",
+                @"--dlfcn-host-path",
                 @"--agent-host-path",
             }, arg) orelse return error.UnexpectedArgument;
             switch (token) {
@@ -103,6 +106,12 @@ pub fn extract() !@This() {
                         return error.MissingOptionValue;
                     }
                 },
+                .@"--dlfcn-host-path" => {
+                    dlfcn_host_path = args.next() orelse return error.MissingOptionValue;
+                    if (!std.unicode.wtf8ValidateSlice(dlfcn_host_path.?)) {
+                        return error.InvalidWtf8;
+                    }
+                },
                 .@"--agent-host-path" => {
                     agent_host_path = args.next() orelse return error.MissingOptionValue;
                     if (!std.unicode.wtf8ValidateSlice(agent_host_path.?)) {
@@ -132,6 +141,7 @@ pub fn extract() !@This() {
         .logs_dir = logs_dir,
         .c2s_tx = c2s_tx,
         .instructions = try instructions.toOwnedSlice(alloc),
+        .dlfcn_host_path = dlfcn_host_path,
         .agent_host_path = agent_host_path,
 
         .args = args,

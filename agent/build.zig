@@ -26,7 +26,7 @@ pub fn build(b: *std.Build) !void {
     });
 
     {
-        const lib = try createLib(b, target, optimize, strip, wine, ipc, host_lib, build_zig_zon);
+        const lib = try createLib(b, target, optimize, strip, wine, ipc, host_lib, build_zig_zon, b.getInstallStep());
 
         b.getInstallStep().dependOn(&b.addInstallArtifact(lib.compile, .{
             .dest_dir = .{ .override = .lib },
@@ -62,7 +62,7 @@ pub fn build(b: *std.Build) !void {
         .{ .target = b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .windows, .abi = .gnu }), .ipc = .stderr },
         .{ .target = b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .windows, .abi = .gnu }), .ipc = .wine_unixlib },
     }) |cfg| {
-        const lib_2 = try createLib(b, cfg.target, optimize, strip, cfg.wine, cfg.ipc, cfg.host_lib, build_zig_zon);
+        const lib_2 = try createLib(b, cfg.target, optimize, strip, cfg.wine, cfg.ipc, cfg.host_lib, build_zig_zon, build_all_step);
         build_all_step.dependOn(&b.addInstallArtifact(lib_2.compile, .{
             .dest_dir = .{ .override = .lib },
         }).step);
@@ -78,6 +78,7 @@ fn createLib(
     ipc: IpcMode,
     host_lib: bool,
     build_zig_zon: *std.Build.Module,
+    install_step: *std.Build.Step,
 ) !struct { mod: *std.Build.Module, compile: *std.Build.Step.Compile } {
     const lib_mod = b.createModule(.{
         .root_source_file = b.path("src/root.zig"),
@@ -143,7 +144,15 @@ fn createLib(
         .linkage = .dynamic,
         .name = "manderrow_agent",
         .root_module = lib_mod,
+        // TODO: remove when possible ("Unimplemented: ExportOptions.section")
+        .use_llvm = true,
     });
+
+    const dep = b.dependency("wine_host_dlfcn", .{ .optimize = optimize });
+
+    if (host_lib) {
+        install_step.dependOn(&b.addInstallLibFile(dep.namedLazyPath("lib"), "host_dlfcn.dll.so").step);
+    }
 
     switch (ipc) {
         .ipc_channel => {
@@ -184,7 +193,10 @@ fn createLib(
                 },
             })));
         },
-        .stderr, .wine_unixlib => {},
+        .wine_unixlib => {
+            lib_mod.addImport("dlfcn", dep.module("proxy"));
+        },
+        .stderr => {},
     }
 
     return .{ .mod = lib_mod, .compile = lib };

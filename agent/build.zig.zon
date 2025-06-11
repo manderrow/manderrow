@@ -12,6 +12,10 @@
             .url = "git+https://github.com/manderrow/dll-proxy.git#abfbaaec203ec9c9f1ce82bd3facaaeb00386665",
             .hash = "dll_proxy-0.0.0-WDnws9I1AAC0lxwXH8V33yTQpVnrc6DBCeYoMXpdGok7",
         },
+        .wine_host_dlfcn = .{
+            .url = "../../wine-host-dlfcn",
+            .hash = "wine_host_dlfcn-0.0.0-853HMWIYAACimUnFdES3E9lhfxT6HYWEiPzgPtL4qTXk",
+        },
     },
 
     .paths = .{
