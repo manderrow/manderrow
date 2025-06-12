@@ -1,6 +1,8 @@
 const std = @import("std");
 
-pub fn panicWindowsError(func: []const u8) noreturn {
+const crash = @import("../crash.zig");
+
+pub fn panicWindowsError(src: std.builtin.SourceLocation, func: []const u8) noreturn {
     @branchHint(.cold);
     const err = std.os.windows.GetLastError();
     // 614 is the length of the longest windows error description
@@ -14,7 +16,7 @@ pub fn panicWindowsError(func: []const u8) noreturn {
         buf_wstr.len,
         null,
     );
-    std.debug.panic("error.Unexpected(0x{x}): {s}: {}\n", .{
+    crash.crash(src, "error.Unexpected(0x{x}): {s}: {}\n", .{
         @intFromEnum(err),
         func,
         std.unicode.fmtUtf16Le(buf_wstr[0..len]),
@@ -23,6 +25,6 @@ pub fn panicWindowsError(func: []const u8) noreturn {
 
 pub fn SetEnvironmentVariable(key: [*:0]const u16, value: ?[*:0]const u16) void {
     if (std.os.windows.kernel32.SetEnvironmentVariableW(key, value) == 0) {
-        panicWindowsError("SetEnvironmentVariableW");
+        panicWindowsError(@src(), "SetEnvironmentVariableW");
     }
 }

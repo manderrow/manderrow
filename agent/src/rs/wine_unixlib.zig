@@ -5,6 +5,7 @@ const dlfcn = @import("dlfcn");
 
 const logger = @import("../root.zig").logger;
 
+const crash = @import("../crash.zig").crash;
 const ipc = @import("../ipc.zig");
 const LogLevel = ipc.LogLevel;
 const StandardOutputChannel = ipc.StandardOutputChannel;
@@ -12,15 +13,15 @@ const proto = @import("../wine_unixlib_proto.zig");
 const rs = @import("../rs.zig");
 
 pub fn manderrow_agent_init(c2s_tx_ptr: ?[*]const u8, c2s_tx_len: usize, error_buf: *rs.ErrorBuffer) rs.InitStatusCode {
-    return (init_fn orelse @panic("not initialized"))(c2s_tx_ptr, c2s_tx_len, error_buf);
+    return (init_fn orelse crash(@src(), "not initialized", .{}))(c2s_tx_ptr, c2s_tx_len, error_buf);
 }
 
 pub fn manderrow_agent_send_exit(code: i32, with_code: bool) void {
-    (send_exit_fn orelse @panic("not initialized"))(code, with_code);
+    (send_exit_fn orelse return)(code, with_code);
 }
 
 pub fn manderrow_agent_send_crash(msg_ptr: [*]const u8, msg_len: usize) void {
-    (send_crash_fn orelse @panic("not initialized"))(msg_ptr, msg_len);
+    (send_crash_fn orelse return)(msg_ptr, msg_len);
 }
 
 pub fn manderrow_agent_send_output_line(
@@ -28,7 +29,7 @@ pub fn manderrow_agent_send_output_line(
     line_ptr: [*]const u8,
     line_len: usize,
 ) void {
-    (send_output_line_fn orelse @panic("not initialized"))(channel, line_ptr, line_len);
+    (send_output_line_fn orelse return)(channel, line_ptr, line_len);
 }
 
 /// `scope` must consist entirely of ASCII characters in the range `'!'..='~'`.
@@ -40,7 +41,7 @@ pub fn manderrow_agent_send_log(
     msg_ptr: [*]const u8,
     msg_len: usize,
 ) void {
-    (send_log_fn orelse @panic("not initialized"))(level, scope_ptr, scope_len, msg_ptr, msg_len);
+    (send_log_fn orelse return)(level, scope_ptr, scope_len, msg_ptr, msg_len);
 }
 
 comptime {

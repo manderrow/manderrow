@@ -9,7 +9,8 @@ const stdio = @import("stdio.zig");
 
 threadlocal var thread_crashed = false;
 
-pub fn crash(msg: []const u8, ret_addr: ?usize) noreturn {
+pub fn panic(msg: []const u8, error_return_trace: ?*std.builtin.StackTrace, ret_addr: ?usize) noreturn {
+    _ = error_return_trace;
     if (!thread_crashed) {
         thread_crashed = true;
         reportCrashToFile(msg, ret_addr);
@@ -25,8 +26,22 @@ pub fn crash(msg: []const u8, ret_addr: ?usize) noreturn {
     std.posix.abort();
 }
 
+const FormatSourceLocation = struct {
+    src: std.builtin.SourceLocation,
+
+    pub fn format(self: FormatSourceLocation, comptime fmt: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
+        if (fmt.len != 0) @compileError("Unrecognized format specifier: " ++ fmt);
+        const src = self.src;
+        return writer.print("at {s}:{s}:{}:{}:{s}: ", .{ src.module, src.file, src.line, src.column, src.fn_name });
+    }
+};
+
+pub fn crash(src: std.builtin.SourceLocation, comptime fmt: []const u8, args: anytype) noreturn {
+    std.debug.panic("{}" ++ fmt, .{FormatSourceLocation{ .src = src }} ++ args);
+}
+
 export fn manderrow_agent_crash(msg_ptr: [*]const u8, msg_len: usize) noreturn {
-    crash(msg_ptr[0..msg_len], @returnAddress());
+    @panic(msg_ptr[0..msg_len]);
 }
 
 fn dumpCrashReport(writer: anytype, msg: []const u8, ret_addr: ?usize) void {

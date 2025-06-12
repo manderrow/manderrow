@@ -18,10 +18,7 @@ pub const std_options: std.Options = .{
     .enable_segfault_handler = false,
 };
 
-pub fn panic(msg: []const u8, error_return_trace: ?*std.builtin.StackTrace, ret_addr: ?usize) noreturn {
-    _ = error_return_trace;
-    crash.crash(msg, ret_addr);
-}
+pub const panic = crash.panic;
 
 var log_file: ?std.fs.File = null;
 var log_file_lock: std.Thread.Mutex.Recursive = .init;
@@ -159,7 +156,7 @@ pub fn entrypoint(module: if (builtin.os.tag == .windows) std.os.windows.HMODULE
         dll_proxy.loadProxy(module) catch |e| switch (e) {
             error.OutOfMemory => @panic("Out of memory"),
             error.UnsupportedName => success = false,
-            else => std.debug.panic("Failed to load actual DLL: {}", .{e}),
+            else => crash.crash(@src(), "Failed to load actual DLL: {}", .{e}),
         };
 
         if (success) {
@@ -175,7 +172,7 @@ fn startAgent() void {
 
     var args = Args.extract() catch |e| switch (e) {
         error.Disabled => return,
-        else => std.debug.panic("{}", .{e}),
+        else => crash.crash(@src(), "{}", .{e}),
     };
     defer args.deinit();
 
@@ -238,7 +235,7 @@ fn startAgent() void {
 
     switch (build_options.ipc_mode) {
         .ipc_channel, .wine_unixlib => {
-            stdio.forwardStdio() catch |e| std.debug.panic("{}", .{e});
+            stdio.forwardStdio() catch |e| crash.crash(@src(), "{}", .{e});
         },
         .stderr => {
             // let the wrapper handle it
@@ -269,9 +266,7 @@ fn startIpc(c2s_tx: ?[]const u8) void {
     };
     switch (rs.manderrow_agent_init(if (c2s_tx) |s| s.ptr else null, if (c2s_tx) |s| s.len else 0, &error_buf)) {
         .Success => {},
-        else => |_| {
-            crash.crash(error_message_buf[0..error_buf.message_len], null);
-        },
+        else => |_| @panic(error_message_buf[0..error_buf.message_len]),
     }
 }
 
@@ -322,13 +317,13 @@ fn interpret_instructions(instructions: []const Args.Instruction) void {
                             dumpStackHeight();
                         }
                         if (std.os.windows.kernel32.LoadLibraryW(buf) == null) {
-                            util.windows.panicWindowsError("LoadLibraryW");
+                            util.windows.panicWindowsError(@src(), "LoadLibraryW");
                         }
                     },
                     else => {
                         if (std.c.dlopen(ll.path, .{ .LAZY = true }) == null) {
                             const msg = if (std.c.dlerror()) |s| std.mem.span(s) else "No error message";
-                            std.debug.panic("dlopen: {s}", .{msg});
+                            crash.crash(@src(), "dlopen: {s}", .{msg});
                         }
                     },
                 }
@@ -350,12 +345,12 @@ fn interpret_instructions(instructions: []const Args.Instruction) void {
                             error.InvalidWtf8 => @panic("Invalid --insn-set-var value: invalid WTF-8"),
                             error.Overflow => @panic("Invalid --insn-set-var value: too long"),
                         };
-                        util.setEnv(key_buf, &value_buf) catch |e| std.debug.panic("{}", .{e});
+                        util.setEnv(key_buf, &value_buf) catch |e| crash.crash(@src(), "{}", .{e});
                     },
                     else => {
                         const key_buf = alloc.dupeZ(u8, key) catch @panic("Out of memory");
                         defer alloc.free(key_buf);
-                        util.setEnv(key_buf, value) catch |e| std.debug.panic("{}", .{e});
+                        util.setEnv(key_buf, value) catch |e| crash.crash(@src(), "{}", .{e});
                     },
                 }
             },

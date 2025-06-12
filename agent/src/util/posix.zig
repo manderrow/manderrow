@@ -1,6 +1,8 @@
 const builtin = @import("builtin");
 const std = @import("std");
 
+const crash = @import("../crash.zig");
+
 const c = struct {
     extern "c" fn setenv(name: [*:0]const u8, value: [*:0]const u8, overwrite: c_int) c_int;
     extern "c" fn unsetenv(name: [*:0]const u8) c_int;
@@ -29,7 +31,7 @@ pub fn setenv(key: [*:0]const u8, value: [*:0]const u8, overwrite: bool) !void {
         .SUCCESS => {},
         .INVAL => unreachable, // key has been validated
         .NOMEM => return error.OutOfMemory,
-        else => |err| std.debug.panic("unexpected errno: {d}\n", .{@intFromEnum(err)}),
+        else => |err| crash.crash(@src(), "unexpected errno: {d}\n", .{@intFromEnum(err)}),
     }
 }
 
@@ -42,6 +44,6 @@ pub fn unsetenv(key: [*:0]const u8) !void {
         .INVAL => unreachable, // key has been validated
         // unclear if this is a valid error from unsetenv. Doesn't make sense to be.
         .NOMEM => return error.OutOfMemory,
-        else => |err| std.debug.panic("unexpected errno: {d}\n", .{@intFromEnum(err)}),
+        else => |err| crash.crash(@src(), "unexpected errno: {d}\n", .{@intFromEnum(err)}),
     }
 }
