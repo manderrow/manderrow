@@ -13,7 +13,7 @@
             .hash = "dll_proxy-0.0.0-WDnws9I1AAC0lxwXH8V33yTQpVnrc6DBCeYoMXpdGok7",
         },
         .wine_host_dlfcn = .{
-            .url = "../../wine-host-dlfcn",
+            .url = "git+https://github.com/manderrow/wine-host-dlfcn#17e56c0f42305eaafab586491dbb861c624c7e44",
             .hash = "wine_host_dlfcn-0.0.0-853HMWIYAACimUnFdES3E9lhfxT6HYWEiPzgPtL4qTXk",
         },
     },
