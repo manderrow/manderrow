@@ -34,9 +34,6 @@
     "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
     "resources": {
       "../agent/zig-out/libmanderrow_agent": "libmanderrow_agent"
-    },
-    "externalBin": [
-      "../wrapper-stage2/zig-out/bin/manderrow-wrapper-stage2"
-    ]
+    }
   }
 }

@@ -65,8 +65,6 @@ fn main() {
             None
         };
 
-        // scope.spawn(|| zig_build(&root_dir.join("wrapper-stage2"), env, &[]));
-
         (
             native_out_dir.join().unwrap(),
             host_out_dir.map(|h| h.join().unwrap()),
