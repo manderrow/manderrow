@@ -1,4 +1,8 @@
-use std::{ffi::OsString, ops::Range, path::{Path, PathBuf}};
+use std::{
+    ffi::OsString,
+    ops::Range,
+    path::{Path, PathBuf},
+};
 
 use anyhow::{bail, Result};
 use slog::{debug, trace};

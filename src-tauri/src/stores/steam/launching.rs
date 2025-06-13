@@ -6,7 +6,10 @@ use slog::{debug, info};
 use tokio::process::Command;
 
 use super::paths::{get_steam_exe, resolve_steam_directory};
-use crate::ipc::{DoctorFix, InProcessIpc, OutputLine};
+use crate::{
+    ipc::{DoctorFix, InProcessIpc, OutputLine},
+    wrap::WrapperMode,
+};
 
 pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
     #[cfg(windows)]
@@ -100,11 +103,6 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
         }
     }
     Ok(())
-}
-
-pub enum WrapperMode {
-    Ipc,
-    Injection,
 }
 
 pub fn generate_launch_options(mode: WrapperMode) -> Result<String> {

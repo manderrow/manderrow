@@ -19,8 +19,8 @@ use crate::games::games_by_id;
 use crate::ipc::ConnectionId;
 use crate::ipc::{C2SMessage, IdentifiedC2SMessage, IpcState};
 use crate::profiles::{profile_path, read_profile_file};
-use crate::stores::steam::launching::WrapperMode;
 use crate::stores::steam::proton::host_path_to_win_path;
+use crate::wrap::WrapperMode;
 
 pub static LOADERS_DIR: LazyLock<PathBuf> = LazyLock::new(|| cache_dir().join("loaders"));
 
