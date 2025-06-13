@@ -1,7 +1,6 @@
 #![feature(exit_status_error)]
 
 use std::env::{var, var_os};
-use std::hash::Hasher;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 

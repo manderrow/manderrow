@@ -69,11 +69,12 @@ fn dumpCrashReport(writer: anytype, msg: []const u8, ret_addr: ?usize) void {
         \\
     , .{build_zig_zon.version}), .{}) catch return;
     if (hashSelfExe() catch |e| blk: {
-        writer.print("Binary hash: error {}", .{e}) catch return;
+        writer.print("Executable hash: error {}", .{e}) catch return;
         break :blk null;
     }) |hash| {
-        writer.print("Binary hash: {}", .{std.fmt.fmtSliceHexLower(&hash)}) catch return;
+        writer.print("Executable hash: {}", .{std.fmt.fmtSliceHexLower(&hash)}) catch return;
     }
+    // TODO: hash agent, host agent and host_dlfcn libraries
 }
 
 fn hashSelfExe() ![32]u8 {
