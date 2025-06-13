@@ -19,7 +19,7 @@ rkyv = { version = "0.8.10", default-features = false, features = ["bytecheck"] 
 
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.61.0", features = ["Win32_System_Diagnostics_ToolHelp", "Win32_System_SystemServices", "Win32_System_Threading"] }
-winsafe = { version = "0.0.23", features = ["kernel"] }
+winsafe = { version = "0.0.24", features = ["kernel"] }
 
 [target.'cfg(not(windows))'.dependencies]
 rustix = { version = "1", features = ["event", "process"] }
