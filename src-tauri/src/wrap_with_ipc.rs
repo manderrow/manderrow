@@ -131,7 +131,7 @@ fn inner(args: Vec<OsString>, command_name: OsString, ipc: Option<&Arc<Ipc>>) ->
         ipc: &Arc<Ipc>,
         rdr: impl std::io::Read + Send + 'static,
         channel: crate::ipc::StandardOutputChannel,
-    ) -> std::io::Result<()> {
+    ) -> std::io::Result<std::thread::JoinHandle<()>> {
         let ipc = ipc.clone();
         std::thread::Builder::new()
             .name(format!("std{}-ipc", channel.name()))
@@ -159,25 +159,39 @@ fn inner(args: Vec<OsString>, command_name: OsString, ipc: Option<&Arc<Ipc>>) ->
                         }
                     }
                     let line = OutputLine::new(std::mem::take(&mut buf));
-                    _ = ipc.send(&C2SMessage::Output { channel, line });
+                    if let Err(e) = ipc.send(&C2SMessage::Output { channel, line }) {
+                        slog_scope::error!("failed to send output line over IPC: {e}");
+                    }
                 }
-            })?;
-        Ok(())
+            })
     }
-    if let Some(ipc) = ipc {
-        spawn_output_pipe_task::<false>(
-            ipc,
-            child.stdout.take().unwrap(),
-            crate::ipc::StandardOutputChannel::Out,
-        )?;
-        spawn_output_pipe_task::<true>(
-            &ipc,
-            child.stderr.take().unwrap(),
-            crate::ipc::StandardOutputChannel::Err,
-        )?;
-    }
+    let handles = if let Some(ipc) = ipc {
+        Some((
+            spawn_output_pipe_task::<false>(
+                ipc,
+                child.stdout.take().unwrap(),
+                crate::ipc::StandardOutputChannel::Out,
+            )?,
+            spawn_output_pipe_task::<true>(
+                &ipc,
+                child.stderr.take().unwrap(),
+                crate::ipc::StandardOutputChannel::Err,
+            )?,
+        ))
+    } else {
+        None
+    };
 
     let status = child.wait()?;
+
+    if let Some((a, b)) = handles {
+        if let Err(e) = a.join() {
+            slog_scope::error!("stdout forwarder panicked: {e:?}");
+        }
+        if let Err(e) = b.join() {
+            slog_scope::error!("stderr forwarder panicked: {e:?}");
+        }
+    }
 
     status.exit_ok()?;
 
