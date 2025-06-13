@@ -1,0 +1,17 @@
+.{
+    .name = .manderrow_wrapper_stage2,
+
+    .version = "0.0.0",
+
+    .fingerprint = 0xf09a718a9391353e, // Changing this has security and trust implications.
+
+    .minimum_zig_version = "0.14.1",
+
+    .dependencies = .{},
+
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "src",
+    },
+}
