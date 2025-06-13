@@ -3,7 +3,7 @@ const std = @import("std");
 const IpcMode = enum {
     ipc_channel,
     stderr,
-    wine_unixlib,
+    winelib,
 };
 
 pub fn build(b: *std.Build) !void {
@@ -60,7 +60,7 @@ pub fn build(b: *std.Build) !void {
         .{ .target = b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .windows, .abi = .gnu }) },
         .{ .target = b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .windows, .abi = .gnu }), .wine = true },
         .{ .target = b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .windows, .abi = .gnu }), .ipc = .stderr },
-        .{ .target = b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .windows, .abi = .gnu }), .ipc = .wine_unixlib },
+        .{ .target = b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .windows, .abi = .gnu }), .ipc = .winelib },
     }) |cfg| {
         const lib_2 = try createLib(b, cfg.target, optimize, strip, cfg.wine, cfg.ipc, cfg.host_lib, build_zig_zon, build_all_step);
         build_all_step.dependOn(&b.addInstallArtifact(lib_2.compile, .{
@@ -193,7 +193,7 @@ fn createLib(
                 },
             })));
         },
-        .wine_unixlib => {
+        .winelib => {
             lib_mod.addImport("dlfcn", dep.module("proxy"));
         },
         .stderr => {},

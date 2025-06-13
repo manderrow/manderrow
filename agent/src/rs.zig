@@ -7,14 +7,14 @@ const StandardOutputChannel = ipc.StandardOutputChannel;
 
 pub const impl = switch (build_options.ipc_mode) {
     .ipc_channel => @import("rs/ipc_channel.zig"),
-    .wine_unixlib => @import("rs/wine_unixlib.zig"),
+    .winelib => @import("rs/winelib.zig"),
     .stderr => @compileError("cannot use rs.zig when ipc_mode is stderr"),
 };
 
 comptime {
     switch (build_options.ipc_mode) {
-        .ipc_channel, .wine_unixlib => {},
-        .stderr => @compileError("Attempted to access Rust IPC implementation when ipc_mode is not .ipc_channel or .wine_unixlib"),
+        .ipc_channel, .winelib => {},
+        .stderr => @compileError("Attempted to access Rust IPC implementation when ipc_mode is not .ipc_channel or .winelib"),
     }
 }
 

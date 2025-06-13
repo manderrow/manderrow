@@ -39,7 +39,7 @@ fn logFn(
     logToLogFile(level, @tagName(scope), format, args);
 
     switch (build_options.ipc_mode) {
-        .ipc_channel, .wine_unixlib => {
+        .ipc_channel, .winelib => {
             const buf = std.fmt.allocPrint(alloc, format, args) catch return;
             defer alloc.free(buf);
             rs.sendLog(level, @tagName(scope), buf) catch return;
@@ -184,8 +184,8 @@ fn startAgent() void {
     logger.debug("{}", .{dump_env});
 
     switch (build_options.ipc_mode) {
-        .ipc_channel, .wine_unixlib => |t| {
-            if (t == .wine_unixlib) {
+        .ipc_channel, .winelib => |t| {
+            if (t == .winelib) {
                 const path = std.unicode.wtf8ToWtf16LeAllocZ(alloc, args.dlfcn_host_path orelse @panic("Missing required option --dlfcn-host-path")) catch |err| switch (err) {
                     // already validated
                     error.InvalidWtf8 => unreachable,
@@ -212,7 +212,7 @@ fn startAgent() void {
 
         dumpArgs(buf.writer(alloc)) catch {};
         switch (build_options.ipc_mode) {
-            .ipc_channel, .wine_unixlib => {
+            .ipc_channel, .winelib => {
                 rs.sendLog(.debug, "manderrow_agent", buf.items) catch |e| logger.warn("{}", .{e});
             },
             .stderr => {
@@ -224,7 +224,7 @@ fn startAgent() void {
 
         dumpEnv(buf.writer(alloc)) catch {};
         switch (build_options.ipc_mode) {
-            .ipc_channel, .wine_unixlib => {
+            .ipc_channel, .winelib => {
                 rs.sendLog(.debug, "manderrow_agent", buf.items) catch |e| logger.warn("{}", .{e});
             },
             .stderr => {
@@ -234,7 +234,7 @@ fn startAgent() void {
     }
 
     switch (build_options.ipc_mode) {
-        .ipc_channel, .wine_unixlib => {
+        .ipc_channel, .winelib => {
             stdio.forwardStdio() catch |e| crash.crash(@src(), "{}", .{e});
         },
         .stderr => {

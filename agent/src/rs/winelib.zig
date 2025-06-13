@@ -9,7 +9,7 @@ const crash = @import("../crash.zig").crash;
 const ipc = @import("../ipc.zig");
 const LogLevel = ipc.LogLevel;
 const StandardOutputChannel = ipc.StandardOutputChannel;
-const proto = @import("../wine_unixlib_proto.zig");
+const proto = @import("../winelib_proto.zig");
 const rs = @import("../rs.zig");
 
 pub fn manderrow_agent_init(c2s_tx_ptr: ?[*]const u8, c2s_tx_len: usize, error_buf: *rs.ErrorBuffer) rs.InitStatusCode {
@@ -46,7 +46,7 @@ pub fn manderrow_agent_send_log(
 
 comptime {
     if (builtin.os.tag != .windows) {
-        @compileError("wine_unixlib IPC implementation is only supported on Windows");
+        @compileError("winelib IPC implementation is only supported on Windows");
     }
 }
 

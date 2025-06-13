@@ -122,7 +122,7 @@ fn build_agent(
             ..env
         },
         if proton {
-            &["-Dipc-mode=wine_unixlib"]
+            &["-Dipc-mode=winelib"]
         } else if host_lib {
             &["-Dhost-lib=true"]
         } else {

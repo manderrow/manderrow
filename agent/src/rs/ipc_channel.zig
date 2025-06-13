@@ -4,7 +4,7 @@ const std = @import("std");
 const ipc = @import("../ipc.zig");
 const LogLevel = ipc.LogLevel;
 const StandardOutputChannel = ipc.StandardOutputChannel;
-const proto = @import("../wine_unixlib_proto.zig");
+const proto = @import("../winelib_proto.zig");
 const rs = @import("../rs.zig");
 
 pub extern fn manderrow_agent_init(c2s_tx_ptr: ?[*]const u8, c2s_tx_len: usize, error_buf: *rs.ErrorBuffer) callconv(proto.calling_convention) rs.InitStatusCode;
