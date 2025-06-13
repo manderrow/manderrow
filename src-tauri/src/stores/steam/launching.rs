@@ -114,7 +114,6 @@ pub fn generate_launch_options(mode: WrapperMode) -> Result<String> {
     Ok(format!(
         "{bin:?} wrap-{} %command%",
         match mode {
-            WrapperMode::Ipc => "with-ipc",
             WrapperMode::Injection => "with-injection",
         }
     ))

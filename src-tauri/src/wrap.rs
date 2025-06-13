@@ -35,7 +35,6 @@ impl std::fmt::Display for DisplayEnv {
 }
 
 pub enum WrapperMode {
-    Ipc,
     Injection,
 }
 
@@ -99,7 +98,6 @@ pub fn run(args: lexopt::Parser, mode: WrapperMode) -> Result<()> {
         writeln!(log_file, "Env: {}", DisplayEnv).unwrap();
 
         match mode {
-            WrapperMode::Ipc => super::wrap_with_ipc::inner1(log_file, command_name, args, c2s_tx),
             WrapperMode::Injection => {
                 super::wrap_with_injection::inner1(log_file, command_name, args, agent_path)
             }

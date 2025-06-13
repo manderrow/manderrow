@@ -30,7 +30,6 @@ mod util;
 mod window_state;
 mod wrap;
 mod wrap_with_injection;
-mod wrap_with_ipc;
 
 use std::num::NonZeroU32;
 use std::ops::Deref;
@@ -147,7 +146,6 @@ pub fn main() -> anyhow::Result<()> {
             Value(cmd) if cmd == "wrap-with-injection" => {
                 return wrap::run(args, wrap::WrapperMode::Injection)
             }
-            Value(cmd) if cmd == "wrap-with-ipc" => return wrap::run(args, wrap::WrapperMode::Ipc),
             Value(cmd) => bail!("Unrecognized command {cmd:?}"),
             Long("relaunch") => relaunch = Some(args.value()?.parse()?),
             arg => return Err(arg.unexpected().into()),
