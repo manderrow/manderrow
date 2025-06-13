@@ -21,8 +21,7 @@ impl std::fmt::Display for DisplayArgList {
 struct DisplayEnv;
 impl std::fmt::Display for DisplayEnv {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut iter = std::env::vars_os();
-        for (key, value) in iter {
+        for (key, value) in std::env::vars_os() {
             f.write_str(" ")?;
             if let Some(key) = key.to_str() {
                 f.write_str(key)?;
