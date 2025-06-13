@@ -12,6 +12,7 @@ build *ARGS:
 fmt:
 	cargo fmt --manifest-path crates/Cargo.toml --all
 	cargo fmt --manifest-path src-tauri/Cargo.toml
+	zig fmt agent
 
 clean:
 	cargo clean --manifest-path crates/Cargo.toml
