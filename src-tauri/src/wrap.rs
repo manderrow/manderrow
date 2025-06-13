@@ -18,6 +18,23 @@ impl std::fmt::Display for DisplayArgList {
     }
 }
 
+struct DisplayEnv;
+impl std::fmt::Display for DisplayEnv {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut iter = std::env::vars_os();
+        for (key, value) in iter {
+            f.write_str(" ")?;
+            if let Some(key) = key.to_str() {
+                f.write_str(key)?;
+            } else {
+                write!(f, "{:?}", key)?;
+            }
+            write!(f, "={:?}", value)?;
+        }
+        Ok(())
+    }
+}
+
 pub enum WrapperMode {
     Ipc,
     Injection,
@@ -80,12 +97,7 @@ pub fn run(args: lexopt::Parser, mode: WrapperMode) -> Result<()> {
         writeln!(log_file, "--agent-path: {:?}", agent_path).unwrap();
         writeln!(log_file, "--c2s-tx: {:?}", c2s_tx).unwrap();
         writeln!(log_file, "Args: {}", DisplayArgList).unwrap();
-        writeln!(
-            log_file,
-            "Env: {:?}",
-            std::env::vars_os().collect::<Vec<_>>()
-        )
-        .unwrap();
+        writeln!(log_file, "Env: {}", DisplayEnv).unwrap();
 
         match mode {
             WrapperMode::Ipc => super::wrap_with_ipc::inner1(log_file, command_name, args, c2s_tx),

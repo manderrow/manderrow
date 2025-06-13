@@ -13,13 +13,13 @@ use manderrow_ipc::client::Ipc;
 use manderrow_ipc::ipc_channel::ipc::{IpcOneShotServer, IpcSender};
 use manderrow_ipc::{C2SMessage, OutputLine, S2CMessage};
 
-unsafe extern "C" {
+unsafe extern "sysv64" {
     fn manderrow_agent_crash(msg_ptr: NonNull<u8>, msg_len: usize) -> !;
 }
 
 /// `c2s_tx` must consist entirely of UTF-8 codepoints.
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn manderrow_agent_init(
+pub unsafe extern "sysv64" fn manderrow_agent_init(
     c2s_tx_ptr: Option<NonNull<u8>>,
     c2s_tx_len: usize,
     error_buf: &mut ErrorBuffer,
@@ -171,6 +171,7 @@ fn connect_ipc(c2s_tx: &str) -> Result<(), ConnectIpcError> {
 
     let (s2c_rx, s2c_tx) =
         IpcOneShotServer::<S2CMessage>::new().map_err(ConnectIpcError::CreateS2CError)?;
+    // TODO: does this return the real value under Wine?
     let pid = std::process::id();
     c2s_tx
         .send(&C2SMessage::Connect { s2c_tx })
@@ -190,7 +191,7 @@ fn connect_ipc(c2s_tx: &str) -> Result<(), ConnectIpcError> {
 }
 
 #[unsafe(no_mangle)]
-pub extern "C" fn manderrow_agent_send_exit(code: i32, with_code: bool) {
+pub extern "sysv64" fn manderrow_agent_send_exit(code: i32, with_code: bool) {
     if let Some(ipc) = ipc() {
         _ = ipc.send(&C2SMessage::Exit {
             code: if with_code { Some(code) } else { None },
@@ -205,7 +206,7 @@ pub enum StandardOutputChannel {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn manderrow_agent_send_output_line(
+pub unsafe extern "sysv64" fn manderrow_agent_send_output_line(
     channel: StandardOutputChannel,
     line_ptr: NonNull<u8>,
     line_len: usize,
@@ -234,7 +235,7 @@ pub enum LogLevel {
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn manderrow_agent_send_log(
+pub unsafe extern "sysv64" fn manderrow_agent_send_log(
     level: LogLevel,
     scope_ptr: NonNull<u8>,
     scope_len: usize,
@@ -264,7 +265,7 @@ pub unsafe extern "C" fn manderrow_agent_send_log(
 }
 
 #[unsafe(no_mangle)]
-pub unsafe extern "C" fn manderrow_agent_send_crash(msg_ptr: NonNull<u8>, msg_len: usize) {
+pub unsafe extern "sysv64" fn manderrow_agent_send_crash(msg_ptr: NonNull<u8>, msg_len: usize) {
     let msg = unsafe { NonNull::slice_from_raw_parts(msg_ptr, msg_len).as_ref() };
     let msg = std::str::from_utf8(msg).unwrap_or("<Crash messaged contained invalid UTF-8>");
     if let Some(ipc) = ipc() {
