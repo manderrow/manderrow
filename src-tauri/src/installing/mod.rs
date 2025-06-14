@@ -797,8 +797,7 @@ pub async fn install_zip<'a>(
         FetchedResource::Bytes(bytes) => {
             temp_dir = tempfile::tempdir_in(target_parent)?;
             tokio::task::block_in_place(|| {
-                let mut archive =
-                    ZipArchive::new(std::io::BufReader::new(std::io::Cursor::new(bytes)))?;
+                let mut archive = ZipArchive::new(std::io::Cursor::new(bytes))?;
                 archive.extract(temp_dir.path())?;
                 Ok::<_, ZipError>(())
             })?;
