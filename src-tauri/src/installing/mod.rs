@@ -437,23 +437,47 @@ async fn atomic_replace(target: &Path, from: &Path) -> Result<(), AtomicReplaceE
     Ok(())
 }
 
-#[must_use]
-pub struct StagedPackage<'a> {
-    target: &'a Path,
-    temp_dir: TempDir,
+pub enum StagedPackageSource<'a> {
+    Path(&'a Path),
+    TempDir(TempDir),
 }
 
-impl StagedPackage<'_> {
+impl StagedPackageSource<'_> {
     pub fn path(&self) -> &Path {
-        self.temp_dir.path()
+        match *self {
+            StagedPackageSource::Path(path) => path,
+            StagedPackageSource::TempDir(ref temp_dir) => temp_dir.path(),
+        }
+    }
+}
+
+#[must_use]
+pub struct StagedPackage<'a, 'b> {
+    pub target: &'a Path,
+    pub source: StagedPackageSource<'b>,
+}
+
+impl StagedPackage<'_, '_> {
+    pub fn check_with_temp_dir(&self, temp_dir: &TempDir) {
+        assert!(matches!(self.source, StagedPackageSource::Path(_)));
+        assert_eq!(temp_dir.path(), self.source.path());
+    }
+
+    pub fn path(&self) -> &Path {
+        self.source.path()
     }
 
     /// Finishes installing the package by moving the staging directory into place,
     pub async fn finish(self, log: &slog::Logger) -> anyhow::Result<()> {
-        atomic_replace(self.target, self.temp_dir.path()).await?;
-        // the temp directory doesn't exist anymore.
-        // without this, TempDir::drop would try to delete it
-        _ = self.temp_dir.into_path();
+        atomic_replace(self.target, self.source.path()).await?;
+        match self.source {
+            StagedPackageSource::Path(_) => {}
+            StagedPackageSource::TempDir(temp_dir) => {
+                // the temp directory doesn't exist anymore.
+                // without this, TempDir::drop would try to delete it
+                _ = temp_dir.keep();
+            }
+        }
         debug!(log, "Installed package to {:?}", self.target);
         Ok(())
     }
@@ -758,6 +782,49 @@ pub async fn fetch_resource_as_bytes<'a>(
     }
 }
 
+/// Downloads a zip file from `url` and extracts it into a temporary directory *beside* the `target` directory.
+pub async fn prepare_install_zip<'a>(
+    app: Option<&AppHandle>,
+    log: &slog::Logger,
+    reqwest: &Reqwest,
+    url: &str,
+    cache: Option<CacheOptions<'_>>,
+    target: &'a Path,
+    task_id: Option<tasks::Id>,
+) -> anyhow::Result<TempDir> {
+    let cache = cache.map(|c| c.with_suffix(".zip"));
+
+    let target_parent = target
+        .parent()
+        .context("Target must not be a filesystem root")?;
+
+    tokio::fs::create_dir_all(target_parent)
+        .await
+        .context("Failed to create target directory")?;
+
+    let temp_dir = tempfile::tempdir_in(target_parent)?;
+
+    match fetch_resource(app, log, reqwest, url, cache, task_id).await? {
+        FetchedResource::Bytes(bytes) => {
+            tokio::task::block_in_place(|| {
+                let mut archive = ZipArchive::new(std::io::Cursor::new(bytes))?;
+                archive.extract(temp_dir.path())?;
+                Ok::<_, ZipError>(())
+            })?;
+        }
+        FetchedResource::File(path) => {
+            tokio::task::block_in_place(|| {
+                let mut archive =
+                    ZipArchive::new(std::io::BufReader::new(std::fs::File::open(&path)?))?;
+                archive.extract(temp_dir.path())?;
+                Ok::<_, ZipError>(())
+            })?;
+        }
+    }
+
+    Ok(temp_dir)
+}
+
 /// Downloads a zip file from `url` and installs it into the `target` directory.
 pub async fn install_zip<'a>(
     app: Option<&AppHandle>,
@@ -767,18 +834,30 @@ pub async fn install_zip<'a>(
     cache: Option<CacheOptions<'_>>,
     target: &'a Path,
     task_id: Option<tasks::Id>,
-) -> anyhow::Result<StagedPackage<'a>> {
+) -> anyhow::Result<StagedPackage<'a, 'static>> {
     debug!(log, "Installing zip from {url:?} to {target:?}");
 
-    let cache = cache.map(|c| c.with_suffix(".zip"));
+    let temp_dir = prepare_install_zip(app, log, reqwest, url, cache, target, task_id).await?;
 
-    tokio::fs::create_dir_all(target)
-        .await
-        .context("Failed to create target directory")?;
+    let staged = install_folder(log, temp_dir.path(), target).await?;
 
-    let target_parent = target
-        .parent()
-        .context("Target must not be a filesystem root")?;
+    staged.check_with_temp_dir(&temp_dir);
+
+    Ok(StagedPackage {
+        target,
+        source: StagedPackageSource::TempDir(temp_dir),
+    })
+}
+
+/// Installs a temporary directory at the given target path.
+pub async fn install_folder<'a, 'b>(
+    log: &slog::Logger,
+    source: &'b Path,
+    target: &'a Path,
+) -> anyhow::Result<StagedPackage<'a, 'b>> {
+    create_dir_if_not_exists(target).await?;
+
+    generate_package_index(log, source).await?;
 
     let mut changes = Vec::new();
     let changes = match scan_installed_package_for_changes(log, target, &mut changes).await {
@@ -792,31 +871,8 @@ pub async fn install_zip<'a>(
         trace!(log, "Changes: {changes:#?}");
     }
 
-    let temp_dir: TempDir;
-    match fetch_resource(app, log, reqwest, url, cache, task_id).await? {
-        FetchedResource::Bytes(bytes) => {
-            temp_dir = tempfile::tempdir_in(target_parent)?;
-            tokio::task::block_in_place(|| {
-                let mut archive = ZipArchive::new(std::io::Cursor::new(bytes))?;
-                archive.extract(temp_dir.path())?;
-                Ok::<_, ZipError>(())
-            })?;
-        }
-        FetchedResource::File(path) => {
-            temp_dir = tempfile::tempdir_in(target_parent)?;
-            tokio::task::block_in_place(|| {
-                let mut archive =
-                    ZipArchive::new(std::io::BufReader::new(std::fs::File::open(&path)?))?;
-                archive.extract(temp_dir.path())?;
-                Ok::<_, ZipError>(())
-            })?;
-        }
-    }
-
-    generate_package_index(log, temp_dir.path()).await?;
-
     if let Some(changes) = changes {
-        let mut buf = temp_dir.path().to_owned();
+        let mut buf = source.to_owned();
         for (path, status) in changes {
             let rel_path = path.strip_prefix(target)?;
             buf.push(rel_path);
@@ -841,7 +897,20 @@ pub async fn install_zip<'a>(
         }
     }
 
-    Ok(StagedPackage { target, temp_dir })
+    Ok(StagedPackage {
+        target,
+        source: StagedPackageSource::Path(source),
+    })
+}
+
+pub async fn create_dir_if_not_exists(path: &Path) -> anyhow::Result<()> {
+    match tokio::fs::create_dir(path).await {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => Ok(()),
+        Err(e) => {
+            Err(anyhow::Error::from(e).context(format!("Failed to create directory at {path:?}")))
+        }
+    }
 }
 
 /// Downloads a file from `url` and installs it at the `target` path.
