@@ -1,4 +1,3 @@
-use std::ffi::OsString;
 use std::path::PathBuf;
 
 use anyhow::{bail, Result};
@@ -9,6 +8,7 @@ use uuid::Uuid;
 
 use crate::installing::{fetch_resource_cached_by_hash_at_path, install_zip};
 use crate::profiles::{profile_path, MODS_FOLDER};
+use crate::stores::steam::proton::adapt_host_path;
 use crate::Reqwest;
 
 use super::InstructionEmitter;
@@ -218,32 +218,35 @@ pub async fn emit_instructions(
 
     let temp_dir = tempdir()?.into_path();
 
-    em.set_var("BEPINEX_CONFIGS", profile_path.join("config"));
-    em.set_var("BEPINEX_PLUGINS", profile_path.join(MODS_FOLDER));
-    em.set_var("BEPINEX_PATCHER_PLUGINS", profile_path.join("patchers"));
+    em.set_var(
+        "BEPINEX_CONFIGS",
+        adapt_host_path(&profile_path.join("config"), uses_proton).as_ref(),
+    );
+    em.set_var(
+        "BEPINEX_PLUGINS",
+        adapt_host_path(&profile_path.join(MODS_FOLDER), uses_proton).as_ref(),
+    );
+    em.set_var(
+        "BEPINEX_PATCHER_PLUGINS",
+        adapt_host_path(&profile_path.join("patchers"), uses_proton).as_ref(),
+    );
     // TODO: should this point to a "persistent" cache directory, and should it be per-profile or shared?
-    em.set_var("BEPINEX_CACHE", temp_dir.join("cache"));
+    em.set_var(
+        "BEPINEX_CACHE",
+        adapt_host_path(&temp_dir.join("cache"), uses_proton).as_ref(),
+    );
     // enables the logging we expect from our fork of BepInEx
     em.set_var("BEPINEX_STANDARD_LOG", "");
 
-    let target_assembly = if uses_proton {
-        let mut buf = OsString::from("Z:");
-        const SUFFIX: &str = "/BepInEx/core/BepInEx.Preloader.dll";
-        buf.reserve_exact(bep_in_ex.as_os_str().len() + SUFFIX.len());
-        buf.push(bep_in_ex.as_os_str());
-        buf.push(SUFFIX);
-        PathBuf::from(buf)
-    } else {
-        let mut p = bep_in_ex.clone();
-        p.push("BepInEx");
-        p.push("core");
-        p.push("BepInEx.Preloader.dll");
-        p
-    };
+    let mut target_assembly = bep_in_ex.clone();
+    target_assembly.push("BepInEx");
+    target_assembly.push("core");
+    target_assembly.push("BepInEx.Preloader.dll");
+    let target_assembly = adapt_host_path(&target_assembly, uses_proton);
 
     // note for the future: any paths provided to UnityDoorstop must be absolute.
     em.set_var("DOORSTOP_ENABLED", "1");
-    em.set_var("DOORSTOP_TARGET_ASSEMBLY", &target_assembly);
+    em.set_var("DOORSTOP_TARGET_ASSEMBLY", target_assembly.as_ref());
     em.set_var("DOORSTOP_IGNORE_DISABLED_ENV", "0");
     // specify these only if they have values
     // em.set_var("DOORSTOP_MONO_DLL_SEARCH_PATH_OVERRIDE", "");
@@ -260,7 +263,7 @@ pub async fn emit_instructions(
         em.raw_arg("true");
 
         em.raw_arg("--doorstop-target-assembly");
-        em.raw_arg(&target_assembly);
+        em.raw_arg(target_assembly.as_ref());
 
         em.raw_arg("--doorstop-mono-debug-enabled");
         em.raw_arg("false");

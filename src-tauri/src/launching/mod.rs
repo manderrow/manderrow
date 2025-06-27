@@ -19,7 +19,7 @@ use crate::games::games_by_id;
 use crate::ipc::ConnectionId;
 use crate::ipc::{C2SMessage, IdentifiedC2SMessage, IpcState};
 use crate::profiles::{profile_path, read_profile_file};
-use crate::stores::steam::proton::host_path_to_win_path;
+use crate::stores::steam::proton::{adapt_host_path, host_path_to_win_path};
 use crate::wrap::WrapperMode;
 
 pub static LOADERS_DIR: LazyLock<PathBuf> = LazyLock::new(|| cache_dir().join("loaders"));
@@ -328,12 +328,7 @@ pub async fn launch_profile(
 
     command.arg("--log-to-file");
     command.arg("--logs-dir");
-    if uses_proton {
-        let logs_dir = logs_dir();
-        command.arg(host_path_to_win_path(logs_dir));
-    } else {
-        command.arg(logs_dir());
-    }
+    command.arg(adapt_host_path(logs_dir(), uses_proton).as_ref());
 
     command.arg("manderrow}");
 
