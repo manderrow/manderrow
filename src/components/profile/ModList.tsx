@@ -311,6 +311,12 @@ function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) 
                 &bull;
               </span>
               <span class={styles.owner}>{props.mod.owner}</span>
+              <Show when={"version" in props.mod}>
+                <span class={styles.separator} aria-hidden>
+                  &bull;
+                </span>
+                <span class={styles.version}>{(props.mod as ModPackage).version.version_number}</span>
+              </Show>
             </p>
             <p class={styles.downloads}>
               <Show when={"versions" in props.mod}>
