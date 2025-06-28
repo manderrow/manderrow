@@ -17,7 +17,7 @@ fn get_url_and_hash(uses_proton: bool) -> Result<(&'static str, &'static str)> {
     macro_rules! artifact {
         ($target:literal, $hash:literal) => {
             (concat!(
-                "https://github.com/manderrow/BepInEx/releases/download/v5.4.23.2%2Bbuild.19/BepInEx_",
+                "https://github.com/manderrow/BepInEx/releases/download/v5.4.23.2%2Bbuild.20/BepInEx_",
                 $target,
                 "_5.4.23.2.zip"
             ), $hash)
@@ -28,23 +28,23 @@ fn get_url_and_hash(uses_proton: bool) -> Result<(&'static str, &'static str)> {
         match (std::env::consts::OS, std::env::consts::ARCH, uses_proton) {
             ("linux", "x86_64", false) => artifact!(
                 "linux_x64",
-                "2e3e1aa5b77e1e9c1e2ec1a54e08355d4c69740c38ad992787185b1dd0853a13"
+                "84895f02a4fe22526bc52f53cd59025494e721635fb330d41e370d1d310548b4"
             ),
             ("linux", "x86", false) => artifact!(
                 "linux_x86",
-                "18e6e6d274a5bd1e88e7a06c9c15dc31424a76ea6c7f188a4fca0cbebd18ea89"
+                "84895f02a4fe22526bc52f53cd59025494e721635fb330d41e370d1d310548b4"
             ),
             ("macos", "x86_64", false) => artifact!(
                 "macos_x64",
-                "6193dfc349880fb3adc02c033af998ab2ac45346a59e4553b46367c145a8eb21"
+                "84895f02a4fe22526bc52f53cd59025494e721635fb330d41e370d1d310548b4"
             ),
             ("linux", "x86_64", true) | ("windows", "x86_64", false) => artifact!(
                 "win_x64",
-                "21da84e6682afcfd9d3cebc7c35c8fe81ea5d18628f3115880775db4ffbda7bf"
+                "84895f02a4fe22526bc52f53cd59025494e721635fb330d41e370d1d310548b4"
             ),
             ("linux", "x86", true) | ("windows", "x86", false) => artifact!(
                 "win_x86",
-                "e61309bd6fcca544b7f8759a741294626a42f7136dee219ad9b22328411dbe5c"
+                "84895f02a4fe22526bc52f53cd59025494e721635fb330d41e370d1d310548b4"
             ),
             (os, arch, uses_proton) => bail!(
                 "Unsupported platform combo: (os: {os:?}, arch: {arch:?}, uses_proton: {uses_proton})"
