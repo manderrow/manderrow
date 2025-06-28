@@ -240,35 +240,42 @@ pub async fn launch_profile(
     }
 
     if uses_proton {
-        let path = cache_dir().join("host_dlfcn.dll.so");
-        tokio::fs::write(
-            &path,
-            include_bytes!(concat!(
-                env!("OUT_DIR"),
-                "/agent-host_lib/out/lib/host_dlfcn.dll.so"
-            )),
-        )
-        .await
-        .with_context(|| {
-            format!("Failed to install host_dlfcn from embedded bytes at {path:?}",)
-        })?;
+        #[cfg(target_os = "linux")]
+        {
+            let path = cache_dir().join("host_dlfcn.dll.so");
+            tokio::fs::write(
+                &path,
+                include_bytes!(concat!(
+                    env!("OUT_DIR"),
+                    "/agent-host_lib/out/lib/host_dlfcn.dll.so"
+                )),
+            )
+            .await
+            .with_context(|| {
+                format!("Failed to install host_dlfcn from embedded bytes at {path:?}",)
+            })?;
 
-        command.arg("--dlfcn-host-path");
-        command.arg(host_path_to_win_path(&path));
+            command.arg("--dlfcn-host-path");
+            command.arg(host_path_to_win_path(&path));
 
-        let path = cache_dir().join("manderrow-agent.so");
-        tokio::fs::write(
-            &path,
-            include_bytes!(concat!(
-                env!("OUT_DIR"),
-                "/agent-host_lib/out/lib/libmanderrow_agent.so"
-            )),
-        )
-        .await
-        .with_context(|| format!("Failed to install host agent from embedded bytes at {path:?}"))?;
+            let path = cache_dir().join("manderrow-agent.so");
+            tokio::fs::write(
+                &path,
+                include_bytes!(concat!(
+                    env!("OUT_DIR"),
+                    "/agent-host_lib/out/lib/libmanderrow_agent.so"
+                )),
+            )
+            .await
+            .with_context(|| format!("Failed to install host agent from embedded bytes at {path:?}"))?;
 
-        command.arg("--agent-host-path");
-        command.arg(&path);
+            command.arg("--agent-host-path");
+            command.arg(&path);
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            unreachable!("uses_proton should only be true on Linux")
+        }
     }
 
     command.arg("--enable");
