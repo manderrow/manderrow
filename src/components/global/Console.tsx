@@ -3,6 +3,7 @@ import {
   Match,
   Show,
   Switch,
+  createMemo,
   createRenderEffect,
   createSignal,
   createUniqueId,
@@ -185,29 +186,42 @@ export default function Console() {
 
 const STYLE_DISPLAY_NONE = { display: "none" };
 
+const OUTPUT_CHANNEL_LABELS = {
+  Out: "OUT",
+  Err: "ERR",
+};
+
 function ConsoleEvent(event: Event, visibleLevels: VisibleLevels, searchInput: () => string) {
-  const visible = () => {
-    switch (event.type) {
-      case "Log":
-        return visibleLevels[event.level] && event.message.includes(searchInput());
-      case "Output":
-        return !("Unicode" in event.line) || event.line.Unicode.includes(searchInput());
-      case "Connect":
-      case "Disconnect":
-      case "Start":
-      case "Started":
-      case "Exit":
-      case "Crash":
-      case "DoctorReport":
-      case "Error":
-        return true;
+  let visibleTmp: () => boolean;
+  switch (event.type) {
+    case "Log": {
+      const visibleByLevels = createMemo(() => visibleLevels[event.level]);
+      const visibleBySearch = createMemo(() => event.message.includes(searchInput()));
+      visibleTmp = createMemo(() => visibleByLevels() && visibleBySearch());
+      break;
     }
-  };
+    case "Output": {
+      visibleTmp = createMemo(() => !("Unicode" in event.line) || event.line.Unicode.includes(searchInput()));
+      break;
+    }
+    case "Connect":
+    case "Disconnect":
+    case "Start":
+    case "Started":
+    case "Exit":
+    case "Crash":
+    case "DoctorReport":
+    case "Error": {
+      visibleTmp = () => true;
+      break;
+    }
+  }
+  const visible = visibleTmp;
 
   const displayStyle = () => (visible() ? undefined : STYLE_DISPLAY_NONE);
 
   switch (event.type) {
-    case "Output":
+    case "Output": {
       let line: string;
       if ("Unicode" in event.line) {
         line = event.line.Unicode;
@@ -219,10 +233,7 @@ function ConsoleEvent(event: Event, visibleLevels: VisibleLevels, searchInput: (
       return (
         <>
           <span class={styles.event__type} style={displayStyle()}>
-            <Switch>
-              <Match when={event.channel === "Out"}>OUT</Match>
-              <Match when={event.channel === "Err"}>ERR</Match>
-            </Switch>
+            {OUTPUT_CHANNEL_LABELS[event.channel]}
           </span>
           <span class={styles.event__scope} style={displayStyle()}></span>
           <span class={styles.event__message} style={displayStyle()}>
@@ -230,6 +241,7 @@ function ConsoleEvent(event: Event, visibleLevels: VisibleLevels, searchInput: (
           </span>
         </>
       );
+    }
     case "Log":
       return (
         <>
