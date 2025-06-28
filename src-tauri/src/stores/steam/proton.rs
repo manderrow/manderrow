@@ -1,5 +1,8 @@
 use std::{
-    borrow::Cow, ffi::OsString, ops::Range, path::{Path, PathBuf}
+    borrow::Cow,
+    ffi::OsString,
+    ops::Range,
+    path::{Path, PathBuf},
 };
 
 use anyhow::{bail, Result};
