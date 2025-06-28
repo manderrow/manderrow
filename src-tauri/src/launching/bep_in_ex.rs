@@ -13,101 +13,80 @@ use crate::Reqwest;
 
 use super::InstructionEmitter;
 
-fn get_url_and_hash(uses_proton: bool) -> Result<(&'static str, &'static str)> {
-    macro_rules! artifact {
-        ($target:literal, $hash:literal) => {
-            (concat!(
-                "https://github.com/manderrow/BepInEx/releases/download/v5.4.23.2%2Bbuild.20/BepInEx_",
-                $target,
-                "_5.4.23.2.zip"
-            ), $hash)
-        };
-    }
+fn get_url_and_hash(uses_proton: bool) -> Result<(String, &'static str)> {
+    let build = 20;
+    let (target, hash) = match (std::env::consts::OS, std::env::consts::ARCH, uses_proton) {
+        ("linux", "x86_64", false) => (
+            "linux_x64",
+            "84895f02a4fe22526bc52f53cd59025494e721635fb330d41e370d1d310548b4",
+        ),
+        ("linux", "x86", false) => (
+            "linux_x86",
+            "84895f02a4fe22526bc52f53cd59025494e721635fb330d41e370d1d310548b4",
+        ),
+        ("macos", "x86_64", false) => (
+            "macos_x64",
+            "84895f02a4fe22526bc52f53cd59025494e721635fb330d41e370d1d310548b4",
+        ),
+        ("linux", "x86_64", true) | ("windows", "x86_64", false) => (
+            "win_x64",
+            "84895f02a4fe22526bc52f53cd59025494e721635fb330d41e370d1d310548b4",
+        ),
+        ("linux", "x86", true) | ("windows", "x86", false) => (
+            "win_x86",
+            "84895f02a4fe22526bc52f53cd59025494e721635fb330d41e370d1d310548b4",
+        ),
+        (os, arch, uses_proton) => bail!(
+            "Unsupported platform combo: (os: {os:?}, arch: {arch:?}, uses_proton: {uses_proton})"
+        ),
+    };
+    let url = format!("https://github.com/manderrow/BepInEx/releases/download/v5.4.23.2%2Bbuild.{build}/BepInEx_{target}_5.4.23.2.zip");
 
-    Ok(
-        match (std::env::consts::OS, std::env::consts::ARCH, uses_proton) {
-            ("linux", "x86_64", false) => artifact!(
-                "linux_x64",
-                "84895f02a4fe22526bc52f53cd59025494e721635fb330d41e370d1d310548b4"
-            ),
-            ("linux", "x86", false) => artifact!(
-                "linux_x86",
-                "84895f02a4fe22526bc52f53cd59025494e721635fb330d41e370d1d310548b4"
-            ),
-            ("macos", "x86_64", false) => artifact!(
-                "macos_x64",
-                "84895f02a4fe22526bc52f53cd59025494e721635fb330d41e370d1d310548b4"
-            ),
-            ("linux", "x86_64", true) | ("windows", "x86_64", false) => artifact!(
-                "win_x64",
-                "84895f02a4fe22526bc52f53cd59025494e721635fb330d41e370d1d310548b4"
-            ),
-            ("linux", "x86", true) | ("windows", "x86", false) => artifact!(
-                "win_x86",
-                "84895f02a4fe22526bc52f53cd59025494e721635fb330d41e370d1d310548b4"
-            ),
-            (os, arch, uses_proton) => bail!(
-                "Unsupported platform combo: (os: {os:?}, arch: {arch:?}, uses_proton: {uses_proton})"
-            ),
-        },
-    )
+    Ok((url, hash))
 }
 
-fn get_ci_url(uses_proton: bool) -> Result<&'static str> {
-    macro_rules! artifact {
-        ($target:literal) => {
-            concat!(
-                "https://github.com/manderrow/BepInEx/releases/download/ci/BepInEx_",
-                $target,
-                "_5.4.23.2.zip"
-            )
-        };
-    }
-
-    Ok(
-        match (std::env::consts::OS, std::env::consts::ARCH, uses_proton) {
-            ("linux", "x86_64", false) => artifact!("linux_x64"),
-            ("linux", "x86", false) => artifact!("linux_x86"),
-            ("macos", "x86_64", false) => artifact!("macos_x64"),
-            ("linux", "x86_64", true) | ("windows", "x86_64", false) => artifact!("win_x64"),
-            ("linux", "x86", true) | ("windows", "x86", false) => artifact!("win_x86"),
-            (os, arch, uses_proton) => bail!(
-                "Unsupported platform combo: (os: {os:?}, arch: {arch:?}, uses_proton: {uses_proton})"
-            ),
-        },
-    )
+fn get_ci_url(uses_proton: bool) -> Result<String> {
+    let target = match (std::env::consts::OS, std::env::consts::ARCH, uses_proton) {
+        ("linux", "x86_64", false) => "linux_x64",
+        ("linux", "x86", false) => "linux_x86",
+        ("macos", "x86_64", false) => "macos_x64",
+        ("linux", "x86_64", true) | ("windows", "x86_64", false) => "win_x64",
+        ("linux", "x86", true) | ("windows", "x86", false) => "win_x86",
+        (os, arch, uses_proton) => bail!(
+            "Unsupported platform combo: (os: {os:?}, arch: {arch:?}, uses_proton: {uses_proton})"
+        ),
+    };
+    Ok(format!(
+        "https://github.com/manderrow/BepInEx/releases/download/ci/BepInEx_{target}_5.4.23.2.zip"
+    ))
 }
 
 struct PdbArtifact {
-    url: &'static str,
+    url: String,
     hash: &'static str,
 }
 
 struct LibraryArtifact {
-    url: &'static str,
+    url: String,
     hash: &'static str,
     suffix: &'static str,
     pdb: Option<PdbArtifact>,
 }
 
+fn doorstop_url(artifact: &str, suffix: &str) -> String {
+    let build = 14;
+    format!("https://github.com/manderrow/UnityDoorstop/releases/download/v4.3.0%2Bmanderrow.{build}/{artifact}{suffix}")
+}
+
 fn get_doorstop_url_and_hash(uses_proton: bool) -> Result<LibraryArtifact> {
-    macro_rules! doorstop_url {
-        ($artifact:literal, $suffix:literal) => {
-            concat!(
-                "https://github.com/manderrow/UnityDoorstop/releases/download/v4.3.0%2Bmanderrow.14/",
-                $artifact,
-                $suffix,
-            )
-        };
-    }
     macro_rules! doorstop_artifact {
         ($artifact:literal, $suffix:literal, $hash:literal, pdb_hash=$pdb_hash:expr) => {
             LibraryArtifact {
-                url: doorstop_url!($artifact, $suffix),
+                url: doorstop_url($artifact, $suffix),
                 hash: $hash,
                 suffix: $suffix,
                 pdb: ($pdb_hash).map(|hash| PdbArtifact {
-                    url: doorstop_url!($artifact, ".pdb"),
+                    url: doorstop_url($artifact, ".pdb"),
                     hash,
                 }),
             }
@@ -189,7 +168,7 @@ pub async fn get_bep_in_ex_path(
         None,
         log,
         &Reqwest(reqwest::Client::new()),
-        url,
+        &url,
         cache,
         &path,
         None,
@@ -309,7 +288,7 @@ pub async fn emit_instructions(
                     app,
                     log,
                     &Reqwest(reqwest::Client::new()),
-                    pdb.url,
+                    &pdb.url,
                     pdb.hash,
                     &path,
                     None,
@@ -326,7 +305,7 @@ pub async fn emit_instructions(
                 app,
                 log,
                 &Reqwest(reqwest::Client::new()),
-                url,
+                &url,
                 hash,
                 &path,
                 None,
