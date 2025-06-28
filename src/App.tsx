@@ -3,7 +3,7 @@ import "./styles/Markdown.css";
 
 import { Route, Router } from "@solidjs/router";
 import { platform } from "@tauri-apps/plugin-os";
-import { open } from "@tauri-apps/plugin-shell";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { Show, createResource, onCleanup, onMount } from "solid-js";
 
 import { relaunch } from "./api/app";
@@ -34,7 +34,7 @@ export default function App() {
     if (link.href.startsWith(`${location.protocol}//${location.host}`)) return;
 
     event.preventDefault();
-    open(link.href).catch(() => alert(`Failed to open link: ${link.href}`));
+    openUrl(link.href).catch(() => alert(`Failed to open link: ${link.href}`));
   }
 
   function onLinkAuxClick(event: MouseEvent) {
@@ -44,7 +44,7 @@ export default function App() {
     event.preventDefault();
     if (link.target === "_blank" && event.button !== 2) {
       // Link is to open in external browser and not right clicked
-      open(link.href).catch(() => alert(`Failed to open link: ${link.href}`));
+      openUrl(link.href).catch(() => alert(`Failed to open link: ${link.href}`));
     }
   }
 

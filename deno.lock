@@ -10,8 +10,8 @@
     "npm:@tauri-apps/api@^2.5.0": "2.5.0",
     "npm:@tauri-apps/cli@^2.5.0": "2.5.0",
     "npm:@tauri-apps/plugin-clipboard-manager@^2.2.2": "2.2.2",
+    "npm:@tauri-apps/plugin-opener@^2.4.0": "2.4.0",
     "npm:@tauri-apps/plugin-os@^2.2.1": "2.2.1",
-    "npm:@tauri-apps/plugin-shell@^2.2.1": "2.2.1",
     "npm:@thisbeyond/solid-dnd@0.7.5": "0.7.5_solid-js@1.9.6__seroval@1.2.1",
     "npm:dompurify@^3.2.5": "3.2.5",
     "npm:marked-alert@^2.1.2": "2.1.2_marked@15.0.11",
@@ -680,6 +680,9 @@
     "@tauri-apps/api@2.5.0": {
       "integrity": "sha512-Ldux4ip+HGAcPUmuLT8EIkk6yafl5vK0P0c0byzAKzxJh7vxelVtdPONjfgTm96PbN24yjZNESY8CKo8qniluA=="
     },
+    "@tauri-apps/api@2.6.0": {
+      "integrity": "sha512-hRNcdercfgpzgFrMXWwNDBN0B7vNzOzRepy6ZAmhxi5mDLVPNrTpo9MGg2tN/F7JRugj4d2aF7E1rtPXAHaetg=="
+    },
     "@tauri-apps/cli-darwin-arm64@2.4.0": {
       "integrity": "sha512-MVzYrahJBgDyzUJ2gNEU8H+0oCVEucN115+CVorFnidHcJ6DtDRMCaKLkpjOZNfJyag1WQ25fu7imvZSe0mz/g==",
       "os": ["darwin"],
@@ -813,16 +816,16 @@
         "@tauri-apps/api@2.3.0"
       ]
     },
+    "@tauri-apps/plugin-opener@2.4.0": {
+      "integrity": "sha512-43VyN8JJtvKWJY72WI/KNZszTpDpzHULFxQs0CJBIYUdCRowQ6Q1feWTDb979N7nldqSuDOaBupZ6wz2nvuWwQ==",
+      "dependencies": [
+        "@tauri-apps/api@2.6.0"
+      ]
+    },
     "@tauri-apps/plugin-os@2.2.1": {
       "integrity": "sha512-cNYpNri2CCc6BaNeB6G/mOtLvg8dFyFQyCUdf2y0K8PIAKGEWdEcu8DECkydU2B+oj4OJihDPD2de5K6cbVl9A==",
       "dependencies": [
         "@tauri-apps/api@2.3.0"
-      ]
-    },
-    "@tauri-apps/plugin-shell@2.2.1": {
-      "integrity": "sha512-G1GFYyWe/KlCsymuLiNImUgC8zGY0tI0Y3p8JgBCWduR5IEXlIJS+JuG1qtveitwYXlfJrsExt3enhv5l2/yhA==",
-      "dependencies": [
-        "@tauri-apps/api@2.5.0"
       ]
     },
     "@thisbeyond/solid-dnd@0.7.5_solid-js@1.9.6__seroval@1.2.1": {
@@ -1200,8 +1203,8 @@
         "npm:@tauri-apps/api@^2.5.0",
         "npm:@tauri-apps/cli@^2.5.0",
         "npm:@tauri-apps/plugin-clipboard-manager@^2.2.2",
+        "npm:@tauri-apps/plugin-opener@^2.4.0",
         "npm:@tauri-apps/plugin-os@^2.2.1",
-        "npm:@tauri-apps/plugin-shell@^2.2.1",
         "npm:@thisbeyond/solid-dnd@0.7.5",
         "npm:dompurify@^3.2.5",
         "npm:marked-alert@^2.1.2",
