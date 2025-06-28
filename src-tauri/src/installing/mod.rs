@@ -878,12 +878,15 @@ pub async fn install_folder<'a, 'b>(
             buf.push(rel_path);
             debug!(log, "Preserving {rel_path:?} {status:?} across update");
             if matches!(status, Status::Deleted) {
-                let metadata = tokio::fs::symlink_metadata(&buf).await?;
-                match if metadata.is_dir() {
-                    tokio::fs::remove_dir_all(&buf).await
-                } else {
-                    tokio::fs::remove_file(&buf).await
-                } {
+                let r = match tokio::fs::symlink_metadata(&buf).await {
+                    Ok(metadata) => if metadata.is_dir() {
+                        tokio::fs::remove_dir_all(&buf).await
+                    } else {
+                        tokio::fs::remove_file(&buf).await
+                    },
+                    Err(e) => Err(e),
+                };
+                match r {
                     Ok(()) => {}
                     Err(e) if e.is_not_found() => {}
                     Err(e) => return Err(e.into()),
