@@ -7,8 +7,9 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use anyhow::{bail, ensure, Context, Result};
+use anyhow::{anyhow, bail, ensure, Context, Result};
 use base64::prelude::BASE64_STANDARD;
+use saphyr::LoadableYamlNode;
 use serde::{Deserialize, Serialize};
 use tauri::AppHandle;
 use triomphe::Arc;
@@ -67,6 +68,22 @@ impl std::fmt::Debug for FullName {
     }
 }
 
+#[derive(Debug, thiserror::Error)]
+enum ParseFullNameError<'a> {
+    #[error("expected a hyphen separated namespace and name: {0:?}")]
+    MissingHyphen(&'a str),
+}
+
+impl FullName {
+    fn from_str(s: &str) -> Result<Self, ParseFullNameError<'_>> {
+        let split = s.find('-').ok_or(ParseFullNameError::MissingHyphen(s))?;
+        Ok(FullName {
+            value: s.to_owned(),
+            split,
+        })
+    }
+}
+
 impl<'de> serde::Deserialize<'de> for FullName {
     fn deserialize<D>(deserializer: D) -> std::result::Result<Self, D::Error>
     where
@@ -85,16 +102,7 @@ impl<'de> serde::Deserialize<'de> for FullName {
             where
                 E: serde::de::Error,
             {
-                let split = v.find('-').ok_or_else(|| {
-                    E::invalid_value(
-                        serde::de::Unexpected::Str(v),
-                        &"a hyphen separated namespace and name",
-                    )
-                })?;
-                Ok(FullName {
-                    value: v.to_owned(),
-                    split,
-                })
+                FullName::from_str(v).map_err(E::custom)
             }
 
             fn visit_string<E>(self, v: String) -> std::result::Result<Self::Value, E>
@@ -165,7 +173,7 @@ pub struct ProfileMod {
     #[serde(rename = "name")]
     pub full_name: FullName,
     #[serde(alias = "versionNumber")]
-    pub version: Version,
+    pub version: packed_semver::Version,
     pub enabled: bool,
 }
 
@@ -206,14 +214,190 @@ pub async fn lookup_profile(
 
         let mut archive = zip::ZipArchive::new(std::io::Cursor::new(Arc::from(buf)))?;
 
-        let manifest_file = archive
+        let mut manifest = String::new();
+        archive
             .by_name("export.r2x")
-            .context("Profile archive is missing manifest file")?;
+            .context("Profile archive is missing manifest file")?
+            .read_to_string(&mut manifest)
+            .context("Failed to read manifest file")?;
 
-        let manifest = serde_yaml::from_reader(manifest_file)?;
+        let manifest =
+            saphyr::Yaml::load_from_str(&manifest).context("Failed to parse manifest file")?;
+        if manifest.len() != 1 {
+            bail!(
+                "Unexpected YAML document count in manifest file: {}",
+                manifest.len()
+            );
+        }
 
-        Ok(Profile { manifest, archive })
+        let Some(manifest) = manifest[0].as_mapping() else {
+            bail!(
+                "Unexpected root YAML element in manifest file: {:?}",
+                manifest[0]
+            );
+        };
+
+        let Some(profile_name) = manifest.get(&saphyr::Yaml::Value(saphyr::Scalar::String(
+            Cow::Borrowed("profileName"),
+        ))) else {
+            return Err(MissingPropertyError::new(&[], "profileName").into());
+        };
+
+        let Some(profile_name) = profile_name.as_str() else {
+            bail!("Invalid value of property profileName in manifest file");
+        };
+
+        let Some(mods) = manifest.get(&saphyr::Yaml::Value(saphyr::Scalar::String(Cow::Borrowed(
+            "mods",
+        )))) else {
+            return Err(MissingPropertyError::new(&[], "mods").into());
+        };
+
+        let Some(mods) = mods.as_sequence() else {
+            bail!("Invalid value of property mods in manifest file");
+        };
+
+        let mods = mods
+            .iter()
+            .map(|m| {
+                let Some(m) = m.as_mapping() else {
+                    bail!("Unexpected root YAML element in manifest file: {m:?}");
+                };
+
+                let Some(full_name) = m.get(&saphyr::Yaml::Value(saphyr::Scalar::String(
+                    Cow::Borrowed("name"),
+                ))) else {
+                    return Err(MissingPropertyError::new(&["mods"], "name").into());
+                };
+                let Some(full_name) = full_name.as_str() else {
+                    return Err(InvalidPropertyValueError::new(&["mods"], "name", full_name).into());
+                };
+
+                let Some(version) = m.get(&saphyr::Yaml::Value(saphyr::Scalar::String(
+                    Cow::Borrowed("versionNumber"),
+                ))) else {
+                    return Err(MissingPropertyError::new(&["mods"], "versionNumber").into());
+                };
+                let Some(version) = version.as_mapping() else {
+                    return Err(InvalidPropertyValueError::new(
+                        &["mods"],
+                        "versionNumber",
+                        version,
+                    )
+                    .into());
+                };
+
+                let major_version = parse_version_component(version, "major")?;
+                let minor_version = parse_version_component(version, "minor")?;
+                let patch_version = parse_version_component(version, "patch")?;
+
+                let Some(enabled) = m.get(&saphyr::Yaml::Value(saphyr::Scalar::String(
+                    Cow::Borrowed("enabled"),
+                ))) else {
+                    return Err(MissingPropertyError::new(&["mods"], "enabled").into());
+                };
+                let Some(enabled) = enabled.as_bool() else {
+                    return Err(
+                        InvalidPropertyValueError::new(&["mods"], "enabled", enabled).into(),
+                    );
+                };
+
+                Ok(ProfileMod {
+                    full_name: FullName::from_str(full_name).map_err(|e| anyhow!("{e}"))?,
+                    version: packed_semver::Version::new(
+                        major_version,
+                        minor_version,
+                        patch_version,
+                    )?,
+                    enabled,
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
+
+        Ok(Profile {
+            manifest: ProfileManifest {
+                profile_name: profile_name.to_owned(),
+                mods,
+            },
+            archive,
+        })
     })
+}
+
+#[derive(Debug)]
+struct MissingPropertyError {
+    parents: &'static [&'static str],
+    key: &'static str,
+}
+
+impl MissingPropertyError {
+    pub const fn new(parents: &'static [&'static str], key: &'static str) -> Self {
+        Self { parents, key }
+    }
+}
+
+fn write_property_error_common(
+    f: &mut std::fmt::Formatter<'_>,
+    prefix: &str,
+    key: &str,
+    parents: &[&str],
+) -> std::fmt::Result {
+    f.write_str(prefix)?;
+    f.write_str(key)?;
+    f.write_str(" in manifest file")?;
+    for parent in parents {
+        f.write_str(" -> ")?;
+        f.write_str(parent)?;
+    }
+    Ok(())
+}
+
+impl std::fmt::Display for MissingPropertyError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write_property_error_common(f, "Missing property ", self.key, self.parents)
+    }
+}
+
+impl std::error::Error for MissingPropertyError {}
+
+#[derive(Debug)]
+struct InvalidPropertyValueError {
+    parents: &'static [&'static str],
+    key: &'static str,
+    value: String,
+}
+
+impl InvalidPropertyValueError {
+    pub fn new(parents: &'static [&'static str], key: &'static str, value: &saphyr::Yaml) -> Self {
+        Self {
+            parents,
+            key,
+            value: format!("{value:?}"),
+        }
+    }
+}
+
+impl std::fmt::Display for InvalidPropertyValueError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write_property_error_common(f, "Invalid value of property ", self.key, self.parents)?;
+        f.write_str(": ")?;
+        f.write_str(&self.value)?;
+        Ok(())
+    }
+}
+
+impl std::error::Error for InvalidPropertyValueError {}
+
+fn parse_version_component(version: &saphyr::Mapping, key: &'static str) -> Result<u64> {
+    let Some(comp) = version.get(&saphyr::Yaml::Value(saphyr::Scalar::String(Cow::Borrowed(
+        key,
+    )))) else {
+        return Err(MissingPropertyError::new(&["mods", "version"], key).into());
+    };
+    let Some(comp) = comp.as_integer().and_then(|i| i.try_into().ok()) else {
+        return Err(InvalidPropertyValueError::new(&["mods", "version"], key, comp).into());
+    };
+    Ok(comp)
 }
 
 pub fn get_archive_file_path<R: Read>(file: &ZipFile<'_, R>) -> Result<Option<PathBuf>> {
