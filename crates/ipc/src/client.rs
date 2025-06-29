@@ -24,6 +24,7 @@ impl Ipc {
             c2s_tx.send(message).map_err(Into::into)
         } else {
             // this is unreachable, but I don't want to panic
+            // TODO: log an error to the agent/wrapper log file
             Ok(())
         }
     }
