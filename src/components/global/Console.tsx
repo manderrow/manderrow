@@ -49,7 +49,8 @@ export function DoctorReports() {
   );
 }
 
-type VisibleLevels = { [k in (typeof LOG_LEVELS)[number]]: boolean };
+const VISIBLE_LEVELS_OPTIONS = [...LOG_LEVELS, "STDOUT", "STDERR"] as const;
+type VisibleLevels = { [k in (typeof VISIBLE_LEVELS_OPTIONS)[number]]: boolean };
 
 export default function Console() {
   function getSelectConnectionOptions() {
@@ -70,6 +71,8 @@ export default function Console() {
     INFO: true,
     DEBUG: false,
     TRACE: false,
+    STDERR: false,
+    STDOUT: false,
   });
 
   let consoleContainer!: HTMLDivElement;
@@ -135,7 +138,7 @@ export default function Console() {
           </div>
           <div class={styles.header__group}>
             <div classList={{ [styles.header__subgroup]: true, [styles.toggleList]: true }}>
-              <For each={LOG_LEVELS}>
+              <For each={VISIBLE_LEVELS_OPTIONS}>
                 {(level) => {
                   const id = createUniqueId();
                   return (
@@ -187,9 +190,9 @@ export default function Console() {
 const STYLE_DISPLAY_NONE = { display: "none" };
 
 const OUTPUT_CHANNEL_LABELS = {
-  Out: "OUT",
-  Err: "ERR",
-};
+  Out: "STDOUT",
+  Err: "STDERR",
+} as const;
 
 function ConsoleEvent(event: Event, visibleLevels: VisibleLevels, searchInput: () => string) {
   let visibleTmp: () => boolean;
@@ -201,7 +204,10 @@ function ConsoleEvent(event: Event, visibleLevels: VisibleLevels, searchInput: (
       break;
     }
     case "Output": {
-      visibleTmp = createMemo(() => !("Unicode" in event.line) || event.line.Unicode.includes(searchInput()));
+      const levelKey = OUTPUT_CHANNEL_LABELS[event.channel];
+      const visibleByLevels = createMemo(() => visibleLevels[levelKey]);
+      const visibleBySearch = createMemo(() => !("Unicode" in event.line) || event.line.Unicode.includes(searchInput()));
+      visibleTmp = createMemo(() => visibleByLevels() && visibleBySearch());
       break;
     }
     case "Connect":
