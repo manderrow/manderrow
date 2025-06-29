@@ -107,6 +107,7 @@
   font-weight: bold;
   display: flex;
   justify-content: space-between;
+  height: min-content;
 
   &::before {
     content: '[';
@@ -123,6 +124,7 @@
 }
 
 .event__message {
+  white-space: pre-wrap;
 }
 
 .toggleList {

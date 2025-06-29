@@ -3,6 +3,7 @@ import {
   Match,
   Show,
   Switch,
+  createMemo,
   createRenderEffect,
   createSignal,
   createUniqueId,
@@ -48,7 +49,8 @@ export function DoctorReports() {
   );
 }
 
-type VisibleLevels = { [k in (typeof LOG_LEVELS)[number]]: boolean };
+const VISIBLE_LEVELS_OPTIONS = [...LOG_LEVELS, "STDOUT", "STDERR"] as const;
+type VisibleLevels = { [k in (typeof VISIBLE_LEVELS_OPTIONS)[number]]: boolean };
 
 export default function Console() {
   function getSelectConnectionOptions() {
@@ -69,6 +71,8 @@ export default function Console() {
     INFO: true,
     DEBUG: false,
     TRACE: false,
+    STDERR: false,
+    STDOUT: false,
   });
 
   let consoleContainer!: HTMLDivElement;
@@ -134,7 +138,7 @@ export default function Console() {
           </div>
           <div class={styles.header__group}>
             <div classList={{ [styles.header__subgroup]: true, [styles.toggleList]: true }}>
-              <For each={LOG_LEVELS}>
+              <For each={VISIBLE_LEVELS_OPTIONS}>
                 {(level) => {
                   const id = createUniqueId();
                   return (
@@ -185,29 +189,45 @@ export default function Console() {
 
 const STYLE_DISPLAY_NONE = { display: "none" };
 
+const OUTPUT_CHANNEL_LABELS = {
+  Out: "STDOUT",
+  Err: "STDERR",
+} as const;
+
 function ConsoleEvent(event: Event, visibleLevels: VisibleLevels, searchInput: () => string) {
-  const visible = () => {
-    switch (event.type) {
-      case "Log":
-        return visibleLevels[event.level] && event.message.includes(searchInput());
-      case "Output":
-        return !("Unicode" in event.line) || event.line.Unicode.includes(searchInput());
-      case "Connect":
-      case "Disconnect":
-      case "Start":
-      case "Started":
-      case "Exit":
-      case "Crash":
-      case "DoctorReport":
-      case "Error":
-        return true;
+  let visibleTmp: () => boolean;
+  switch (event.type) {
+    case "Log": {
+      const visibleByLevels = createMemo(() => visibleLevels[event.level]);
+      const visibleBySearch = createMemo(() => event.message.includes(searchInput()));
+      visibleTmp = createMemo(() => visibleByLevels() && visibleBySearch());
+      break;
     }
-  };
+    case "Output": {
+      const levelKey = OUTPUT_CHANNEL_LABELS[event.channel];
+      const visibleByLevels = createMemo(() => visibleLevels[levelKey]);
+      const visibleBySearch = createMemo(() => !("Unicode" in event.line) || event.line.Unicode.includes(searchInput()));
+      visibleTmp = createMemo(() => visibleByLevels() && visibleBySearch());
+      break;
+    }
+    case "Connect":
+    case "Disconnect":
+    case "Start":
+    case "Started":
+    case "Exit":
+    case "Crash":
+    case "DoctorReport":
+    case "Error": {
+      visibleTmp = () => true;
+      break;
+    }
+  }
+  const visible = visibleTmp;
 
   const displayStyle = () => (visible() ? undefined : STYLE_DISPLAY_NONE);
 
   switch (event.type) {
-    case "Output":
+    case "Output": {
       let line: string;
       if ("Unicode" in event.line) {
         line = event.line.Unicode;
@@ -219,10 +239,7 @@ function ConsoleEvent(event: Event, visibleLevels: VisibleLevels, searchInput: (
       return (
         <>
           <span class={styles.event__type} style={displayStyle()}>
-            <Switch>
-              <Match when={event.channel === "Out"}>OUT</Match>
-              <Match when={event.channel === "Err"}>ERR</Match>
-            </Switch>
+            {OUTPUT_CHANNEL_LABELS[event.channel]}
           </span>
           <span class={styles.event__scope} style={displayStyle()}></span>
           <span class={styles.event__message} style={displayStyle()}>
@@ -230,6 +247,7 @@ function ConsoleEvent(event: Event, visibleLevels: VisibleLevels, searchInput: (
           </span>
         </>
       );
+    }
     case "Log":
       return (
         <>
