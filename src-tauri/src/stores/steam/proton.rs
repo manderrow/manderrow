@@ -1,4 +1,5 @@
 use std::{
+    borrow::Cow,
     ffi::OsString,
     ops::Range,
     path::{Path, PathBuf},
@@ -152,6 +153,14 @@ pub fn host_path_to_win_path(path: &Path) -> PathBuf {
     buf.push("Z:");
     buf.push(path.as_os_str());
     PathBuf::from(buf)
+}
+
+pub fn adapt_host_path(path: &Path, uses_proton: bool) -> Cow<Path> {
+    if uses_proton {
+        Cow::Owned(host_path_to_win_path(path))
+    } else {
+        Cow::Borrowed(path)
+    }
 }
 
 #[cfg(test)]

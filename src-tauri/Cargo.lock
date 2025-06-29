@@ -4532,7 +4532,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "906a1a0bc43fed692df4b82a5e2fbfc3733db8dad8bb514ab27a4f23ad04f5c0"
 dependencies = [
  "log",
- "regex",
  "slog",
  "slog-async",
  "slog-scope",

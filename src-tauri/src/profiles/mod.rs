@@ -8,12 +8,14 @@ use futures_util::stream::FuturesOrdered;
 use futures_util::StreamExt as _;
 use manderrow_paths::local_data_dir;
 use manderrow_types::mods::{ModAndVersion, ModMetadata, ModVersion};
-use slog::error;
+use slog::{debug, error};
 use smol_str::SmolStr;
 use tauri::AppHandle;
 use uuid::Uuid;
 
-use crate::installing::{install_zip, uninstall_package};
+use crate::installing::{
+    create_dir_if_not_exists, install_folder, prepare_install_zip, uninstall_package, StagedPackage,
+};
 use crate::util::{hyphenated_uuid, IoErrorKindExt as _};
 use crate::{tasks, Reqwest};
 
@@ -117,6 +119,7 @@ pub async fn delete_profile(id: Uuid) -> Result<()> {
 }
 
 pub const MODS_FOLDER: &str = "mods";
+pub const PATCHERS_FOLDER: &str = "patchers";
 
 const MANIFEST_FILE_NAME: &str = "manderrow_mod.json";
 
@@ -174,30 +177,48 @@ pub async fn install_profile_mod(
 ) -> Result<()> {
     let log = slog_scope::logger();
 
-    let mut path = profile_path(id);
+    let profile_path = profile_path(id);
 
-    path.push(MODS_FOLDER);
+    let mut mod_folder_path = profile_path.join(MODS_FOLDER);
+    let mut patchers_folder_path = profile_path.join(PATCHERS_FOLDER);
 
-    tokio::fs::create_dir_all(&path)
-        .await
-        .context("Failed to create mods directory")?;
+    push_mod_folder(&mut mod_folder_path, &r#mod.owner, &r#mod.name);
+    push_mod_folder(&mut patchers_folder_path, &r#mod.owner, &r#mod.name);
 
-    path.push(&r#mod.owner);
-    path.as_mut_os_string().push("-");
-    path.as_mut_os_string().push(&r#mod.name);
-    let staged = install_zip(
+    let url = format!(
+        "https://gcdn.thunderstore.io/live/repository/packages/{}-{}-{}.zip",
+        r#mod.owner, r#mod.name, version.version_number
+    );
+
+    debug!(
+        log,
+        "Installing mod from {url:?} to profile {id} at {mod_folder_path:?}"
+    );
+
+    let mod_temp_dir = prepare_install_zip(
         Some(app),
         &log,
         reqwest,
-        &format!(
-            "https://gcdn.thunderstore.io/live/repository/packages/{}-{}-{}.zip",
-            r#mod.owner, r#mod.name, version.version_number
-        ),
+        &url,
         Some(crate::installing::CacheOptions::by_url()),
-        &path,
+        &mod_folder_path,
         task_id,
     )
     .await?;
+
+    let patchers_temp_dir = mod_temp_dir.path().join("patchers");
+    // TODO: don't do this
+    create_dir_if_not_exists(&patchers_temp_dir).await?;
+
+    let patchers_staged = install_folder(&log, &patchers_temp_dir, &patchers_folder_path).await?;
+
+    let staged = install_folder(&log, mod_temp_dir.path(), &mod_folder_path).await?;
+    staged.check_with_temp_dir(&mod_temp_dir);
+
+    let staged = StagedPackage {
+        target: &mod_folder_path,
+        source: crate::installing::StagedPackageSource::TempDir(mod_temp_dir),
+    };
 
     tokio::task::block_in_place(|| {
         serde_json::to_writer(
@@ -212,9 +233,18 @@ pub async fn install_profile_mod(
         Ok::<_, anyhow::Error>(())
     })?;
 
+    // FIXME: We need to rollback patchers_staged.finish if staged.finish fails. We can split
+    //        atomic_replace into a two-step process with rollback on Drop
+    patchers_staged.finish(&log).await?;
     staged.finish(&log).await?;
 
     Ok(())
+}
+
+fn push_mod_folder(path: &mut PathBuf, owner: &str, name: &str) {
+    path.push(owner);
+    path.as_mut_os_string().push("-");
+    path.as_mut_os_string().push(name);
 }
 
 pub async fn uninstall_profile_mod(id: Uuid, owner: &str, name: &str) -> Result<()> {
@@ -222,20 +252,27 @@ pub async fn uninstall_profile_mod(id: Uuid, owner: &str, name: &str) -> Result<
 
     let mut path = profile_path(id);
 
-    path.push(MODS_FOLDER);
-    path.push(owner);
-    path.as_mut_os_string().push("-");
-    path.as_mut_os_string().push(name);
+    for folder in [MODS_FOLDER, PATCHERS_FOLDER] {
+        path.push(folder);
+        push_mod_folder(&mut path, owner, name);
 
-    // remove the manifest so it isn't left over after uninstalling the package
-    path.push(MANIFEST_FILE_NAME);
-    tokio::fs::remove_file(&path)
-        .await
-        .with_context(|| format!("Failed to remove manifest file at {path:?}"))?;
-    path.pop();
+        // remove the manifest so it isn't left over after uninstalling the package
+        path.push(MANIFEST_FILE_NAME);
+        match tokio::fs::remove_file(&path).await {
+            Ok(()) => {}
+            Err(e) if e.is_not_found() => {}
+            Err(e) => {
+                return Err(anyhow::Error::from(e)
+                    .context(format!("Failed to remove manifest file at {path:?}")))
+            }
+        }
+        path.pop();
 
-    // keep_changes is true so that configs and any other changes are
-    // preserved. Zero-risk uninstallation!
-    uninstall_package(&log, &path, true).await?;
+        // keep_changes is true so that configs and any other changes are
+        // preserved. Zero-risk uninstallation!
+        uninstall_package(&log, &path, true).await?;
+        path.pop();
+        path.pop();
+    }
     Ok(())
 }

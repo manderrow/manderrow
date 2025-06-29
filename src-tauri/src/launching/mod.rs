@@ -19,7 +19,7 @@ use crate::games::games_by_id;
 use crate::ipc::ConnectionId;
 use crate::ipc::{C2SMessage, IdentifiedC2SMessage, IpcState};
 use crate::profiles::{profile_path, read_profile_file};
-use crate::stores::steam::proton::host_path_to_win_path;
+use crate::stores::steam::proton::{adapt_host_path, host_path_to_win_path};
 use crate::wrap::WrapperMode;
 
 pub static LOADERS_DIR: LazyLock<PathBuf> = LazyLock::new(|| cache_dir().join("loaders"));
@@ -240,35 +240,42 @@ pub async fn launch_profile(
     }
 
     if uses_proton {
-        let path = cache_dir().join("host_dlfcn.dll.so");
-        tokio::fs::write(
-            &path,
-            include_bytes!(concat!(
-                env!("OUT_DIR"),
-                "/agent-host_lib/out/lib/host_dlfcn.dll.so"
-            )),
-        )
-        .await
-        .with_context(|| {
-            format!("Failed to install host_dlfcn from embedded bytes at {path:?}",)
-        })?;
+        #[cfg(target_os = "linux")]
+        {
+            let path = cache_dir().join("host_dlfcn.dll.so");
+            tokio::fs::write(
+                &path,
+                include_bytes!(concat!(
+                    env!("OUT_DIR"),
+                    "/agent-host_lib/out/lib/host_dlfcn.dll.so"
+                )),
+            )
+            .await
+            .with_context(|| {
+                format!("Failed to install host_dlfcn from embedded bytes at {path:?}",)
+            })?;
 
-        command.arg("--dlfcn-host-path");
-        command.arg(host_path_to_win_path(&path));
+            command.arg("--dlfcn-host-path");
+            command.arg(host_path_to_win_path(&path));
 
-        let path = cache_dir().join("manderrow-agent.so");
-        tokio::fs::write(
-            &path,
-            include_bytes!(concat!(
-                env!("OUT_DIR"),
-                "/agent-host_lib/out/lib/libmanderrow_agent.so"
-            )),
-        )
-        .await
-        .with_context(|| format!("Failed to install host agent from embedded bytes at {path:?}"))?;
+            let path = cache_dir().join("manderrow-agent.so");
+            tokio::fs::write(
+                &path,
+                include_bytes!(concat!(
+                    env!("OUT_DIR"),
+                    "/agent-host_lib/out/lib/libmanderrow_agent.so"
+                )),
+            )
+            .await
+            .with_context(|| format!("Failed to install host agent from embedded bytes at {path:?}"))?;
 
-        command.arg("--agent-host-path");
-        command.arg(&path);
+            command.arg("--agent-host-path");
+            command.arg(&path);
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            unreachable!("uses_proton should only be true on Linux")
+        }
     }
 
     command.arg("--enable");
@@ -328,12 +335,7 @@ pub async fn launch_profile(
 
     command.arg("--log-to-file");
     command.arg("--logs-dir");
-    if uses_proton {
-        let logs_dir = logs_dir();
-        command.arg(host_path_to_win_path(logs_dir));
-    } else {
-        command.arg(logs_dir());
-    }
+    command.arg(adapt_host_path(logs_dir(), uses_proton).as_ref());
 
     command.arg("manderrow}");
 

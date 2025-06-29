@@ -1,4 +1,3 @@
-use std::ffi::OsString;
 use std::path::PathBuf;
 
 use anyhow::{bail, Result};
@@ -9,105 +8,85 @@ use uuid::Uuid;
 
 use crate::installing::{fetch_resource_cached_by_hash_at_path, install_zip};
 use crate::profiles::{profile_path, MODS_FOLDER};
+use crate::stores::steam::proton::adapt_host_path;
 use crate::Reqwest;
 
 use super::InstructionEmitter;
 
-fn get_url_and_hash(uses_proton: bool) -> Result<(&'static str, &'static str)> {
-    macro_rules! artifact {
-        ($target:literal, $hash:literal) => {
-            (concat!(
-                "https://github.com/manderrow/BepInEx/releases/download/v5.4.23.2%2Bbuild.19/BepInEx_",
-                $target,
-                "_5.4.23.2.zip"
-            ), $hash)
-        };
-    }
+fn get_url_and_hash(uses_proton: bool) -> Result<(String, &'static str)> {
+    let build = 20;
+    let (target, hash) = match (std::env::consts::OS, std::env::consts::ARCH, uses_proton) {
+        ("linux", "x86_64", false) => (
+            "linux_x64",
+            "84895f02a4fe22526bc52f53cd59025494e721635fb330d41e370d1d310548b4",
+        ),
+        ("linux", "x86", false) => (
+            "linux_x86",
+            "84895f02a4fe22526bc52f53cd59025494e721635fb330d41e370d1d310548b4",
+        ),
+        ("macos", "x86_64", false) => (
+            "macos_x64",
+            "84895f02a4fe22526bc52f53cd59025494e721635fb330d41e370d1d310548b4",
+        ),
+        ("linux", "x86_64", true) | ("windows", "x86_64", false) => (
+            "win_x64",
+            "84895f02a4fe22526bc52f53cd59025494e721635fb330d41e370d1d310548b4",
+        ),
+        ("linux", "x86", true) | ("windows", "x86", false) => (
+            "win_x86",
+            "84895f02a4fe22526bc52f53cd59025494e721635fb330d41e370d1d310548b4",
+        ),
+        (os, arch, uses_proton) => bail!(
+            "Unsupported platform combo: (os: {os:?}, arch: {arch:?}, uses_proton: {uses_proton})"
+        ),
+    };
+    let url = format!("https://github.com/manderrow/BepInEx/releases/download/v5.4.23.2%2Bbuild.{build}/BepInEx_{target}_5.4.23.2.zip");
 
-    Ok(
-        match (std::env::consts::OS, std::env::consts::ARCH, uses_proton) {
-            ("linux", "x86_64", false) => artifact!(
-                "linux_x64",
-                "2e3e1aa5b77e1e9c1e2ec1a54e08355d4c69740c38ad992787185b1dd0853a13"
-            ),
-            ("linux", "x86", false) => artifact!(
-                "linux_x86",
-                "18e6e6d274a5bd1e88e7a06c9c15dc31424a76ea6c7f188a4fca0cbebd18ea89"
-            ),
-            ("macos", "x86_64", false) => artifact!(
-                "macos_x64",
-                "6193dfc349880fb3adc02c033af998ab2ac45346a59e4553b46367c145a8eb21"
-            ),
-            ("linux", "x86_64", true) | ("windows", "x86_64", false) => artifact!(
-                "win_x64",
-                "21da84e6682afcfd9d3cebc7c35c8fe81ea5d18628f3115880775db4ffbda7bf"
-            ),
-            ("linux", "x86", true) | ("windows", "x86", false) => artifact!(
-                "win_x86",
-                "e61309bd6fcca544b7f8759a741294626a42f7136dee219ad9b22328411dbe5c"
-            ),
-            (os, arch, uses_proton) => bail!(
-                "Unsupported platform combo: (os: {os:?}, arch: {arch:?}, uses_proton: {uses_proton})"
-            ),
-        },
-    )
+    Ok((url, hash))
 }
 
-fn get_ci_url(uses_proton: bool) -> Result<&'static str> {
-    macro_rules! artifact {
-        ($target:literal) => {
-            concat!(
-                "https://github.com/manderrow/BepInEx/releases/download/ci/BepInEx_",
-                $target,
-                "_5.4.23.2.zip"
-            )
-        };
-    }
-
-    Ok(
-        match (std::env::consts::OS, std::env::consts::ARCH, uses_proton) {
-            ("linux", "x86_64", false) => artifact!("linux_x64"),
-            ("linux", "x86", false) => artifact!("linux_x86"),
-            ("macos", "x86_64", false) => artifact!("macos_x64"),
-            ("linux", "x86_64", true) | ("windows", "x86_64", false) => artifact!("win_x64"),
-            ("linux", "x86", true) | ("windows", "x86", false) => artifact!("win_x86"),
-            (os, arch, uses_proton) => bail!(
-                "Unsupported platform combo: (os: {os:?}, arch: {arch:?}, uses_proton: {uses_proton})"
-            ),
-        },
-    )
+fn get_ci_url(uses_proton: bool) -> Result<String> {
+    let target = match (std::env::consts::OS, std::env::consts::ARCH, uses_proton) {
+        ("linux", "x86_64", false) => "linux_x64",
+        ("linux", "x86", false) => "linux_x86",
+        ("macos", "x86_64", false) => "macos_x64",
+        ("linux", "x86_64", true) | ("windows", "x86_64", false) => "win_x64",
+        ("linux", "x86", true) | ("windows", "x86", false) => "win_x86",
+        (os, arch, uses_proton) => bail!(
+            "Unsupported platform combo: (os: {os:?}, arch: {arch:?}, uses_proton: {uses_proton})"
+        ),
+    };
+    Ok(format!(
+        "https://github.com/manderrow/BepInEx/releases/download/ci/BepInEx_{target}_5.4.23.2.zip"
+    ))
 }
 
 struct PdbArtifact {
-    url: &'static str,
+    url: String,
     hash: &'static str,
 }
 
 struct LibraryArtifact {
-    url: &'static str,
+    url: String,
     hash: &'static str,
     suffix: &'static str,
     pdb: Option<PdbArtifact>,
 }
 
+fn doorstop_url(artifact: &str, suffix: &str) -> String {
+    let build = 14;
+    format!("https://github.com/manderrow/UnityDoorstop/releases/download/v4.3.0%2Bmanderrow.{build}/{artifact}{suffix}")
+}
+
 fn get_doorstop_url_and_hash(uses_proton: bool) -> Result<LibraryArtifact> {
-    macro_rules! doorstop_url {
-        ($artifact:literal, $suffix:literal) => {
-            concat!(
-                "https://github.com/manderrow/UnityDoorstop/releases/download/v4.3.0%2Bmanderrow.14/",
-                $artifact,
-                $suffix,
-            )
-        };
-    }
     macro_rules! doorstop_artifact {
         ($artifact:literal, $suffix:literal, $hash:literal, pdb_hash=$pdb_hash:expr) => {
             LibraryArtifact {
-                url: doorstop_url!($artifact, $suffix),
+                url: doorstop_url($artifact, $suffix),
                 hash: $hash,
                 suffix: $suffix,
                 pdb: ($pdb_hash).map(|hash| PdbArtifact {
-                    url: doorstop_url!($artifact, ".pdb"),
+                    url: doorstop_url($artifact, ".pdb"),
                     hash,
                 }),
             }
@@ -189,7 +168,7 @@ pub async fn get_bep_in_ex_path(
         None,
         log,
         &Reqwest(reqwest::Client::new()),
-        url,
+        &url,
         cache,
         &path,
         None,
@@ -218,32 +197,35 @@ pub async fn emit_instructions(
 
     let temp_dir = tempdir()?.into_path();
 
-    em.set_var("BEPINEX_CONFIGS", profile_path.join("config"));
-    em.set_var("BEPINEX_PLUGINS", profile_path.join(MODS_FOLDER));
-    em.set_var("BEPINEX_PATCHER_PLUGINS", profile_path.join("patchers"));
+    em.set_var(
+        "BEPINEX_CONFIGS",
+        adapt_host_path(&profile_path.join("config"), uses_proton).as_ref(),
+    );
+    em.set_var(
+        "BEPINEX_PLUGINS",
+        adapt_host_path(&profile_path.join(MODS_FOLDER), uses_proton).as_ref(),
+    );
+    em.set_var(
+        "BEPINEX_PATCHER_PLUGINS",
+        adapt_host_path(&profile_path.join("patchers"), uses_proton).as_ref(),
+    );
     // TODO: should this point to a "persistent" cache directory, and should it be per-profile or shared?
-    em.set_var("BEPINEX_CACHE", temp_dir.join("cache"));
+    em.set_var(
+        "BEPINEX_CACHE",
+        adapt_host_path(&temp_dir.join("cache"), uses_proton).as_ref(),
+    );
     // enables the logging we expect from our fork of BepInEx
     em.set_var("BEPINEX_STANDARD_LOG", "");
 
-    let target_assembly = if uses_proton {
-        let mut buf = OsString::from("Z:");
-        const SUFFIX: &str = "/BepInEx/core/BepInEx.Preloader.dll";
-        buf.reserve_exact(bep_in_ex.as_os_str().len() + SUFFIX.len());
-        buf.push(bep_in_ex.as_os_str());
-        buf.push(SUFFIX);
-        PathBuf::from(buf)
-    } else {
-        let mut p = bep_in_ex.clone();
-        p.push("BepInEx");
-        p.push("core");
-        p.push("BepInEx.Preloader.dll");
-        p
-    };
+    let mut target_assembly = bep_in_ex.clone();
+    target_assembly.push("BepInEx");
+    target_assembly.push("core");
+    target_assembly.push("BepInEx.Preloader.dll");
+    let target_assembly = adapt_host_path(&target_assembly, uses_proton);
 
     // note for the future: any paths provided to UnityDoorstop must be absolute.
     em.set_var("DOORSTOP_ENABLED", "1");
-    em.set_var("DOORSTOP_TARGET_ASSEMBLY", &target_assembly);
+    em.set_var("DOORSTOP_TARGET_ASSEMBLY", target_assembly.as_ref());
     em.set_var("DOORSTOP_IGNORE_DISABLED_ENV", "0");
     // specify these only if they have values
     // em.set_var("DOORSTOP_MONO_DLL_SEARCH_PATH_OVERRIDE", "");
@@ -260,7 +242,7 @@ pub async fn emit_instructions(
         em.raw_arg("true");
 
         em.raw_arg("--doorstop-target-assembly");
-        em.raw_arg(&target_assembly);
+        em.raw_arg(target_assembly.as_ref());
 
         em.raw_arg("--doorstop-mono-debug-enabled");
         em.raw_arg("false");
@@ -306,7 +288,7 @@ pub async fn emit_instructions(
                     app,
                     log,
                     &Reqwest(reqwest::Client::new()),
-                    pdb.url,
+                    &pdb.url,
                     pdb.hash,
                     &path,
                     None,
@@ -323,7 +305,7 @@ pub async fn emit_instructions(
                 app,
                 log,
                 &Reqwest(reqwest::Client::new()),
-                url,
+                &url,
                 hash,
                 &path,
                 None,
