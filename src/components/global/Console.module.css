@@ -124,6 +124,7 @@
 }
 
 .event__message {
+  white-space: pre-wrap;
 }
 
 .toggleList {
