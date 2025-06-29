@@ -124,6 +124,7 @@ impl serde::Serialize for FullName {
     }
 }
 
+// TODO: replace with a custom deserializer instead of needing two layers of validation
 #[derive(Debug, Clone, Copy, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Version {
@@ -138,8 +139,8 @@ impl std::fmt::Display for Version {
     }
 }
 
-impl TryFrom<Version> for crate::mods::Version {
-    type Error = crate::mods::TooManyBitsError;
+impl TryFrom<Version> for packed_semver::Version {
+    type Error = packed_semver::TooManyBitsError;
 
     fn try_from(value: Version) -> Result<Self, Self::Error> {
         Self::new(value.major, value.minor, value.patch)

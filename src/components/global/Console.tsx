@@ -1,183 +1,363 @@
-import { Channel } from "@tauri-apps/api/core";
-import { Accessor, For, Match, Setter, Switch, createEffect, createSignal, onCleanup, useContext } from "solid-js";
+import {
+  For,
+  Match,
+  Show,
+  Switch,
+  createRenderEffect,
+  createSignal,
+  createUniqueId,
+  onMount,
+  useContext,
+} from "solid-js";
+import { createStore } from "solid-js/store";
 
-import { C2SMessage, DoctorReport, SafeOsString, sendS2CMessage } from "../../api/ipc";
+import { LOG_LEVELS, SafeOsString, sendS2CMessage } from "../../api/ipc";
+import { bindValue } from "../global/Directives";
 import styles from "./Console.module.css";
 import Dialog, { dialogStyles } from "./Dialog";
 import { t } from "../../i18n/i18n";
 import { ErrorContext } from "./ErrorBoundary";
+import SelectDropdown from "./SelectDropdown";
+import {
+  connections,
+  connectionsUpdate,
+  doctorReports,
+  focusedConnection,
+  IdentifiedDoctorReport,
+  setDoctorReports,
+  setFocusedConnection,
+  type Event,
+} from "../../console";
 
 const translateUnchecked = t as (key: string, args: Object | undefined) => string;
 
-export type ConnectionStatus = "connecting" | "connected" | "disconnected";
-
-export class ConsoleConnection {
-  readonly channel: Channel<C2SMessage>;
-  readonly status: Accessor<ConnectionStatus>;
-  readonly setStatus: (value: ConnectionStatus) => void;
-  // TODO: don't use a signal for these
-  readonly events: Accessor<C2SMessage[]>;
-  readonly setEvents: Setter<C2SMessage[]>;
-
-  constructor() {
-    this.channel = new Channel<C2SMessage>();
-    const [status, setStatus] = createSignal<ConnectionStatus>("connecting");
-    this.status = status;
-    this.setStatus = setStatus;
-    const [events, setEvents] = createSignal<C2SMessage[]>([]);
-    this.events = events;
-    this.setEvents = setEvents;
-  }
-
-  clear() {
-    this.setEvents([]);
-  }
-
-  close() {
-    this.channel.onmessage = () => {};
-  }
+export function DoctorReports() {
+  return (
+    <For each={doctorReports()}>
+      {(report, i) => (
+        <DoctorDialog
+          report={report}
+          onDismiss={() => {
+            setDoctorReports((reports) => {
+              return [...reports.slice(0, i()), ...reports.slice(i() + 1)];
+            });
+          }}
+        />
+      )}
+    </For>
+  );
 }
 
-export default function Console(props: { conn: ConsoleConnection | undefined }) {
-  const [doctorReports, setDoctorReports] = createSignal<DoctorReport[]>([]);
+type VisibleLevels = { [k in (typeof LOG_LEVELS)[number]]: boolean };
 
-  function handleLogEvent(event: C2SMessage) {
-    if (props.conn !== undefined) {
-      if ("Connect" in event) {
-        props.conn.setStatus("connected");
-      } else if ("Disconnect" in event) {
-        props.conn.setStatus("disconnected");
-      } else if ("DoctorReport" in event) {
-        setDoctorReports((reports) => [...reports, event.DoctorReport]);
-      } else {
-        props.conn.setEvents((events) => [...events, event]);
-      }
-    }
+export default function Console() {
+  function getSelectConnectionOptions() {
+    // track updates
+    connectionsUpdate();
+    return Object.fromEntries(
+      Array.from(connections.keys()).map((id) => [
+        id.toString(),
+        { value: id, selected: id === focusedConnection()?.id },
+      ]),
+    );
   }
 
-  createEffect<ConsoleConnection | undefined>((prevConn) => {
-    if (prevConn !== props.conn) {
-      if (prevConn !== undefined) {
-        prevConn.close();
-      }
-      if (props.conn !== undefined) {
-        props.conn.channel.onmessage = handleLogEvent;
-      }
-    }
-    return props.conn;
+  const [visibleLevels, setVisibleLevels] = createStore<VisibleLevels>({
+    CRITICAL: true,
+    ERROR: true,
+    WARN: true,
+    INFO: true,
+    DEBUG: false,
+    TRACE: false,
   });
 
-  onCleanup(() => props.conn?.close());
+  let consoleContainer!: HTMLDivElement;
+
+  onMount(() => {
+    createRenderEffect(() => {
+      focusedConnection()?.events().length;
+
+      // If no overflow yet, don't try to set overflowed to true by returning here
+      if (
+        consoleContainer.scrollHeight === consoleContainer.clientHeight &&
+        consoleContainer.dataset.overflowed === "false"
+      )
+        return;
+
+      // If at bottom of scroll, scroll to the new bottom position after DOM updates,
+      // and set overflowed to true to stop always scrolling to bottom
+      if (
+        consoleContainer.scrollHeight - consoleContainer.clientHeight <= consoleContainer.scrollTop + 1 ||
+        consoleContainer.dataset.overflowed === "false"
+      ) {
+        queueMicrotask(() => {
+          consoleContainer.scrollTop = consoleContainer.scrollHeight - consoleContainer.clientHeight;
+          consoleContainer.dataset.overflowed = "true";
+        });
+      }
+    });
+  });
+
+  const [searchInput, setSearchInput] = createSignal("");
 
   return (
     <>
-      <h2 class={styles.heading}>
-        <span class={styles.statusIndicator} data-connected={props.conn?.status() === "connected"}></span>
-        {props.conn?.status() === "connected" ? "Connected" : "Disconnected"}{" "}
-      </h2>
-      <div class={styles.console}>
-        <For each={props.conn?.events()} fallback={<p>Game not running.</p>}>
-          {(event) => {
-            if ("Output" in event) {
-              let line: string;
-              if ("Unicode" in event.Output.line) {
-                line = event.Output.line.Unicode;
-              } else if ("Bytes" in event.Output.line) {
-                line = JSON.stringify(event.Output.line.Bytes);
-              } else {
-                throw Error();
-              }
-              return (
-                <p>
-                  <span class={styles.event__type}>
-                    <Switch>
-                      <Match when={event.Output.channel === "Out"}>[OUT]</Match>
-                      <Match when={event.Output.channel === "Err"}>[ERR]</Match>
-                    </Switch>
-                  </span>{" "}
-                  {line}
-                </p>
-              );
-            } else if ("Log" in event) {
-              return (
-                <p>
-                  <span class={styles.event__type}>[{event.Log.level}]</span> <span>{event.Log.scope}</span>:{" "}
-                  <span>{event.Log.message}</span>
-                </p>
-              );
-            } else if ("Connect" in event) {
-              return (
-                <p>
-                  <span class={styles.event__type}>[CONNECT]</span>
-                  {" Wrapper connected to Manderrow"}
-                </p>
-              );
-            } else if ("Start" in event) {
-              return (
-                <p>
-                  <span class={styles.event__type}>[START]</span>{" "}
-                  <For each={Object.entries(event.Start.env)}>
-                    {([k, v]) => {
-                      if ("Unicode" in v) {
-                        return (
-                          <>
-                            {k}={JSON.stringify(v.Unicode)}{" "}
-                          </>
-                        );
-                      } else {
-                        return (
-                          <>
-                            {k}={JSON.stringify(v)}{" "}
-                          </>
-                        );
-                      }
-                    }}
-                  </For>
-                  <DisplaySafeOsString string={event.Start.command} />{" "}
-                  <For each={event.Start.args}>
-                    {(arg) => (
-                      <>
-                        {" "}
-                        <DisplaySafeOsString string={arg} />
-                      </>
-                    )}
-                  </For>
-                </p>
-              );
-            } else if ("Exit" in event) {
-              return (
-                <p>
-                  <span class={styles.event__type}>{Object.keys(event)[0]}</span>{" "}
-                  <Switch fallback={JSON.stringify(Object.values(event)[0])}>
-                    <Match when={event.Exit}>{event.Exit.code}</Match>
-                  </Switch>
-                </p>
-              );
-            } else if ("Crash" in event) {
-              return (
-                <p>
-                  <span class={styles.event__type}>[CRASH]</span> <span>{event.Crash.error}</span>
-                </p>
-              );
-            }
-          }}
-        </For>
-
-        <For each={doctorReports()}>
-          {(report, i) => (
-            <DoctorDialog
-              report={report}
-              onDismiss={() => {
-                setDoctorReports((reports) => {
-                  return [...reports.slice(0, i()), ...reports.slice(i() + 1)];
-                });
-              }}
-            />
-          )}
+      <header class={styles.header}>
+        <div class={styles.header__options}>
+          <div class={styles.header__group}>
+            <div class={styles.header__subgroup}>
+              <p>View log:</p>
+              <SelectDropdown
+                label={{ labelText: "value" }}
+                options={getSelectConnectionOptions()}
+                onChanged={(id, selected) => {
+                  if (selected) {
+                    setFocusedConnection(connections.get(id));
+                  }
+                }}
+              />
+            </div>
+            <div class={styles.header__subgroup}>
+              <label for="line-wrap">Line wrap</label>
+              <input type="checkbox" name="line-wrap" id="line-wrap" checked />
+            </div>
+            <div class={styles.header__subgroup}>
+              <input
+                type="text"
+                name="log-search"
+                id="log-search"
+                placeholder="Search log..."
+                class={styles.logSearch}
+                use:bindValue={[searchInput, setSearchInput]}
+              />
+            </div>
+          </div>
+          <div class={styles.header__group}>
+            <div classList={{ [styles.header__subgroup]: true, [styles.toggleList]: true }}>
+              <For each={LOG_LEVELS}>
+                {(level) => {
+                  const id = createUniqueId();
+                  return (
+                    <>
+                      <input
+                        id={id}
+                        type="checkbox"
+                        checked={visibleLevels[level]}
+                        on:change={(event) => setVisibleLevels(level, event.target.checked)}
+                        style="display:none"
+                      />
+                      <label class={styles.scopeToggle} for={id}>
+                        {level}
+                      </label>
+                    </>
+                  );
+                }}
+              </For>
+            </div>
+            <div classList={{ [styles.header__subgroup]: true, [styles.toggleList]: true }}>
+              Scope toggles go here in future
+            </div>
+          </div>
+        </div>
+        <div class={styles.header__group}>
+          <div>
+            <p class={styles.header__liveLogText}>
+              {focusedConnection()?.status() !== "disconnected" ? "Live log" : "Created at"}
+            </p>
+            {focusedConnection()?.status() !== "disconnected" ? (
+              <span class={styles.statusIndicator} data-connected={focusedConnection()?.status() === "connected"}>
+                {focusedConnection()?.status() === "connected" ? "Connected" : "Disconnected"}
+              </span>
+            ) : (
+              focusedConnection()!.createdTime.toLocaleString()
+            )}
+          </div>
+        </div>
+      </header>
+      <div class={styles.console} ref={consoleContainer} data-overflowed="false">
+        <For each={focusedConnection()?.events()} fallback={<p>Game not running.</p>}>
+          {(event) => ConsoleEvent(event, visibleLevels, searchInput)}
         </For>
       </div>
     </>
   );
+}
+
+const STYLE_DISPLAY_NONE = { display: "none" };
+
+function ConsoleEvent(event: Event, visibleLevels: VisibleLevels, searchInput: () => string) {
+  const visible = () => {
+    switch (event.type) {
+      case "Log":
+        return visibleLevels[event.level] && event.message.includes(searchInput());
+      case "Output":
+        return !("Unicode" in event.line) || event.line.Unicode.includes(searchInput());
+      case "Connect":
+      case "Disconnect":
+      case "Start":
+      case "Started":
+      case "Exit":
+      case "Crash":
+      case "DoctorReport":
+      case "Error":
+        return true;
+    }
+  };
+
+  const displayStyle = () => (visible() ? undefined : STYLE_DISPLAY_NONE);
+
+  switch (event.type) {
+    case "Output":
+      let line: string;
+      if ("Unicode" in event.line) {
+        line = event.line.Unicode;
+      } else if ("Bytes" in event.line) {
+        line = JSON.stringify(event.line.Bytes);
+      } else {
+        throw Error();
+      }
+      return (
+        <>
+          <span class={styles.event__type} style={displayStyle()}>
+            <Switch>
+              <Match when={event.channel === "Out"}>OUT</Match>
+              <Match when={event.channel === "Err"}>ERR</Match>
+            </Switch>
+          </span>
+          <span class={styles.event__scope} style={displayStyle()}></span>
+          <span class={styles.event__message} style={displayStyle()}>
+            {line}
+          </span>
+        </>
+      );
+    case "Log":
+      return (
+        <>
+          <span class={styles.event__type} style={displayStyle()} data-type={event.level}>
+            {event.level}
+          </span>
+          <span class={styles.event__scope} style={displayStyle()}>
+            <span>{event.scope}</span>:
+          </span>
+          <span class={styles.event__message} style={displayStyle()}>
+            {event.message}
+          </span>
+        </>
+      );
+    case "Connect":
+      return (
+        <>
+          <span class={styles.event__type} style={displayStyle()} data-type="CONNECT">
+            CONNECT
+          </span>
+          <span class={styles.event__scope} style={displayStyle()}></span>
+          <span class={styles.event__message} style={displayStyle()}>
+            Game connected to Manderrow
+          </span>
+        </>
+      );
+    case "Start":
+      return (
+        <>
+          <span class={styles.event__type} style={displayStyle()}>
+            START
+          </span>
+          <span class={styles.event__scope} style={displayStyle()}></span>
+          <span class={styles.event__message} style={displayStyle()}>
+            <For each={Object.entries(event.env)}>
+              {([k, v]) => {
+                if ("Unicode" in v) {
+                  return (
+                    <>
+                      {k}={JSON.stringify(v.Unicode)}{" "}
+                    </>
+                  );
+                } else {
+                  return (
+                    <>
+                      {k}={JSON.stringify(v)}{" "}
+                    </>
+                  );
+                }
+              }}
+            </For>
+            <DisplaySafeOsString string={event.command} />{" "}
+            <For each={event.args}>
+              {(arg) => (
+                <>
+                  {" "}
+                  <DisplaySafeOsString string={arg} />
+                </>
+              )}
+            </For>
+          </span>
+        </>
+      );
+    case "Started":
+      return (
+        <>
+          <span class={styles.event__type} style={displayStyle()} data-type="STARTED">
+            STARTED
+          </span>
+          <span class={styles.event__scope} style={displayStyle()}></span>
+          <span class={styles.event__message} style={displayStyle()}>
+            Game process started with id <span>{event.pid}</span>
+          </span>
+        </>
+      );
+    case "Exit":
+      return (
+        <>
+          <span class={styles.event__type} style={displayStyle()}>
+            EXIT
+          </span>
+          <span class={styles.event__scope} style={displayStyle()}></span>
+          <span class={styles.event__message} style={displayStyle()}>
+            <Show when={event.code} fallback="Unknown exit code">
+              <span>{event.code}</span>
+            </Show>
+          </span>
+        </>
+      );
+    case "Crash":
+      return (
+        <>
+          <span class={styles.event__type} style={displayStyle()} data-type="CRASH">
+            CRASH
+          </span>
+          <span class={styles.event__scope} style={displayStyle()}></span>
+          <span class={styles.event__message} style={displayStyle()}>
+            {event.error}
+          </span>
+        </>
+      );
+    case "Error":
+      return (
+        <>
+          <span class={styles.event__type} style={displayStyle()} data-type="ERROR">
+            ERROR
+          </span>
+          <span class={styles.event__scope} style={displayStyle()}></span>
+          <span class={styles.event__message} style={displayStyle()}>
+            {(event.error as any).toString()}
+          </span>
+        </>
+      );
+    case "Disconnect":
+      return (
+        <>
+          <span class={styles.event__type} style={displayStyle()}>
+            DISCONNECT
+          </span>
+          <span class={styles.event__scope} style={displayStyle()}></span>
+          <span class={styles.event__message} style={displayStyle()}>
+            Game disconnected from Manderrow
+          </span>
+        </>
+      );
+    case "DoctorReport":
+      return <></>;
+  }
 }
 
 function DisplaySafeOsString(props: { string: SafeOsString }) {
@@ -191,7 +371,7 @@ function DisplaySafeOsString(props: { string: SafeOsString }) {
   );
 }
 
-function DoctorDialog(props: { report: DoctorReport; onDismiss: () => void }) {
+function DoctorDialog(props: { report: IdentifiedDoctorReport; onDismiss: () => void }) {
   const reportErr = useContext(ErrorContext)!;
 
   return (
@@ -219,18 +399,17 @@ function DoctorDialog(props: { report: DoctorReport; onDismiss: () => void }) {
                   )}
                 </div>
                 <button
+                  type="button"
                   on:click={async () => {
                     try {
-                      await sendS2CMessage({
-                        PatientResponse: {
-                          id: props.report.id,
-                          choice: fix.id,
-                        },
+                      await sendS2CMessage(props.report.connId, {
+                        type: "PatientResponse",
+                        id: props.report.id,
+                        choice: fix.id,
                       });
                     } catch (e) {
                       reportErr(e);
                     } finally {
-                      console.log("Dismissing");
                       props.onDismiss();
                     }
                   }}

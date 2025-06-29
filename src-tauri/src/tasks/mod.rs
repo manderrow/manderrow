@@ -13,7 +13,7 @@ use std::{
 };
 
 use anyhow::{anyhow, bail, Result};
-use futures::FutureExt;
+use futures_util::FutureExt;
 use tauri::{AppHandle, Emitter};
 use tokio::{
     select,
@@ -244,10 +244,10 @@ impl TaskBuilder {
         self.run_with_handle(app, move |_| fut).await
     }
 
-    pub async fn run_with_handle<'a, F, T, E>(
+    pub async fn run_with_handle<'a, 'b, F, T, E>(
         self,
         app: Option<&'a AppHandle>,
-        fut: impl FnOnce(TaskHandle) -> F,
+        fut: impl FnOnce(TaskHandle) -> F + 'b,
     ) -> Result<T, TaskError<E>>
     where
         F: Future<Output = Result<T, E>>,

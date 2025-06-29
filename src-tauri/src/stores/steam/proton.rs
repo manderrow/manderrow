@@ -1,13 +1,18 @@
-use std::ops::Range;
+use std::{
+    ffi::OsString,
+    ops::Range,
+    path::{Path, PathBuf},
+};
 
 use anyhow::{bail, Result};
 use slog::{debug, trace};
 
-use super::paths::{resolve_steam_app_compat_data_directory, resolve_steam_app_install_directory};
+use super::paths::{resolve_app_install_directory, resolve_steam_app_compat_data_directory};
 
+/// The `game_id` is Steam's numerical id for the game.
 pub async fn uses_proton(log: &slog::Logger, game_id: &str) -> Result<bool> {
     if cfg!(target_os = "linux") {
-        let install_dir = resolve_steam_app_install_directory(game_id).await?;
+        let install_dir = resolve_app_install_directory(log, game_id).await?;
         let mut iter = tokio::fs::read_dir(&install_dir).await?;
         while let Some(e) = iter.next_entry().await? {
             let name = e.file_name();
@@ -30,7 +35,7 @@ pub async fn ensure_wine_will_load_dll_override(
     game_id: &str,
     proxy_dll: &str,
 ) -> Result<()> {
-    let compat_data_dir = resolve_steam_app_compat_data_directory(game_id).await?;
+    let compat_data_dir = resolve_steam_app_compat_data_directory(log, game_id).await?;
 
     let mut user_reg = compat_data_dir;
     user_reg.push("pfx");
@@ -140,6 +145,13 @@ fn reg_add_in_section(
     } else {
         Ok(replaced)
     }
+}
+
+pub fn host_path_to_win_path(path: &Path) -> PathBuf {
+    let mut buf = OsString::with_capacity("Z:".len() + path.as_os_str().len());
+    buf.push("Z:");
+    buf.push(path.as_os_str());
+    PathBuf::from(buf)
 }
 
 #[cfg(test)]

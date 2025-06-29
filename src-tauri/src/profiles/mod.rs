@@ -4,16 +4,16 @@ use std::path::{Path, PathBuf};
 use std::sync::LazyLock;
 
 use anyhow::{Context as _, Result};
-use futures::stream::FuturesOrdered;
-use futures::StreamExt as _;
+use futures_util::stream::FuturesOrdered;
+use futures_util::StreamExt as _;
+use manderrow_paths::local_data_dir;
+use manderrow_types::mods::{ModAndVersion, ModMetadata, ModVersion};
 use slog::error;
 use smol_str::SmolStr;
 use tauri::AppHandle;
 use uuid::Uuid;
 
 use crate::installing::{install_zip, uninstall_package};
-use crate::mods::{ModAndVersion, ModMetadata, ModVersion};
-use crate::paths::local_data_dir;
 use crate::util::{hyphenated_uuid, IoErrorKindExt as _};
 use crate::{tasks, Reqwest};
 
@@ -231,7 +231,7 @@ pub async fn uninstall_profile_mod(id: Uuid, owner: &str, name: &str) -> Result<
     path.push(MANIFEST_FILE_NAME);
     tokio::fs::remove_file(&path)
         .await
-        .context("Failed to remove manifest file")?;
+        .with_context(|| format!("Failed to remove manifest file at {path:?}"))?;
     path.pop();
 
     // keep_changes is true so that configs and any other changes are

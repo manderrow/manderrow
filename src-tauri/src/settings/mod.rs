@@ -6,11 +6,12 @@
 use std::path::PathBuf;
 use std::sync::LazyLock;
 
+use manderrow_paths::{config_dir, PRODUCT_NAME};
 use tauri::State;
 use tokio::sync::RwLock;
 use triomphe::Arc;
 
-use crate::{paths::config_dir, product_name, util::IoErrorKindExt, CommandError};
+use crate::{util::IoErrorKindExt, CommandError};
 
 pub mod commands;
 
@@ -58,7 +59,7 @@ async fn write(
 }
 
 static PATH: LazyLock<PathBuf> =
-    LazyLock::new(|| config_dir().join(format!("{}.json", product_name())));
+    LazyLock::new(|| config_dir().join(format!("{}.json", PRODUCT_NAME)));
 
 fn get_path() -> &'static PathBuf {
     &*PATH

@@ -9,7 +9,7 @@ const steamStoreIdentifiers = games.map(
       (meta) => meta.storePlatform === "Steam" || meta.storePlatform === "SteamDirect",
     );
     if (metadata == null) return null;
-    return metadata.storePageIdentifier ?? metadata.storeIndentifier;
+    return metadata.storePageIdentifier ?? metadata.storeIdentifier;
   },
 );
 

@@ -28,13 +28,13 @@ export default function ErrorBoundary(props: { children: JSX.Element }) {
         when={error()}
         fallback={catchError(() => props.children, onError)}
       >
-        {(err) => <Error err={err()} reset={() => setError(undefined)} />}
+        {(err) => <ErrorDialog err={err()} reset={() => setError(undefined)} />}
       </Show>
     </ErrorContext.Provider>
   );
 }
 
-export function Error(props: { err: unknown; reset: () => Promise<void> | void }) {
+export function ErrorDialog(props: { err: unknown; reset: () => Promise<void> | void }) {
   return (
     <DefaultDialog>
       <div class={styles.error}>

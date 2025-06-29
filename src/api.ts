@@ -1,7 +1,6 @@
 import { Channel, invoke } from "@tauri-apps/api/core";
 import { Game, ModListing, ModMetadata, ModPackage, ModVersion } from "./types";
 import { invokeWithListener, Listener, TaskEvent, Id as TaskId } from "./api/tasks";
-import { C2SMessage } from "./api/ipc";
 
 /**
  * An error thrown from native code.
@@ -141,14 +140,6 @@ export async function createProfile(game: string, name: string): Promise<string>
 
 export async function deleteProfile(id: string): Promise<void> {
   return await wrapInvoke(() => invoke("delete_profile", { id }));
-}
-
-export async function launchProfile(
-  target: { profile: string } | { vanilla: string },
-  channel: Channel<C2SMessage>,
-  options: { modded: boolean },
-): Promise<void> {
-  return await wrapInvoke(() => invoke("launch_profile", { target, channel, ...options }));
 }
 
 export async function getProfileMods(id: string): Promise<ModPackage[]> {

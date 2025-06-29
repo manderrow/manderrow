@@ -7,6 +7,8 @@ use std::sync::LazyLock;
 
 use anyhow::{Context as _, Result};
 use async_compression::tokio::bufread::GzipDecoder;
+use manderrow_types::mods::{ArchivedModRef, ModId, ModRef};
+use manderrow_types::util::rkyv::InternedString;
 use rkyv_intern::Interner;
 use slog::{debug, info};
 use tauri::{AppHandle, Manager};
@@ -16,10 +18,8 @@ use tokio::sync::{Mutex, RwLock, RwLockReadGuard};
 use url::Url;
 
 use crate::games::{games, games_by_id};
-use crate::mods::{ArchivedModRef, ModId, ModRef};
 use crate::tasks::{self, TaskBuilder};
 use crate::util::http::ResponseExt;
-use crate::util::rkyv::InternedString;
 use crate::util::search::{Score, SortOption};
 use crate::util::{search, Progress};
 use crate::Reqwest;
@@ -73,7 +73,7 @@ pub async fn fetch_mod_index(
                 };
 
                 #[cfg(feature = "statistics")]
-                crate::mods::reset_version_repr_stats();
+                manderrow_types::mods::reset_version_repr_stats();
 
                 mod_index.progress.reset();
 
@@ -107,7 +107,7 @@ pub async fn fetch_mod_index(
 
                     let started_at = std::time::Instant::now();
 
-                    futures::future::try_join_all(chunk_urls.into_iter().map(|url| async {
+                    futures_util::future::try_join_all(chunk_urls.into_iter().map(|url| async {
                         let log = log.clone();
                         let app_handle = app.clone();
                         tokio::task::spawn(async move {
@@ -240,8 +240,7 @@ pub async fn fetch_mod_index(
                 *mod_index.data.write().await = new_mod_index;
 
                 #[cfg(feature = "statistics")]
-                let (inline_version_count, out_of_line_version_count) =
-                    crate::mods::get_version_repr_stats();
+                let (inline_version_count, out_of_line_version_count) = manderrow_types::mods::get_version_repr_stats();
                 #[cfg(not(feature = "statistics"))]
                 let (inline_version_count, out_of_line_version_count) = (None::<u32>, None::<u32>);
                 info!(log, "Finished fetching mods"; "inline_version_count" => inline_version_count, "out_of_line_version_count" => out_of_line_version_count);

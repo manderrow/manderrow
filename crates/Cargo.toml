@@ -1,6 +1,13 @@
 [workspace]
 resolver = "2"
-members = ["macros", "packed-semver", "scripts", "wrapper-stage2"]
+members = ["agent", "args", "ipc", "macros", "packed-semver", "paths", "process-util", "scripts", "types"]
 
 [workspace.package]
 authors = ["Jack Huang", "Michael Pfaff"]
+
+# [profile.dev]
+# panic = "abort"
+# 
+# [profile.release]
+# strip = "symbols"
+# panic = "abort"

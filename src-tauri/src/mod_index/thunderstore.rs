@@ -1,11 +1,11 @@
 pub mod commands;
 
 use anyhow::Result;
+use packed_semver::Version;
 use slog::Logger;
 use tauri::AppHandle;
 
 use crate::installing::{fetch_resource_as_bytes, CacheOptions};
-use crate::mods::Version;
 use crate::{tasks, Reqwest};
 
 #[derive(Clone, Copy, serde::Deserialize)]

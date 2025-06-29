@@ -4,6 +4,7 @@
 #![feature(extend_one)]
 #![feature(future_join)]
 #![feature(os_string_truncate)]
+#![feature(panic_backtrace_config)]
 #![feature(path_add_extension)]
 #![feature(ptr_as_uninit)]
 #![feature(ptr_metadata)]
@@ -21,8 +22,6 @@ mod installing;
 mod ipc;
 mod launching;
 mod mod_index;
-mod mods;
-mod paths;
 mod profiles;
 mod settings;
 mod stores;
@@ -30,8 +29,10 @@ mod tasks;
 mod util;
 mod window_state;
 mod wrap;
+mod wrap_with_injection;
 
-use std::{ops::Deref, sync::OnceLock};
+use std::num::NonZeroU32;
+use std::ops::Deref;
 
 use anyhow::{anyhow, bail, Context};
 use ipc::IpcState;
@@ -39,17 +40,6 @@ use ipc::IpcState;
 pub use error::{CommandError, Error};
 use lexopt::ValueExt;
 use tauri::Manager;
-
-static PRODUCT_NAME: OnceLock<String> = OnceLock::new();
-static IDENTIFIER: OnceLock<String> = OnceLock::new();
-
-fn product_name() -> &'static str {
-    PRODUCT_NAME.get().unwrap()
-}
-
-fn identifier() -> &'static str {
-    IDENTIFIER.get().unwrap()
-}
 
 struct Reqwest(reqwest::Client);
 
@@ -83,10 +73,12 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
                     return Err(anyhow!("TAURI_IMMEDIATE_DEVTOOLS only works when the app is compiled with debug assertions enabled").into());
                 }
             }
+
+            assert!(app.manage(IpcState::new(app.handle().clone(), slog_scope::logger())));
+
             Ok(())
         })
         .manage(settings::try_read())
-        .manage(IpcState::default())
         .manage(Reqwest(reqwest::Client::builder().build()?))
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_os::init())
@@ -102,7 +94,10 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
             importing::commands::preview_import_modpack_from_thunderstore_code,
             importing::commands::import_modpack_from_thunderstore_code,
             installing::commands::clear_cache,
-            launching::commands::send_s2c_message,
+            ipc::commands::allocate_ipc_connection,
+            ipc::commands::get_ipc_connections,
+            ipc::commands::kill_ipc_client,
+            ipc::commands::send_s2c_message,
             launching::commands::launch_profile,
             mod_index::commands::fetch_mod_index,
             mod_index::commands::count_mod_index,
@@ -138,12 +133,8 @@ pub fn main() -> anyhow::Result<()> {
     }
 
     let ctx = tauri::generate_context!();
-    PRODUCT_NAME
-        .set(ctx.config().product_name.clone().unwrap())
-        .unwrap();
-    IDENTIFIER.set(ctx.config().identifier.clone()).unwrap();
 
-    paths::init().unwrap();
+    manderrow_paths::init().unwrap();
 
     let mut args = lexopt::Parser::from_env();
 
@@ -152,19 +143,8 @@ pub fn main() -> anyhow::Result<()> {
     use lexopt::Arg::*;
     while let Some(arg) = args.next()? {
         match arg {
-            Value(cmd) if cmd == "wrap" => {
-                return tauri::async_runtime::block_on(async move {
-                    match wrap::run(args).await {
-                        Ok(()) => Ok(()),
-                        Err(e) => {
-                            if cfg!(debug_assertions) {
-                                tokio::fs::write("/tmp/manderrow-wrap-crash", &format!("{e:?}"))
-                                    .await?;
-                            }
-                            Err(e)
-                        }
-                    }
-                })
+            Value(cmd) if cmd == "wrap-with-injection" => {
+                return wrap::run(args, wrap::WrapperMode::Injection)
             }
             Value(cmd) => bail!("Unrecognized command {cmd:?}"),
             Long("relaunch") => relaunch = Some(args.value()?.parse()?),
@@ -177,16 +157,9 @@ pub fn main() -> anyhow::Result<()> {
     // TODO: remove this when https://github.com/tauri-apps/tauri/pull/12313 is released
     if let Some(pid) = relaunch {
         slog_scope::with_logger(|log| {
+            let pid = NonZeroU32::new(pid).context("null pid")?;
             // ignore errors because the process might die before or during this operation
-            #[cfg(not(windows))]
-            {
-                let pid = rustix::process::Pid::from_raw(pid as i32).context("Invalid pid")?;
-                _ = crate::util::process::Pid { value: pid }.wait_for_exit(log)
-            }
-            #[cfg(windows)]
-            {
-                _ = crate::util::process::Pid { value: pid }.wait_for_exit(log)
-            }
+            _ = manderrow_process_util::Pid::from_raw(pid).wait_for_exit(log);
             Ok::<_, anyhow::Error>(())
         })?;
     }

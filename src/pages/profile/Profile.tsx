@@ -30,15 +30,15 @@ import {
 import { OverlayScrollbarsComponent } from "overlayscrollbars-solid";
 import Fa from "solid-fa";
 
-import Console, { ConsoleConnection } from "../../components/global/Console";
+import Console, { DoctorReports } from "../../components/global/Console";
 import { PromptDialog } from "../../components/global/Dialog";
-import { ErrorContext } from "../../components/global/ErrorBoundary";
+import { ErrorDialog } from "../../components/global/ErrorBoundary";
 import SelectDropdown from "../../components/global/SelectDropdown";
 import TabRenderer from "../../components/global/TabRenderer";
 import ModList, { ModInstallContext } from "../../components/profile/ModList";
 import ModSearch from "../../components/profile/ModSearch";
 
-import { createProfile, deleteProfile, getProfileMods, launchProfile, ProfileWithId } from "../../api";
+import { createProfile, deleteProfile, getProfileMods, ProfileWithId } from "../../api";
 import * as globals from "../../globals";
 import { refetchProfiles } from "../../globals";
 import { Refetcher } from "../../types";
@@ -50,7 +50,9 @@ import ImportDialog from "../../components/profile/ImportDialog";
 import TasksDialog from "../../components/global/TasksDialog";
 import { settings } from "../../api/settings";
 import { useSearchParamsInPlace } from "../../utils/router";
-import { sendS2CMessage } from "../../api/ipc";
+import { killIpcClient } from "../../api/ipc";
+import { launchProfile } from "../../api/launching";
+import { ConsoleConnection, focusedConnection, setFocusedConnection } from "../../console";
 
 interface ProfileParams {
   profileId?: string;
@@ -95,38 +97,59 @@ export default function Profile() {
     }
   });
 
-  const reportErr = useContext(ErrorContext)!;
-
-  const [connection, setConnection] = createSignal<ConsoleConnection>();
+  // track launch errors here instead of reporting to the error boundary to avoid rebuilding the UI
+  const [err, setErr] = createSignal<unknown>();
 
   async function launch(modded: boolean) {
     try {
-      const conn = new ConsoleConnection();
-      setConnection(conn);
-      if (settings().openConsoleOnLaunch.value && searchParams["profile-tab"] !== "logs") {
-        setSearchParams({ "profile-tab": "logs" });
+      const conn = await ConsoleConnection.allocate();
+      try {
+        setFocusedConnection(conn);
+        console.log(focusedConnection());
+        if (settings().openConsoleOnLaunch.value && searchParams["profile-tab"] !== "logs") {
+          setSearchParams({ "profile-tab": "logs" });
+        }
+        await launchProfile(
+          conn.id,
+          params.profileId !== undefined ? { profile: params.profileId } : { vanilla: params.gameId },
+          { modded },
+        );
+      } catch (error) {
+        conn.handleEvent({
+          connId: conn.id,
+          Error: {
+            error,
+          },
+        });
+        setErr(error);
       }
-      await launchProfile(
-        params.profileId !== undefined ? { profile: params.profileId } : { vanilla: params.gameId },
-        conn.channel,
-        { modded },
-      );
     } catch (e) {
-      reportErr(e);
+      setErr(e);
     }
   }
 
   async function killGame() {
-    try {
-      await sendS2CMessage("Kill");
-    } catch (e) {
-      reportErr(e);
+    const conn = focusedConnection();
+    if (conn !== undefined) {
+      try {
+        await killIpcClient(conn.id);
+      } catch (error) {
+        conn.handleEvent({
+          connId: conn.id,
+          Error: {
+            error,
+          },
+        });
+        setErr(error);
+      }
     }
   }
 
   const [importDialogOpen, setImportDialogOpen] = createSignal(false);
 
   const [tasksDialogOpen, setTasksDialogOpen] = createSignal(false);
+
+  const hasLiveConnection = () => focusedConnection() !== undefined && focusedConnection()?.status() !== "disconnected";
 
   return (
     <main class={styles.main}>
@@ -140,25 +163,26 @@ export default function Profile() {
         </nav>
         <section classList={{ [styles.sidebar__group]: true, [styles.sidebar__mainActions]: true }}>
           <Switch>
-            <Match when={connection()?.status() === "connected"}>
+            <Match when={focusedConnection()?.status() === "connected"}>
               <button on:click={() => killGame()} data-kill>
                 <Fa icon={faSkullCrossbones} /> Kill game
               </button>
             </Match>
-            <Match when={connection() !== undefined && connection()?.status() !== "disconnected"}>
-              <button on:click={() => setConnection(undefined)} data-cancel>
+            <Match when={hasLiveConnection()}>
+              <button on:click={() => setFocusedConnection(undefined)} data-cancel>
                 <Fa icon={faXmark} /> Cancel
               </button>
             </Match>
-            <Match when={true}>
-              <button disabled={params.profileId === undefined} on:click={() => launch(true)} data-modded>
-                <Fa icon={faCirclePlay} /> Start modded
-              </button>
-              <button on:click={() => launch(false)} data-vanilla>
-                <Fa icon={faCirclePlayOutline} /> Start vanilla
-              </button>
-            </Match>
           </Switch>
+          {
+            // TODO: based on hasLiveConnection change the UI of these a bit
+          }
+          <button disabled={params.profileId === undefined} on:click={() => launch(true)} data-modded>
+            <Fa icon={faCirclePlay} /> Start modded
+          </button>
+          <button on:click={() => launch(false)} data-vanilla>
+            <Fa icon={faCirclePlayOutline} /> Start vanilla
+          </button>
         </section>
         <section classList={{ [styles.sidebar__group]: true, [sidebarStyles.sidebar__profiles]: true }}>
           <h3 class={styles.sidebar__profilesTitle}>
@@ -288,7 +312,7 @@ export default function Profile() {
                       name: "Logs",
                       component: (
                         <div class={styles.content__console}>
-                          <Console conn={connection()} />
+                          <Console />
                         </div>
                       ),
                     },
@@ -313,6 +337,10 @@ export default function Profile() {
       <Show when={tasksDialogOpen()}>
         <TasksDialog onDismiss={() => setTasksDialogOpen(false)} />
       </Show>
+
+      <DoctorReports />
+
+      <Show when={err()}>{(err) => <ErrorDialog err={err()} reset={() => setErr(undefined)} />}</Show>
     </main>
   );
 }
