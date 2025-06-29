@@ -5,7 +5,7 @@ authors.workspace = true
 edition = "2024"
 
 [features]
-doctor = ["dep:serde", "dep:serde_json"]
+doctor = ["dep:serde", "dep:serde_json", "uuid/v4"]
 
 serde = ["dep:serde", "serde/derive", "uuid/serde"]
 slog = ["dep:slog"]
