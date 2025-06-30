@@ -132,6 +132,7 @@ pub async fn fetch_mod_index(
                             let fetched_in = fetched_at.duration_since(spawned_at);
                             tokio::task::block_in_place(move || {
                                 let buf_len = buf.len();
+                                // TODO: rkyv serialize from simd_json tape directly, validating as we go
                                 let mods = simd_json::from_slice::<Vec<ModRef>>(&mut buf)?;
                                 let decoded_at = std::time::Instant::now();
                                 let decoded_in = decoded_at.duration_since(fetched_at);
