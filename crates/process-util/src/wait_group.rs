@@ -26,14 +26,16 @@ pub enum WaitError {
     Other(#[from] anyhow::Error),
 }
 
+type UserData = u32;
+
 impl Submitter {
-    pub fn submit(&self, pid: Pid, data: u64) -> Result<(), SubmitError> {
+    pub fn submit(&self, pid: Pid, data: UserData) -> Result<(), SubmitError> {
         self.0.submit(pid, data)
     }
 }
 
 impl Waiter {
-    pub fn wait_for_any(&mut self, log: &slog::Logger) -> Result<u64, WaitError> {
+    pub fn wait_for_any(&mut self, log: &slog::Logger) -> Result<UserData, WaitError> {
         self.0.wait_for_any(log)
     }
 }
@@ -54,7 +56,7 @@ mod sys {
 
     use crate::Pid;
 
-    use super::{SubmitError, WaitError};
+    use super::{SubmitError, UserData, WaitError};
 
     pub fn wait_group() -> (Submitter, Waiter) {
         let (tx, rx) = channel();
@@ -85,7 +87,7 @@ mod sys {
     unsafe impl Sync for Notification {}
 
     pub struct Submitter {
-        tx: Sender<(Pid, u64)>,
+        tx: Sender<(Pid, UserData)>,
         notification: Notification,
     }
 
@@ -139,12 +141,12 @@ mod sys {
 
     pub struct Waiter {
         handles: Vec<CloseHandleGuard<SendSyncHANDLE>>,
-        data: Vec<u64>,
-        rx: Receiver<(Pid, u64)>,
+        data: Vec<UserData>,
+        rx: Receiver<(Pid, UserData)>,
     }
 
     impl Submitter {
-        pub fn submit(&self, pid: Pid, data: u64) -> Result<(), SubmitError> {
+        pub fn submit(&self, pid: Pid, data: UserData) -> Result<(), SubmitError> {
             self.tx.send((pid, data)).map_err(|_| SubmitError::Closed)?;
             self.notification
                 .0
@@ -155,7 +157,7 @@ mod sys {
     }
 
     impl Waiter {
-        fn register_pid(&mut self, pid: Pid, data: u64) -> ControlFlow<u64> {
+        fn register_pid(&mut self, pid: Pid, data: UserData) -> ControlFlow<UserData> {
             let Ok(mut proc) = winsafe::HPROCESS::OpenProcess(
                 winsafe::co::PROCESS::SYNCHRONIZE,
                 false,
@@ -172,7 +174,7 @@ mod sys {
             ControlFlow::Continue(())
         }
 
-        pub fn wait_for_any(&mut self, log: &slog::Logger) -> Result<u64, WaitError> {
+        pub fn wait_for_any(&mut self, log: &slog::Logger) -> Result<UserData, WaitError> {
             loop {
                 assert!(!self.handles.is_empty());
                 assert_eq!(self.handles.len() - 1, self.data.len());
@@ -270,7 +272,7 @@ mod sys {
 
     use crate::Pid;
 
-    use super::{SubmitError, WaitError};
+    use super::{SubmitError, UserData, WaitError};
 
     pub fn wait_group() -> (Submitter, Waiter) {
         let (tx, rx) = channel();
@@ -288,12 +290,12 @@ mod sys {
 
     #[derive(Clone)]
     pub struct Submitter {
-        tx: Sender<(Pid, u64)>,
+        tx: Sender<(Pid, UserData)>,
     }
 
     pub struct Waiter {
-        entries: Vec<(Pid, u64)>,
-        rx: Receiver<(Pid, u64)>,
+        entries: Vec<(Pid, UserData)>,
+        rx: Receiver<(Pid, UserData)>,
         // TODO: replace with a bit set
         seen_buf: Vec<bool>,
         p_buf: String,
@@ -301,13 +303,13 @@ mod sys {
     }
 
     impl Submitter {
-        pub fn submit(&self, pid: Pid, data: u64) -> Result<(), SubmitError> {
+        pub fn submit(&self, pid: Pid, data: UserData) -> Result<(), SubmitError> {
             self.tx.send((pid, data)).map_err(|_| SubmitError::Closed)
         }
     }
 
     impl Waiter {
-        pub fn wait_for_any(&mut self, log: &slog::Logger) -> Result<u64, WaitError> {
+        pub fn wait_for_any(&mut self, log: &slog::Logger) -> Result<UserData, WaitError> {
             loop {
                 let try_more = if self.entries.is_empty() {
                     self.entries
@@ -398,13 +400,16 @@ mod sys {
 
 #[cfg(target_os = "linux")]
 mod sys {
-    use std::{mem::MaybeUninit, os::fd::OwnedFd};
+    use std::{
+        mem::MaybeUninit,
+        os::fd::{AsFd, AsRawFd, FromRawFd, OwnedFd},
+    };
 
     use anyhow::{Context, anyhow};
 
     use crate::Pid;
 
-    use super::{SubmitError, WaitError};
+    use super::{SubmitError, UserData, WaitError};
 
     pub fn wait_group() -> (Submitter, Waiter) {
         let epoll = rustix::event::epoll::create(rustix::event::epoll::CreateFlags::empty())
@@ -414,7 +419,7 @@ mod sys {
         rustix::event::epoll::add(
             &epoll,
             &notification,
-            rustix::event::epoll::EventData::new_u64(u64::MAX),
+            rustix::event::epoll::EventData::new_u64(0),
             rustix::event::epoll::EventFlags::IN,
         )
         .expect("Failed to register notification event with epoll object");
@@ -433,6 +438,8 @@ mod sys {
             },
         )
     }
+
+    // NOTE: as currently implemented, if Submitter and Waiter are both dropped, the open pidfds will be leaked
 
     pub struct Submitter {
         epoll: OwnedFd,
@@ -461,14 +468,23 @@ mod sys {
     unsafe impl Send for Waiter {}
     unsafe impl Sync for Waiter {}
 
+    fn pack_data(data: UserData, pidfd: &OwnedFd) -> Result<u64, SubmitError> {
+        let data: u32 = data;
+        if pidfd.as_raw_fd() == 0 {
+            Err(SubmitError::Other(anyhow!("Invalid pidfd: 0")))
+        } else {
+            Ok(((data as u64) << 32) | (pidfd.as_raw_fd() as u32 as u64))
+        }
+    }
+
+    unsafe fn unpack_data(data: u64) -> (UserData, OwnedFd) {
+        ((data >> 32) as u32, unsafe {
+            OwnedFd::from_raw_fd(data as u32 as i32)
+        })
+    }
+
     impl Submitter {
-        pub fn submit(&self, pid: Pid, data: u64) -> Result<(), SubmitError> {
-            if data == u64::MAX {
-                return Err(SubmitError::Other(anyhow!(
-                    "Reserved data value: {}",
-                    u64::MAX
-                )));
-            }
+        pub fn submit(&self, pid: Pid, data: UserData) -> Result<(), SubmitError> {
             let pidfd = match rustix::process::pidfd_open(
                 pid.rustix_pid(),
                 rustix::process::PidfdFlags::empty(),
@@ -479,11 +495,13 @@ mod sys {
             };
             rustix::event::epoll::add(
                 &self.epoll,
-                pidfd,
-                rustix::event::epoll::EventData::new_u64(data),
+                pidfd.as_fd(),
+                rustix::event::epoll::EventData::new_u64(pack_data(data, &pidfd)?),
                 rustix::event::epoll::EventFlags::IN,
             )
             .context("Failed to register pidfd with epoll object")?;
+            // it's registered, don't close
+            std::mem::forget(pidfd);
             // notify that there is a new one added
             rustix::io::write(&self.notification, &1u64.to_ne_bytes())
                 .context("Failed to write to notification eventfd")?;
@@ -492,7 +510,7 @@ mod sys {
     }
 
     impl Waiter {
-        pub fn wait_for_any(&mut self, log: &slog::Logger) -> Result<u64, WaitError> {
+        pub fn wait_for_any(&mut self, log: &slog::Logger) -> Result<UserData, WaitError> {
             _ = log;
             loop {
                 let (events, _) = rustix::event::epoll::wait(
@@ -504,7 +522,7 @@ mod sys {
                 for event in events {
                     let flags = event.flags;
                     assert!(flags.contains(rustix::event::epoll::EventFlags::IN));
-                    if event.data.u64() == u64::MAX {
+                    if event.data.u64() == 0 {
                         // new items registered
                         let mut buf = MaybeUninit::<u64>::uninit();
                         let (bytes, _) = rustix::io::read(&self.notification, buf.as_bytes_mut())
@@ -518,8 +536,11 @@ mod sys {
                         self.event_buf.reserve(self.count);
                         break;
                     } else {
+                        let (data, pidfd) = unsafe { unpack_data(event.data.u64()) };
+                        rustix::event::epoll::delete(&self.epoll, pidfd)
+                            .context("Failed to unregister pidfd with epoll object")?;
                         self.count -= 1;
-                        return Ok(event.data.u64());
+                        return Ok(data);
                     }
                 }
             }

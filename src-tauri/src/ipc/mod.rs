@@ -2,7 +2,7 @@ pub mod commands;
 
 use std::collections::HashMap;
 use std::ops::ControlFlow;
-use std::sync::atomic::AtomicU64;
+use std::sync::atomic::AtomicU32;
 
 use anyhow::{Context, Result};
 use manderrow_ipc::ipc_channel::ipc::{IpcReceiver, IpcSender};
@@ -31,7 +31,7 @@ pub const EVENT_NAME: &str = "ipc_message";
     rkyv::Deserialize,
 )]
 #[serde(transparent)]
-pub struct ConnectionId(u64);
+pub struct ConnectionId(u32);
 
 impl std::fmt::Display for ConnectionId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -158,7 +158,7 @@ pub struct IdentifiedC2SMessage<'a> {
 }
 
 pub struct IpcState {
-    next_connection_id: AtomicU64,
+    next_connection_id: AtomicU32,
     connections: Arc<RwLock<HashMap<ConnectionId, IpcConnection>>>,
     receiver_handle: std::thread::JoinHandle<()>,
     mgmt_tx: Arc<Mutex<IpcSender<ManagementEvent>>>,
@@ -198,7 +198,7 @@ impl IpcState {
                 .expect("failed to spawn ipc-reaper thread");
         }
         Self {
-            next_connection_id: AtomicU64::new(0),
+            next_connection_id: AtomicU32::new(0),
             connections: connections.clone(),
             receiver_handle: std::thread::Builder::new()
                 .name("ipc-receiver".into())
