@@ -7,6 +7,16 @@
   ],
   "permissions": [
     "core:event:allow-listen",
-    "opener:default"
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        {
+          "url": "https://*"
+        },
+        {
+          "url": "http://*"
+        }
+      ]
+    }
   ]
 }
