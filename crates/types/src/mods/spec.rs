@@ -97,13 +97,13 @@ impl<'a> From<&'a ArchivedModSpec<'_>> for ModSpec<'a> {
 }
 
 impl<'a> ModSpec<'a> {
-    fn id(&self) -> ModId<'_> {
-        ModId::from_str(&self.id).unwrap()
+    pub fn id(&self) -> ModId<'a> {
+        ModId::from_str(self.id.0).unwrap()
     }
 }
 
-impl<'a> ArchivedModSpec<'a> {
-    fn id(&self) -> ModId<'_> {
+impl ArchivedModSpec<'_> {
+    pub fn id(&self) -> ModId<'_> {
         ModId::from_str(&self.id).unwrap()
     }
 }

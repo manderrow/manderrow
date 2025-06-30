@@ -7,7 +7,7 @@ use tempfile::tempdir;
 use uuid::Uuid;
 
 use crate::installing::{fetch_resource_cached_by_hash_at_path, install_zip};
-use crate::profiles::{profile_path, MODS_FOLDER};
+use crate::profiles::{profile_path, CONFIG_FOLDER, MODS_FOLDER, PATCHERS_FOLDER};
 use crate::stores::steam::proton::adapt_host_path;
 use crate::Reqwest;
 
@@ -199,7 +199,7 @@ pub async fn emit_instructions(
 
     em.set_var(
         "BEPINEX_CONFIGS",
-        adapt_host_path(&profile_path.join("config"), uses_proton).as_ref(),
+        adapt_host_path(&profile_path.join(CONFIG_FOLDER), uses_proton).as_ref(),
     );
     em.set_var(
         "BEPINEX_PLUGINS",
@@ -207,7 +207,7 @@ pub async fn emit_instructions(
     );
     em.set_var(
         "BEPINEX_PATCHER_PLUGINS",
-        adapt_host_path(&profile_path.join("patchers"), uses_proton).as_ref(),
+        adapt_host_path(&profile_path.join(PATCHERS_FOLDER), uses_proton).as_ref(),
     );
     // TODO: should this point to a "persistent" cache directory, and should it be per-profile or shared?
     em.set_var(

@@ -1,7 +1,7 @@
 mod bep_in_ex;
 pub mod commands;
 
-use std::ffi::{OsStr, OsString};
+use std::ffi::OsStr;
 use std::panic::AssertUnwindSafe;
 use std::path::PathBuf;
 use std::sync::LazyLock;
@@ -87,7 +87,7 @@ pub async fn launch_profile(
             path.push("profile.json");
             let metadata = read_profile_file(&path)
                 .await
-                .context("Failed to read profile")?;
+                .map_err(anyhow::Error::from)?;
             path.pop();
             games_by_id()?
                 .get(&*metadata.game)
@@ -267,7 +267,9 @@ pub async fn launch_profile(
                 )),
             )
             .await
-            .with_context(|| format!("Failed to install host agent from embedded bytes at {path:?}"))?;
+            .with_context(|| {
+                format!("Failed to install host agent from embedded bytes at {path:?}")
+            })?;
 
             command.arg("--agent-host-path");
             command.arg(&path);

@@ -15,7 +15,7 @@ use triomphe::Arc;
 use uuid::Uuid;
 use zip::read::ZipFile;
 
-use crate::Reqwest;
+use crate::{profiles::{CONFIG_FOLDER, PATCHERS_FOLDER}, Reqwest};
 use crate::{installing::fetch_resource_as_bytes, profiles::MODS_FOLDER, tasks};
 
 #[derive(Clone)]
@@ -239,7 +239,7 @@ pub fn get_archive_file_path<R: Read>(file: &ZipFile<'_, R>) -> Result<Option<Pa
     };
 
     match path.components().next().map(|s| s.as_os_str()) {
-        Some(s) if s == MODS_FOLDER || s == "config" || s == "patchers" => {}
+        Some(s) if s == MODS_FOLDER || s == CONFIG_FOLDER || s == PATCHERS_FOLDER => {}
         _ => return Ok(None),
     }
 

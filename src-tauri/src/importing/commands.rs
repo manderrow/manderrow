@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use anyhow::{anyhow, bail, Context};
 use futures_util::stream::FuturesUnordered;
 use futures_util::TryStreamExt;
@@ -202,16 +200,17 @@ async fn import_onto_profile(
             async move {
                 let version = Version::try_from(m.version).context("Invalid version")?;
 
-                let mut mod_id_set = HashSet::with_capacity(1);
-                mod_id_set.insert(ModId {
-                    owner: m.full_name.namespace().into(),
-                    name: m.full_name.name().into(),
-                });
-
                 let mod_index = crate::mod_index::read_mod_index(game).await?;
 
-                let buf = crate::mod_index::get_from_mod_index(&mod_index, &mod_id_set).await?;
-                let Some(m) = buf.into_iter().next() else {
+                let Some(m) = crate::mod_index::get_one_from_mod_index(
+                    &mod_index,
+                    ModId {
+                        owner: m.full_name.namespace().into(),
+                        name: m.full_name.name().into(),
+                    },
+                )
+                .await?
+                else {
                     return Err(anyhow!("Missing mod {}", m.full_name).into());
                 };
 

@@ -49,6 +49,7 @@ pub enum Status {
 
 #[derive(Debug, thiserror::Error)]
 pub enum ScanError {
+    // FIXME: warn the user that no changes will be maintained, give them the opportunity to backup
     #[error("No package index was found")]
     IndexNotFoundError,
 
@@ -309,32 +310,40 @@ fn append_random(buf: &mut OsString, count: usize) {
     }
 }
 
-async fn generate_deletion_path(path: &Path) -> Result<PathBuf, AtomicReplaceError> {
-    // tbd => to be deleted
-    const PREFIX: &str = ".tbd-";
+#[derive(Debug, thiserror::Error)]
+pub enum GenerateTempPathError {
+    #[error("Path must have a parent")]
+    InvalidPathNoParent,
+    #[error("Path must have a filename")]
+    InvalidPathNoFileName,
+    #[error("Failed to generate a temp path: {0}")]
+    Other(#[source] std::io::Error),
+}
+
+pub async fn generate_temp_path(path: &Path, prefix: &str) -> Result<PathBuf, GenerateTempPathError> {
     const SUFFIX: &str = "-";
     const RAND_COUNT: usize = 6;
     let mut buf =
-        OsString::with_capacity(path.as_os_str().len() + PREFIX.len() + RAND_COUNT + SUFFIX.len());
+        OsString::with_capacity(path.as_os_str().len() + prefix.len() + RAND_COUNT + SUFFIX.len());
     buf.push(
         path.parent()
-            .ok_or_else(|| AtomicReplaceError::InvalidTargetPath("Path must have a parent"))?
+            .ok_or_else(|| GenerateTempPathError::InvalidPathNoParent)?
             .as_os_str(),
     );
     buf.push(std::path::MAIN_SEPARATOR_STR);
-    buf.push(PREFIX);
+    buf.push(prefix);
     let trunc_len = buf.len();
     loop {
         append_random(&mut buf, RAND_COUNT);
         buf.push(SUFFIX);
         buf.push(
             path.file_name().ok_or_else(|| {
-                AtomicReplaceError::InvalidTargetPath("Path must have a file name")
+                GenerateTempPathError::InvalidPathNoFileName
             })?,
         );
         if !tokio::fs::try_exists(Path::new(&buf))
             .await
-            .map_err(AtomicReplaceError::PreModification)?
+            .map_err(GenerateTempPathError::Other)?
         {
             return Ok(PathBuf::from(buf));
         }
@@ -354,8 +363,10 @@ pub enum AtomicReplaceError {
         #[source]
         cause: std::io::Error,
     },
-    #[error("{}", AtomicReplaceMoveReplacementDisplay { deletion_path: deletion_path, cause: cause })]
+    #[error("{}", AtomicReplaceMoveReplacementDisplay { source, target, deletion_path, cause })]
     MoveReplacement {
+        source: PathBuf,
+        target: PathBuf,
         deletion_path: Option<PathBuf>,
         #[source]
         cause: std::io::Error,
@@ -369,6 +380,8 @@ pub enum AtomicReplaceError {
 }
 
 struct AtomicReplaceMoveReplacementDisplay<'a> {
+    source: &'a PathBuf,
+    target: &'a PathBuf,
     deletion_path: &'a Option<PathBuf>,
     cause: &'a std::io::Error,
 }
@@ -377,11 +390,13 @@ impl<'a> std::fmt::Display for AtomicReplaceMoveReplacementDisplay<'a> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Failed to move the replacement into place: {}.",
-            self.cause
+            "Failed to move the replacement into place: {}.
+  The source is {:?}.
+  The target is {:?}.",
+            self.cause, self.source, self.target
         )?;
         if let Some(deletion_path) = self.deletion_path {
-            write!(f, " The original may be found at {deletion_path:?}.")
+            write!(f, "\n  The original may be found at {deletion_path:?}.")
         } else {
             Ok(())
         }
@@ -392,7 +407,7 @@ impl<'a> std::fmt::Display for AtomicReplaceMoveReplacementDisplay<'a> {
 /// system. If the operation fails, the original directory at `target`, if any,
 /// will be left behind at a hidden path in the same parent directory as
 /// `target`.
-async fn atomic_replace(target: &Path, from: &Path) -> Result<(), AtomicReplaceError> {
+async fn atomic_replace(target: &Path, source: &Path) -> Result<(), AtomicReplaceError> {
     let metadata = match tokio::fs::metadata(target).await {
         Ok(t) => Some(t),
         Err(e) if e.is_not_found() => None,
@@ -400,7 +415,12 @@ async fn atomic_replace(target: &Path, from: &Path) -> Result<(), AtomicReplaceE
     };
     let is_dir = metadata.map(|m| m.is_dir());
     let deletion_path = if is_dir.is_some() {
-        let deletion_path = generate_deletion_path(target).await?;
+        // tbd => to be deleted
+        let deletion_path = generate_temp_path(target, ".tbd-").await.map_err(|e| match e {
+            GenerateTempPathError::InvalidPathNoParent => AtomicReplaceError::InvalidTargetPath("path must have a parent"),
+            GenerateTempPathError::InvalidPathNoFileName => AtomicReplaceError::InvalidTargetPath("path must have a filename"),
+            GenerateTempPathError::Other(error) => AtomicReplaceError::PreModification(error),
+        })?;
         // Move the original to a hidden file just in case replacing it fails.
         if let Err(cause) = tokio::fs::rename(target, &deletion_path).await {
             return Err(AtomicReplaceError::StageForDeletion {
@@ -414,8 +434,10 @@ async fn atomic_replace(target: &Path, from: &Path) -> Result<(), AtomicReplaceE
     };
     // If this fails, we will likely fail to restore the original, so don't
     // bother trying. Just let the user know where to find it.
-    if let Err(cause) = tokio::fs::rename(from, target).await {
+    if let Err(cause) = tokio::fs::rename(source, target).await {
         return Err(AtomicReplaceError::MoveReplacement {
+            source: source.to_owned(),
+            target: target.to_owned(),
             deletion_path,
             cause,
         });
@@ -855,7 +877,9 @@ pub async fn install_folder<'a, 'b>(
     source: &'b Path,
     target: &'a Path,
 ) -> anyhow::Result<StagedPackage<'a, 'b>> {
-    create_dir_if_not_exists(target).await?;
+    tokio::fs::create_dir_all(target)
+        .await
+        .context("Failed to create target directory")?;
 
     generate_package_index(log, source).await?;
 
@@ -879,11 +903,13 @@ pub async fn install_folder<'a, 'b>(
             debug!(log, "Preserving {rel_path:?} {status:?} across update");
             if matches!(status, Status::Deleted) {
                 let r = match tokio::fs::symlink_metadata(&buf).await {
-                    Ok(metadata) => if metadata.is_dir() {
-                        tokio::fs::remove_dir_all(&buf).await
-                    } else {
-                        tokio::fs::remove_file(&buf).await
-                    },
+                    Ok(metadata) => {
+                        if metadata.is_dir() {
+                            tokio::fs::remove_dir_all(&buf).await
+                        } else {
+                            tokio::fs::remove_file(&buf).await
+                        }
+                    }
                     Err(e) => Err(e),
                 };
                 match r {

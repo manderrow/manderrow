@@ -3,6 +3,7 @@
 #![feature(exit_status_error)]
 #![feature(extend_one)]
 #![feature(future_join)]
+#![feature(map_try_insert)]
 #![feature(os_string_truncate)]
 #![feature(panic_backtrace_config)]
 #![feature(path_add_extension)]

@@ -278,7 +278,7 @@ pub async fn read_mod_index(game: &str) -> Result<ModIndexReadGuard> {
 pub async fn count_mod_index<'a>(mod_index: &'a ModIndexReadGuard, query: &str) -> Result<usize> {
     let log = slog_scope::logger();
 
-    debug!(log, "Counting mods");
+    debug!(log, "Counting mods in mod index");
 
     Ok(mod_index
         .iter()
@@ -298,7 +298,7 @@ pub async fn query_mod_index<'a>(
 ) -> Result<Vec<(&'a ArchivedModRef<'a>, Score)>> {
     let log = slog_scope::logger();
 
-    debug!(log, "Querying mods");
+    debug!(log, "Querying mod index");
 
     let mut buf = mod_index
         .iter()
@@ -363,7 +363,7 @@ pub async fn get_from_mod_index<'a>(
 ) -> Result<Vec<&'a ArchivedModRef<'a>>> {
     let log = slog_scope::logger();
 
-    debug!(log, "Querying mods");
+    debug!(log, "Getting set of mods from mod index");
 
     let buf = mod_index
         .iter()
@@ -378,4 +378,27 @@ pub async fn get_from_mod_index<'a>(
         .collect::<Vec<_>>();
 
     Ok(buf)
+}
+
+pub async fn get_one_from_mod_index<'a>(
+    mod_index: &'a ModIndexReadGuard,
+    mod_id: ModId<'_>,
+) -> Result<Option<&'a ArchivedModRef<'a>>> {
+    let log = slog_scope::logger();
+
+    debug!(log, "Getting one mod from mod index");
+
+    let m = mod_index
+        .iter()
+        .find_map(|mi| {
+            mi.mods().iter().find(|m| {
+                mod_id
+                    == ModId {
+                        owner: InternedString(&*m.owner),
+                        name: InternedString(&*m.name),
+                    }
+            })
+        });
+
+    Ok(m)
 }
