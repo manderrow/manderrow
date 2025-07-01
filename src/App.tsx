@@ -42,8 +42,8 @@ export default function App() {
     if (link == null) return;
 
     event.preventDefault();
-    if (link.target === "_blank" && event.button !== 2) {
-      // Link is to open in external browser and not right clicked
+    if (event.button !== 2) {
+      // Link was not right clicked, likely middle click
       openUrl(link.href).catch(() => alert(`Failed to open link: ${link.href}`));
     }
   }

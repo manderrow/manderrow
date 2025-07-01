@@ -1,15 +1,40 @@
 .tasks {
   display: flex;
   flex-direction: column;
-  width: 70ch;
-  height: 70vh;
-  overflow-y: auto;
+  width: 100%;
+  max-width: 70ch;
+  height: 75dvh;
+  background-color: var(--clr-neutral-8);
+  padding: 1em;
+  border-radius: 0.5em;
 }
 
-.header {
-  display: flex;
-  flex-direction: row;
-  justify-content: space-between;
+.tasks__header {
+  text-align: center;
+  border-bottom: 1px solid var(--clr-neutral-7);
+  padding-bottom: 0.5em;
+  margin-bottom: 0.5em;
+}
+
+.tabs {
+  display: inline flex;
+  padding: 0.2em;
+  box-shadow: 0 0 8px -2px inset rgba(0, 0, 0, 0.6);
+  border-radius: 8px;
+}
+
+.tabs__tab {
+  border-radius: inherit;
+}
+
+.tabs__tab button {
+  border-radius: inherit;
+  background-color: transparent;
+}
+
+.tabs__tabActive button {
+  box-shadow: 0 0 8px -2px rgba(0, 0, 0, 0.6);
+  background-color: var(--clr-primary-4);
 }
 
 .section {
@@ -19,6 +44,9 @@
 }
 
 .list {
+  flex-grow: 1;
+  overflow-y: auto;
+
   & > li {
     display: flex;
     flex-direction: column;

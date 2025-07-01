@@ -1,11 +1,11 @@
-import { A, useNavigate } from "@solidjs/router";
+import { useNavigate } from "@solidjs/router";
 import styles from "./Settings.module.css";
 import TabRenderer, { Tab, TabContent } from "../../components/global/TabRenderer";
 import { createUniqueId, For, Match, Switch, useContext, createSignal } from "solid-js";
 
 import { Settings, SettingsPatch, updateSettings, settings, settingsUI } from "../../api/settings";
 import { Fa } from "solid-fa";
-import { faClockRotateLeft } from "@fortawesome/free-solid-svg-icons";
+import { faChevronLeft, faClockRotateLeft } from "@fortawesome/free-solid-svg-icons";
 import { t } from "../../i18n/i18n";
 import { GameSelectSetting, Setting, TextSetting, ToggleSetting } from "../../api/settings/ui";
 import SelectDropdown from "../../components/global/SelectDropdown";
@@ -26,7 +26,7 @@ export default function SettingsPage() {
             <label for={`${idPrefix}_${setting.key}`} id={`${idPrefix}-label_${setting.key}`}>
               {t(`settings.settings.${setting.key}`)}
             </label>
-            <div class={styles.right}>
+            <div class={styles.option__input}>
               <Switch>
                 <Match when={setting.input.type === "toggle"}>
                   <ToggleInput idPrefix={idPrefix} setting={setting as ToggleSetting} />
@@ -55,29 +55,37 @@ export default function SettingsPage() {
   const [currentTab, setCurrentTab] = createSignal(tabs[0]);
 
   return (
-    <div class={styles.settings}>
+    <main class={styles.settings}>
       <aside class={styles.settings__sidebar}>
-        <div>
-          <h1>Settings</h1>
-          <button on:click={() => navigate(-1)}>Back</button>
+        <div class={styles.settings__navbar}>
+          <div class={styles.navbar__header}>
+            <div class={styles.navbar__title}>
+              <h1>Settings</h1>
+              <button on:click={() => navigate(-1)} data-back>
+                <Fa icon={faChevronLeft} />
+              </button>
+            </div>
+
+            <input type="text" placeholder="Search for settings..." />
+          </div>
+          <TabRenderer
+            id="settings"
+            tabs={tabs}
+            setter={setCurrentTab}
+            styles={{
+              tabs: {
+                list: styles.settings__tabs,
+                list__item: styles.settings__tab,
+                list__itemActive: styles.settings__tabActive,
+              },
+            }}
+          />
         </div>
-        <TabRenderer
-          id="settings"
-          tabs={tabs}
-          setter={setCurrentTab}
-          styles={{
-            tabs: {
-              list: styles.settings__tabs,
-              list__item: styles.settings__tab,
-              list__itemActive: styles.settings__tabActive,
-            },
-          }}
-        />
       </aside>
-      <main class={styles.main}>
+      <div class={styles.options}>
         <TabContent currentTab={currentTab} tabs={tabs} />
-      </main>
-    </div>
+      </div>
+    </main>
   );
 }
 

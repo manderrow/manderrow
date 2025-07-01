@@ -1,15 +1,19 @@
+import { faArrowDownShortWide, faArrowUpWideShort, faRefresh } from "@fortawesome/free-solid-svg-icons";
+import { Fa } from "solid-fa";
 import { createResource, createSignal, ResourceFetcherInfo, Show, useContext } from "solid-js";
-import { countModIndex, fetchModIndex, queryModIndex, ModSortColumn, SortOption } from "../../api";
-import { SortableList } from "../global/SortableList";
-import ModList from "./ModList";
-import styles from "./ModSearch.module.css";
-import { faRefresh } from "@fortawesome/free-solid-svg-icons";
-import Fa from "solid-fa";
-import { numberFormatter } from "../../utils";
-import TogglableDropdown from "../global/TogglableDropdown";
-import { ErrorContext } from "../global/ErrorBoundary";
+
+import { countModIndex, fetchModIndex, ModSortColumn, queryModIndex, SortOption } from "../../api";
 import { createProgressProxyStore } from "../../api/tasks";
+import { numberFormatter } from "../../utils";
+
+import { ErrorContext } from "../global/ErrorBoundary";
 import { SimpleProgressIndicator } from "../global/Progress";
+import SelectDropdown from "../global/SelectDropdown";
+import { SortableList } from "../global/SortableList";
+import TogglableDropdown from "../global/TogglableDropdown";
+import ModList from "./ModList";
+
+import styles from "./ModSearch.module.css";
 
 export interface InitialProgress {
   completed_steps: null;
@@ -22,7 +26,7 @@ const MODS_PER_PAGE = 50;
 export default function ModSearch(props: { game: string }) {
   const [query, setQuery] = createSignal("");
 
-  const [sort, setSort] = createSignal<SortOption[]>([
+  const [sort, setSort] = createSignal<SortOption<ModSortColumn>[]>([
     { column: ModSortColumn.Relevance, descending: true },
     { column: ModSortColumn.Downloads, descending: true },
     { column: ModSortColumn.Name, descending: false },
@@ -68,6 +72,8 @@ export default function ModSearch(props: { game: string }) {
     { initialValue: { mods: async (_: number) => [], count: 0 } },
   );
 
+  const [profileSortOrder, setProfileSortOrder] = createSignal(false);
+
   return (
     <div class={styles.modSearch}>
       <form on:submit={(e) => e.preventDefault()} class={styles.modSearch__form}>
@@ -81,6 +87,34 @@ export default function ModSearch(props: { game: string }) {
           <label for="mod-search" class="phantom">
             Mod search
           </label>
+
+          <SelectDropdown
+            label={{ labelText: "preset", preset: "Sort By" }}
+            options={{
+              [ModSortColumn.Relevance]: {
+                value: "relevance",
+                selected: true,
+              },
+              [ModSortColumn.Downloads]: {
+                value: "downloads",
+              },
+              [ModSortColumn.Name]: {
+                value: "name",
+              },
+              [ModSortColumn.Owner]: {
+                value: "owner",
+              },
+            }}
+            onChanged={() => {}}
+          />
+
+          <button
+            type="button"
+            // class={sidebarStyles.sidebar__profilesSearchSortByBtn}
+            on:click={() => setProfileSortOrder((order) => !order)}
+          >
+            {profileSortOrder() ? <Fa icon={faArrowUpWideShort} /> : <Fa icon={faArrowDownShortWide} />}
+          </button>
 
           <TogglableDropdown label="Advanced" labelClass={styles.modSearch__dropdownBtn}>
             <div class={styles.searchOptions}>

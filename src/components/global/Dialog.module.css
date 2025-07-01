@@ -1,6 +1,7 @@
 .dialog {
   position: fixed;
   inset: 0;
+  padding: 1em;
   z-index: var(--portal-z-index);
 
   background-color: rgba(0, 0, 0, 0.25);

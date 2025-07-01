@@ -1,38 +1,81 @@
 .settings {
+  --sidebar-width: min(19rem, 100%);
+  --padding-block: 2em;
+
   display: flex;
-  gap: 1em;
-  max-width: 1100px;
+  gap: 1.5em;
+  max-width: 1150px;
   width: 100%;
-  height: 100dvh;
   margin: auto;
+  padding: var(--padding-block) 1em;
+  position: relative;
 }
 
 .settings__sidebar {
-  padding: 1em 0.5em;
-  max-width: 14rem;
-  width: 100%;
+  position: absolute;
+  top: var(--padding-block);
+  bottom: var(--padding-block);
+  width: var(--sidebar-width);
+}
+
+.settings__navbar {
+  padding: 1.25em 1em;
+  border: 1px solid var(--clr-neutral-8);
+  border-radius: 6px;
+  max-height: 100%;
+  overflow-y: auto;
+  position: relative;
+}
+
+.navbar__header {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 1em;
+  gap: 0.5em;
+  justify-content: center;
+  position: sticky;
+  top: 0;
+  background-color: var(--clr-neutral-9);
+
+  button[data-back] {
+    order: -1;
+    padding: 0.4em 1em;
+    background-color: transparent;
+  }
+
+  .navbar__title {
+    display: flex;
+  }
 }
 
 .settings__tabs {
   display: flex;
   flex-direction: column;
+  gap: 0.2em;
 }
 
-.settings__tab button {
-  background-color: transparent;
-  padding-inline: 0.75em;
-  width: 100%;
-  text-align: left;
+.settings__tab {
+  button {
+    background-color: transparent;
+    padding-inline: 0.75em;
+    width: 100%;
+    text-align: left;
+    border-radius: 4px;
+  }
+
+  &:hover button {
+    background-color: var(--clr-neutral-8);
+  }
+
+  &.settings__tabActive button {
+    background-color: var(--clr-primary-4);
+  }
 }
 
-.settings__tabActive button {
-  background-color: var(--clr-primary-4);
-  border-radius: 4px;
-}
-
-.main {
+.options {
   flex-grow: 1;
-  padding-block: 1em;
+  padding-left: 1em;
+  margin-left: var(--sidebar-width);
 }
 
 .header {
@@ -42,19 +85,25 @@
 
 .option {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  padding-block: 0.5em;
+  padding: 0.5em;
 
   label {
     user-select: none;
     -webkit-user-select: none;
   }
 
+  &:not(:first-child) {
+    padding-top: 1em;
+  }
+
   &:not(:last-child) {
+    padding-bottom: 1em;
     border-bottom: 1px solid var(--clr-neutral-8);
   }
 
-  .right {
+  .option__input {
     display: flex;
   }
 

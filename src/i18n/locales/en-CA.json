@@ -5,8 +5,23 @@
       "mod_downloads": "Mod Downloads",
       "popularity": "Popularity"
     },
+    "mod_sort_column": {
+      "relevance": "Relevance",
+      "downloads": "Downloads",
+      "name": "Name",
+      "owner": "Owner"
+    },
+    "sort_order": {
+      "ascending": "Ascending",
+      "descending": "Descending"
+    },
     "select_dropdown": {
       "default_fallback": "Select..."
+    },
+    "task_manager": {
+      "title": "Tasks",
+      "active_tab_name": "Active",
+      "completed_tab_name": "Completed"
     }
   },
 
@@ -28,7 +43,26 @@
     "fav_btn": "Favorite this game"
   },
 
-  "profile": {},
+  "profile": {
+    "import_model": {
+      "import_title": "Import Modlist",
+      "preview_title": "Preview Mods"
+    },
+
+    "sidebar": {
+      "kill_game_btn": "Kill game",
+      "cancel_launch_btn": "Cancel",
+      "launch_modded_btn": "Start modded",
+      "launch_vanilla_btn": "Start vanilla",
+
+      "profiles_title": "Profiles",
+
+      "pin_profile_ptn": "Pin",
+      "rename_profile_btn": "Rename",
+      "delete_profile_btn": "Delete",
+      "export_profile_btn": "Export"
+    }
+  },
 
   "doctor": {
     "launch_options": {

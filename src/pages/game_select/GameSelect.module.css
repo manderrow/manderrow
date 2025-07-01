@@ -66,6 +66,7 @@
 }
 
 .main {
+  height: auto;
   padding: 1em;
   padding-bottom: 2em;
 }

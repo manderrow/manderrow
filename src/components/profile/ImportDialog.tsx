@@ -12,7 +12,7 @@ import { bindValue } from "../global/Directives";
 
 import { faChevronLeft } from "@fortawesome/free-solid-svg-icons";
 import { OverlayScrollbarsComponent } from "overlayscrollbars-solid";
-import Fa from "solid-fa";
+import { Fa } from "solid-fa";
 import { createStore } from "solid-js/store";
 import { refetchProfiles } from "../../globals";
 import ErrorBoundary from "../global/ErrorBoundary";
@@ -22,31 +22,31 @@ import { Channel } from "@tauri-apps/api/core";
 import { SimpleProgressIndicator } from "../global/Progress";
 
 import styles from "./ImportDialog.module.css";
+import MultistageModel, { Actions, InitialSetupProps, InitialStageProps } from "../global/MultistageModel.tsx";
+import { t } from "../../i18n/i18n.ts";
 
-interface Actions {
-  dismiss: () => void;
-  pushPage: (page: JSX.Element) => void;
-  popPage: () => void;
+interface ChoosePageProps {
+  gameId: string;
+  profile?: string;
 }
 
-export default function ImportDialog(props: { gameId: string; profile?: string; onDismiss: DismissCallback }) {
-  const [stack, setStack] = createStore<JSX.Element[]>([]);
-  const actions: Actions = {
-    dismiss: props.onDismiss,
-    pushPage: (page) => setStack(stack.length, page),
-    popPage: () => setStack((pages) => pages.slice(0, -1)),
-  };
-  setStack(0, <ChoosePage gameId={props.gameId} profile={props.profile} actions={actions} />);
-
-  return <DefaultDialog onDismiss={props.onDismiss}>{stack[stack.length - 1]}</DefaultDialog>;
+export default function ImportDialog(props: ChoosePageProps & InitialSetupProps) {
+  return (
+    <MultistageModel
+      initialStage={(actions) => ({
+        title: t("profile.import_model.import_title"),
+        element: <ChoosePage gameId={props.gameId} profile={props.profile} actions={actions} />,
+      })}
+      onDismiss={props.dismiss}
+      estimatedStages={2}
+    />
+  );
 }
 
-function ChoosePage(props: { gameId: string; profile?: string; actions: Actions }) {
+function ChoosePage(props: ChoosePageProps & InitialStageProps) {
   const thunderstoreCodeFieldId = createUniqueId();
 
   const [thunderstoreCode, setThunderstoreCode] = createSignal("");
-
-  let [importButtonRef, setImportButtonRef] = createSignal<HTMLButtonElement>();
 
   async function onSubmitThunderstoreCode(listener: Listener) {
     const modpack = await previewImportModpackFromThunderstoreCode(
@@ -55,35 +55,34 @@ function ChoosePage(props: { gameId: string; profile?: string; actions: Actions 
       props.profile,
       listener,
     );
-    props.actions.pushPage(
-      <PreviewPage
-        thunderstoreCode={thunderstoreCode()}
-        gameId={props.gameId}
-        profile={props.profile}
-        modpack={modpack}
-        actions={props.actions}
-      />,
-    );
-  }
-
-  async function onSubmitThunderstoreCodeProxy(e: SubmitEvent) {
-    e.preventDefault();
+    props.actions.pushStage({
+      title: t("profile.import_model.preview_title"),
+      element: (
+        <PreviewPage
+          thunderstoreCode={thunderstoreCode()}
+          gameId={props.gameId}
+          profile={props.profile}
+          modpack={modpack}
+          actions={props.actions}
+        />
+      ),
+    });
   }
 
   return (
-    <>
-      <h2>Import</h2>
-      <form on:submit={onSubmitThunderstoreCodeProxy}>
-        <label for={thunderstoreCodeFieldId}>Thunderstore Code:</label>
-        <input id={thunderstoreCodeFieldId} use:bindValue={[thunderstoreCode, setThunderstoreCode]}></input>
-        <div class={styles.buttonRow}>
-          <button on:click={props.actions.dismiss}>Cancel</button>
-          <SimpleAsyncButton progress type="submit" onClick={onSubmitThunderstoreCode} ref={setImportButtonRef}>
-            Import
-          </SimpleAsyncButton>
-        </div>
-      </form>
-    </>
+    <form on:submit={(e) => e.preventDefault()}>
+      <div class={styles.importInputGroup}>
+        <label for={thunderstoreCodeFieldId}>Thunderstore Code</label>
+        <input id={thunderstoreCodeFieldId} use:bindValue={[thunderstoreCode, setThunderstoreCode]} required></input>
+      </div>
+
+      <div class={styles.buttonRow}>
+        <button on:click={props.actions.dismiss}>Cancel</button>
+        <SimpleAsyncButton progress type="submit" onClick={onSubmitThunderstoreCode}>
+          Next
+        </SimpleAsyncButton>
+      </div>
+    </form>
   );
 }
 
@@ -127,7 +126,7 @@ function PreviewPageInner(props: {
     <>
       <ErrorBoundary>
         <h2>
-          <button style={{ display: "inline-block" }} on:click={props.actions.popPage}>
+          <button style={{ display: "inline-block" }} on:click={props.actions.popStage}>
             <Fa icon={faChevronLeft} />{" "}
           </button>{" "}
           {props.modpack.name}
@@ -153,7 +152,9 @@ function PreviewPageInner(props: {
         </div>
         <div class={styles.buttonRow}>
           <button on:click={props.actions.dismiss}>Cancel</button>
-          <SimpleAsyncButton progress onClick={onImport}>Import</SimpleAsyncButton>
+          <SimpleAsyncButton progress onClick={onImport}>
+            Import
+          </SimpleAsyncButton>
         </div>
       </ErrorBoundary>
     </>
@@ -167,7 +168,7 @@ const THUNDERSTORE_CDN_URL_PATTERN =
 
 function detectModSource(mod: ModSpec): { name: string; version: string; author?: string; source: string } | undefined {
   switch (mod.type) {
-    case "Online":
+    case "Online": {
       const match = mod.url.match(THUNDERSTORE_URL_PATTERN) ?? mod.url.match(THUNDERSTORE_CDN_URL_PATTERN);
       if (match !== null) {
         const [_, namespace, name, version] = match;
@@ -179,6 +180,7 @@ function detectModSource(mod: ModSpec): { name: string; version: string; author?
         };
       }
       break;
+    }
     default:
       throw new Error();
   }

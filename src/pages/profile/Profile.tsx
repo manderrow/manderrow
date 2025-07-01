@@ -28,7 +28,7 @@ import {
   faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { OverlayScrollbarsComponent } from "overlayscrollbars-solid";
-import Fa from "solid-fa";
+import { Fa } from "solid-fa";
 
 import Console, { DoctorReports } from "../../components/global/Console";
 import { PromptDialog } from "../../components/global/Dialog";
@@ -41,7 +41,7 @@ import ModSearch from "../../components/profile/ModSearch";
 import { createProfile, deleteProfile, getProfileMods, ProfileWithId } from "../../api";
 import * as globals from "../../globals";
 import { refetchProfiles } from "../../globals";
-import { Refetcher } from "../../types";
+import { Refetcher } from "../../types.d.ts";
 import { autofocus } from "../../components/global/Directives";
 
 import styles from "./Profile.module.css";
@@ -51,6 +51,7 @@ import TasksDialog from "../../components/global/TasksDialog";
 import { settings } from "../../api/settings";
 import { useSearchParamsInPlace } from "../../utils/router";
 import { killIpcClient } from "../../api/ipc";
+import { t } from "../../i18n/i18n.ts";
 import { launchProfile } from "../../api/launching";
 import { ConsoleConnection, focusedConnection, setFocusedConnection } from "../../console";
 
@@ -165,12 +166,12 @@ export default function Profile() {
           <Switch>
             <Match when={focusedConnection()?.status() === "connected"}>
               <button on:click={() => killGame()} data-kill>
-                <Fa icon={faSkullCrossbones} /> Kill game
+                <Fa icon={faSkullCrossbones} /> {t("profile.sidebar.kill_game_btn")}
               </button>
             </Match>
             <Match when={hasLiveConnection()}>
               <button on:click={() => setFocusedConnection(undefined)} data-cancel>
-                <Fa icon={faXmark} /> Cancel
+                <Fa icon={faXmark} /> {t("profile.sidebar.cancel_launch_btn")}
               </button>
             </Match>
           </Switch>
@@ -178,15 +179,15 @@ export default function Profile() {
             // TODO: based on hasLiveConnection change the UI of these a bit
           }
           <button disabled={params.profileId === undefined} on:click={() => launch(true)} data-modded>
-            <Fa icon={faCirclePlay} /> Start modded
+            <Fa icon={faCirclePlay} /> {t("profile.sidebar.launch_modded_btn")}
           </button>
           <button on:click={() => launch(false)} data-vanilla>
-            <Fa icon={faCirclePlayOutline} /> Start vanilla
+            <Fa icon={faCirclePlayOutline} /> {t("profile.sidebar.launch_vanilla_btn")}
           </button>
         </section>
         <section classList={{ [styles.sidebar__group]: true, [sidebarStyles.sidebar__profiles]: true }}>
           <h3 class={styles.sidebar__profilesTitle}>
-            Profiles
+            {t("profile.sidebar.profiles_title")}
             <div class={styles.sidebar__profilesActions}>
               <A class={styles.sidebar__profilesActionBtn} href={`/profile/${params.gameId}`}>
                 <Fa icon={faPlus} />
@@ -331,7 +332,7 @@ export default function Profile() {
       </div>
 
       <Show when={importDialogOpen()}>
-        <ImportDialog onDismiss={() => setImportDialogOpen(false)} gameId={params.gameId} />
+        <ImportDialog dismiss={() => setImportDialogOpen(false)} gameId={params.gameId} profile={params.profileId} />
       </Show>
 
       <Show when={tasksDialogOpen()}>
@@ -412,16 +413,20 @@ function SidebarProfileComponent(props: {
     <li class={sidebarStyles.profileList__item}>
       <A href={`/profile/${props.gameId}/${props.profileId}`}>{props.profileName}</A>
       <div class={sidebarStyles.profileItem__options}>
-        <button data-pin title="Pin">
+        <button data-pin title={t("profile.sidebar.pin_profile_ptn")}>
           <Fa icon={faThumbTack} rotate={90} />
         </button>
-        <button data-pin title="Rename">
+        <button data-pin title={t("profile.sidebar.rename_profile_btn")}>
           <Fa icon={faPenToSquare} />
         </button>
-        <button data-delete title="Delete" on:click={() => setConfirmingDeletion(true)}>
+        <button
+          data-delete
+          title={t("profile.sidebar.delete_profile_btn")}
+          on:click={() => setConfirmingDeletion(true)}
+        >
           <Fa icon={faTrashCan} />
         </button>
-        <button data-export title="Export">
+        <button data-export title={t("profile.sidebar.export_profile_btn")}>
           <Fa icon={faFileExport} />
         </button>
       </div>

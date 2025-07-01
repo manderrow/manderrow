@@ -12,7 +12,6 @@
   background-size: 100%;
   background-repeat: no-repeat;
   background-position: center;
-  height: 100dvh;
   font-size: 1.5rem;
   animation: fade-in 0.25s ease-in forwards;
 }

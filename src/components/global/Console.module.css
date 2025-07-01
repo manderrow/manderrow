@@ -1,5 +1,6 @@
 .header {
   display: flex;
+  gap: 0.5em;
   margin-right: 1.5em;
   border-bottom: 1px solid var(--clr-neutral-7);
 }
@@ -20,6 +21,7 @@
 
 .header__subgroup {
   gap: 0.25em;
+  flex-wrap: wrap;
 }
 
 .header__subgroup:not(:last-child) {
@@ -110,11 +112,11 @@
   height: min-content;
 
   &::before {
-    content: '[';
+    content: "[";
   }
 
   &::after {
-    content: ']';
+    content: "]";
   }
 }
 

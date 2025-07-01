@@ -256,6 +256,7 @@ pub async fn fetch_mod_index(
 }
 
 #[derive(Clone, Copy, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub enum SortColumn {
     Relevance,
     Name,

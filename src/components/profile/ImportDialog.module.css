@@ -1,12 +1,30 @@
-.preview {
-  max-height: 70vh;
-  overflow: hidden;
-  display: flex;
+/* Import code stage */
+
+.importInputGroup {
+  margin-bottom: 1em;
+
+  label {
+    display: inline-block;
+    margin-bottom: 0.25em;
+  }
+
+  input {
+    width: 100%;
+    border-radius: 100vmax;
+    padding: 0.5em 1em;
+  }
 }
 
 .buttonRow {
+  margin-top: auto;
   display: flex;
   justify-content: space-between;
+}
+
+/* Preview stage */
+
+.preview {
+  flex-grow: 1;
 }
 
 .modEntry {

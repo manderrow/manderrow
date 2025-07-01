@@ -1,11 +1,11 @@
 import { defineConfig } from "vite";
 import solid from "vite-plugin-solid";
+import process from "node:process";
 
-// @ts-expect-error process is a nodejs global
 const host = process.env.TAURI_DEV_HOST;
 
 // https://vitejs.dev/config/
-export default defineConfig(async () => ({
+export default defineConfig(() => ({
   plugins: [solid()],
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
@@ -31,6 +31,6 @@ export default defineConfig(async () => ({
   },
 
   build: {
-    target: ["chrome88", "edge88", "firefox78", "safari14", "es2020"],
+    target: ["chrome120", "edge120", "firefox117", "safari17", "es2023"],
   },
 }));

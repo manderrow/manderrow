@@ -73,10 +73,10 @@ export async function fetchModIndex(game: string, options: { refresh: boolean },
 }
 
 export enum ModSortColumn {
-  Relevance = "Relevance",
-  Downloads = "Downloads",
-  Name = "Name",
-  Owner = "Owner",
+  Relevance = "relevance",
+  Downloads = "downloads",
+  Name = "name",
+  Owner = "owner",
 }
 
 export interface SortOption<C> {

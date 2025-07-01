@@ -157,7 +157,7 @@ function GameComponent(props: { game: Game }) {
   }
 
   return (
-    <li class={gameListStyles.gameList__game} style={`--img-src: url("${url}")`}>
+    <li class={gameListStyles.gameList__game} style={`--img-src: url("${url}");`}>
       <img src={url} alt={t("game_select.bg_img_alt", { gameName: props.game.name })} />
       <div class={gameListStyles.game__content}>
         <p class={gameListStyles.game__title}>{props.game.name}</p>
