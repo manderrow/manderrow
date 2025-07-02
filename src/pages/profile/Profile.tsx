@@ -284,7 +284,7 @@ export default function Profile() {
             };
 
             return (
-              <ModInstallContext.Provider value={{ profile: profileId(), installed, refetchInstalled }}>
+              <ModInstallContext.Provider value={{ profileId, installed, refetchInstalled }}>
                 <TabRenderer<TabId>
                   id="profile"
                   styles={{

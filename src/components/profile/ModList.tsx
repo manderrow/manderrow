@@ -33,7 +33,7 @@ import styles from "./ModList.module.css";
 export type Fetcher = (page: number) => Promise<readonly Mod[]>;
 
 export const ModInstallContext = createContext<{
-  profile: string;
+  profileId: Accessor<string>;
   installed: InitializedResource<readonly ModPackage[]>;
   refetchInstalled: () => Promise<void>;
 }>();
@@ -360,7 +360,7 @@ function InstallButton(props: { mod: ModListing; installContext: NonNullable<typ
       class={styles.downloadBtn}
       onClick={async (listener) => {
         await installProfileMod(
-          props.installContext.profile,
+          props.installContext.profileId(),
           removeProperty(props.mod, "versions"),
           props.mod.versions[0],
           listener,
@@ -382,7 +382,7 @@ function UninstallButton(props: {
       progress
       class={styles.downloadBtn}
       onClick={async (listener) => {
-        await uninstallProfileMod(props.installContext.profile, props.mod.owner, props.mod.name);
+        await uninstallProfileMod(props.installContext.profileId(), props.mod.owner, props.mod.name);
         await props.installContext.refetchInstalled();
       }}
     >
