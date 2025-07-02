@@ -174,7 +174,9 @@ pub async fn get_bep_in_ex_path(
         None,
     )
     .await?
-    .finish(log)
+    .apply(log)
+    .await?
+    .commit(log)
     .await?;
 
     Ok(path)

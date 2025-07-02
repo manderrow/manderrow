@@ -195,6 +195,7 @@ pub async fn install_profile_mod(
 
     let mod_index = crate::mod_index::read_mod_index(&game).await?;
 
+    let seen = Mutex::new(HashMap::new());
     install_profile_mod_inner(
         &log,
         app,
@@ -206,9 +207,23 @@ pub async fn install_profile_mod(
         r#mod.name,
         version.version_number,
         task_id,
-        &Mutex::new(HashMap::new()),
+        &seen,
     )
-    .await
+    .await?;
+
+    for (id, m) in seen.into_inner() {
+        debug!(log, "committing installation of {}-{}", id, m.version);
+        for transaction in m.transactions {
+            transaction.commit(&log).await?;
+        }
+    }
+
+    Ok(())
+}
+
+struct InstallingMod {
+    version: Version,
+    transactions: Vec<crate::installing::ReplaceTransaction>,
 }
 
 /// `game` must match the profile's game.
@@ -226,15 +241,26 @@ async fn install_profile_mod_inner<'a, 'b>(
     mod_name: &'a str,
     mod_version: Version,
     task_id: Option<tasks::Id>,
-    seen: &Mutex<HashMap<ModId<'a>, Version>>,
+    seen: &Mutex<HashMap<ModId<'a>, InstallingMod>>,
 ) -> Result<()> {
     let mod_id = ModId {
         owner: mod_owner.into(),
         name: mod_name.into(),
     };
 
-    if seen.lock().try_insert(mod_id, mod_version).is_err() {
-        // FIXME: wait and check semver compatibility
+    // must not hold the lock across an await
+    if seen
+        .lock()
+        .try_insert(
+            mod_id,
+            InstallingMod {
+                version: mod_version,
+                transactions: Vec::new(),
+            },
+        )
+        .is_err()
+    {
+        // FIXME: check semver compatibility
         return Ok(());
     }
 
@@ -315,6 +341,15 @@ async fn install_profile_mod_inner<'a, 'b>(
     )
     .await?;
 
+    {
+        let mut entries = Vec::new();
+        let mut iter = tokio::fs::read_dir(mod_temp_dir.path()).await?;
+        while let Some(e) = iter.next_entry().await? {
+            entries.push(e.path());
+        }
+        debug!(log, "prepared mod package for installation: {:?}", entries);
+    }
+
     let patchers_temp_dir =
         crate::installing::generate_temp_path(&patchers_folder_path, ".tmp-").await?;
     let patchers_og_dir = mod_temp_dir.path().join(PATCHERS_FOLDER);
@@ -338,7 +373,7 @@ async fn install_profile_mod_inner<'a, 'b>(
     let staged = install_folder(&log, mod_temp_dir.path(), &mod_folder_path).await?;
     staged.check_with_temp_dir(&mod_temp_dir);
 
-    let staged = StagedPackage {
+    let mods_staged = StagedPackage {
         target: &mod_folder_path,
         source: crate::installing::StagedPackageSource::TempDir(mod_temp_dir),
     };
@@ -354,7 +389,7 @@ async fn install_profile_mod_inner<'a, 'b>(
     tokio::task::block_in_place(|| {
         serde_json::to_writer(
             std::io::BufWriter::new(std::fs::File::create(
-                staged.path().join(MANIFEST_FILE_NAME),
+                mods_staged.path().join(MANIFEST_FILE_NAME),
             )?),
             &ModAndVersion {
                 r#mod: ModMetadata {
@@ -396,12 +431,21 @@ async fn install_profile_mod_inner<'a, 'b>(
         Ok::<_, anyhow::Error>(())
     })?;
 
-    // FIXME: We need to rollback patchers_staged.finish if staged.finish fails. We can split
-    //        atomic_replace into a two-step process with rollback on Drop
-    if let Some(patchers_staged) = patchers_staged {
-        patchers_staged.finish(&log).await?;
+    let patchers_transaction = if let Some(patchers_staged) = patchers_staged {
+        Some(patchers_staged.apply(&log).await?)
+    } else {
+        None
+    };
+    let mods_transaction = mods_staged.apply(&log).await?;
+
+    // must not hold the lock across an await
+    let mut seen = seen.lock();
+    let transactions = &mut seen.get_mut(&mod_id).unwrap().transactions;
+
+    if let Some(transaction) = patchers_transaction {
+        transactions.push(transaction);
     }
-    staged.finish(&log).await?;
+    transactions.push(mods_transaction);
 
     Ok(())
 }

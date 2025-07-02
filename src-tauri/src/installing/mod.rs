@@ -7,6 +7,7 @@ mod index;
 
 use std::ffi::OsString;
 use std::io::Write;
+use std::mem::ManuallyDrop;
 use std::{
     borrow::Cow,
     collections::HashMap,
@@ -19,7 +20,7 @@ use bytes::{Bytes, BytesMut};
 use fs4::tokio::AsyncFileExt;
 use index::{ArchivedIndex, ArchivedIndexEntryV1, Index, IndexEntryRef, IndexEntryV1, IndexPath};
 use manderrow_paths::cache_dir;
-use slog::{debug, trace};
+use slog::{debug, trace, warn};
 use tauri::AppHandle;
 use tempfile::TempDir;
 use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
@@ -320,7 +321,10 @@ pub enum GenerateTempPathError {
     Other(#[source] std::io::Error),
 }
 
-pub async fn generate_temp_path(path: &Path, prefix: &str) -> Result<PathBuf, GenerateTempPathError> {
+pub async fn generate_temp_path(
+    path: &Path,
+    prefix: &str,
+) -> Result<PathBuf, GenerateTempPathError> {
     const SUFFIX: &str = "-";
     const RAND_COUNT: usize = 6;
     let mut buf =
@@ -337,9 +341,8 @@ pub async fn generate_temp_path(path: &Path, prefix: &str) -> Result<PathBuf, Ge
         append_random(&mut buf, RAND_COUNT);
         buf.push(SUFFIX);
         buf.push(
-            path.file_name().ok_or_else(|| {
-                GenerateTempPathError::InvalidPathNoFileName
-            })?,
+            path.file_name()
+                .ok_or_else(|| GenerateTempPathError::InvalidPathNoFileName)?,
         );
         if !tokio::fs::try_exists(Path::new(&buf))
             .await
@@ -403,60 +406,117 @@ impl<'a> std::fmt::Display for AtomicReplaceMoveReplacementDisplay<'a> {
     }
 }
 
+#[derive(Debug)]
+struct PreviousEntity {
+    deletion_path: PathBuf,
+    is_dir: bool,
+}
+
+#[derive(Debug)]
+#[must_use]
+pub struct ReplaceTransaction {
+    target: PathBuf,
+    previous: Option<PreviousEntity>,
+}
+
+impl ReplaceTransaction {
+    pub async fn commit(self, log: &slog::Logger) -> Result<(), AtomicReplaceError> {
+        let mut this = ManuallyDrop::new(self);
+        debug!(log, "committing replacement at {:?}", this.target);
+        let _target = std::mem::take(&mut this.target);
+        let previous = std::mem::take(&mut this.previous);
+        if let Some(previous) = previous {
+            // The replacement has succeeded. Delete the original.
+            if let Err(cause) = if previous.is_dir {
+                tokio::fs::remove_dir_all(&previous.deletion_path).await
+            } else {
+                tokio::fs::remove_file(&previous.deletion_path).await
+            } {
+                return Err(AtomicReplaceError::CleanUp {
+                    deletion_path: previous.deletion_path,
+                    cause,
+                });
+            }
+        }
+        Ok(())
+    }
+}
+
+impl Drop for ReplaceTransaction {
+    fn drop(&mut self) {
+        match std::fs::remove_file(&self.target) {
+            Ok(()) => {}
+            Err(e) if e.is_not_found() => {}
+            Err(e) if e.kind() == std::io::ErrorKind::IsADirectory => {
+                match std::fs::remove_dir_all(&self.target) {
+                    Ok(()) => {}
+                    Err(e) => {
+                        slog_scope::error!("failed to rollback {self:?}: {e}");
+                    }
+                }
+            }
+            Err(e) => {
+                slog_scope::error!("failed to rollback {self:?}: {e}");
+            }
+        };
+        if let Some(previous) = &self.previous {
+            if let Err(e) = std::fs::rename(&previous.deletion_path, &self.target) {
+                slog_scope::error!("failed to rollback {self:?}: {e}");
+            }
+        }
+    }
+}
+
 /// "Atomically" replaces `target` with `from`, which must be on the same file
-/// system. If the operation fails, the original directory at `target`, if any,
-/// will be left behind at a hidden path in the same parent directory as
-/// `target`.
-async fn atomic_replace(target: &Path, source: &Path) -> Result<(), AtomicReplaceError> {
-    let metadata = match tokio::fs::metadata(target).await {
-        Ok(t) => Some(t),
+/// system. If the operation fails, the original file or directory at `target`,
+/// if any, will be left behind at a hidden path in the same parent directory
+/// as `target`.
+async fn replace(target: &Path, source: &Path) -> Result<ReplaceTransaction, AtomicReplaceError> {
+    let previous = match tokio::fs::metadata(target).await {
+        Ok(m) => {
+            // tbd => to be deleted
+            let deletion_path = generate_temp_path(target, ".tbd-")
+                .await
+                .map_err(|e| match e {
+                    GenerateTempPathError::InvalidPathNoParent => {
+                        AtomicReplaceError::InvalidTargetPath("path must have a parent")
+                    }
+                    GenerateTempPathError::InvalidPathNoFileName => {
+                        AtomicReplaceError::InvalidTargetPath("path must have a filename")
+                    }
+                    GenerateTempPathError::Other(error) => {
+                        AtomicReplaceError::PreModification(error)
+                    }
+                })?;
+            // Move the original to a hidden file just in case replacing it fails.
+            if let Err(cause) = tokio::fs::rename(target, &deletion_path).await {
+                return Err(AtomicReplaceError::StageForDeletion {
+                    deletion_path,
+                    cause,
+                });
+            }
+            Some(PreviousEntity {
+                deletion_path,
+                is_dir: m.is_dir(),
+            })
+        }
         Err(e) if e.is_not_found() => None,
         Err(e) => return Err(AtomicReplaceError::PreModification(e)),
     };
-    let is_dir = metadata.map(|m| m.is_dir());
-    let deletion_path = if is_dir.is_some() {
-        // tbd => to be deleted
-        let deletion_path = generate_temp_path(target, ".tbd-").await.map_err(|e| match e {
-            GenerateTempPathError::InvalidPathNoParent => AtomicReplaceError::InvalidTargetPath("path must have a parent"),
-            GenerateTempPathError::InvalidPathNoFileName => AtomicReplaceError::InvalidTargetPath("path must have a filename"),
-            GenerateTempPathError::Other(error) => AtomicReplaceError::PreModification(error),
-        })?;
-        // Move the original to a hidden file just in case replacing it fails.
-        if let Err(cause) = tokio::fs::rename(target, &deletion_path).await {
-            return Err(AtomicReplaceError::StageForDeletion {
-                deletion_path,
-                cause,
-            });
-        }
-        Some(deletion_path)
-    } else {
-        None
-    };
     // If this fails, we will likely fail to restore the original, so don't
     // bother trying. Just let the user know where to find it.
-    if let Err(cause) = tokio::fs::rename(source, target).await {
+    if let Err(cause) = tokio::fs::rename(&source, &target).await {
         return Err(AtomicReplaceError::MoveReplacement {
             source: source.to_owned(),
             target: target.to_owned(),
-            deletion_path,
+            deletion_path: previous.map(|pe| pe.deletion_path),
             cause,
         });
     }
-    if let Some(deletion_path) = deletion_path {
-        let is_dir = is_dir.unwrap();
-        // The replacement has succeeded. Delete the original.
-        if let Err(cause) = if is_dir {
-            tokio::fs::remove_dir_all(&deletion_path).await
-        } else {
-            tokio::fs::remove_file(&deletion_path).await
-        } {
-            return Err(AtomicReplaceError::CleanUp {
-                deletion_path,
-                cause,
-            });
-        }
-    }
-    Ok(())
+    Ok(ReplaceTransaction {
+        target: target.to_owned(),
+        previous,
+    })
 }
 
 pub enum StagedPackageSource<'a> {
@@ -490,8 +550,8 @@ impl StagedPackage<'_, '_> {
     }
 
     /// Finishes installing the package by moving the staging directory into place,
-    pub async fn finish(self, log: &slog::Logger) -> anyhow::Result<()> {
-        atomic_replace(self.target, self.source.path()).await?;
+    pub async fn apply(self, log: &slog::Logger) -> anyhow::Result<ReplaceTransaction> {
+        let transaction = replace(self.target, self.source.path()).await?;
         match self.source {
             StagedPackageSource::Path(_) => {}
             StagedPackageSource::TempDir(temp_dir) => {
@@ -501,7 +561,7 @@ impl StagedPackage<'_, '_> {
             }
         }
         debug!(log, "Installed package to {:?}", self.target);
-        Ok(())
+        Ok(transaction)
     }
 }
 
@@ -986,6 +1046,13 @@ pub async fn uninstall_package<'a>(
     keep_changes: bool,
 ) -> anyhow::Result<()> {
     if keep_changes {
+        if !tokio::fs::try_exists(path).await? {
+            warn!(
+                log,
+                "attempted to uninstall a package that does not exist at {path:?}"
+            );
+            return Ok(());
+        }
         let mut changes = TrieBuilder::new();
         struct ExtendByFn<F>(F);
         impl<F, I> Extend<I> for ExtendByFn<F>
@@ -1011,10 +1078,6 @@ pub async fn uninstall_package<'a>(
         debug!(log, "Changes: {changes:?}");
 
         let mut iter = WalkDir::new(path).into_iter();
-        ensure!(
-            iter.next().context("Expected root entry")??.path() == path,
-            "First entry was not root"
-        );
         while let Some(r) = iter.next() {
             let e = r?;
             #[derive(Clone, Copy)]
