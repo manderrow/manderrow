@@ -290,6 +290,10 @@ async fn install_profile_mod_inner<'a, 'b>(
     let mut mod_folder_path = profile_path.join(MODS_FOLDER);
     let mut patchers_folder_path = profile_path.join(PATCHERS_FOLDER);
 
+    create_dir_if_not_exists(&patchers_folder_path)
+        .await
+        .context("failed to create profile patchers folder")?;
+
     push_mod_folder(&mut mod_folder_path, mod_owner, mod_name);
     push_mod_folder(&mut patchers_folder_path, mod_owner, mod_name);
 
