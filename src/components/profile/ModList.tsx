@@ -295,7 +295,7 @@ function getIconUrl(owner: string, name: string, version: string) {
   return `https://gcdn.thunderstore.io/live/repository/icons/${owner}-${name}-${version}.png`;
 }
 
-const observer = createSkeletonScrollObserver({ rootMargin: "1600px 0" });
+const observer = createSkeletonScrollObserver({ rootMargin: "1600px 0px" });
 
 function ModListItem(props: {
   mods: Fetcher;
