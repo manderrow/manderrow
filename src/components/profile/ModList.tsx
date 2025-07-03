@@ -214,7 +214,7 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
                       onInput={(event) =>
                         setSelectedVersion([
                           event.target.value,
-                          parseInt(event.target.selectedOptions[0].dataset.index!),
+                          parseInt(event.target.selectedOptions[0].dataset.index!, 10),
                         ])
                       }
                     >
