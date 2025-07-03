@@ -1,4 +1,4 @@
-import { Accessor, createEffect, For, JSX, Match, Setter, Switch } from "solid-js";
+import { Accessor, createEffect, For, JSX, Match, Switch } from "solid-js";
 import { useSearchParamsInPlace } from "../../utils/router";
 
 export interface Tab<Id extends string> {
@@ -6,7 +6,7 @@ export interface Tab<Id extends string> {
   name: string;
   // fallback?: JSX.Element;
   selected?: boolean;
-  component: JSX.Element | ((data: any) => JSX.Element);
+  component: JSX.Element;
 }
 
 interface TabStyles {
@@ -31,7 +31,7 @@ export default function TabRenderer<Id extends string>({
   tabs: Tab<Id>[];
   rootUrl?: string;
   styles: TabStyles;
-  setter?: Setter<Tab<Id>>;
+  setter?: (tab: Tab<Id>) => void;
 }) {
   const [searchParams, setSearchParams] = useSearchParamsInPlace();
 
@@ -41,11 +41,11 @@ export default function TabRenderer<Id extends string>({
     ((Array.isArray(searchParams[tablistId]) ? searchParams[tablistId][0] : searchParams[tablistId]) as Id) ??
     defaultTab;
 
-  const tabsMap = new Map<Tab<Id>[][number]["id"], Tab<Id>>(tabs.map((tab) => [tab.id, tab]));
+  const tabsMap = Object.fromEntries(tabs.map((tab) => [tab.id, tab])) as Record<Id, Tab<Id>>;
 
   if (setter != null) {
     createEffect(() => {
-      setter(tabsMap.get(currentTab())!);
+      setter(tabsMap[currentTab()]);
     });
   }
 
@@ -58,14 +58,14 @@ export default function TabRenderer<Id extends string>({
               <li
                 classList={{ [styles.tabs.list__item]: true, [styles.tabs.list__itemActive]: currentTab() === tab.id }}
               >
-                <button on:click={() => setSearchParams({ [tablistId]: tab.id })}>{tab.name}</button>
+                <button type="button" on:click={() => setSearchParams({ [tablistId]: tab.id })}>{tab.name}</button>
               </li>
             )}
           </For>
         </ul>
       </div>
 
-      {setter == null ? <TabContent currentTab={() => tabsMap.get(currentTab())!} tabs={tabs} /> : null}
+      {setter == null ? <TabContent currentTab={() => tabsMap[currentTab()]} tabs={tabs} /> : null}
     </>
   );
 }

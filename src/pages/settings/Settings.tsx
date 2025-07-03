@@ -39,6 +39,7 @@ export default function SettingsPage() {
                 </Match>
               </Switch>
               <button
+                type="button"
                 class={styles.resetButton}
                 on:click={onReset(setting.key)}
                 disabled={settings()[setting.key].isDefault}
@@ -61,7 +62,7 @@ export default function SettingsPage() {
           <div class={styles.navbar__header}>
             <div class={styles.navbar__title}>
               <h1>Settings</h1>
-              <button on:click={() => navigate(-1)} data-back>
+              <button type="button" on:click={() => navigate(-1)} data-back>
                 <Fa icon={faChevronLeft} />
               </button>
             </div>

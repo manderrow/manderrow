@@ -20,7 +20,7 @@ import {
 
 import { fetchModIndex, getFromModIndex, installProfileMod, uninstallProfileMod } from "../../api";
 import { createProgressProxyStore, initProgress } from "../../api/tasks";
-import { Mod, ModListing, ModPackage } from "../../types";
+import { Mod, ModListing, ModPackage, ModVersion } from "../../types";
 import { humanizeFileSize, removeProperty, roundedNumberFormatter } from "../../utils";
 
 import { SimpleAsyncButton } from "../global/AsyncButton";
@@ -54,13 +54,11 @@ export default function ModList(props: { mods: Fetcher }) {
 function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
   const [progress, setProgress] = createProgressProxyStore();
 
-  function getInitialValue(mod: Mod | undefined) {
+  function getInitialModListing(mod: Mod | undefined) {
     if (mod === undefined) return undefined;
     if ("version" in mod) {
-      const obj = { ...mod, versions: [mod.version] };
-      // @ts-expect-error
+      const obj: ModListing & { game?: string, version?: ModVersion } = { ...mod, versions: [mod.version] };
       delete obj.version;
-      // @ts-expect-error
       delete obj.game;
       return obj;
     } else {
@@ -68,9 +66,9 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
     }
   }
 
-  const [modListing, { refetch: refetchModListing }] = createResource<ModListing | undefined, Mod | {}, never>(
+  const [modListing, { refetch: refetchModListing }] = createResource<ModListing | undefined, Mod | Record<never, never>, never>(
     // we need the "nullish" value passed through, so disguise it as non-nullish
-    () => (mod() === undefined ? {} : mod()!),
+    () => (mod() ?? {}),
     async (mod, info: ResourceFetcherInfo<ModListing | undefined, never>) => {
       if ("game" in mod) {
         await fetchModIndex(mod.game, { refresh: info.refetching }, (event) => {
@@ -86,10 +84,14 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
         return undefined;
       }
     },
-    { initialValue: getInitialValue(mod()) },
+    { initialValue: getInitialModListing(mod()) },
   );
 
   const [selectedVersion, setSelectedVersion] = createSignal<[string, number]>();
+
+  const modVersionData = (mod: Mod) => {
+    return "versions" in mod ? mod.versions[selectedVersion()?.[1] ?? 0] : mod.version;
+  };
 
   const tabs: Tab<"overview" | "dependencies" | "changelog">[] = [
     {
@@ -100,13 +102,9 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
     {
       id: "dependencies",
       name: "Dependencies",
-      component: () => {
-        const modConstant = mod()!;
-        const modVersionData =
-          "versions" in modConstant ? modConstant.versions[selectedVersion()?.[1] ?? 0] : modConstant.version;
-
-        return <For each={modVersionData.dependencies}>{(dependency) => <p>{dependency}</p>}</For>;
-      },
+      component: <Show when={mod()}>
+        {mod => <For each={modVersionData(mod()).dependencies}>{(dependency) => <p>{dependency}</p>}</For>}
+      </Show>,
     },
     {
       id: "changelog",
@@ -231,7 +229,7 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
                         }}
                       </For>
                     </select>
-                    <button class={styles.modView__downloadBtn}>Download</button>
+                    <button type="button" class={styles.modView__downloadBtn}>Download</button>
                   </div>
                 </form>
               </>
@@ -302,7 +300,7 @@ function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) 
         aria-pressed={props.selectedMod[0]() === props.mod}
         tabIndex={0}
       >
-        <img class={styles.icon} src={getIconUrl(props.mod.owner, props.mod.name, displayVersion().version_number)} />
+        <img class={styles.icon} alt="mod icon" src={getIconUrl(props.mod.owner, props.mod.name, displayVersion().version_number)} />
         <div class={styles.mod__content}>
           <div class={styles.left}>
             <p class={styles.info}>
@@ -381,7 +379,7 @@ function UninstallButton(props: {
     <SimpleAsyncButton
       progress
       class={styles.downloadBtn}
-      onClick={async (listener) => {
+      onClick={async (_listener) => {
         await uninstallProfileMod(props.installContext.profileId(), props.mod.owner, props.mod.name);
         await props.installContext.refetchInstalled();
       }}
