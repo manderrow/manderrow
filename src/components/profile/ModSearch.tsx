@@ -1,18 +1,17 @@
 import { faArrowDownShortWide, faArrowUpWideShort, faRefresh } from "@fortawesome/free-solid-svg-icons";
 import { Fa } from "solid-fa";
-import { createResource, createSignal, ResourceFetcherInfo, Show, useContext } from "solid-js";
+import { createResource, createSignal, type ResourceFetcherInfo, Show, useContext } from "solid-js";
 
-import { countModIndex, fetchModIndex, ModSortColumn, queryModIndex, SortOption } from "../../api";
+import { countModIndex, fetchModIndex, ModSortColumn, queryModIndex, type SortOption } from "../../api";
 import { createProgressProxyStore } from "../../api/tasks";
+import type { Mod } from "../../types.d.ts";
 import { numberFormatter } from "../../utils";
-
 import { ErrorContext } from "../global/ErrorBoundary";
 import { SimpleProgressIndicator } from "../global/Progress";
 import SelectDropdown from "../global/SelectDropdown";
 import { SortableList } from "../global/SortableList";
 import TogglableDropdown from "../global/TogglableDropdown";
-import ModList from "./ModList";
-
+import ModList, { Fetcher } from "./ModList";
 import styles from "./ModSearch.module.css";
 
 export interface InitialProgress {
@@ -22,6 +21,61 @@ export interface InitialProgress {
 }
 
 const MODS_PER_PAGE = 50;
+
+function createModFetcher(
+  game: string,
+  query: string,
+  sort: readonly SortOption<ModSortColumn>[],
+): (index: number) => Promise<Mod> {
+  const CACHE_CAPACITY = 6;
+  let cacheBase = 0;
+  const cache = new Array<readonly Mod[] | Promise<readonly Mod[]> | undefined>(CACHE_CAPACITY);
+
+  async function fetchNewPage(cacheBase: number, page: number, line: number) {
+    console.log(`fetchNewPage(${cacheBase}, ${page}, ${line})`);
+    const promise = (async () => {
+      return (
+        await queryModIndex(game, query, sort, {
+          skip: page * MODS_PER_PAGE,
+          limit: MODS_PER_PAGE,
+        })
+      ).mods;
+    })();
+    const cacheIndex = page - cacheBase;
+    cache[cacheIndex] = promise;
+    return (await promise)[line];
+  }
+
+  return async (index: number) => {
+    // figure out which page the requested mod is in
+    const page = Math.floor(index / MODS_PER_PAGE);
+    const line = index % MODS_PER_PAGE;
+
+    if (page >= cacheBase) {
+      if (page - cacheBase < CACHE_CAPACITY) {
+        let cachedPage = cache[page - cacheBase];
+        if (cachedPage != null) {
+          if (!Array.isArray(cachedPage)) cachedPage = await cachedPage;
+          return cachedPage[line];
+        }
+
+        // need to fetch a new page
+
+        return await fetchNewPage(page - cacheBase, page, line);
+      } else {
+        // TODO: rotate the cache to avoid flushing the entire thing
+      }
+    } else {
+      // TODO: rotate the cache to avoid flushing the entire thing
+    }
+
+    cacheBase = page;
+    for (let i = 1; i < CACHE_CAPACITY; i++) {
+      cache[i] = undefined;
+    }
+    return await fetchNewPage(0, page, line);
+  };
+}
 
 export default function ModSearch(props: { game: string }) {
   const [query, setQuery] = createSignal("");
@@ -54,22 +108,22 @@ export default function ModSearch(props: { game: string }) {
     },
   );
 
-  const [queriedMods] = createResource(
-    () => [props.game, query(), sort(), loadStatus.loading] as [string, string, SortOption[], true | undefined],
+  const [queriedMods] = createResource<{ count: number; mods: Fetcher }>(
+    () =>
+      [props.game, query(), sort(), loadStatus.loading] as [
+        string,
+        string,
+        readonly SortOption<ModSortColumn>[],
+        true | undefined,
+      ],
     async ([game, query, sort]) => {
       const count = await countModIndex(game, query);
       return {
         count,
-        mods: async (page: number) =>
-          (
-            await queryModIndex(game, query, sort, {
-              skip: page * MODS_PER_PAGE,
-              limit: MODS_PER_PAGE,
-            })
-          ).mods,
+        mods: createModFetcher(game, query, sort),
       };
     },
-    { initialValue: { mods: async (_: number) => [], count: 0 } },
+    { initialValue: { count: 0, mods: async (_: number) => [] } },
   );
 
   const [profileSortOrder, setProfileSortOrder] = createSignal(false);
@@ -166,7 +220,7 @@ export default function ModSearch(props: { game: string }) {
             <Fa icon={faRefresh} />
           </button>
         </div>
-        <ModList mods={queriedMods()!.mods} />
+        <ModList count={queriedMods()!.count} mods={queriedMods()!.mods} />
       </Show>
     </div>
   );

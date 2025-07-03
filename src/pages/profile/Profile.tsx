@@ -386,13 +386,7 @@ function InstalledModsList(props: { game: string }) {
 
   return (
     <Show when={context.installed.latest.length !== 0} fallback={<p>Looks like you haven't installed any mods yet.</p>}>
-      <ModList
-        // kinda gross
-        mods={(() => {
-          const data = context.installed();
-          return async (page) => (page === 0 ? data : []);
-        })()}
-      />
+      <ModList count={context.installed().length} mods={(i) => context.installed()[i]} />
     </Show>
   );
 }

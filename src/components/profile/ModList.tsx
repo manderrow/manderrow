@@ -1,19 +1,20 @@
 import { faHardDrive, faHeart, faThumbsUp } from "@fortawesome/free-regular-svg-icons";
 import { faDownload, faDownLong, faExternalLink, faTrash } from "@fortawesome/free-solid-svg-icons";
-import { createInfiniteScroll } from "@solid-primitives/pagination";
+import { createSkeletonScrollCell, createSkeletonScrollObserver } from "skeleton-scroll";
 import { Fa } from "solid-fa";
 import {
   Accessor,
   createContext,
+  createEffect,
   createMemo,
   createResource,
+  createSelector,
   createSignal,
   For,
   InitializedResource,
   Match,
   ResourceFetcherInfo,
   Show,
-  Signal,
   Switch,
   useContext,
 } from "solid-js";
@@ -29,8 +30,9 @@ import TabRenderer, { Tab, TabContent } from "../global/TabRenderer";
 import ModMarkdown from "./ModMarkdown.tsx";
 
 import styles from "./ModList.module.css";
+// @ts-types="solid-js"
 
-export type Fetcher = (page: number) => Promise<readonly Mod[]>;
+export type Fetcher = (index: number) => Promise<Mod> | Mod;
 
 export const ModInstallContext = createContext<{
   profileId: Accessor<string>;
@@ -38,14 +40,21 @@ export const ModInstallContext = createContext<{
   refetchInstalled: () => Promise<void>;
 }>();
 
-export default function ModList(props: { mods: Fetcher }) {
+export default function ModList(props: { count: number; mods: Fetcher }) {
   const [selectedMod, setSelectedMod] = createSignal<Mod>();
+  const isSelectedMod = createSelector<Mod | undefined, Mod>(
+    selectedMod,
+    (mod, selectedMod) => selectedMod !== undefined && mod.owner === selectedMod.owner && mod.name === selectedMod.name,
+  );
 
   return (
     <div class={styles.modListAndView}>
-      <Show when={props.mods} keyed>
-        {(mods) => <ModListMods mods={mods} selectedMod={[selectedMod, setSelectedMod]} />}
-      </Show>
+      <ModListMods
+        count={props.count}
+        mods={props.mods}
+        isSelectedMod={isSelectedMod}
+        setSelectedMod={setSelectedMod}
+      />
       <ModView mod={selectedMod} />
     </div>
   );
@@ -57,7 +66,7 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
   function getInitialModListing(mod: Mod | undefined) {
     if (mod === undefined) return undefined;
     if ("version" in mod) {
-      const obj: ModListing & { game?: string, version?: ModVersion } = { ...mod, versions: [mod.version] };
+      const obj: ModListing & { game?: string; version?: ModVersion } = { ...mod, versions: [mod.version] };
       delete obj.version;
       delete obj.game;
       return obj;
@@ -66,9 +75,13 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
     }
   }
 
-  const [modListing, { refetch: refetchModListing }] = createResource<ModListing | undefined, Mod | Record<never, never>, never>(
+  const [modListing, { refetch: refetchModListing }] = createResource<
+    ModListing | undefined,
+    Mod | Record<never, never>,
+    never
+  >(
     // we need the "nullish" value passed through, so disguise it as non-nullish
-    () => (mod() ?? {}),
+    () => mod() ?? {},
     async (mod, info: ResourceFetcherInfo<ModListing | undefined, never>) => {
       if ("game" in mod) {
         await fetchModIndex(mod.game, { refresh: info.refetching }, (event) => {
@@ -102,9 +115,11 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
     {
       id: "dependencies",
       name: "Dependencies",
-      component: <Show when={mod()}>
-        {mod => <For each={modVersionData(mod()).dependencies}>{(dependency) => <p>{dependency}</p>}</For>}
-      </Show>,
+      component: (
+        <Show when={mod()}>
+          {(mod) => <For each={modVersionData(mod()).dependencies}>{(dependency) => <p>{dependency}</p>}</For>}
+        </Show>
+      ),
     },
     {
       id: "changelog",
@@ -229,7 +244,9 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
                         }}
                       </For>
                     </select>
-                    <button type="button" class={styles.modView__downloadBtn}>Download</button>
+                    <button type="button" class={styles.modView__downloadBtn}>
+                      Download
+                    </button>
                   </div>
                 </form>
               </>
@@ -241,23 +258,34 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
   );
 }
 
-function ModListMods(props: { mods: Fetcher; selectedMod: Signal<Mod | undefined> }) {
-  const infiniteScroll = createMemo(() => {
-    // this should take readonly, which would make the cast unnecessary
-    return createInfiniteScroll(props.mods as (page: number) => Promise<Mod[]>);
-  });
-  const paginatedMods = () => infiniteScroll()[0]();
-  // idk why we're passing props here
-  const infiniteScrollLoader = (el: Element) => infiniteScroll()[1](el);
-  const end = () => infiniteScroll()[2].end();
+function generateArray<T>(length: number, element: (index: number) => T): T[] {
+  const array = new Array(length);
+  for (let i = 0; i < length; i++) {
+    array[i] = element(i);
+  }
+  return array;
+}
 
+function ModListMods(props: {
+  count: number;
+  mods: Fetcher;
+  isSelectedMod: (mod: Mod) => boolean;
+  setSelectedMod: (mod: Mod | null) => void;
+}) {
+  // TODO: fetch mod ids eagerly so we can use them as keys in the For
   return (
     <div class={styles.scrollOuter}>
       <ol class={`${styles.modList} ${styles.scrollInner}`}>
-        <For each={paginatedMods()}>{(mod) => <ModListItem mod={mod} selectedMod={props.selectedMod} />}</For>
-        <Show when={!end()}>
-          <li use:infiniteScrollLoader>Loading...</li>
-        </Show>
+        <For each={generateArray(props.count, (i) => i)}>
+          {(i) => (
+            <ModListItem
+              mods={props.mods}
+              modIndex={i}
+              isSelectedMod={props.isSelectedMod}
+              setSelectedMod={props.setSelectedMod}
+            />
+          )}
+        </For>
       </ol>
     </div>
   );
@@ -267,7 +295,57 @@ function getIconUrl(owner: string, name: string, version: string) {
   return `https://gcdn.thunderstore.io/live/repository/icons/${owner}-${name}-${version}.png`;
 }
 
-function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) {
+const observer = createSkeletonScrollObserver({ rootMargin: "1600px 0" });
+
+function ModListItem(props: {
+  mods: Fetcher;
+  modIndex: number;
+  isSelectedMod: (mod: Mod) => boolean;
+  setSelectedMod: (mod: Mod | null) => void;
+}) {
+  const [visible, setVisible] = createSignal(false);
+
+  let ref!: HTMLLIElement;
+
+  createSkeletonScrollCell(observer, () => ref, setVisible);
+
+  const [mod, setMod] = createSignal<Mod>();
+  let fetching = false;
+
+  createEffect(() => {
+    // once `fetching` is set, this effect will stop tracking `visible` and will start tracking `props.mods` instead.
+    if (!fetching && visible()) {
+      fetching = true;
+      (async () => setMod(await props.mods(props.modIndex)))();
+    }
+  });
+
+  const isSelectedMod = (mod: Mod | undefined) => {
+    return mod != null && props.isSelectedMod(mod);
+  };
+
+  return (
+    <li classList={{ [styles.mod]: true, [styles.selected]: isSelectedMod(mod()) }} ref={ref}>
+      <Show when={visible()}>
+        <Show when={mod()} fallback="...">
+          {(mod) => (
+            <ModListItemContent
+              mod={mod()}
+              isSelectedMod={props.isSelectedMod}
+              setSelectedMod={props.setSelectedMod}
+            ></ModListItemContent>
+          )}
+        </Show>
+      </Show>
+    </li>
+  );
+}
+
+function ModListItemContent(props: {
+  mod: Mod;
+  isSelectedMod: (mod: Mod) => boolean;
+  setSelectedMod: (mod: Mod | null) => void;
+}) {
   const displayVersion = createMemo(() => {
     if ("version" in props.mod) return props.mod.version;
     return props.mod.versions[0];
@@ -285,69 +363,75 @@ function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) 
   });
 
   function onSelect() {
-    props.selectedMod[1](props.selectedMod[0]() === props.mod ? undefined : props.mod);
+    const modConstant = props.mod;
+    if (modConstant == null) return;
+    props.setSelectedMod(props.isSelectedMod(modConstant) ? null : modConstant);
   }
 
   return (
-    <li classList={{ [styles.mod]: true, [styles.selected]: props.selectedMod[0]() === props.mod }}>
-      <div
-        on:click={onSelect}
-        onKeyDown={(key) => {
-          if (key.key === "Enter") onSelect();
-        }}
-        class={styles.mod__btn}
-        role="button"
-        aria-pressed={props.selectedMod[0]() === props.mod}
-        tabIndex={0}
-      >
-        <img class={styles.icon} alt="mod icon" src={getIconUrl(props.mod.owner, props.mod.name, displayVersion().version_number)} />
-        <div class={styles.mod__content}>
-          <div class={styles.left}>
-            <p class={styles.info}>
-              <span class={styles.name}>{props.mod.name}</span>
+    <div
+      on:click={onSelect}
+      onKeyDown={(key) => {
+        if (key.key === "Enter") onSelect();
+      }}
+      class={styles.mod__btn}
+      role="button"
+      aria-pressed={props.isSelectedMod(props.mod)}
+      tabIndex={0}
+    >
+      <img
+        class={styles.icon}
+        alt="mod icon"
+        src={getIconUrl(props.mod.owner, props.mod.name, displayVersion().version_number)}
+      />
+      <div class={styles.mod__content}>
+        <div class={styles.left}>
+          <p class={styles.info}>
+            <span class={styles.name}>{props.mod.name}</span>
+            <span class={styles.separator} aria-hidden>
+              &bull;
+            </span>
+            <span class={styles.owner}>{props.mod.owner}</span>
+            <Show when={"version" in props.mod}>
               <span class={styles.separator} aria-hidden>
                 &bull;
               </span>
-              <span class={styles.owner}>{props.mod.owner}</span>
-              <Show when={"version" in props.mod}>
-                <span class={styles.separator} aria-hidden>
-                  &bull;
-                </span>
-                <span class={styles.version}>{(props.mod as ModPackage).version.version_number}</span>
-              </Show>
-            </p>
-            <p class={styles.downloads}>
-              <Show when={"versions" in props.mod}>
-                <Fa icon={faDownload} />
-                {roundedNumberFormatter.format(
-                  (props.mod as ModListing).versions.map((v) => v.downloads).reduce((acc, x) => acc + x),
-                )}
-              </Show>
-            </p>
-            <p class={styles.description}>{displayVersion().description}</p>
-          </div>
-          <div class={styles.right}>
-            <Show when={installContext !== undefined}>
+              <span class={styles.version}>{(props.mod as ModPackage).version.version_number}</span>
+            </Show>
+          </p>
+          <p class={styles.downloads}>
+            <Show when={"versions" in props.mod}>
+              <Fa icon={faDownload} />
+              {roundedNumberFormatter.format(
+                (props.mod as ModListing).versions.map((v) => v.downloads).reduce((acc, x) => acc + x),
+              )}
+            </Show>
+          </p>
+          <p class={styles.description}>{displayVersion().description}</p>
+        </div>
+        <div class={styles.right}>
+          <Show when={installContext}>
+            {(installContext) => (
               <Switch
                 fallback={
                   <ErrorBoundary>
-                    <InstallButton mod={props.mod as ModListing} installContext={installContext!} />
+                    <InstallButton mod={props.mod as ModListing} installContext={installContext()} />
                   </ErrorBoundary>
                 }
               >
                 <Match when={installed()}>
                   {(installed) => (
                     <ErrorBoundary>
-                      <UninstallButton mod={installed()} installContext={installContext!} />
+                      <UninstallButton mod={installed()} installContext={installContext()} />
                     </ErrorBoundary>
                   )}
                 </Match>
               </Switch>
-            </Show>
-          </div>
+            )}
+          </Show>
         </div>
       </div>
-    </li>
+    </div>
   );
 }
 

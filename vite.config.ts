@@ -33,4 +33,8 @@ export default defineConfig(() => ({
   build: {
     target: ["chrome120", "edge120", "firefox117", "safari17", "es2023"],
   },
+
+  resolve: {
+    dedupe: ["solid-js"],
+  },
 }));

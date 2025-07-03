@@ -16,8 +16,9 @@
 }
 
 .modList {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: auto;
+  grid-auto-rows: calc(64px + 1em);
   border-right: 1px solid var(--clr-neutral-8);
 
   li:has(.mod__btn:hover) + li .mod__btn,
