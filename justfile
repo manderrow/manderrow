@@ -4,10 +4,10 @@ export RUST_BACKTRACE := "1"
 export RUST_LOG := "debug"
 
 run *ARGS:
-	deno run tauri dev {{ARGS}}
+	pnpm tauri dev {{ARGS}}
 
 build *ARGS:
-	deno run tauri build {{ARGS}}
+	pnpm tauri build {{ARGS}}
 
 fmt:
 	cargo fmt --manifest-path crates/Cargo.toml --all

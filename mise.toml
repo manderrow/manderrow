@@ -1,5 +1,5 @@
 [tools]
-deno = "latest"
 just = "latest"
+pnpm = "latest"
 rust = "nightly"
 zig = "master"
