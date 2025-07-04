@@ -16,9 +16,6 @@
 }
 
 .modList {
-  display: grid;
-  grid-template-columns: auto;
-  grid-auto-rows: calc(64px + 1em);
   border-right: 1px solid var(--clr-neutral-8);
 
   li:has(.mod__btn:hover) + li .mod__btn,
@@ -27,7 +24,12 @@
   }
 
   .mod {
-    display: flex;
+    --icon-size: 4rem;
+
+    /**
+     * 2px for border and 1em for padding
+     */
+    height: calc(var(--icon-size) + 2px + 1em);
 
     .mod__btn {
       display: flex;
@@ -41,6 +43,9 @@
       flex-grow: 1;
       background-color: var(--clr-neutral-9);
       transition: background-color 0.1s ease-in-out, border-color 0.1s ease-in-out, border-radius 0.3s ease-out;
+
+      /* FIXME: get rid of this */
+      margin-top: -20px;
 
       &:hover {
         background-color: var(--clr-neutral-8);
@@ -76,7 +81,7 @@
 
   .icon {
     aspect-ratio: 1;
-    width: 4rem;
+    width: var(--icon-size);
     align-self: flex-start;
     border-radius: 6px;
   }
