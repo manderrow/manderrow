@@ -8,6 +8,13 @@
     "Jack Huang",
     "Micheal Pfaff"
   ],
+  "scripts": {
+    "start": "vite",
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite preview",
+    "tauri": "tauri"
+  },
   "license": "UNLICENSED",
   "dependencies": {
     "@fortawesome/free-regular-svg-icons": "^6.7.2",
