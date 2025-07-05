@@ -23,13 +23,15 @@
     border-top-color: transparent;
   }
 
-  .mod {
-    --icon-size: 4rem;
+  --icon-size: 4rem;
 
-    /**
-     * 2px for border and 1em for padding
-     */
-    height: calc(var(--icon-size) + 2px + 1em);
+  /**
+   * 2px for border and 1em for padding
+   */
+  --item-height: calc(var(--icon-size) + 2px + 1em);
+
+  .mod {
+    height: var(--item-height);
 
     .mod__btn {
       display: flex;

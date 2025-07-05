@@ -1,9 +1,9 @@
 import { faHardDrive, faHeart, faThumbsUp } from "@fortawesome/free-regular-svg-icons";
 import { faDownload, faDownLong, faExternalLink, faTrash } from "@fortawesome/free-solid-svg-icons";
-import { createSkeletonScrollCell, createSkeletonScrollObserver } from "skeleton-scroll";
 import { Fa } from "solid-fa";
 import {
   Accessor,
+  batch,
   createContext,
   createEffect,
   createMemo,
@@ -273,10 +273,56 @@ function ModListMods(props: {
   setSelectedMod: (mod: Mod | null) => void;
 }) {
   // TODO: fetch mod ids eagerly so we can use them as keys in the For
+  let container!: HTMLOListElement;
+  let topOverflow!: HTMLDivElement;
+  let bottomOverflow!: HTMLDivElement;
+
+  const [startOffset, setStartOffset] = createSignal(0);
+
+  // this must be kept in sync with the CSS.
+  const itemHeight = 82;
+
+  const [first, setFirst] = createSignal(0);
+  const [end, setEnd] = createSignal(0);
+
+  // TODO: extract this into a library
+  createEffect(() => {
+    const startOffsetConst = startOffset();
+    // console.log(`scrollTop: ${startOffsetConst}`);
+
+    // marker[0].style.top = `${startOffset}px`;
+
+    const first = Math.max(Math.floor(startOffsetConst / itemHeight) - 1, 0);
+    const end = Math.min(
+      Math.floor((first * itemHeight + container.getBoundingClientRect().height) / itemHeight) + 3,
+      props.count,
+    );
+
+    batch(() => {
+      setFirst(first);
+      setEnd(end);
+    });
+
+    // console.log(`First visible element: ${first}`);
+    // console.log(`End visible element: ${end}`);
+
+    topOverflow.style.height = `calc((var(--item-height)) * ${first})`;
+    bottomOverflow.style.height = `calc((var(--item-height)) * ${props.count - end})`;
+
+    // marker[0].style.top = `calc(${last + 1} * var(--item-height))`;
+  });
+
+  // const isVisible = createSelector<[number, number], number>(() => [first(), end()], (i, [first, end]) => i >= first && i < end);
+
   return (
     <div class={styles.scrollOuter}>
-      <ol class={`${styles.modList} ${styles.scrollInner}`}>
-        <For each={generateArray(props.count, (i) => i)}>
+      <ol
+        class={`${styles.modList} ${styles.scrollInner}`}
+        on:scroll={() => setStartOffset(container.scrollTop)}
+        ref={container}
+      >
+        <div ref={topOverflow}></div>
+        <For each={generateArray(end() - first(), (i) => i + first())}>
           {(i) => (
             <ModListItem
               mods={props.mods}
@@ -286,6 +332,18 @@ function ModListMods(props: {
             />
           )}
         </For>
+        {/* <For each={generateArray(props.count, (i) => i)}>
+          {(i) => (
+            <ModListItem
+              mods={props.mods}
+              modIndex={i}
+              visible={isVisible(i)}
+              isSelectedMod={props.isSelectedMod}
+              setSelectedMod={props.setSelectedMod}
+            />
+          )}
+        </For> */}
+        <div ref={bottomOverflow}></div>
       </ol>
     </div>
   );
@@ -295,7 +353,46 @@ function getIconUrl(owner: string, name: string, version: string) {
   return `https://gcdn.thunderstore.io/live/repository/icons/${owner}-${name}-${version}.png`;
 }
 
-const observer = createSkeletonScrollObserver({ rootMargin: "1600px 0px" });
+// function ModListItem(props: {
+//   mods: Fetcher;
+//   modIndex: number;
+//   visible: boolean;
+//   isSelectedMod: (mod: Mod) => boolean;
+//   setSelectedMod: (mod: Mod | null) => void;
+// }) {
+//   let ref!: HTMLLIElement;
+
+//   const [mod, setMod] = createSignal<Mod>();
+//   let fetching = false;
+
+//   createEffect(() => {
+//     // once `fetching` is set, this effect will stop tracking `visible` and will start tracking `props.mods` instead.
+//     if (!fetching && props.visible) {
+//       fetching = true;
+//       (async () => setMod(await props.mods(props.modIndex)))();
+//     }
+//   });
+
+//   const isSelectedMod = (mod: Mod | undefined) => {
+//     return mod != null && props.isSelectedMod(mod);
+//   };
+
+//   return (
+//     <Show when={props.visible}>
+//       <li classList={{ [styles.mod]: true, [styles.selected]: isSelectedMod(mod()) }} ref={ref}>
+//         <Show when={mod()} fallback="...">
+//           {(mod) => (
+//             <ModListItemContent
+//               mod={mod()}
+//               isSelectedMod={props.isSelectedMod}
+//               setSelectedMod={props.setSelectedMod}
+//             ></ModListItemContent>
+//           )}
+//         </Show>
+//       </li>
+//     </Show>
+//   );
+// }
 
 function ModListItem(props: {
   mods: Fetcher;
@@ -303,22 +400,9 @@ function ModListItem(props: {
   isSelectedMod: (mod: Mod) => boolean;
   setSelectedMod: (mod: Mod | null) => void;
 }) {
-  const [visible, setVisible] = createSignal(false);
-
   let ref!: HTMLLIElement;
 
-  createSkeletonScrollCell(observer, () => ref, setVisible);
-
-  const [mod, setMod] = createSignal<Mod>();
-  let fetching = false;
-
-  createEffect(() => {
-    // once `fetching` is set, this effect will stop tracking `visible` and will start tracking `props.mods` instead.
-    if (!fetching && visible()) {
-      fetching = true;
-      (async () => setMod(await props.mods(props.modIndex)))();
-    }
-  });
+  const [mod] = createResource(() => props.mods(props.modIndex));
 
   const isSelectedMod = (mod: Mod | undefined) => {
     return mod != null && props.isSelectedMod(mod);
@@ -326,16 +410,14 @@ function ModListItem(props: {
 
   return (
     <li classList={{ [styles.mod]: true, [styles.selected]: isSelectedMod(mod()) }} ref={ref}>
-      <Show when={visible()}>
-        <Show when={mod()} fallback="...">
-          {(mod) => (
-            <ModListItemContent
-              mod={mod()}
-              isSelectedMod={props.isSelectedMod}
-              setSelectedMod={props.setSelectedMod}
-            ></ModListItemContent>
-          )}
-        </Show>
+      <Show when={mod()} fallback="...">
+        {(mod) => (
+          <ModListItemContent
+            mod={mod()}
+            isSelectedMod={props.isSelectedMod}
+            setSelectedMod={props.setSelectedMod}
+          ></ModListItemContent>
+        )}
       </Show>
     </li>
   );
