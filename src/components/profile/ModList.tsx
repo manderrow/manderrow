@@ -17,6 +17,7 @@ import {
   Switch,
   useContext,
 } from "solid-js";
+import { useParams } from "@solidjs/router";
 
 import { fetchModIndex, getFromModIndex, installProfileMod, uninstallProfileMod } from "../../api";
 import { createProgressProxyStore, initProgress } from "../../api/tasks";
@@ -41,23 +42,26 @@ export const ModInstallContext = createContext<{
 export default function ModList(props: { mods: Fetcher }) {
   const [selectedMod, setSelectedMod] = createSignal<Mod>();
 
+  // TODO: Type this properly with ProfileParams
+  const params = useParams();
+
   return (
     <div class={styles.modListAndView}>
       <Show when={props.mods} keyed>
         {(mods) => <ModListMods mods={mods} selectedMod={[selectedMod, setSelectedMod]} />}
       </Show>
-      <ModView mod={selectedMod} />
+      <ModView mod={selectedMod} gameId={params.gameId} />
     </div>
   );
 }
 
-function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
+function ModView({ mod, gameId }: { mod: Accessor<Mod | undefined>; gameId: string }) {
   const [progress, setProgress] = createProgressProxyStore();
 
   function getInitialModListing(mod: Mod | undefined) {
     if (mod === undefined) return undefined;
     if ("version" in mod) {
-      const obj: ModListing & { game?: string, version?: ModVersion } = { ...mod, versions: [mod.version] };
+      const obj: ModListing & { game?: string; version?: ModVersion } = { ...mod, versions: [mod.version] };
       delete obj.version;
       delete obj.game;
       return obj;
@@ -66,9 +70,13 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
     }
   }
 
-  const [modListing, { refetch: refetchModListing }] = createResource<ModListing | undefined, Mod | Record<never, never>, never>(
+  const [modListing, { refetch: refetchModListing }] = createResource<
+    ModListing | undefined,
+    Mod | Record<never, never>,
+    never
+  >(
     // we need the "nullish" value passed through, so disguise it as non-nullish
-    () => (mod() ?? {}),
+    () => mod() ?? {},
     async (mod, info: ResourceFetcherInfo<ModListing | undefined, never>) => {
       if ("game" in mod) {
         await fetchModIndex(mod.game, { refresh: info.refetching }, (event) => {
@@ -102,9 +110,11 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
     {
       id: "dependencies",
       name: "Dependencies",
-      component: <Show when={mod()}>
-        {mod => <For each={modVersionData(mod()).dependencies}>{(dependency) => <p>{dependency}</p>}</For>}
-      </Show>,
+      component: (
+        <Show when={mod()}>
+          {(mod) => <For each={modVersionData(mod()).dependencies}>{(dependency) => <p>{dependency}</p>}</For>}
+        </Show>
+      ),
     },
     {
       id: "changelog",
@@ -143,7 +153,7 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
                     {/* TODO: For local mod with no package URL, remove link */}
                     <div style={{ "grid-area": "name" }}>
                       <a
-                        href={`https://thunderstore.io/package/${mod().owner}/${mod().name}/`}
+                        href={`https://thunderstore.io/c/${gameId}/p/${mod().owner}/${mod().name}/`}
                         target="_blank"
                         rel="noopener noreferrer"
                         class={styles.modMetaLink}
@@ -154,7 +164,7 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
                     </div>
                     <div style={{ "grid-area": "owner" }}>
                       <a
-                        href={`https://thunderstore.io/package/${mod().owner}/`}
+                        href={`https://thunderstore.io/c/${gameId}/p/${mod().owner}/`}
                         target="_blank"
                         rel="noopener noreferrer"
                         class={styles.modMetaLink}
@@ -229,7 +239,9 @@ function ModView({ mod }: { mod: Accessor<Mod | undefined> }) {
                         }}
                       </For>
                     </select>
-                    <button type="button" class={styles.modView__downloadBtn}>Download</button>
+                    <button type="button" class={styles.modView__downloadBtn}>
+                      Download
+                    </button>
                   </div>
                 </form>
               </>
@@ -300,7 +312,11 @@ function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) 
         aria-pressed={props.selectedMod[0]() === props.mod}
         tabIndex={0}
       >
-        <img class={styles.icon} alt="mod icon" src={getIconUrl(props.mod.owner, props.mod.name, displayVersion().version_number)} />
+        <img
+          class={styles.icon}
+          alt="mod icon"
+          src={getIconUrl(props.mod.owner, props.mod.name, displayVersion().version_number)}
+        />
         <div class={styles.mod__content}>
           <div class={styles.left}>
             <p class={styles.info}>
