@@ -332,17 +332,6 @@ function ModListMods(props: {
             />
           )}
         </For>
-        {/* <For each={generateArray(props.count, (i) => i)}>
-          {(i) => (
-            <ModListItem
-              mods={props.mods}
-              modIndex={i}
-              visible={isVisible(i)}
-              isSelectedMod={props.isSelectedMod}
-              setSelectedMod={props.setSelectedMod}
-            />
-          )}
-        </For> */}
         <div ref={bottomOverflow}></div>
       </ol>
     </div>
@@ -352,47 +341,6 @@ function ModListMods(props: {
 function getIconUrl(owner: string, name: string, version: string) {
   return `https://gcdn.thunderstore.io/live/repository/icons/${owner}-${name}-${version}.png`;
 }
-
-// function ModListItem(props: {
-//   mods: Fetcher;
-//   modIndex: number;
-//   visible: boolean;
-//   isSelectedMod: (mod: Mod) => boolean;
-//   setSelectedMod: (mod: Mod | null) => void;
-// }) {
-//   let ref!: HTMLLIElement;
-
-//   const [mod, setMod] = createSignal<Mod>();
-//   let fetching = false;
-
-//   createEffect(() => {
-//     // once `fetching` is set, this effect will stop tracking `visible` and will start tracking `props.mods` instead.
-//     if (!fetching && props.visible) {
-//       fetching = true;
-//       (async () => setMod(await props.mods(props.modIndex)))();
-//     }
-//   });
-
-//   const isSelectedMod = (mod: Mod | undefined) => {
-//     return mod != null && props.isSelectedMod(mod);
-//   };
-
-//   return (
-//     <Show when={props.visible}>
-//       <li classList={{ [styles.mod]: true, [styles.selected]: isSelectedMod(mod()) }} ref={ref}>
-//         <Show when={mod()} fallback="...">
-//           {(mod) => (
-//             <ModListItemContent
-//               mod={mod()}
-//               isSelectedMod={props.isSelectedMod}
-//               setSelectedMod={props.setSelectedMod}
-//             ></ModListItemContent>
-//           )}
-//         </Show>
-//       </li>
-//     </Show>
-//   );
-// }
 
 function ModListItem(props: {
   mods: Fetcher;
