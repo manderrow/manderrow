@@ -1,15 +1,35 @@
 {
   "global": {
     "game_sort_column": {
+      "name": "Nom",
+      "mod_downloads": "Téléchargements",
       "popularity": "Popularité"
+    },
+    "mod_sort_column": {
+      "relevance": "Pertinence",
+      "downloads": "Téléchargements",
+      "name": "Nom",
+      "owner": "Propriétaire"
+    },
+    "sort_order": {
+      "ascending": "Ascendant",
+      "descending": "Descendant"
+    },
+    "select_dropdown": {
+      "default_fallback": "Séleccionner..."
+    },
+    "task_manager": {
+      "title": "Tâches",
+      "active_tab_name": "Actives",
+      "completed_tab_name": "Complètes"
     }
   },
 
   "game_select": {
-    "title": "Sélection de jeus",
-    "subtitle": "Sélectionne un jeu pour gérer les modifications",
+    "title": "Sélection de jeux",
+    "subtitle": "Sélectionnez un jeu pour gérer les modifications",
     "search": {
-      "input_placeholder": "Rechercher les jeus",
+      "input_placeholder": "Rechercher les jeux",
       "display_type_btn": "Changer à la vue {{ type }}",
       "card_display_type": "de la carte",
       "list_display_type": "en liste"
@@ -23,5 +43,65 @@
     "fav_btn": "Ajouter aux favoris"
   },
 
-  "profile": {}
+  "profile": {
+    "import_model": {
+      "import_title": "Importer une liste de modifications",
+      "preview_title": "Prévisualiser les modifications"
+    },
+
+    "sidebar": {
+      "kill_game_btn": "Terminer le jeu",
+      "cancel_launch_btn": "Annuler",
+      "launch_modded_btn": "Démarrer le jeu avec modifications",
+      "launch_vanilla_btn": "Démarrer le jeu sans modifications",
+
+      "profiles_title": "Profils",
+
+      "pin_profile_ptn": "Épingler",
+      "rename_profile_btn": "Rénommer",
+      "delete_profile_btn": "Supprimer",
+      "export_profile_btn": "Exporter"
+    }
+  },
+
+  "doctor": {
+    "launch_options": {
+      "message": "Afin de permettre à Manderrow de fonctionner, vous devez faire des petites modifications à votre configuration de Steam.",
+      "message_overwrite": "Ça semble que vous ayez défini des options personnalisées de lancement pour ce jeu. Afin de permettre à Manderrow de fonctionner, ils seront écrasés.",
+
+      "fixes": {
+        "apply": {
+          "label": "Les appliquer automatiquement",
+          "confirm_label": "Appliquer maintenant",
+          "description": "Steam sera fermé et les modifications seront appliquées."
+        },
+        "retry": {
+          "label": "Les appliquer manuellement",
+          "confirm_label": "Je les ai appliquées",
+          "description": "Il est nécessaire de placer cette chaîne d'options de lancement dans Steam : {{ launch_options }}"
+        },
+        "ignore": {
+          "label": "Ignorer et continuer quand même",
+          "confirm_label": "Ignorer",
+          "description": "Ces options ne seront pas appliquées et le jeu pourrait ne pas foncionner correctement."
+        },
+        "abort": {
+          "label": "Annuler",
+          "confirm_label": "Annuler",
+          "description": "Aucun changement ne sera appliqué et le jeu ne sera pas lancé."
+        }
+      }
+    }
+  },
+
+  "settings": {
+    "section": {
+      "general": "Général",
+      "launching": "En train de lancer"
+    },
+    "settings": {
+      "defaultGame": "Jeu par défault",
+      "openConsoleOnLaunch": "Ouvrir la fenêtre du terminal au démarrage"
+    }
+  }
 }
