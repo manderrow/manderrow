@@ -1,1 +1,107 @@
-{}
+{
+  "global": {
+    "game_sort_column": {
+      "name": "名称",
+      "mod_downloads": "下载",
+      "popularity": "名气"
+    },
+    "mod_sort_column": {
+      "relevance": "相关性",
+      "downloads": "下载",
+      "name": "名称",
+      "owner": "管理人"
+    },
+    "sort_order": {
+      "ascending": "升序",
+      "descending": "降序"
+    },
+    "select_dropdown": {
+      "default_fallback": "选择..."
+    },
+    "task_manager": {
+      "title": "任务",
+      "active_tab_name": "已开工",
+      "completed_tab_name": "已完成"
+    }
+  },
+
+  "game_select": {
+    "title": "选择游戏",
+    "subtitle": "选择需要管理模组的游戏",
+    "search": {
+      "input_placeholder": "搜索游戏",
+      "display_type_btn": "改成{{ type }}视图布局",
+      "card_display_type": "卡片",
+      "list_display_type": "列表"
+    },
+
+    "no_games_msg": "未找到游戏",
+
+    "bg_img_alt": "{{ gameName }}的背景",
+    "select_btn": "选择",
+    "set_default_btn": "设成默认",
+    "fav_btn": "添加到收藏"
+  },
+
+  "profile": {
+    "import_model": {
+      "import_title": "导入模组列表",
+      "preview_title": "预览模组列表"
+    },
+
+    "sidebar": {
+      "kill_game_btn": "结束游戏",
+      "cancel_launch_btn": "取消",
+      "launch_modded_btn": "使用模组启动游戏",
+      "launch_vanilla_btn": "以原版启动游戏",
+
+      "profiles_title": "游戏配置",
+
+      "pin_profile_ptn": "固定",
+      "rename_profile_btn": "重命名",
+      "delete_profile_btn": "删除",
+      "export_profile_btn": "导出"
+    }
+  },
+
+  "doctor": {
+    "launch_options": {
+      "message": "使用Manderrow启动游戏之前，需要更改一下Steam里的游戏启动选项。",
+      "message_overwrite": "看样子在Steam里已经有游戏启动选项了。使用Manderrow启动游戏之前，需要更改一下Steam里的游戏启动选项。",
+
+      "fixes": {
+        "apply": {
+          "label": "自动应用选项",
+          "confirm_label": "应用",
+          "description": "Steam将会自动关闭，游戏选项将会自动被覆盖。"
+        },
+        "retry": {
+          "label": "手动应用选项",
+          "confirm_label": "我做好了",
+          "description": "为了手动应用，需要粘贴此字符串到Steam游戏的启动选项里：{{ launch_options }}"
+        },
+        "ignore": {
+          "label": "不理此警告",
+          "confirm_label": "不理",
+          "description": "游戏可能不会正常启动或使用模组。"
+        },
+        "abort": {
+          "label": "取消",
+          "confirm_label": "取消",
+          "description": "启动选项不会被更改，游戏也不会被启动。"
+        }
+      }
+    }
+  },
+
+  "settings": {
+    "section": {
+      "general": "通用",
+      "launching": "正在启动"
+    },
+    "settings": {
+      "defaultGame": "默认游戏",
+      "openConsoleOnLaunch": "启动时开终端窗口"
+    }
+  }
+}
