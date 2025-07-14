@@ -389,17 +389,15 @@ pub async fn get_one_from_mod_index<'a>(
 
     debug!(log, "Getting one mod from mod index");
 
-    let m = mod_index
-        .iter()
-        .find_map(|mi| {
-            mi.mods().iter().find(|m| {
-                mod_id
-                    == ModId {
-                        owner: InternedString(&*m.owner),
-                        name: InternedString(&*m.name),
-                    }
-            })
-        });
+    let m = mod_index.iter().find_map(|mi| {
+        mi.mods().iter().find(|m| {
+            mod_id
+                == ModId {
+                    owner: InternedString(&*m.owner),
+                    name: InternedString(&*m.name),
+                }
+        })
+    });
 
     Ok(m)
 }
