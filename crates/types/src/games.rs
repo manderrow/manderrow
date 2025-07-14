@@ -60,7 +60,7 @@ pub struct SteamMetadata<'a> {
 }
 
 impl<'a> StorePlatformMetadata<'a> {
-    pub fn steam_or_direct(&self) -> Option<SteamMetadata> {
+    pub fn steam_or_direct(&self) -> Option<SteamMetadata<'_>> {
         match self {
             StorePlatformMetadata::Steam {
                 store_identifier,

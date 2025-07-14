@@ -26,7 +26,7 @@ impl MemoryModIndex {
 }
 
 impl MemoryModIndex {
-    pub fn mods(&self) -> &ArchivedVec<ArchivedModRef> {
+    pub fn mods(&self) -> &ArchivedVec<ArchivedModRef<'_>> {
         // SAFETY: i have a hunch the lifetime issue is a non-issue
         unsafe { NonNull::from(self.mods).cast().as_ref() }
     }

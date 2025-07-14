@@ -155,7 +155,7 @@ pub fn host_path_to_win_path(path: &Path) -> PathBuf {
     PathBuf::from(buf)
 }
 
-pub fn adapt_host_path(path: &Path, uses_proton: bool) -> Cow<Path> {
+pub fn adapt_host_path(path: &Path, uses_proton: bool) -> Cow<'_, Path> {
     if uses_proton {
         Cow::Owned(host_path_to_win_path(path))
     } else {

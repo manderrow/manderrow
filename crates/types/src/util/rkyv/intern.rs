@@ -248,14 +248,18 @@ where
     C::Error: Source,
 {
     unsafe fn check_bytes(value: *const Self, context: &mut C) -> Result<(), C::Error> {
-        if (*value).is_inline() {
-            let inline = addr_of!((*value).inline);
-            Inline::check_bytes(inline.cast(), context)
-                .trace("while checking inline interned string")
+        if unsafe { (*value).is_inline() } {
+            unsafe {
+                let inline = addr_of!((*value).inline);
+                Inline::check_bytes(inline.cast(), context)
+                    .trace("while checking inline interned string")
+            }
         } else {
-            let out_of_line = addr_of!((*value).out_of_line);
-            OutOfLine::check_bytes(out_of_line.cast(), context)
-                .trace("while checking out-of-line interned string")
+            unsafe {
+                let out_of_line = addr_of!((*value).out_of_line);
+                OutOfLine::check_bytes(out_of_line.cast(), context)
+                    .trace("while checking out-of-line interned string")
+            }
         }
     }
 }
@@ -271,9 +275,9 @@ pub struct InternedStringNiche;
 
 impl<'a> Niching<ArchivedInternedString> for InternedStringNiche {
     unsafe fn is_niched(niched: *const ArchivedInternedString) -> bool {
-        let niched = niched.as_uninit_ref().unwrap();
+        let niched = unsafe { niched.as_uninit_ref().unwrap() };
         munge!(let ArchivedInternedString { repr: ArchivedInternedStringRepr { inline } } = niched);
-        *inline.as_ptr().cast::<u8>() == NICHE_MARKER
+        unsafe { *inline.as_ptr().cast::<u8>() == NICHE_MARKER }
     }
 
     fn resolve_niched(out: Place<ArchivedInternedString>) {
