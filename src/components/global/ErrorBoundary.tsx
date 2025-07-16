@@ -4,6 +4,7 @@ import { DefaultDialog } from "./Dialog";
 import { AbortedError, NativeError } from "../../api";
 import styles from "./ErrorBoundary.module.css";
 import { AsyncButton } from "./AsyncButton";
+import { t } from "../../i18n/i18n";
 
 export type ReportErrFn = (err: unknown) => void;
 
@@ -24,10 +25,7 @@ export default function ErrorBoundary(props: { children: JSX.Element }) {
   }
   return (
     <ErrorContext.Provider value={onError}>
-      <Show
-        when={error()}
-        fallback={catchError(() => props.children, onError)}
-      >
+      <Show when={error()} fallback={catchError(() => props.children, onError)}>
         {(err) => <ErrorDialog err={err()} reset={() => setError(undefined)} />}
       </Show>
     </ErrorContext.Provider>
@@ -36,10 +34,10 @@ export default function ErrorBoundary(props: { children: JSX.Element }) {
 
 export function ErrorDialog(props: { err: unknown; reset: () => Promise<void> | void }) {
   return (
-    <DefaultDialog>
+    <DefaultDialog class={styles.errorDialog}>
       <div class={styles.error}>
-        <h2>Oops!</h2>
-        <p>An error occurred, but don't worry, we caught it for you.</p>
+        <h2>{t("error.title")}</h2>
+        <p>{t("error.deescalation_msg")}</p>
 
         <div class={styles.report}>
           <Switch fallback={<p>{(props.err as any).toString()}</p>}>
@@ -47,7 +45,7 @@ export function ErrorDialog(props: { err: unknown; reset: () => Promise<void> | 
               <For each={(props.err as NativeError).messages}>{(msg) => <p>{msg}</p>}</For>
               <details class={styles.spoiler}>
                 <summary>
-                  <h3>Native Stack Trace:</h3>
+                  <h3>{t("error.native_stack_trace")}:</h3>
                 </summary>
                 <div class={styles.pre}>
                   <pre>{(props.err as NativeError).backtrace}</pre>
@@ -59,7 +57,7 @@ export function ErrorDialog(props: { err: unknown; reset: () => Promise<void> | 
             {(stack) => (
               <details class={styles.spoiler}>
                 <summary>
-                  <h3>JavaScript Stack Trace:</h3>
+                  <h3>{t("error.js_stack_trace")}:</h3>
                 </summary>
                 <div class={styles.pre}>
                   <pre>{stack()}</pre>
@@ -69,29 +67,27 @@ export function ErrorDialog(props: { err: unknown; reset: () => Promise<void> | 
           </Show>
         </div>
 
-        <p>
-          We're not perfect. That's why we invite you to <button class={styles.inlineButton}>report</button> this error
-          to us if you think we could do better.
-        </p>
+        <p>{t("error.report_msg")}</p>
+        <p>{t("error.ignore_msg")}</p>
+      </div>
+      <div class={styles.buttons}>
+        <AsyncButton>
+          {(busy, wrapOnClick) => (
+            <button
+              class={styles.inlineButton}
+              disabled={busy()}
+              on:click={(e) => {
+                e.stopPropagation();
+                wrapOnClick(props.reset);
+              }}
+            >
+              {t("error.ignoreBtn")}
+            </button>
+          )}
+        </AsyncButton>
 
-        <p>
-          Otherwise, feel free to{" "}
-          <AsyncButton>
-            {(busy, wrapOnClick) => (
-              <button
-                class={styles.inlineButton}
-                disabled={busy()}
-                on:click={(e) => {
-                  e.stopPropagation();
-                  wrapOnClick(props.reset);
-                }}
-              >
-                ignore
-              </button>
-            )}
-          </AsyncButton>{" "}
-          this error and carry on modding.
-        </p>
+        {/* TODO: Add link to report button */}
+        <button class={styles.inlineButton}>{t("error.reportBtn")}</button>
       </div>
     </DefaultDialog>
   );
