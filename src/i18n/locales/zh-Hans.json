@@ -103,5 +103,18 @@
       "defaultGame": "默认游戏",
       "openConsoleOnLaunch": "启动时开终端窗口"
     }
+  },
+  
+  "error": {
+    "title": "发现了错误",
+    "deescalation_msg": "错误已被捕获了。此应用仍处于测试阶段，因此可能会出现错误。下面为错误数据。",
+    "report_msg": "如果想帮助我们，可以发送错误报告。谢谢配合。",
+    "ignore_msg": "要不然，可以继续运行。 然而，严重错误可能无法恢复。",
+
+    "native_stack_trace": "本地栈追踪",
+    "js_stack_trace": "JavaScript栈追踪",
+
+    "reportBtn": "发送报告",
+    "ignoreBtn": "不理"
   }
 }
