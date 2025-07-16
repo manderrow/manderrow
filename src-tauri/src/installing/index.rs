@@ -28,7 +28,7 @@ impl ArchivedNativePath {
         }
     }
 
-    pub fn components(&self) -> ArchivedNativePathComponents {
+    pub fn components(&self) -> ArchivedNativePathComponents<'_> {
         match self {
             #[cfg(unix)]
             ArchivedNativePath::Unix(vec) => ArchivedNativePathComponents { iter: vec.iter() },

@@ -45,7 +45,7 @@ where
     C::Error: Source,
 {
     unsafe fn check_bytes(value: *const Self, _: &mut C) -> Result<(), C::Error> {
-        let value = value.read().0.to_native();
+        let value = unsafe { value.read().0.to_native() };
         match DateTime::<Utc>::from_timestamp_micros(value) {
             Some(_) => Ok(()),
             None => {

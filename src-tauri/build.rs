@@ -54,7 +54,7 @@ fn main() {
 
     let out_dir = PathBuf::from(std::env::var_os("OUT_DIR").unwrap());
 
-    let (native_out_dir, host_out_dir) = std::thread::scope(|scope| {
+    let (native_out_dir, _host_out_dir) = std::thread::scope(|scope| {
         let native_out_dir = scope.spawn(|| build_agent(&agent_dir, &out_dir, env, false, false));
 
         let host_out_dir = if os == "linux" {

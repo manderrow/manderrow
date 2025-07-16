@@ -2,7 +2,7 @@ pub mod commands;
 
 pub use manderrow_types::games::*;
 
-use std::{borrow::Cow, collections::HashMap, marker::PhantomData, sync::LazyLock};
+use std::{collections::HashMap, marker::PhantomData, sync::LazyLock};
 
 use anyhow::{Context, Result};
 

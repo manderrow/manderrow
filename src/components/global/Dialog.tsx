@@ -64,10 +64,14 @@ export function PromptDialog({ options }: { options: PromptDialogOptions }) {
   );
 }
 
-export function DefaultDialog(props: { onDismiss?: DismissCallback, children: JSX.Element }) {
+export function DefaultDialog(props: {
+  onDismiss?: DismissCallback;
+  class?: JSX.HTMLAttributes<HTMLDivElement>["class"];
+  children?: JSX.Element;
+}) {
   return (
     <Dialog onDismiss={props.onDismiss}>
-      <div class={styles.dialog__container}>{props.children}</div>
+      <div class={`${styles.dialog__container} ${props.class ?? ""}`}>{props.children}</div>
     </Dialog>
   );
 }
@@ -86,7 +90,7 @@ export function InfoDialog({ title, message }: { title: string | null; message: 
   );
 }
 
-export default function Dialog(props: { onDismiss?: DismissCallback, children: JSX.Element }) {
+export default function Dialog(props: { onDismiss?: DismissCallback; children: JSX.Element }) {
   function onClick(e: MouseEvent) {
     if (e.eventPhase !== Event.BUBBLING_PHASE) {
       props.onDismiss!();
@@ -95,8 +99,8 @@ export default function Dialog(props: { onDismiss?: DismissCallback, children: J
 
   return (
     <Portal>
-      <div class={styles.dialog}>
-        <div on:click={props.onDismiss && onClick}>{props.children}</div>
+      <div class={styles.dialog} on:click={props.onDismiss && onClick}>
+        {props.children}
       </div>
     </Portal>
   );

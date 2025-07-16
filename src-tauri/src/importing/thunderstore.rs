@@ -15,8 +15,11 @@ use triomphe::Arc;
 use uuid::Uuid;
 use zip::read::ZipFile;
 
-use crate::{profiles::{CONFIG_FOLDER, PATCHERS_FOLDER}, Reqwest};
 use crate::{installing::fetch_resource_as_bytes, profiles::MODS_FOLDER, tasks};
+use crate::{
+    profiles::{CONFIG_FOLDER, PATCHERS_FOLDER},
+    Reqwest,
+};
 
 #[derive(Clone)]
 pub struct FullName {

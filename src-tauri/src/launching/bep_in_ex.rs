@@ -197,7 +197,7 @@ pub async fn emit_instructions(
 
     let profile_path = profile_path(profile_id);
 
-    let temp_dir = tempdir()?.into_path();
+    let temp_dir = tempdir()?.keep();
 
     em.set_var(
         "BEPINEX_CONFIGS",

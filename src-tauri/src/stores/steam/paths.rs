@@ -170,7 +170,10 @@ pub async fn resolve_steam_app_manifest(log: &slog::Logger, game_id: &str) -> Re
         let mut iter = match tokio::fs::read_dir(&path).await {
             Ok(t) => t,
             Err(e) => {
-                warn!(log, "Failed to read steam library folder at {:?}", path);
+                warn!(
+                    log,
+                    "Failed to read steam library folder at {:?}: {}", path, e
+                );
                 continue;
             }
         };

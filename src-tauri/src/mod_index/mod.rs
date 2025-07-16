@@ -73,7 +73,7 @@ pub async fn fetch_mod_index(
                 };
 
                 #[cfg(feature = "statistics")]
-                manderrow_types::mods::reset_version_repr_stats();
+                packed_semver::reset_version_repr_stats();
 
                 mod_index.progress.reset();
 
@@ -241,7 +241,7 @@ pub async fn fetch_mod_index(
                 *mod_index.data.write().await = new_mod_index;
 
                 #[cfg(feature = "statistics")]
-                let (inline_version_count, out_of_line_version_count) = manderrow_types::mods::get_version_repr_stats();
+                let (inline_version_count, out_of_line_version_count) = packed_semver::get_version_repr_stats();
                 #[cfg(not(feature = "statistics"))]
                 let (inline_version_count, out_of_line_version_count) = (None::<u32>, None::<u32>);
                 info!(log, "Finished fetching mods"; "inline_version_count" => inline_version_count, "out_of_line_version_count" => out_of_line_version_count);
@@ -389,17 +389,15 @@ pub async fn get_one_from_mod_index<'a>(
 
     debug!(log, "Getting one mod from mod index");
 
-    let m = mod_index
-        .iter()
-        .find_map(|mi| {
-            mi.mods().iter().find(|m| {
-                mod_id
-                    == ModId {
-                        owner: InternedString(&*m.owner),
-                        name: InternedString(&*m.name),
-                    }
-            })
-        });
+    let m = mod_index.iter().find_map(|mi| {
+        mi.mods().iter().find(|m| {
+            mod_id
+                == ModId {
+                    owner: InternedString(&*m.owner),
+                    name: InternedString(&*m.name),
+                }
+        })
+    });
 
     Ok(m)
 }
