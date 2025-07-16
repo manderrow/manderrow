@@ -103,5 +103,18 @@
       "defaultGame": "Jeu par défault",
       "openConsoleOnLaunch": "Ouvrir la fenêtre du terminal au démarrage"
     }
+  },
+  
+  "error": {
+    "title": "Une erreur s'est produite",
+    "deescalation_msg": "Une erreur a été capturée. Cet application est toujours en version bêta, alors il y aura des erreurs. Veuillez voir ci-dessous pour plus de détails.",
+    "report_msg": "Si vous voudriez nous aider, vous pouvez faire un rapport avec les detailles. Merci pour votre aide.",
+    "ignore_msg": "Sinon, vous pouvez l'ignorer et essayer de continuer. Cependant, ce pouvait ne pas foncionner en cas d'erreur grave.",
+
+    "native_stack_trace": "Trace d'appels native",
+    "js_stack_trace": "Trace d'appels de JavaScript",
+
+    "reportBtn": "Faire un rapport",
+    "ignoreBtn": "Ignorer"
   }
 }
