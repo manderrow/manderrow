@@ -8,6 +8,8 @@ const IpcMode = enum {
 };
 
 pub fn build(b: *std.Build) !void {
+    b.reference_trace = 24;
+
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{
         .preferred_optimize_mode = .ReleaseSafe,
