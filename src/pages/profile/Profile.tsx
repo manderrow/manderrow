@@ -312,19 +312,19 @@ export default function Profile() {
                     {
                       id: "mod-list",
                       name: "Installed",
-                      component: <InstalledModsList game={params.gameId} />,
+                      component: () => <InstalledModsList game={params.gameId} />,
                     },
 
                     {
                       id: "mod-search",
                       name: "Online",
-                      component: <ModSearch game={params.gameId} />,
+                      component: () => <ModSearch game={params.gameId} />,
                     },
 
                     {
                       id: "logs",
                       name: "Logs",
-                      component: (
+                      component: () => (
                         <div class={styles.content__console}>
                           <Console />
                         </div>
@@ -334,7 +334,7 @@ export default function Profile() {
                     {
                       id: "config",
                       name: "Config",
-                      component: <div></div>,
+                      component: () => <div></div>,
                     },
                   ]}
                 />

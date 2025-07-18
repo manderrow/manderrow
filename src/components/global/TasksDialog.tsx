@@ -30,12 +30,12 @@ export default function TasksDialog(props: { onDismiss: DismissCallback }) {
             {
               id: "active",
               name: t("global.task_manager.active_tab_name"),
-              component: <TaskList active />,
+              component: () => <TaskList active />,
             },
             {
               id: "completed",
               name: t("global.task_manager.completed_tab_name"),
-              component: <TaskList />,
+              component: () => <TaskList />,
             },
           ]}
           styles={{

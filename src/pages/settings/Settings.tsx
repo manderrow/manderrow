@@ -19,7 +19,7 @@ export default function SettingsPage() {
   const tabs: Tab<string>[] = settingsUI().sections.map((section) => ({
     id: section.id,
     name: t(`settings.section.${section.id}`),
-    component: (
+    component: () => (
       <For each={section.settings}>
         {(setting) => (
           <div class={styles.option}>

@@ -105,12 +105,12 @@ function ModView({ mod, gameId }: { mod: Accessor<Mod | undefined>; gameId: stri
     {
       id: "overview",
       name: "Overview",
-      component: <ModMarkdown mod={mod()} selectedVersion={selectedVersion()?.[0]} endpoint="readme" />,
+      component: () => <ModMarkdown mod={mod()} selectedVersion={selectedVersion()?.[0]} endpoint="readme" />,
     },
     {
       id: "dependencies",
       name: "Dependencies",
-      component: (
+      component: () => (
         <Show when={mod()}>
           {(mod) => <For each={modVersionData(mod()).dependencies}>{(dependency) => <p>{dependency}</p>}</For>}
         </Show>
@@ -119,7 +119,7 @@ function ModView({ mod, gameId }: { mod: Accessor<Mod | undefined>; gameId: stri
     {
       id: "changelog",
       name: "Changelog",
-      component: <ModMarkdown mod={mod()} selectedVersion={selectedVersion()?.[0]} endpoint="changelog" />,
+      component: () => <ModMarkdown mod={mod()} selectedVersion={selectedVersion()?.[0]} endpoint="changelog" />,
     },
   ];
 

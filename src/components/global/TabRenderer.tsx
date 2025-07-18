@@ -6,7 +6,7 @@ export interface Tab<Id extends string> {
   name: string;
   // fallback?: JSX.Element;
   selected?: boolean;
-  component: JSX.Element;
+  component: () => JSX.Element;
 }
 
 interface TabStyles {
@@ -79,7 +79,7 @@ export function TabContent<Id extends string>({
 }) {
   return (
     <Switch>
-      <For each={tabs}>{(tab) => <Match when={currentTab().id === tab.id}>{tab.component}</Match>}</For>
+      <For each={tabs}>{(tab) => <Match when={currentTab().id === tab.id}>{tab.component()}</Match>}</For>
     </Switch>
   );
 }
