@@ -80,35 +80,39 @@ fn GetStdHandlePtr(handle_id: StdHandle) *std.os.windows.HANDLE {
 
 fn forwardFromPipe(channel: ipc.StandardOutputChannel, pipe: std.fs.File) void {
     defer pipe.close();
-    var rdr = std.io.bufferedReader(pipe.reader());
-    var buf: std.ArrayListUnmanaged(u8) = .empty;
-    defer buf.deinit(alloc);
+    var rdr_buf: [4096]u8 = undefined;
+    var rdr = pipe.reader(&rdr_buf);
+    var buf = std.io.Writer.Allocating.initCapacity(alloc, 256) catch |e| {
+        logger.err("Error in stdio forwarder: {}", .{e});
+        return;
+    };
+    defer buf.deinit();
     while (true) {
         defer buf.clearRetainingCapacity();
 
-        rdr.reader().streamUntilDelimiter(buf.writer(alloc), '\n', null) catch |e| switch (e) {
-            error.EndOfStream => {},
-            else => {
-                logger.err("Error in stdio forwarder: {}", .{e});
-                return;
-            },
+        _ = rdr.interface.streamDelimiterEnding(&buf.writer, '\n') catch |e| {
+            logger.err("Error in stdio forwarder: {}", .{e});
+            return;
         };
-
-        if (buf.getLastOrNull()) |c| {
-            if (c == '\r') {
-                _ = buf.pop().?;
-            }
+        if (rdr.interface.buffer.len != 0) {
+            std.debug.assert(rdr.interface.buffer[0] == '\n');
+            rdr.interface.buffer = rdr.interface.buffer[1..];
         }
 
-        if (tryForwardLineAsLogRecord(buf.items)) {
+        var line = buf.getWritten();
+        if (line.len != 0 and line[line.len - 1] == '\r') {
+            line = line[0 .. line.len - 1];
+        }
+
+        if (tryForwardLineAsLogRecord(line)) {
             continue;
         }
 
         // forward stdout and stderr to our log file
-        root.logToLogFile(.info, @tagName(channel), "{s}", .{buf.items});
+        root.logToLogFile(.info, @tagName(channel), "{s}", .{line});
 
         // forward normally
-        rs.sendOutputLine(channel, buf.items);
+        rs.sendOutputLine(channel, line);
     }
 }
 

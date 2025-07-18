@@ -60,7 +60,7 @@ pub fn init(host_dlfcn_lib_path: [:0]const u16, host_lib_path: [:0]const u8) voi
     logger.debug("Loading host library", .{});
 
     const dlfcns = dlfcn.init(host_dlfcn_lib_path) catch |e| {
-        std.debug.panic("Failed to load host_dlfcn library from {}: {s}", .{ std.unicode.fmtUtf16Le(host_dlfcn_lib_path), @errorName(e) });
+        std.debug.panic("Failed to load host_dlfcn library from {f}: {s}", .{ std.unicode.fmtUtf16Le(host_dlfcn_lib_path), @errorName(e) });
     };
 
     logger.debug("Loaded host_dlfcn library", .{});
