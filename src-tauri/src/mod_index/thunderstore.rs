@@ -30,6 +30,13 @@ pub async fn fetch_mod_markdown(
         app,
         log,
         reqwest,
+        format!(
+            "{} of mod {owner}-{name}-{version}",
+            match endpoint {
+                ModMarkdown::Readme => "README",
+                ModMarkdown::Changelog => "CHANGELOG",
+            }
+        ),
         &format!(
             "https://thunderstore.io/api/experimental/package/{owner}/{name}/{version}/{}/",
             match endpoint {

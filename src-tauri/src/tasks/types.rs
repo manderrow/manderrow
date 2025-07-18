@@ -7,14 +7,16 @@ pub struct Id(pub(super) u64);
 #[derive(Clone, serde::Serialize)]
 pub struct Metadata {
     pub title: Cow<'static, str>,
+    #[serde(flatten)]
     pub kind: Kind,
     pub progress_unit: ProgressUnit,
 }
 
-#[derive(Debug, Clone, Copy, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(tag = "kind")]
 pub enum Kind {
     Aggregate,
-    Download,
+    Download { url: String },
     Other,
 }
 

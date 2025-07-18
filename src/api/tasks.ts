@@ -13,11 +13,17 @@ export const tasks: ReadonlyMap<Id, Task> = _tasks;
 
 export type Listener = (event: TaskEvent) => void;
 
-export interface Metadata {
+interface BaseMetadata {
   title: string;
   kind: Kind;
   progress_unit: ProgressUnit;
 }
+
+export type AggregateMetadata = BaseMetadata & { kind: Kind.Aggregate };
+export type DownloadMetadata = BaseMetadata & { kind: Kind.Download; url: string };
+export type OtherMetadata = BaseMetadata & { kind: Kind.Other };
+
+export type Metadata = AggregateMetadata | DownloadMetadata | OtherMetadata;
 
 export interface Progress {
   completed: number;

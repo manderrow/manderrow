@@ -367,6 +367,7 @@ async fn install_profile_mod_inner<'a, 'b>(
         Some(app),
         &log,
         reqwest,
+        format!("{mod_owner}-{mod_name}-{mod_version}"),
         &url,
         Some(crate::installing::CacheOptions::by_url()),
         &mod_folder_path,

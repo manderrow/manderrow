@@ -1,7 +1,7 @@
-import { createSignal, createUniqueId, For, JSX, Show } from "solid-js";
+import { For, Show } from "solid-js";
 
 import Dialog, { DismissCallback } from "./Dialog";
-import { ProgressUnit, Task, tasks } from "../../api/tasks";
+import { DownloadMetadata, Kind, ProgressUnit, tasks } from "../../api/tasks";
 import { humanizeFileSize, roundedNumberFormatter } from "../../utils";
 import { clearCache } from "../../api/installing";
 import { SimpleAsyncButton } from "./AsyncButton";
@@ -10,6 +10,8 @@ import styles from "./TasksDialog.module.css";
 import { SimpleProgressIndicator } from "./Progress";
 import TabRenderer from "./TabRenderer.tsx";
 import { t } from "../../i18n/i18n.ts";
+import Fa from "solid-fa";
+import { faDownload, faListCheck } from "@fortawesome/free-solid-svg-icons";
 
 export default function TasksDialog(props: { onDismiss: DismissCallback }) {
   return (
@@ -49,6 +51,17 @@ export default function TasksDialog(props: { onDismiss: DismissCallback }) {
   );
 }
 
+function TaskKindIcon(kind: Kind) {
+  switch (kind) {
+    case Kind.Aggregate:
+      return <Fa icon={faListCheck} />;
+    case Kind.Download:
+      return <Fa icon={faDownload} />;
+    case Kind.Other:
+      return <></>;
+  }
+}
+
 function TaskList(props: { active?: boolean }) {
   return (
     <ul class={styles.list}>
@@ -66,7 +79,7 @@ function TaskList(props: { active?: boolean }) {
             <div>
               <div>
                 <h4>
-                  <Show when={task.metadata.kind === "Download"}>Download</Show> {task.metadata.title}
+                  {TaskKindIcon(task.metadata.kind)} {task.metadata.title}
                 </h4>
                 <p>
                   status=<span>{task.status.status}</span>
@@ -96,6 +109,10 @@ function TaskList(props: { active?: boolean }) {
                     </span>
                   </Show>
                 </p>
+
+                <Show when={task.metadata.kind === Kind.Download}>
+                  <a href={(task.metadata as DownloadMetadata).url}>{(task.metadata as DownloadMetadata).url}</a>
+                </Show>
               </div>
             </div>
           </li>
