@@ -65,7 +65,7 @@ export default function App() {
   return (
     <Show
       when={
-        coreResources.every((resource) => !resource.loading && resource.state !== "unresolved") && !fontLoaded.loading
+        coreResources.every((resource) => resource.state !== "pending" && resource.state !== "unresolved") && !fontLoaded.loading
       }
       fallback={
         <Show when={coreResources.find((resource) => resource.error != null)?.error} fallback={<Splashscreen />}>
