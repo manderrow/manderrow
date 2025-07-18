@@ -3,8 +3,8 @@ import { ErrorDialog } from "./ErrorBoundary";
 import { createProgressProxyStore, Listener, Progress } from "../../api/tasks";
 import { SimpleProgressIndicator } from "./Progress";
 
-export function AsyncButton(props: {
-  children: (busy: Accessor<boolean>, wrapOnClick: (f: () => Promise<void> | void) => Promise<void>) => JSX.Element;
+export function ActionContext(props: {
+  children: (busy: Accessor<boolean>, wrapAction: (f: () => Promise<void> | void) => Promise<void>) => JSX.Element;
 }) {
   const [err, setErr] = createSignal<unknown>();
   const [busy, setBusy] = createSignal(false);
@@ -56,7 +56,7 @@ export function SimpleAsyncButton<const P extends true | undefined>(
     if (props.ref) props.ref(ref);
   });
   return (
-    <AsyncButton>
+    <ActionContext>
       {(busy, wrapOnClick) => (
         <button
           class={props.class}
@@ -85,6 +85,6 @@ export function SimpleAsyncButton<const P extends true | undefined>(
           </Show>
         </button>
       )}
-    </AsyncButton>
+    </ActionContext>
   );
 }

@@ -3,7 +3,7 @@ import { For, JSX, Match, Show, Switch, catchError, createContext, createSignal 
 import { DefaultDialog } from "./Dialog";
 import { AbortedError, NativeError } from "../../api";
 import styles from "./ErrorBoundary.module.css";
-import { AsyncButton } from "./AsyncButton";
+import { ActionContext } from "./AsyncButton";
 import { t } from "../../i18n/i18n";
 
 export type ReportErrFn = (err: unknown) => void;
@@ -71,7 +71,7 @@ export function ErrorDialog(props: { err: unknown; reset: () => Promise<void> | 
         <p>{t("error.ignore_msg")}</p>
       </div>
       <div class={styles.buttons}>
-        <AsyncButton>
+        <ActionContext>
           {(busy, wrapOnClick) => (
             <button
               class={styles.inlineButton}
@@ -84,7 +84,7 @@ export function ErrorDialog(props: { err: unknown; reset: () => Promise<void> | 
               {t("error.ignoreBtn")}
             </button>
           )}
-        </AsyncButton>
+        </ActionContext>
 
         {/* TODO: Add link to report button */}
         <button class={styles.inlineButton}>{t("error.reportBtn")}</button>

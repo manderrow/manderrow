@@ -8,7 +8,6 @@ import {
   Match,
   Show,
   Switch,
-  untrack,
   useContext,
 } from "solid-js";
 import { A, useNavigate, useParams } from "@solidjs/router";
@@ -40,18 +39,11 @@ import TabRenderer from "../../components/global/TabRenderer";
 import ModList, { ModInstallContext } from "../../components/profile/ModList";
 import ModSearch from "../../components/profile/ModSearch";
 
-import {
-  createProfile,
-  deleteProfile,
-  getProfileMods,
-  overwriteProfileMetadata,
-  ProfileWithId,
-  type Profile as ProfileType,
-} from "../../api";
+import { createProfile, deleteProfile, getProfileMods, overwriteProfileMetadata, ProfileWithId } from "../../api";
 import * as globals from "../../globals";
 import { refetchProfiles } from "../../globals";
 import { Refetcher } from "../../types.d.ts";
-import { autofocus } from "../../components/global/Directives";
+import { autofocus, bindValue } from "../../components/global/Directives";
 
 import styles from "./Profile.module.css";
 import sidebarStyles from "./SidebarProfiles.module.css";
@@ -63,7 +55,7 @@ import { killIpcClient } from "../../api/ipc";
 import { t } from "../../i18n/i18n.ts";
 import { launchProfile } from "../../api/launching";
 import { ConsoleConnection, focusedConnection, setFocusedConnection } from "../../console";
-import { AsyncButton } from "../../components/global/AsyncButton.tsx";
+import { ActionContext } from "../../components/global/AsyncButton.tsx";
 
 interface ProfileParams {
   profileId?: string;
@@ -429,25 +421,108 @@ function SidebarProfileComponent(props: {
 
   const navigate = useNavigate();
 
+  const [renaming, setRenaming] = createSignal(false);
+
   return (
     <li class={sidebarStyles.profileList__item}>
-      <A href={`/profile/${props.gameId}/${props.profile.id}`}>{props.profile.name}</A>
-      <div class={sidebarStyles.profileItem__options}>
-        <AsyncButton>
-          {(busy, wrapOnClick) => (
-            <button
-              data-pin
-              title={t("profile.sidebar.pin_profile_ptn")}
-              disabled={busy()}
-              on:click={async (e) => {
-                e.stopPropagation();
-                await wrapOnClick(async () => {
+      <Show
+        when={renaming()}
+        fallback={
+          <>
+            <A class={sidebarStyles.profileList__itemName} href={`/profile/${props.gameId}/${props.profile.id}`}>
+              {props.profile.name}
+            </A>
+            <div class={sidebarStyles.profileItem__options}>
+              <ActionContext>
+                {(busy, wrapAction) => (
+                  <button
+                    data-pin
+                    title={t("profile.sidebar.pin_profile_ptn")}
+                    disabled={busy()}
+                    on:click={async (e) => {
+                      e.stopPropagation();
+                      await wrapAction(async () => {
+                        try {
+                          const obj: ProfileWithId = { ...props.profile };
+                          const id = obj.id;
+                          // @ts-ignore I want to remove the property
+                          delete obj.id;
+                          obj.pinned = !obj.pinned;
+                          await overwriteProfileMetadata(id, obj);
+                        } finally {
+                          await props.refetchProfiles();
+                        }
+                      });
+                    }}
+                  >
+                    <Fa icon={props.profile.pinned ? faThumbTackSlash : faThumbTack} rotate={90} />
+                  </button>
+                )}
+              </ActionContext>
+              <button data-pin title={t("profile.sidebar.rename_profile_btn")} on:click={() => setRenaming(true)}>
+                <Fa icon={faPenToSquare} />
+              </button>
+              <button
+                data-delete
+                title={t("profile.sidebar.delete_profile_btn")}
+                on:click={() => setConfirmingDeletion(true)}
+              >
+                <Fa icon={faTrashCan} />
+              </button>
+              <button data-export title={t("profile.sidebar.export_profile_btn")}>
+                <Fa icon={faFileExport} />
+              </button>
+            </div>
+
+            <Show when={confirmingDeletion()}>
+              <PromptDialog
+                options={{
+                  title: "Confirm",
+                  question: `You are about to delete ${props.profile.name}`,
+                  btns: {
+                    ok: {
+                      type: "danger",
+                      text: "Delete",
+                      async callback() {
+                        if (props.selected) {
+                          navigate(`/profile/${props.gameId}`, { replace: true });
+                        }
+                        if (deleting()) return;
+                        setDeleting(true);
+                        try {
+                          await deleteProfile(props.profile.id);
+                        } finally {
+                          setConfirmingDeletion(false);
+                          setDeleting(false);
+                          await props.refetchProfiles();
+                        }
+                      },
+                    },
+                    cancel: {
+                      callback() {
+                        setConfirmingDeletion(false);
+                      },
+                    },
+                  },
+                }}
+              />
+            </Show>
+          </>
+        }
+      >
+        <ActionContext>
+          {(busy, wrapAction) => (
+            <form
+              class={sidebarStyles.profileList__itemName}
+              on:submit={async (e) => {
+                e.preventDefault();
+                await wrapAction(async () => {
                   try {
                     const obj: ProfileWithId = { ...props.profile };
                     const id = obj.id;
                     // @ts-ignore I want to remove the property
                     delete obj.id;
-                    obj.pinned = !obj.pinned;
+                    obj.name = (e.target.firstChild as HTMLInputElement).value;
                     await overwriteProfileMetadata(id, obj);
                   } finally {
                     await props.refetchProfiles();
@@ -455,57 +530,24 @@ function SidebarProfileComponent(props: {
                 });
               }}
             >
-              <Fa icon={props.profile.pinned ? faThumbTackSlash : faThumbTack} rotate={90} />
-            </button>
+              <input
+                value={props.profile.name}
+                disabled={busy()}
+                use:autofocus
+                on:focus={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  target.setSelectionRange(0, target.value.length);
+                }}
+                on:focusout={() => setRenaming(false)}
+                on:keydown={(e) => {
+                  if (e.key === "Escape") {
+                    setRenaming(false);
+                  }
+                }}
+              />
+            </form>
           )}
-        </AsyncButton>
-        <button data-pin title={t("profile.sidebar.rename_profile_btn")}>
-          <Fa icon={faPenToSquare} />
-        </button>
-        <button
-          data-delete
-          title={t("profile.sidebar.delete_profile_btn")}
-          on:click={() => setConfirmingDeletion(true)}
-        >
-          <Fa icon={faTrashCan} />
-        </button>
-        <button data-export title={t("profile.sidebar.export_profile_btn")}>
-          <Fa icon={faFileExport} />
-        </button>
-      </div>
-
-      <Show when={confirmingDeletion()}>
-        <PromptDialog
-          options={{
-            title: "Confirm",
-            question: `You are about to delete ${props.profile.name}`,
-            btns: {
-              ok: {
-                type: "danger",
-                text: "Delete",
-                async callback() {
-                  if (props.selected) {
-                    navigate(`/profile/${props.gameId}`, { replace: true });
-                  }
-                  if (deleting()) return;
-                  setDeleting(true);
-                  try {
-                    await deleteProfile(props.profile.id);
-                  } finally {
-                    setConfirmingDeletion(false);
-                    setDeleting(false);
-                    await props.refetchProfiles();
-                  }
-                },
-              },
-              cancel: {
-                callback() {
-                  setConfirmingDeletion(false);
-                },
-              },
-            },
-          }}
-        />
+        </ActionContext>
       </Show>
     </li>
   );
