@@ -28,7 +28,7 @@ use trie_rs::TrieBuilder;
 use walkdir::WalkDir;
 use zip::{result::ZipError, ZipArchive};
 
-use crate::tasks::{self, TaskBuilder, TaskHandle};
+use crate::tasks::{self, SuccessInfo, TaskBuilder, TaskHandle};
 use crate::util::{IoErrorKindExt, UsizeExt};
 use crate::Reqwest;
 
@@ -678,7 +678,7 @@ pub async fn fetch_resource_uncached<'a>(
                 bytes
             };
 
-            Ok::<_, anyhow::Error>(bytes)
+            Ok::<_, anyhow::Error>((None, bytes))
         })
         .await
         .map_err(Into::into)
@@ -727,7 +727,7 @@ pub async fn fetch_resource_cached_by_hash_at_path(
                     Err(e) => return Err(e.into()),
                 }
             };
-            if hash_on_disk.map(|h| h != hash).unwrap_or(true) {
+            let success = if hash_on_disk.map(|h| h != hash).unwrap_or(true) {
                 let mut resp = reqwest.get(url).send().await?.error_for_status()?;
                 tokio::fs::create_dir_all(cache_dir()).await?;
                 // TODO: should this be buffered?
@@ -753,12 +753,15 @@ pub async fn fetch_resource_cached_by_hash_at_path(
                 if hash_on_disk != hash {
                     bail!("Bad hash of downloaded resource at {path:?}: expected {hash}, found {hash_on_disk}");
                 }
+
+                None
             } else {
                 debug!(log, "Resource is cached at {path:?}");
                 let metadata = tokio::fs::metadata(&path).await?;
                 report_progress_from_file_metadata(app, handle, metadata)?;
-            }
-            Ok::<_, anyhow::Error>(())
+                Some(SuccessInfo::Cached)
+            };
+            Ok::<_, anyhow::Error>((success, ()))
         })
         .await
         .map_err(Into::into)
@@ -806,10 +809,11 @@ pub async fn fetch_resource_cached_by_url(
             path.as_mut_os_string()
                 .push(base64::engine::general_purpose::URL_SAFE.encode(url));
             path.as_mut_os_string().push(suffix);
-            match tokio::fs::metadata(&path).await {
+            let success = match tokio::fs::metadata(&path).await {
                 Ok(metadata) => {
                     debug!(log, "Resource is cached at {path:?}");
                     report_progress_from_file_metadata(app, handle, metadata)?;
+                    Some(SuccessInfo::Cached)
                 }
                 Err(e) if e.is_not_found() => {
                     tokio::fs::create_dir_all(cache_dir()).await?;
@@ -851,10 +855,12 @@ pub async fn fetch_resource_cached_by_url(
                         .context("Failed to move temp file into place")?;
 
                     debug!(log, "Cached resource at {path:?}");
+
+                    None
                 }
                 Err(e) => return Err(e.into()),
-            }
-            Ok::<_, anyhow::Error>(path)
+            };
+            Ok::<_, anyhow::Error>((success, path))
         })
         .await
         .map_err(Into::into)

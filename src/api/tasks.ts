@@ -1,15 +1,11 @@
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
+import { createSignal, Setter } from "solid-js";
+import { createStore, SetStoreFunction, Store } from "solid-js/store";
 
 import { wrapInvoke } from "../api";
-import { listen } from "@tauri-apps/api/event";
-import { createStore, SetStoreFunction, Store } from "solid-js/store";
-import { createSignal, Setter, untrack } from "solid-js";
 
 export type Id = number;
-
-const _tasks = new Map<Id, Task>();
-
-export const tasks: ReadonlyMap<Id, Task> = _tasks;
 
 export type Listener = (event: TaskEvent) => void;
 
@@ -29,10 +25,6 @@ export interface Progress {
   completed: number;
   total: number;
 }
-
-const SET_METADATA = Symbol();
-const SET_STATUS = Symbol();
-const SET_PROGRESS = Symbol();
 
 export function initProgress(): Progress {
   return {
@@ -56,45 +48,6 @@ export function createProgressProxyStore(): [Progress, Setter<Store<Progress>>] 
   ];
 }
 
-export class Task {
-  readonly metadata: Store<Metadata>;
-  readonly status: Store<Status>;
-  readonly progress: Store<Progress>;
-  readonly dependencies: Store<Id[]>;
-
-  readonly [SET_METADATA]: SetStoreFunction<Metadata>;
-  readonly [SET_STATUS]: SetStoreFunction<Status>;
-  readonly [SET_PROGRESS]: SetStoreFunction<Progress>;
-  readonly setDependencies: SetStoreFunction<Id[]>;
-
-  listeners: Listener[];
-
-  constructor(initialMetadata: Metadata, initialStatus: Status, listeners: Listener[]) {
-    const [metadata, setMetadata] = untrack(() => createStore(initialMetadata));
-    this.metadata = metadata;
-    this[SET_METADATA] = setMetadata;
-
-    const [status, setStatus] = untrack(() => createStore(initialStatus));
-    this.status = status;
-    this[SET_STATUS] = setStatus;
-
-    const [progress, setProgress] = untrack(() => createStore(initProgress()));
-    this.progress = progress;
-    this[SET_PROGRESS] = setProgress;
-
-    const [dependencies, setDependencies] = untrack(() => createStore<Id[]>([]));
-    this.dependencies = dependencies;
-    this.setDependencies = setDependencies;
-
-    this.listeners = listeners;
-  }
-
-  get isComplete(): boolean {
-    const status = this.status.status;
-    return status === "Success" || status === "Failed" || status === "Cancelled";
-  }
-}
-
 export enum Kind {
   Aggregate = "Aggregate",
   Download = "Download",
@@ -109,7 +62,7 @@ export enum ProgressUnit {
 export type Status = { status: "Unstarted" } | { status: "Running" } | { status: "Cancelling" } | DropStatus;
 
 export type DropStatus =
-  | { status: "Success" }
+  | { status: "Success"; success?: "Cached" }
   | { status: "Failed"; error: string }
   | { status: "Cancelled"; direct: boolean };
 
@@ -138,6 +91,117 @@ export type TaskEvent =
   | (Omit<TaskProgressEvent, "id"> & { event: "progress" })
   | (Omit<TaskDependencyEvent, "id"> & { event: "dependency" })
   | (Omit<TaskDroppedEvent, "id"> & { event: "dropped" });
+
+const SET_METADATA = Symbol();
+const SET_STATUS = Symbol();
+const SET_PROGRESS = Symbol();
+const SET_DEPENDENCIES = Symbol();
+
+export class Task {
+  readonly metadata: Store<Metadata>;
+  readonly status: Store<Status>;
+  readonly progress: Store<Progress>;
+  readonly dependencies: Store<Id[]>;
+
+  readonly [SET_METADATA]: SetStoreFunction<Metadata>;
+  readonly [SET_STATUS]: SetStoreFunction<Status>;
+  readonly [SET_PROGRESS]: SetStoreFunction<Progress>;
+  readonly [SET_DEPENDENCIES]: SetStoreFunction<Id[]>;
+
+  listeners: Listener[];
+
+  constructor(initialMetadata: Metadata, initialStatus: Status, listeners: Listener[]) {
+    const [metadata, setMetadata] = createStore(initialMetadata);
+    this.metadata = metadata;
+    this[SET_METADATA] = setMetadata;
+
+    const [status, setStatus] = createStore(initialStatus);
+    this.status = status;
+    this[SET_STATUS] = setStatus;
+
+    const [progress, setProgress] = createStore(initProgress());
+    this.progress = progress;
+    this[SET_PROGRESS] = setProgress;
+
+    const [dependencies, setDependencies] = createStore<Id[]>([]);
+    this.dependencies = dependencies;
+    this[SET_DEPENDENCIES] = setDependencies;
+
+    this.listeners = listeners;
+  }
+
+  get isComplete(): boolean {
+    const status = this.status.status;
+    return status === "Success" || status === "Failed" || status === "Cancelled";
+  }
+}
+
+const _tasks = new Map<Id, Task>();
+
+export const tasks: ReadonlyMap<Id, Task> = _tasks;
+
+export function registerTaskListener(id: Id, listener: Listener) {
+  const task = _tasks.get(id);
+  if (task === undefined) {
+    _tasks.set(
+      id,
+      new Task(
+        {
+          title: "",
+          kind: Kind.Other,
+          progress_unit: ProgressUnit.Other,
+        },
+        { status: "Unstarted" },
+        [listener],
+      ),
+    );
+  } else {
+    task.listeners.push(listener);
+  }
+}
+
+export function unregisterTaskListener(id: Id, listener: Listener) {
+  const task = _tasks.get(id);
+  if (task !== undefined) {
+    const i = task.listeners.indexOf(listener);
+    if (i !== -1) {
+      task.listeners.splice(i, 1);
+    }
+  }
+}
+
+/**
+ * @returns the id of the newly allocated task
+ */
+export async function allocateTask(): Promise<Id> {
+  return await wrapInvoke(() => invoke("allocate_task"));
+}
+
+/**
+ * Invokes `f` with the id of a newly allocated task that has `listener` registered.
+ *
+ * @param listener a listener for task events
+ * @param f the callback to invoke
+ * @returns the return value of the callback
+ */
+export async function invokeWithListener<R>(listener: Listener, f: (taskId: Id) => Promise<R>): Promise<R> {
+  const taskId = await allocateTask();
+  registerTaskListener(taskId, listener);
+  return await wrapInvoke(() => f(taskId));
+}
+
+/**
+ * Cancels the task `id`, returning without waiting for the cancellation to complete.
+ */
+export async function cancelTask(id: Id): Promise<void> {
+  return await wrapInvoke(() => invoke("cancel_task", { id }));
+}
+
+async function notifyTaskListeners(task: Task, event: TaskEvent) {
+  task.listeners.forEach((listener) => listener(event));
+}
+
+// Rust event listeners
 
 listen<TaskCreatedEvent>("task_created", (event) => {
   const { id, metadata } = event.payload;
@@ -168,7 +232,7 @@ listen<TaskProgressEvent>("task_progress", (event) => {
 listen<TaskDependencyEvent>("task_dependency", (event) => {
   const task = _tasks.get(event.payload.id);
   if (task !== undefined) {
-    task.setDependencies(task.dependencies.length, event.payload.dependency);
+    task[SET_DEPENDENCIES](task.dependencies.length, event.payload.dependency);
     if (task.metadata.kind === "Aggregate") {
       const dependency = event.payload.dependency;
       registerTaskListener(dependency, function handler(event) {
@@ -209,51 +273,3 @@ listen<TaskDroppedEvent>("task_dropped", (event) => {
     task.listeners = Object.freeze<Listener[]>([]) as Listener[];
   }
 });
-
-async function notifyTaskListeners(task: Task, event: TaskEvent) {
-  task.listeners.forEach((listener) => listener(event));
-}
-
-export function registerTaskListener(id: Id, listener: Listener) {
-  const task = _tasks.get(id);
-  if (task === undefined) {
-    _tasks.set(
-      id,
-      new Task(
-        {
-          title: "",
-          kind: Kind.Other,
-          progress_unit: ProgressUnit.Other,
-        },
-        { status: "Unstarted" },
-        [listener],
-      ),
-    );
-  } else {
-    task.listeners.push(listener);
-  }
-}
-
-export function unregisterTaskListener(id: Id, listener: Listener) {
-  const task = _tasks.get(id);
-  if (task !== undefined) {
-    const i = task.listeners.indexOf(listener);
-    if (i !== -1) {
-      task.listeners.splice(i, 1);
-    }
-  }
-}
-
-export async function allocateTask(): Promise<Id> {
-  return await wrapInvoke(() => invoke("allocate_task"));
-}
-
-export async function invokeWithListener<R>(listener: Listener, f: (taskId: Id) => Promise<R>): Promise<R> {
-  const taskId = await allocateTask();
-  registerTaskListener(taskId, listener);
-  return await wrapInvoke(() => f(taskId));
-}
-
-export async function cancelTask(id: Id): Promise<void> {
-  return await wrapInvoke(() => invoke("cancel_task", { id }));
-}

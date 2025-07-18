@@ -176,7 +176,7 @@ pub async fn import_modpack_from_thunderstore_code(
             return Err(e.into());
         }
 
-        Ok(profile_id)
+        Ok((None, profile_id))
     })
     .await
     .map_err(|e: TaskError<anyhow::Error>| anyhow::Error::from(e).into())

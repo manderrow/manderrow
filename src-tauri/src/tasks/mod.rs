@@ -238,7 +238,7 @@ impl TaskBuilder {
 
     pub async fn run<F, T, E>(self, app: Option<&AppHandle>, fut: F) -> Result<T, TaskError<E>>
     where
-        F: Future<Output = Result<T, E>>,
+        F: Future<Output = Result<(Option<SuccessInfo>, T), E>>,
         E: std::fmt::Display + Into<anyhow::Error>,
     {
         self.run_with_handle(app, move |_| fut).await
@@ -250,7 +250,7 @@ impl TaskBuilder {
         fut: impl FnOnce(TaskHandle) -> F + 'b,
     ) -> Result<T, TaskError<E>>
     where
-        F: Future<Output = Result<T, E>>,
+        F: Future<Output = Result<(Option<SuccessInfo>, T), E>>,
         E: std::fmt::Display + Into<anyhow::Error>,
     {
         let mut handle = if let Some(app) = app {
@@ -270,9 +270,9 @@ impl TaskBuilder {
             }
             r = fut => {
                 match r {
-                    Ok(t) => {
+                    Ok((success, t)) => {
                         if let Some(handle) = handle {
-                            handle.drop(DropStatus::Success).map_err(TaskError::Management)?;
+                            handle.drop(DropStatus::Success { success }).map_err(TaskError::Management)?;
                         }
                         Ok(t)
                     }

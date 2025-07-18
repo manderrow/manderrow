@@ -108,6 +108,10 @@ function TaskList(props: { active?: boolean }) {
                       </Show>
                     </span>
                   </Show>
+
+                  <Show when={task.status.status === "Success" ? task.status.success : undefined}>
+                    {(info) => <span>{info()}</span>}
+                  </Show>
                 </p>
 
                 <Show when={task.metadata.kind === Kind.Download}>
