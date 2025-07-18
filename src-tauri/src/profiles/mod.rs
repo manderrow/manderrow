@@ -26,9 +26,12 @@ use crate::{tasks, Reqwest};
 pub static PROFILES_DIR: LazyLock<PathBuf> = LazyLock::new(|| local_data_dir().join("profiles"));
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Profile {
     pub name: SmolStr,
     pub game: SmolStr,
+    #[serde(default)]
+    pub pinned: bool,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -46,14 +49,33 @@ pub enum ReadProfileError {
     Decoding(#[from] serde_json::Error),
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum WriteProfileError {
+    #[error("failed to write profile.json: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("failed to encode profile.json: {0}")]
+    Encoding(#[from] serde_json::Error),
+}
+
 pub async fn read_profile_file(path: &Path) -> Result<Profile, ReadProfileError> {
     Ok(serde_json::from_slice(&tokio::fs::read(path).await?)?)
+}
+
+pub async fn write_profile_file(path: &Path, metadata: &Profile) -> Result<(), WriteProfileError> {
+    tokio::fs::write(path, serde_json::to_vec(metadata)?).await?;
+    Ok(())
 }
 
 pub async fn read_profile(id: Uuid) -> Result<Profile, ReadProfileError> {
     let mut path = profile_path(id);
     path.push("profile.json");
     read_profile_file(&path).await
+}
+
+pub async fn write_profile(id: Uuid, metadata: &Profile) -> Result<(), WriteProfileError> {
+    let mut path = profile_path(id);
+    path.push("profile.json");
+    write_profile_file(&path, metadata).await
 }
 
 pub fn profile_path(id: Uuid) -> PathBuf {
@@ -108,9 +130,16 @@ pub async fn create_profile(game: SmolStr, name: SmolStr) -> Result<Uuid> {
         .await
         .context("Failed to create profile directory")?;
     path.push("profile.json");
-    tokio::fs::write(path, &serde_json::to_vec(&Profile { name, game }).unwrap())
-        .await
-        .context("Failed to write profile metadata")?;
+    write_profile_file(
+        &path,
+        &Profile {
+            name,
+            game,
+            pinned: false,
+        },
+    )
+    .await
+    .context("Failed to write profile metadata")?;
     Ok(id)
 }
 

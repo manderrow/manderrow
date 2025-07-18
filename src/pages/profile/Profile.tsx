@@ -8,6 +8,7 @@ import {
   Match,
   Show,
   Switch,
+  untrack,
   useContext,
 } from "solid-js";
 import { A, useNavigate, useParams } from "@solidjs/router";
@@ -26,6 +27,7 @@ import {
   faArrowDownShortWide,
   faSkullCrossbones,
   faXmark,
+  faThumbTackSlash,
 } from "@fortawesome/free-solid-svg-icons";
 import { OverlayScrollbarsComponent } from "overlayscrollbars-solid";
 import { Fa } from "solid-fa";
@@ -38,7 +40,14 @@ import TabRenderer from "../../components/global/TabRenderer";
 import ModList, { ModInstallContext } from "../../components/profile/ModList";
 import ModSearch from "../../components/profile/ModSearch";
 
-import { createProfile, deleteProfile, getProfileMods, ProfileWithId } from "../../api";
+import {
+  createProfile,
+  deleteProfile,
+  getProfileMods,
+  overwriteProfileMetadata,
+  ProfileWithId,
+  type Profile as ProfileType,
+} from "../../api";
 import * as globals from "../../globals";
 import { refetchProfiles } from "../../globals";
 import { Refetcher } from "../../types.d.ts";
@@ -54,6 +63,7 @@ import { killIpcClient } from "../../api/ipc";
 import { t } from "../../i18n/i18n.ts";
 import { launchProfile } from "../../api/launching";
 import { ConsoleConnection, focusedConnection, setFocusedConnection } from "../../console";
+import { AsyncButton } from "../../components/global/AsyncButton.tsx";
 
 interface ProfileParams {
   profileId?: string;
@@ -79,14 +89,16 @@ export default function Profile() {
   const [profiles] = createResource(
     globals.profiles,
     (profiles) => {
-      return profiles.filter((profile) => profile.game === params.gameId);
+      return Object.fromEntries(
+        profiles.filter((profile) => profile.game === params.gameId).map((profile) => [profile.id, profile]),
+      );
     },
-    { initialValue: [] },
+    { initialValue: {} },
   );
 
   const currentProfile = createMemo(() => {
     if (params.profileId === undefined) return undefined;
-    const profile = globals.profiles().find((profile) => profile.id === params.profileId);
+    const profile = profiles()[params.profileId];
     if (profile !== undefined) return profile;
     throw new Error(`Unknown profile ${params.profileId}`);
   });
@@ -117,10 +129,8 @@ export default function Profile() {
         );
       } catch (error) {
         conn.handleEvent({
-          connId: conn.id,
-          Error: {
-            error,
-          },
+          type: "Error",
+          error,
         });
         setErr(error);
       }
@@ -136,10 +146,8 @@ export default function Profile() {
         await killIpcClient(conn.id);
       } catch (error) {
         conn.handleEvent({
-          connId: conn.id,
-          Error: {
-            error,
-          },
+          type: "Error",
+          error,
         });
         setErr(error);
       }
@@ -233,15 +241,28 @@ export default function Profile() {
             class={sidebarStyles.sidebar__profilesListContainer}
           >
             <ol class={sidebarStyles.sidebar__profilesList}>
-              <For each={profiles()}>
-                {(profile) => (
-                  <SidebarProfileComponent
-                    gameId={params.gameId}
-                    profileId={profile.id}
-                    profileName={profile.name}
-                    refetchProfiles={refetchProfiles}
-                    selected={profile.id === params.profileId}
-                  />
+              <For each={Object.keys(profiles())}>
+                {(id) => (
+                  <Show when={profiles()[id].pinned}>
+                    <SidebarProfileComponent
+                      gameId={params.gameId}
+                      profile={profiles()[id]}
+                      refetchProfiles={refetchProfiles}
+                      selected={id === params.profileId}
+                    />
+                  </Show>
+                )}
+              </For>
+              <For each={Object.keys(profiles())}>
+                {(id) => (
+                  <Show when={!profiles()[id].pinned}>
+                    <SidebarProfileComponent
+                      gameId={params.gameId}
+                      profile={profiles()[id]}
+                      refetchProfiles={refetchProfiles}
+                      selected={id === params.profileId}
+                    />
+                  </Show>
                 )}
               </For>
             </ol>
@@ -348,7 +369,7 @@ export default function Profile() {
 
 function NoSelectedProfileContent(props: {
   gameId: string;
-  profiles: () => ProfileWithId[];
+  profiles: () => { [id: string]: ProfileWithId };
   refetchProfiles: Refetcher<ProfileWithId[]>;
 }) {
   const [name, setName] = createSignal("");
@@ -368,7 +389,7 @@ function NoSelectedProfileContent(props: {
   return (
     <>
       <p>
-        {props.profiles().length !== 0
+        {Object.keys(props.profiles()).length !== 0
           ? "Select a profile from the sidebar or create a new one"
           : "Create a new profile"}
       </p>
@@ -399,8 +420,7 @@ function InstalledModsList(props: { game: string }) {
 
 function SidebarProfileComponent(props: {
   gameId: string;
-  profileId: string;
-  profileName: string;
+  profile: ProfileWithId;
   refetchProfiles: Refetcher<ProfileWithId[]>;
   selected: boolean;
 }) {
@@ -411,11 +431,34 @@ function SidebarProfileComponent(props: {
 
   return (
     <li class={sidebarStyles.profileList__item}>
-      <A href={`/profile/${props.gameId}/${props.profileId}`}>{props.profileName}</A>
+      <A href={`/profile/${props.gameId}/${props.profile.id}`}>{props.profile.name}</A>
       <div class={sidebarStyles.profileItem__options}>
-        <button data-pin title={t("profile.sidebar.pin_profile_ptn")}>
-          <Fa icon={faThumbTack} rotate={90} />
-        </button>
+        <AsyncButton>
+          {(busy, wrapOnClick) => (
+            <button
+              data-pin
+              title={t("profile.sidebar.pin_profile_ptn")}
+              disabled={busy()}
+              on:click={async (e) => {
+                e.stopPropagation();
+                await wrapOnClick(async () => {
+                  try {
+                    const obj: ProfileWithId = { ...props.profile };
+                    const id = obj.id;
+                    // @ts-ignore I want to remove the property
+                    delete obj.id;
+                    obj.pinned = !obj.pinned;
+                    await overwriteProfileMetadata(id, obj);
+                  } finally {
+                    await props.refetchProfiles();
+                  }
+                });
+              }}
+            >
+              <Fa icon={props.profile.pinned ? faThumbTackSlash : faThumbTack} rotate={90} />
+            </button>
+          )}
+        </AsyncButton>
         <button data-pin title={t("profile.sidebar.rename_profile_btn")}>
           <Fa icon={faPenToSquare} />
         </button>
@@ -435,7 +478,7 @@ function SidebarProfileComponent(props: {
         <PromptDialog
           options={{
             title: "Confirm",
-            question: `You are about to delete ${props.profileName}`,
+            question: `You are about to delete ${props.profile.name}`,
             btns: {
               ok: {
                 type: "danger",
@@ -447,7 +490,7 @@ function SidebarProfileComponent(props: {
                   if (deleting()) return;
                   setDeleting(true);
                   try {
-                    await deleteProfile(props.profileId);
+                    await deleteProfile(props.profile.id);
                   } finally {
                     setConfirmingDeletion(false);
                     setDeleting(false);

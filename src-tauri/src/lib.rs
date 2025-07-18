@@ -107,6 +107,7 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
             mod_index::thunderstore::commands::thunderstore_fetch_mod_markdown,
             profiles::commands::get_profiles,
             profiles::commands::create_profile,
+            profiles::commands::overwrite_profile_metadata,
             profiles::commands::delete_profile,
             profiles::commands::get_profile_mods,
             profiles::commands::install_profile_mod,

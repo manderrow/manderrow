@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use crate::{tasks, CommandError, Reqwest};
 
-use super::ProfileWithId;
+use super::{Profile, ProfileWithId};
 
 #[tauri::command]
 pub async fn get_profiles() -> Result<Vec<ProfileWithId>, CommandError> {
@@ -16,6 +16,14 @@ pub async fn get_profiles() -> Result<Vec<ProfileWithId>, CommandError> {
 #[tauri::command]
 pub async fn create_profile(game: SmolStr, name: SmolStr) -> Result<Uuid, CommandError> {
     super::create_profile(game, name).await.map_err(Into::into)
+}
+
+#[tauri::command]
+pub async fn overwrite_profile_metadata(id: Uuid, metadata: Profile) -> Result<(), CommandError> {
+    super::write_profile(id, &metadata)
+        .await
+        .map_err(anyhow::Error::from)
+        .map_err(Into::into)
 }
 
 #[tauri::command]
