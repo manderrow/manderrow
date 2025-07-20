@@ -25,6 +25,13 @@
     }
   },
 
+  "titlebar": {
+    "minimize_btn": "Minimize",
+    "maximize_btn": "Maximize",
+    "restore_btn": "Restore",
+    "close_btn": "Close"
+  },
+
   "game_select": {
     "title": "Game Selection",
     "subtitle": "Select the game you are managing mods for",
@@ -114,7 +121,7 @@
     "native_stack_trace": "Native Stack Trace",
     "js_stack_trace": "JavaScript Stack Trace",
 
-    "reportBtn": "Report",
-    "ignoreBtn": "Ignore"
+    "report_btn": "Report",
+    "ignore_btn": "Ignore"
   }
 }

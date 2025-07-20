@@ -81,13 +81,13 @@ export function ErrorDialog(props: { err: unknown; reset: () => Promise<void> | 
                 wrapOnClick(props.reset);
               }}
             >
-              {t("error.ignoreBtn")}
+              {t("error.ignore_btn")}
             </button>
           )}
         </ActionContext>
 
         {/* TODO: Add link to report button */}
-        <button class={styles.inlineButton}>{t("error.reportBtn")}</button>
+        <button class={styles.inlineButton}>{t("error.report_btn")}</button>
       </div>
     </DefaultDialog>
   );
