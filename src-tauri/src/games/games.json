@@ -2204,9 +2204,9 @@
     ]
   },
   {
-  "id": "subterror",
-  "name": "Subterror",
-  "thunderstoreId": "subterror",
+    "id": "subterror",
+    "name": "Subterror",
+    "thunderstoreId": "subterror",
     "thunderstoreUrl": "https://thunderstore.io/c/subterror/api/v1/package-listing-index/",
     "packageLoader": "BepInEx",
     "exeNames": ["Subterror.exe"],
@@ -2215,6 +2215,171 @@
       {
         "storePlatform": "Steam",
         "storeIdentifier": "2846060"
+      }
+    ]
+  },
+  {
+    "id": "9-kings",
+    "thunderstoreId": "9-kings",
+    "name": "9 Kings",
+    "thunderstoreUrl": "https://thunderstore.io/c/9-kings/api/v1/package-listing-index/",
+    "packageLoader": "BepInEx",
+    "exeNames": ["9Kings.exe"],
+    "instanceType": "Game",
+    "storePlatformMetadata": [
+      {
+        "storePlatform": "Steam",
+        "storeIdentifier": "2784470"
+      }
+    ]
+  },
+  {
+    "id": "aneurism-iv",
+    "thunderstoreId": "aneurism-iv",
+    "name": "ANEURISM IV",
+    "thunderstoreUrl": "https://thunderstore.io/c/aneurism-iv/api/v1/package-listing-index/",
+    "packageLoader": "BepInEx",
+    "exeNames": ["ANEURISM IV.exe"],
+    "instanceType": "Game",
+    "storePlatformMetadata": [
+      {
+        "storePlatform": "Steam",
+        "storeIdentifier": "2773280"
+      }
+    ]
+  },
+  {
+    "id": "gatekeeper",
+    "thunderstoreId": "gatekeeper",
+    "name": "Gatekeeper",
+    "thunderstoreUrl": "https://thunderstore.io/c/gatekeeper/api/v1/package-listing-index/",
+    "packageLoader": "BepInEx",
+    "exeNames": ["Gatekeeper.exe"],
+    "instanceType": "Game",
+    "storePlatformMetadata": [
+      {
+        "storePlatform": "Steam",
+        "storeIdentifier": "2106670"
+      }
+    ]
+  },
+  {
+    "id": "guilty-as-sock",
+    "thunderstoreId": "guilty-as-sock",
+    "name": "Guilty as Sock!",
+    "thunderstoreUrl": "https://thunderstore.io/c/guilty-as-sock/api/v1/package-listing-index/",
+    "packageLoader": "BepInEx",
+    "exeNames": ["StandaloneWindows64.exe"],
+    "instanceType": "Game",
+    "storePlatformMetadata": [
+      {
+        "storePlatform": "Steam",
+        "storeIdentifier": "3400930"
+      }
+    ]
+  },
+  {
+    "id": "human-fall-flat",
+    "thunderstoreId": "human-fall-flat",
+    "name": "Human Fall Flat",
+    "thunderstoreUrl": "https://thunderstore.io/c/human-fall-flat/api/v1/package-listing-index/",
+    "packageLoader": "BepInEx",
+    "exeNames": ["Human.exe"],
+    "instanceType": "Game",
+    "storePlatformMetadata": [
+      {
+        "storePlatform": "Steam",
+        "storeIdentifier": "477160"
+      }
+    ]
+  },
+  {
+    "id": "lost-skies",
+    "thunderstoreId": "lost-skies",
+    "name": "Lost Skies",
+    "thunderstoreUrl": "https://thunderstore.io/c/lost-skies/api/v1/package-listing-index/",
+    "packageLoader": "BepInEx",
+    "exeNames": ["LostSkies.exe"],
+    "instanceType": "Game",
+    "storePlatformMetadata": [
+      {
+        "storePlatform": "Steam",
+        "storeIdentifier": "1931180"
+      }
+    ]
+  },
+  {
+    "id": "lost-skies-ic",
+    "thunderstoreId": "lost-skies-ic",
+    "name": "Lost Skies Island Creator",
+    "thunderstoreUrl": "https://thunderstore.io/c/lost-skies-ic/api/v1/package-listing-index/",
+    "packageLoader": "BepInEx",
+    "exeNames": ["IslandCreator.exe"],
+    "instanceType": "Game",
+    "storePlatformMetadata": [
+      {
+        "storePlatform": "Steam",
+        "storeIdentifier": "2102670"
+      }
+    ]
+  },
+  {
+    "id": "peak",
+    "thunderstoreId": "peak",
+    "name": "PEAK",
+    "thunderstoreUrl": "https://thunderstore.io/c/peak/api/v1/package-listing-index/",
+    "packageLoader": "BepInEx",
+    "exeNames": ["PEAK.exe"],
+    "instanceType": "Game",
+    "storePlatformMetadata": [
+      {
+        "storePlatform": "Steam",
+        "storeIdentifier": "3527290"
+      }
+    ]
+  },
+  {
+    "id": "pigface",
+    "thunderstoreId": "pigface",
+    "name": "PIGFACE",
+    "thunderstoreUrl": "https://thunderstore.io/c/pigface/api/v1/package-listing-index/",
+    "packageLoader": "BepInEx",
+    "exeNames": ["Pigface.exe"],
+    "instanceType": "Game",
+    "storePlatformMetadata": [
+      {
+        "storePlatform": "Steam",
+        "storeIdentifier": "3746840"
+      }
+    ]
+  },
+  {
+    "id": "pulsar-lost-colony",
+    "thunderstoreId": "pulsar-lost-colony",
+    "name": "Pulsar: Lost Colony",
+    "thunderstoreUrl": "https://thunderstore.io/c/pulsar-lost-colony/api/v1/package-listing-index/",
+    "packageLoader": "BepInEx",
+    "exeNames": ["PULSAR_LostColony.exe"],
+    "instanceType": "Game",
+    "storePlatformMetadata": [
+      {
+        "storePlatform": "Steam",
+        "storeIdentifier": "252870"
+      }
+    ]
+  },
+  {
+    "id": "return-of-the-obra-dinn",
+    "thunderstoreId": "return-of-the-obra-dinn",
+    "name": "Return of the Obra Dinn",
+    "thunderstoreUrl": "https://thunderstore.io/c/return-of-the-obra-dinn/api/v1/package-listing-index/",
+    "packageLoader": "BepInEx",
+    "exeNames": ["ObraDinn.exe"],
+    "instanceType": "Game",
+    "storePlatformMetadata": [
+      {
+        "storePlatform": "Steam",
+        "storeIdentifier": "653530"
       }
     ]
   }
