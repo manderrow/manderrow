@@ -143,26 +143,33 @@ export function OnlineModList(props: { game: string }) {
     },
   );
 
+  const getFetcher: () => Fetcher = () => {
+    // track load status
+    loadStatus.latest;
+
+    return async (game, query, sort) => {
+      const count = await countModIndex(game, query);
+
+      return {
+        count,
+        mods: async (page: number) =>
+          (
+            await queryModIndex(game, query, sort, {
+              skip: page * MODS_PER_PAGE,
+              limit: MODS_PER_PAGE,
+            })
+          ).mods,
+      };
+    };
+  };
+
   return (
     <ModList
       game={props.game}
       isLoading={loadStatus.loading}
       progress={progress}
       refresh={refetchModIndex}
-      mods={async (game, query, sort) => {
-        const count = await countModIndex(game, query);
-
-        return {
-          count,
-          mods: async (page: number) =>
-            (
-              await queryModIndex(game, query, sort, {
-                skip: page * MODS_PER_PAGE,
-                limit: MODS_PER_PAGE,
-              })
-            ).mods,
-        };
-      }}
+      mods={getFetcher()}
     />
   );
 }
