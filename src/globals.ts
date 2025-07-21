@@ -1,4 +1,4 @@
-import { createResource } from "solid-js";
+import { createResource, createSignal } from "solid-js";
 
 import { GameSortColumn, getGameModDownloads, getGames, getGamesPopularity, getProfiles, searchGames } from "./api";
 import { Game } from "./types";
@@ -49,6 +49,9 @@ export const [profiles, { refetch: refetchProfiles }] = createResource(
 );
 
 export const initialGame = createSignalResource(async () => (await settingsResource.loaded).defaultGame.value);
+
+// Global signal for current profile name displayed in titlebar
+export const [currentProfileName, setCurrentProfileName] = createSignal("");
 
 // You can use this for testing splashscreen errors. Add it to coreResources.
 // const [dummyResource] = createResource(() => {

@@ -20,7 +20,9 @@
         "visible": true,
         "transparent": false,
         "center": true,
-        "backgroundColor": "#1d2430"
+        "backgroundColor": "#1d2430",
+        "decorations": false,
+        "titleBarStyle": "Overlay"
       }
     ],
     "security": {

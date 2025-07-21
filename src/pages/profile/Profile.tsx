@@ -6,6 +6,7 @@ import {
   createUniqueId,
   For,
   Match,
+  onCleanup,
   Show,
   Switch,
   useContext,
@@ -41,7 +42,7 @@ import ModSearch from "../../components/profile/ModSearch";
 
 import { createProfile, deleteProfile, getProfileMods, overwriteProfileMetadata, ProfileWithId } from "../../api";
 import * as globals from "../../globals";
-import { refetchProfiles } from "../../globals";
+import { refetchProfiles, setCurrentProfileName } from "../../globals";
 import { Refetcher } from "../../types.d.ts";
 import { autofocus, bindValue } from "../../components/global/Directives";
 
@@ -100,6 +101,16 @@ export default function Profile() {
     if (game !== undefined && game !== params.gameId) {
       throw new Error(`Profile ${params.profileId} is for ${game}, not ${params.gameId}`);
     }
+  });
+
+  // Update titlebar with current profile name
+  createEffect(() => {
+    const profile = currentProfile();
+    setCurrentProfileName(profile?.name ?? "");
+  });
+
+  onCleanup(() => {
+    setCurrentProfileName("");
   });
 
   // track launch errors here instead of reporting to the error boundary to avoid rebuilding the UI

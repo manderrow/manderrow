@@ -104,6 +104,8 @@
   --clr-ok-8: hsl(var(--clr-ok-hs), 80%);
   --clr-ok-9: hsl(var(--clr-ok-hs), 90%);
 
+  --titlebar-height: 28px;
+  --titlebar-z-index: 100;
   --portal-z-index: 9;
 }
 
@@ -117,6 +119,7 @@
 
 html {
   height: 100dvh;
+  padding-top: var(--titlebar-height);
 }
 
 body {
@@ -132,7 +135,7 @@ body {
 }
 
 main {
-  height: 100dvh;
+  height: calc(100dvh - var(--titlebar-height));
 }
 
 a {

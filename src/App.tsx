@@ -15,6 +15,7 @@ import GameSelect from "./pages/game_select/GameSelect";
 import Profile from "./pages/profile/Profile";
 import Settings from "./pages/settings/Settings";
 import Splashscreen from "./pages/splashscreen/Splashscreen.tsx";
+import Titlebar from "./components/titlebar/Titlebar.tsx";
 
 export default function App() {
   const [fontLoaded] = createResource(async () => {
@@ -63,31 +64,35 @@ export default function App() {
   });
 
   return (
-    <Show
-      when={
-        coreResources.every((resource) => resource.state !== "pending" && resource.state !== "unresolved") && !fontLoaded.loading
-      }
-      fallback={
-        <Show when={coreResources.find((resource) => resource.error != null)?.error} fallback={<Splashscreen />}>
-          {(err) => (
-            <ErrorDialog
-              err={err}
-              reset={async () => {
-                await relaunch();
-              }}
-            />
-          )}
-        </Show>
-      }
-    >
-      <ErrorBoundary>
-        <Router>
-          <Route path="/" component={GameSelect} />
-          <Route path="/profile/:gameId/:profileId?" component={Profile} />
-          <Route path="/settings" component={Settings} />
-          <Route path="*path" component={ErrorPage} />
-        </Router>
-      </ErrorBoundary>
-    </Show>
+    <>
+      <Titlebar />
+      <Show
+        when={
+          coreResources.every((resource) => resource.state !== "pending" && resource.state !== "unresolved") &&
+          !fontLoaded.loading
+        }
+        fallback={
+          <Show when={coreResources.find((resource) => resource.error != null)?.error} fallback={<Splashscreen />}>
+            {(err) => (
+              <ErrorDialog
+                err={err}
+                reset={async () => {
+                  await relaunch();
+                }}
+              />
+            )}
+          </Show>
+        }
+      >
+        <ErrorBoundary>
+          <Router>
+            <Route path="/" component={GameSelect} />
+            <Route path="/profile/:gameId/:profileId?" component={Profile} />
+            <Route path="/settings" component={Settings} />
+            <Route path="*path" component={ErrorPage} />
+          </Router>
+        </ErrorBoundary>
+      </Show>
+    </>
   );
 }
