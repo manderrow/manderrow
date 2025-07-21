@@ -33,7 +33,7 @@ export function SortableList<T>({
   id,
   children,
 }: {
-  items: Signal<T[]>;
+  items: Signal<readonly T[]>;
   id: (item: T, index: number) => Id;
   children: (item: T, index: number) => JSX.Element;
 }) {

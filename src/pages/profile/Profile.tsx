@@ -37,7 +37,7 @@ import { PromptDialog } from "../../components/global/Dialog";
 import { ErrorDialog } from "../../components/global/ErrorBoundary";
 import SelectDropdown from "../../components/global/SelectDropdown";
 import TabRenderer from "../../components/global/TabRenderer";
-import ModList, { ModInstallContext } from "../../components/profile/ModList";
+import { InstalledModList, ModInstallContext, OnlineModList } from "../../components/profile/ModList";
 import ModSearch from "../../components/profile/ModSearch";
 
 import { createProfile, deleteProfile, getProfileMods, overwriteProfileMetadata, ProfileWithId } from "../../api";
@@ -322,14 +322,14 @@ export default function Profile() {
                   tabs={[
                     {
                       id: "mod-list",
-                      name: "Installed",
-                      component: () => <InstalledModsList game={params.gameId} />,
+                      name: "Installed Mods",
+                      component: () => <InstalledModList game={params.gameId} />,
                     },
 
                     {
                       id: "mod-search",
-                      name: "Online",
-                      component: () => <ModSearch game={params.gameId} />,
+                      name: "Online Mods",
+                      component: () => <OnlineModList game={params.gameId} />,
                     },
 
                     {
@@ -402,22 +402,6 @@ function NoSelectedProfileContent(props: {
         <button type="submit">Create</button>
       </form>
     </>
-  );
-}
-
-function InstalledModsList(props: { game: string }) {
-  const context = useContext(ModInstallContext)!;
-
-  return (
-    <Show when={context.installed.latest.length !== 0} fallback={<p>Looks like you haven't installed any mods yet.</p>}>
-      <ModList
-        // kinda gross
-        mods={(() => {
-          const data = context.installed();
-          return async (page) => (page === 0 ? data : []);
-        })()}
-      />
-    </Show>
   );
 }
 

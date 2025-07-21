@@ -1,5 +1,5 @@
 import { faHardDrive, faHeart, faThumbsUp } from "@fortawesome/free-regular-svg-icons";
-import { faDownload, faDownLong, faExternalLink, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faDownload, faDownLong, faExternalLink, faRefresh, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { createInfiniteScroll } from "@solid-primitives/pagination";
 import { Fa } from "solid-fa";
 import {
@@ -11,6 +11,7 @@ import {
   For,
   InitializedResource,
   Match,
+  Resource,
   ResourceFetcherInfo,
   Show,
   Signal,
@@ -19,19 +20,37 @@ import {
 } from "solid-js";
 import { useParams } from "@solidjs/router";
 
-import { fetchModIndex, getFromModIndex, installProfileMod, uninstallProfileMod } from "../../api";
-import { createProgressProxyStore, initProgress } from "../../api/tasks";
+import {
+  fetchModIndex,
+  getFromModIndex,
+  installProfileMod,
+  uninstallProfileMod,
+  countModIndex,
+  ModSortColumn,
+  queryModIndex,
+  SortOption,
+} from "../../api";
+import { createProgressProxyStore, initProgress, Progress } from "../../api/tasks";
 import { Mod, ModListing, ModPackage, ModVersion } from "../../types";
-import { humanizeFileSize, removeProperty, roundedNumberFormatter } from "../../utils";
+import { humanizeFileSize, numberFormatter, removeProperty, roundedNumberFormatter } from "../../utils";
 
 import { SimpleAsyncButton } from "../global/AsyncButton";
-import ErrorBoundary from "../global/ErrorBoundary";
+import ErrorBoundary, { ErrorContext } from "../global/ErrorBoundary";
 import TabRenderer, { Tab, TabContent } from "../global/TabRenderer";
 import ModMarkdown from "./ModMarkdown.tsx";
 
 import styles from "./ModList.module.css";
+import ModSearch from "./ModSearch.tsx";
 
-export type Fetcher = (page: number) => Promise<readonly Mod[]>;
+type PageFetcher = (page: number) => Promise<readonly Mod[]>;
+export type Fetcher = (
+  game: string,
+  query: string,
+  sort: readonly SortOption<ModSortColumn>[],
+) => Promise<{
+  count: number;
+  mods: PageFetcher;
+}>;
 
 export const ModInstallContext = createContext<{
   profileId: Accessor<string>;
@@ -39,19 +58,139 @@ export const ModInstallContext = createContext<{
   refetchInstalled: () => Promise<void>;
 }>();
 
-export default function ModList(props: { mods: Fetcher }) {
+const MODS_PER_PAGE = 50;
+
+export default function ModList(props: {
+  game: string;
+  mods: Fetcher;
+  refresh: () => void;
+  isLoading: boolean;
+  progress: Progress;
+}) {
   const [selectedMod, setSelectedMod] = createSignal<Mod>();
 
   // TODO: Type this properly with ProfileParams
   const params = useParams();
 
+  const [profileSortOrder, setProfileSortOrder] = createSignal(false);
+  const [query, setQuery] = createSignal("");
+
+  const [sort, setSort] = createSignal<readonly SortOption<ModSortColumn>[]>([
+    { column: ModSortColumn.Relevance, descending: true },
+    { column: ModSortColumn.Downloads, descending: true },
+    { column: ModSortColumn.Name, descending: false },
+    { column: ModSortColumn.Owner, descending: false },
+  ]);
+
+  const [queriedMods] = createResource(
+    () => [props.game, query(), sort(), props.mods] as [string, string, readonly SortOption<ModSortColumn>[], Fetcher],
+    async ([game, query, sort, mods]) => mods(game, query, sort),
+    { initialValue: { mods: async (_: number) => [], count: 0 } },
+  );
+
   return (
     <div class={styles.modListAndView}>
-      <Show when={props.mods} keyed>
-        {(mods) => <ModListMods mods={mods} selectedMod={[selectedMod, setSelectedMod]} />}
-      </Show>
+      <div class={styles.scrollOuter}>
+        <ModSearch
+          game={params.gameId}
+          query={query()}
+          setQuery={setQuery}
+          sort={sort()}
+          setSort={setSort}
+          profileSortOrder={profileSortOrder()}
+          setProfileSortOrder={setProfileSortOrder}
+          isLoading={props.isLoading}
+          progress={props.progress}
+        />
+
+        <Show when={queriedMods.latest} fallback={<p>Querying mods...</p>}>
+          <div class={styles.discoveredLine}>
+            Discovered {numberFormatter.format(queriedMods()!.count)} mods
+            <button class={styles.refreshButton} on:click={() => props.refresh()}>
+              <Fa icon={faRefresh} />
+            </button>
+          </div>
+        </Show>
+
+        <Show when={queriedMods()} keyed>
+          {(mods) => <ModListMods mods={mods.mods} selectedMod={[selectedMod, setSelectedMod]} />}
+        </Show>
+      </div>
       <ModView mod={selectedMod} gameId={params.gameId} />
     </div>
+  );
+}
+
+export function OnlineModList(props: { game: string }) {
+  const [progress, setProgress] = createProgressProxyStore();
+  const reportErr = useContext(ErrorContext)!;
+
+  const [loadStatus, { refetch: refetchModIndex }] = createResource(
+    () => props.game,
+    async (game, info: ResourceFetcherInfo<boolean, never>) => {
+      try {
+        await fetchModIndex(game, { refresh: info.refetching }, (event) => {
+          if (event.event === "created") {
+            setProgress(event.progress);
+          }
+        });
+      } catch (e) {
+        reportErr(e);
+        throw e;
+      }
+      return true;
+    },
+  );
+
+  return (
+    <ModList
+      game={props.game}
+      isLoading={loadStatus.loading}
+      progress={progress}
+      refresh={refetchModIndex}
+      mods={async (game, query, sort) => {
+        const count = await countModIndex(game, query);
+
+        return {
+          count,
+          mods: async (page: number) =>
+            (
+              await queryModIndex(game, query, sort, {
+                skip: page * MODS_PER_PAGE,
+                limit: MODS_PER_PAGE,
+              })
+            ).mods,
+        };
+      }}
+    />
+  );
+}
+
+export function InstalledModList(props: { game: string }) {
+  const context = useContext(ModInstallContext)!;
+
+  const [progress, setProgress] = createProgressProxyStore();
+
+  return (
+    <Show when={context.installed.latest.length !== 0} fallback={<p>Looks like you haven't installed any mods yet.</p>}>
+      <ModList
+        game={props.game}
+        isLoading={false}
+        progress={progress}
+        // TODO: implement local refreshing
+        refresh={() => {}} // looks like eyes
+        // kinda gross
+        mods={async (game, query, sort) => {
+          // TODO: implement filter and sort
+          const data = context.installed();
+
+          return {
+            count: data.length,
+            mods: async (page) => (page === 0 ? data : []),
+          };
+        }}
+      />
+    </Show>
   );
 }
 
@@ -253,7 +392,7 @@ function ModView({ mod, gameId }: { mod: Accessor<Mod | undefined>; gameId: stri
   );
 }
 
-function ModListMods(props: { mods: Fetcher; selectedMod: Signal<Mod | undefined> }) {
+function ModListMods(props: { mods: PageFetcher; selectedMod: Signal<Mod | undefined> }) {
   const infiniteScroll = createMemo(() => {
     // this should take readonly, which would make the cast unnecessary
     return createInfiniteScroll(props.mods as (page: number) => Promise<Mod[]>);
@@ -264,14 +403,12 @@ function ModListMods(props: { mods: Fetcher; selectedMod: Signal<Mod | undefined
   const end = () => infiniteScroll()[2].end();
 
   return (
-    <div class={styles.scrollOuter}>
-      <ol class={`${styles.modList} ${styles.scrollInner}`}>
-        <For each={paginatedMods()}>{(mod) => <ModListItem mod={mod} selectedMod={props.selectedMod} />}</For>
-        <Show when={!end()}>
-          <li use:infiniteScrollLoader>Loading...</li>
-        </Show>
-      </ol>
-    </div>
+    <ol class={`${styles.modList} ${styles.scrollInner}`}>
+      <For each={paginatedMods()}>{(mod) => <ModListItem mod={mod} selectedMod={props.selectedMod} />}</For>
+      <Show when={!end()}>
+        <li use:infiniteScrollLoader>Loading...</li>
+      </Show>
+    </ol>
   );
 }
 
