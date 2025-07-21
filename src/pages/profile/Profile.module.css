@@ -1,3 +1,14 @@
+.page {
+  height: calc(100dvh - var(--titlebar-height));
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-rows: 1fr auto;
+}
+
+.main {
+  height: auto;
+}
+
 .main,
 .tabs,
 .navbar {

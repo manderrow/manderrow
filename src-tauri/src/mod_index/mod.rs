@@ -262,6 +262,7 @@ pub enum SortColumn {
     Name,
     Owner,
     Downloads,
+    Size,
 }
 
 pub type ModIndexReadGuard = RwLockReadGuard<'static, Vec<MemoryModIndex>>;
@@ -326,6 +327,11 @@ pub async fn query_mod_index<'a>(
                                 .sum::<u64>()
                         };
                         sum_downloads(m1).cmp(&sum_downloads(m2))
+                    }
+                    SortColumn::Size => {
+                        let latest_size =
+                            |m: &ArchivedModRef| m.versions.first().map(|v| v.file_size);
+                        latest_size(m1).cmp(&latest_size(m2))
                     }
                 };
                 if descending {

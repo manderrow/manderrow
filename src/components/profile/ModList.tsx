@@ -1,36 +1,36 @@
 import { faHardDrive, faHeart, faThumbsUp } from "@fortawesome/free-regular-svg-icons";
-import { faDownload, faDownLong, faExternalLink, faRefresh, faTrash } from "@fortawesome/free-solid-svg-icons";
+import { faDownLong, faDownload, faExternalLink, faRefresh, faTrash } from "@fortawesome/free-solid-svg-icons";
 import { createInfiniteScroll } from "@solid-primitives/pagination";
+import { useParams } from "@solidjs/router";
 import { Fa } from "solid-fa";
 import {
   Accessor,
-  createContext,
-  createMemo,
-  createResource,
-  createSignal,
   For,
   InitializedResource,
   Match,
-  Resource,
   ResourceFetcherInfo,
   Show,
   Signal,
   Switch,
+  createContext,
+  createMemo,
+  createResource,
+  createSelector,
+  createSignal,
   useContext,
 } from "solid-js";
-import { useParams } from "@solidjs/router";
 
 import {
+  ModSortColumn,
+  SortOption,
+  countModIndex,
   fetchModIndex,
   getFromModIndex,
   installProfileMod,
-  uninstallProfileMod,
-  countModIndex,
-  ModSortColumn,
   queryModIndex,
-  SortOption,
+  uninstallProfileMod,
 } from "../../api";
-import { createProgressProxyStore, initProgress, Progress } from "../../api/tasks";
+import { Progress, createProgressProxyStore, initProgress, registerTaskListener, tasks } from "../../api/tasks";
 import { Mod, ModListing, ModPackage, ModVersion } from "../../types";
 import { humanizeFileSize, numberFormatter, removeProperty, roundedNumberFormatter } from "../../utils";
 
@@ -38,9 +38,9 @@ import { SimpleAsyncButton } from "../global/AsyncButton";
 import ErrorBoundary, { ErrorContext } from "../global/ErrorBoundary";
 import TabRenderer, { Tab, TabContent } from "../global/TabRenderer";
 import ModMarkdown from "./ModMarkdown.tsx";
+import ModSearch from "./ModSearch.tsx";
 
 import styles from "./ModList.module.css";
-import ModSearch from "./ModSearch.tsx";
 
 type PageFetcher = (page: number) => Promise<readonly Mod[]>;
 export type Fetcher = (
@@ -80,6 +80,7 @@ export default function ModList(props: {
     { column: ModSortColumn.Downloads, descending: true },
     { column: ModSortColumn.Name, descending: false },
     { column: ModSortColumn.Owner, descending: false },
+    { column: ModSortColumn.Size, descending: true },
   ]);
 
   const [queriedMods] = createResource(
@@ -262,7 +263,8 @@ function ModView({ mod, gameId }: { mod: Accessor<Mod | undefined>; gameId: stri
     },
   ];
 
-  const [currentTab, setCurrentTab] = createSignal(tabs[0]);
+  const [currentTab, setCurrentTab] = createSignal(tabs[0].id);
+  const isCurrentTab = createSelector(currentTab);
 
   return (
     <div class={styles.scrollOuter}>
@@ -348,12 +350,12 @@ function ModView({ mod, gameId }: { mod: Accessor<Mod | undefined>; gameId: stri
                         list__itemActive: styles.tab__active,
                       },
                     }}
-                    setter={setCurrentTab}
+                    setter={(tab) => setCurrentTab(tab.id)}
                   />
                 </div>
 
                 <div class={styles.modView__content}>
-                  <TabContent currentTab={currentTab} tabs={tabs} />
+                  <TabContent isCurrentTab={isCurrentTab} tabs={tabs} />
                 </div>
 
                 <form class={styles.modView__form} action="#">
@@ -510,11 +512,28 @@ function InstallButton(props: { mod: ModListing; installContext: NonNullable<typ
       progress
       class={styles.downloadBtn}
       onClick={async (listener) => {
+        let foundDownloadTask = false;
         await installProfileMod(
           props.installContext.profileId(),
           removeProperty(props.mod, "versions"),
           props.mod.versions[0],
-          listener,
+          (event) => {
+            if (!foundDownloadTask && event.event === "dependency") {
+              const dependency = tasks().get(event.dependency)!;
+              if (dependency.metadata.kind === "Download") {
+                foundDownloadTask = true;
+                registerTaskListener(event.dependency, listener);
+              } else if (dependency.status.status === "Unstarted") {
+                // wait for metadata to be filled in and check again
+                registerTaskListener(event.dependency, (depEvent) => {
+                  if (!foundDownloadTask && depEvent.event === "created" && depEvent.metadata.kind === "Download") {
+                    foundDownloadTask = true;
+                    registerTaskListener(event.dependency, listener);
+                  }
+                });
+              }
+            }
+          },
         );
         await props.installContext.refetchInstalled();
       }}

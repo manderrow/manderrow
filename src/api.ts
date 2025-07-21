@@ -77,6 +77,7 @@ export enum ModSortColumn {
   Downloads = "downloads",
   Name = "name",
   Owner = "owner",
+  Size = "size",
 }
 
 export interface SortOption<C> {

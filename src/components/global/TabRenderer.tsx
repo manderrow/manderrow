@@ -1,4 +1,4 @@
-import { Accessor, createEffect, For, JSX, Match, Switch } from "solid-js";
+import { createEffect, createSelector, For, JSX, Match, Switch, untrack } from "solid-js";
 import { useSearchParamsInPlace } from "../../utils/router";
 
 export interface Tab<Id extends string> {
@@ -21,65 +21,63 @@ interface TabStyles {
 /**
  * The first tab will be the default.
  */
-export default function TabRenderer<Id extends string>({
-  id,
-  tabs,
-  styles,
-  setter,
-}: {
+export default function TabRenderer<Id extends string>(props: {
   id: string;
-  tabs: Tab<Id>[];
+  tabs: readonly Tab<Id>[];
   rootUrl?: string;
   styles: TabStyles;
   setter?: (tab: Tab<Id>) => void;
 }) {
   const [searchParams, setSearchParams] = useSearchParamsInPlace();
 
-  const defaultTab = tabs.find((tab) => tab.selected)?.id ?? tabs[0].id;
-  const tablistId = `${id}-tab`;
+  const defaultTab = props.tabs.find((tab) => tab.selected)?.id ?? props.tabs[0].id;
+  const tablistId = `${props.id}-tab`;
   const currentTab = () =>
-    ((Array.isArray(searchParams[tablistId]) ? searchParams[tablistId][0] : searchParams[tablistId]) as Id) ??
+    ((Array.isArray(searchParams[tablistId]) ? searchParams[tablistId]![0] : searchParams[tablistId]) as Id) ??
     defaultTab;
 
-  const tabsMap = Object.fromEntries(tabs.map((tab) => [tab.id, tab])) as Record<Id, Tab<Id>>;
+  const tabsMap = Object.fromEntries(props.tabs.map((tab) => [tab.id, tab])) as Record<Id, Tab<Id>>;
 
-  if (setter != null) {
-    createEffect(() => {
-      setter(tabsMap[currentTab()]);
-    });
-  }
+  createEffect(() => {
+    const setter = props.setter;
+    if (setter != null) {
+      const tab = tabsMap[currentTab()];
+      untrack(() => setter(tab));
+    }
+  });
+
+  const isCurrentTab = createSelector(currentTab);
 
   return (
     <>
-      <div class={styles.tabs.container ?? ""}>
-        <ul class={styles.tabs.list}>
-          <For each={tabs}>
+      <div class={props.styles.tabs.container ?? ""}>
+        <ul class={props.styles.tabs.list}>
+          <For each={props.tabs}>
             {(tab) => (
               <li
-                classList={{ [styles.tabs.list__item]: true, [styles.tabs.list__itemActive]: currentTab() === tab.id }}
+                classList={{
+                  [props.styles.tabs.list__item]: true,
+                  [props.styles.tabs.list__itemActive]: isCurrentTab(tab.id),
+                }}
               >
-                <button type="button" on:click={() => setSearchParams({ [tablistId]: tab.id })}>{tab.name}</button>
+                <button type="button" on:click={() => setSearchParams({ [tablistId]: tab.id })}>
+                  {tab.name}
+                </button>
               </li>
             )}
           </For>
         </ul>
       </div>
 
-      {setter == null ? <TabContent currentTab={() => tabsMap[currentTab()]} tabs={tabs} /> : null}
+      {props.setter == null ? <TabContent isCurrentTab={isCurrentTab} tabs={props.tabs} /> : null}
     </>
   );
 }
 
-export function TabContent<Id extends string>({
-  tabs,
-  currentTab,
-}: {
-  tabs: Tab<Id>[];
-  currentTab: Accessor<Tab<Id>>;
-}) {
+export function TabContent<Id extends string>(props: { tabs: readonly Tab<Id>[]; isCurrentTab: (id: Id) => boolean }) {
   return (
     <Switch>
-      <For each={tabs}>{(tab) => <Match when={currentTab().id === tab.id}>{tab.component()}</Match>}</For>
+      <For each={props.tabs}>{(tab) => <Match when={props.isCurrentTab(tab.id)}>{tab.component()}</Match>}</For>
     </Switch>
   );
 }

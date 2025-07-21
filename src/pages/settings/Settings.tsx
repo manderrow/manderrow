@@ -1,7 +1,7 @@
 import { useNavigate } from "@solidjs/router";
 import styles from "./Settings.module.css";
 import TabRenderer, { Tab, TabContent } from "../../components/global/TabRenderer";
-import { createUniqueId, For, Match, Switch, useContext, createSignal } from "solid-js";
+import { createUniqueId, For, Match, Switch, useContext, createSignal, createSelector } from "solid-js";
 
 import { Settings, SettingsPatch, updateSettings, settings, settingsUI } from "../../api/settings";
 import { Fa } from "solid-fa";
@@ -53,7 +53,8 @@ export default function SettingsPage() {
     ),
   }));
 
-  const [currentTab, setCurrentTab] = createSignal(tabs[0]);
+  const [currentTab, setCurrentTab] = createSignal(tabs[0].id);
+  const isCurrentTab = createSelector(currentTab);
 
   return (
     <main class={styles.settings}>
@@ -72,7 +73,7 @@ export default function SettingsPage() {
           <TabRenderer
             id="settings"
             tabs={tabs}
-            setter={setCurrentTab}
+            setter={(tab) => setCurrentTab(tab.id)}
             styles={{
               tabs: {
                 list: styles.settings__tabs,
@@ -84,7 +85,7 @@ export default function SettingsPage() {
         </div>
       </aside>
       <div class={styles.options}>
-        <TabContent currentTab={currentTab} tabs={tabs} />
+        <TabContent isCurrentTab={isCurrentTab} tabs={tabs} />
       </div>
     </main>
   );

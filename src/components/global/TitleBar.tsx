@@ -1,13 +1,17 @@
-import { createSignal, onMount, Show } from "solid-js";
-import { t } from "../../i18n/i18n";
-import { currentProfileName } from "../../globals";
-import styles from "./Titlebar.module.css";
-
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { createSignal, onMount } from "solid-js";
+
+import { t } from "../../i18n/i18n";
+import styles from "./Titlebar.module.css";
 
 const appWindow = getCurrentWindow();
 
-export default function Titlebar() {
+// Global signal for current profile name displayed in title bar
+const [currentProfileName, _setCurrentProfileName] = createSignal("");
+
+export const setCurrentProfileName = _setCurrentProfileName;
+
+export default function TitleBar() {
   const [isMaximized, setIsMaximized] = createSignal(false);
 
   onMount(async () => {

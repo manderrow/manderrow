@@ -1,15 +1,16 @@
 import { faArrowDownShortWide, faArrowUpWideShort } from "@fortawesome/free-solid-svg-icons";
 import { Fa } from "solid-fa";
-import { Resource, Setter, Show } from "solid-js";
+import { Setter, Show } from "solid-js";
 
 import { ModSortColumn, SortOption } from "../../api";
+import { Progress } from "../../api/tasks";
+
 import { SimpleProgressIndicator } from "../global/Progress";
 import SelectDropdown from "../global/SelectDropdown";
 import { SortableList } from "../global/SortableList";
 import TogglableDropdown from "../global/TogglableDropdown";
 
 import styles from "./ModSearch.module.css";
-import { Progress } from "../../api/tasks";
 
 export interface InitialProgress {
   completed_steps: null;
@@ -19,8 +20,6 @@ export interface InitialProgress {
 
 interface ModSearchProps {
   game: string;
-
-  // Reactive props
   query: string;
   setQuery: Setter<string>;
   sort: readonly SortOption<ModSortColumn>[];
@@ -60,6 +59,9 @@ export default function ModSearch(props: ModSearchProps) {
               },
               [ModSortColumn.Owner]: {
                 value: "owner",
+              },
+              [ModSortColumn.Size]: {
+                value: "size",
               },
             }}
             onChanged={() => {}}

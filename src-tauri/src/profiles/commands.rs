@@ -45,7 +45,7 @@ pub async fn install_profile_mod(
     version: ModVersion<'_>,
     task_id: tasks::Id,
 ) -> Result<(), CommandError> {
-    super::install_profile_mod(&app, &*reqwest, id, r#mod, version, Some(task_id))
+    super::install_profile_mod(&app, &*reqwest, id, r#mod, version, task_id)
         .await
         .map_err(Into::into)
 }

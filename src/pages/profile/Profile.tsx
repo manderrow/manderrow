@@ -9,14 +9,12 @@ import {
   onCleanup,
   Show,
   Switch,
-  useContext,
 } from "solid-js";
 import { A, useNavigate, useParams } from "@solidjs/router";
 import { faCirclePlay as faCirclePlayOutline, faTrashCan } from "@fortawesome/free-regular-svg-icons";
 import {
   faChevronLeft,
   faCirclePlay,
-  faDownload,
   faFileImport,
   faPenToSquare,
   faPlus,
@@ -38,18 +36,16 @@ import { ErrorDialog } from "../../components/global/ErrorBoundary";
 import SelectDropdown from "../../components/global/SelectDropdown";
 import TabRenderer from "../../components/global/TabRenderer";
 import { InstalledModList, ModInstallContext, OnlineModList } from "../../components/profile/ModList";
-import ModSearch from "../../components/profile/ModSearch";
 
 import { createProfile, deleteProfile, getProfileMods, overwriteProfileMetadata, ProfileWithId } from "../../api";
 import * as globals from "../../globals";
-import { refetchProfiles, setCurrentProfileName } from "../../globals";
-import { Refetcher } from "../../types.d.ts";
+import { refetchProfiles } from "../../globals";
+import type { Refetcher } from "../../types.d.ts";
 import { autofocus, bindValue } from "../../components/global/Directives";
 
 import styles from "./Profile.module.css";
 import sidebarStyles from "./SidebarProfiles.module.css";
 import ImportDialog from "../../components/profile/ImportDialog";
-import TasksDialog from "../../components/global/TasksDialog";
 import { settings } from "../../api/settings";
 import { useSearchParamsInPlace } from "../../utils/router";
 import { killIpcClient } from "../../api/ipc";
@@ -57,6 +53,8 @@ import { t } from "../../i18n/i18n.ts";
 import { launchProfile } from "../../api/launching";
 import { ConsoleConnection, focusedConnection, setFocusedConnection } from "../../console";
 import { ActionContext } from "../../components/global/AsyncButton.tsx";
+import StatusBar from "../../components/profile/StatusBar.tsx";
+import { setCurrentProfileName } from "../../components/global/TitleBar.tsx";
 
 interface ProfileParams {
   profileId?: string;
@@ -103,7 +101,7 @@ export default function Profile() {
     }
   });
 
-  // Update titlebar with current profile name
+  // Update title bar with current profile name
   createEffect(() => {
     const profile = currentProfile();
     setCurrentProfileName(profile?.name ?? "");
@@ -159,157 +157,151 @@ export default function Profile() {
 
   const [importDialogOpen, setImportDialogOpen] = createSignal(false);
 
-  const [tasksDialogOpen, setTasksDialogOpen] = createSignal(false);
-
   const hasLiveConnection = () => focusedConnection() !== undefined && focusedConnection()?.status() !== "disconnected";
 
   return (
-    <main class={styles.main}>
-      <aside class={styles.sidebar}>
-        <nav class={styles.sidebar__nav}>
-          <button class={styles.sidebar__btn} on:click={() => navigate(-1)}>
-            <Fa icon={faChevronLeft} />
-          </button>
+    <div class={styles.page}>
+      <main class={styles.main}>
+        <aside class={styles.sidebar}>
+          <nav class={styles.sidebar__nav}>
+            <button class={styles.sidebar__btn} on:click={() => navigate(-1)}>
+              <Fa icon={faChevronLeft} />
+            </button>
 
-          <h1>{gameInfo.name}</h1>
-        </nav>
-        <section classList={{ [styles.sidebar__group]: true, [styles.sidebar__mainActions]: true }}>
-          <Switch>
-            <Match when={focusedConnection()?.status() === "connected"}>
-              <button on:click={() => killGame()} data-kill>
-                <Fa icon={faSkullCrossbones} /> {t("profile.sidebar.kill_game_btn")}
-              </button>
-            </Match>
-            <Match when={hasLiveConnection()}>
-              <button on:click={() => setFocusedConnection(undefined)} data-cancel>
-                <Fa icon={faXmark} /> {t("profile.sidebar.cancel_launch_btn")}
-              </button>
-            </Match>
-          </Switch>
-          {
-            // TODO: based on hasLiveConnection change the UI of these a bit
-          }
-          <button disabled={params.profileId === undefined} on:click={() => launch(true)} data-modded>
-            <Fa icon={faCirclePlay} /> {t("profile.sidebar.launch_modded_btn")}
-          </button>
-          <button on:click={() => launch(false)} data-vanilla>
-            <Fa icon={faCirclePlayOutline} /> {t("profile.sidebar.launch_vanilla_btn")}
-          </button>
-        </section>
-        <section classList={{ [styles.sidebar__group]: true, [sidebarStyles.sidebar__profiles]: true }}>
-          <h3 class={styles.sidebar__profilesTitle}>
-            {t("profile.sidebar.profiles_title")}
-            <div class={styles.sidebar__profilesActions}>
-              <A class={styles.sidebar__profilesActionBtn} href={`/profile/${params.gameId}`}>
-                <Fa icon={faPlus} />
-              </A>
+            <h1>{gameInfo.name}</h1>
+          </nav>
+          <section classList={{ [styles.sidebar__group]: true, [styles.sidebar__mainActions]: true }}>
+            <Switch>
+              <Match when={focusedConnection()?.status() === "connected"}>
+                <button on:click={() => killGame()} data-kill>
+                  <Fa icon={faSkullCrossbones} /> {t("profile.sidebar.kill_game_btn")}
+                </button>
+              </Match>
+              <Match when={hasLiveConnection()}>
+                <button on:click={() => setFocusedConnection(undefined)} data-cancel>
+                  <Fa icon={faXmark} /> {t("profile.sidebar.cancel_launch_btn")}
+                </button>
+              </Match>
+            </Switch>
+            {
+              // TODO: based on hasLiveConnection change the UI of these a bit
+            }
+            <button disabled={params.profileId === undefined} on:click={() => launch(true)} data-modded>
+              <Fa icon={faCirclePlay} /> {t("profile.sidebar.launch_modded_btn")}
+            </button>
+            <button on:click={() => launch(false)} data-vanilla>
+              <Fa icon={faCirclePlayOutline} /> {t("profile.sidebar.launch_vanilla_btn")}
+            </button>
+          </section>
+          <section classList={{ [styles.sidebar__group]: true, [sidebarStyles.sidebar__profiles]: true }}>
+            <h3 class={styles.sidebar__profilesTitle}>
+              {t("profile.sidebar.profiles_title")}
+              <div class={styles.sidebar__profilesActions}>
+                <A class={styles.sidebar__profilesActionBtn} href={`/profile/${params.gameId}`}>
+                  <Fa icon={faPlus} />
+                </A>
+                <button
+                  class={styles.sidebar__profilesActionBtn}
+                  title="Import"
+                  on:click={() => setImportDialogOpen(true)}
+                >
+                  <Fa icon={faFileImport} class={sidebarStyles.sidebar__profileActionsBtnIcon} />
+                </button>
+              </div>
+            </h3>
+
+            <form on:submit={(e) => e.preventDefault()} class={sidebarStyles.sidebar__profilesSearch}>
+              <input type="text" name="profile-search" id="profile-search" placeholder="Search" maxLength={100} />
+              <SelectDropdown<"alphabetical" | "creationDate">
+                class={sidebarStyles.sidebar__profilesSearchSortBtn}
+                multiselect={false}
+                options={{
+                  "A-Z": {
+                    value: "alphabetical",
+                  },
+
+                  "Creation Date": {
+                    value: "creationDate",
+                  },
+                }}
+                label={{ labelText: "preset", preset: "Sort" }}
+                onChanged={(key, selected) => console.log(key, selected)}
+              />
               <button
-                class={styles.sidebar__profilesActionBtn}
-                title="Import"
-                on:click={() => setImportDialogOpen(true)}
+                class={sidebarStyles.sidebar__profilesSearchSortByBtn}
+                on:click={() => setProfileSortOrder((order) => !order)}
               >
-                <Fa icon={faFileImport} class={sidebarStyles.sidebar__profileActionsBtnIcon} />
+                {profileSortOrder() ? <Fa icon={faArrowUpWideShort} /> : <Fa icon={faArrowDownShortWide} />}
               </button>
-            </div>
-          </h3>
+            </form>
 
-          <form on:submit={(e) => e.preventDefault()} class={sidebarStyles.sidebar__profilesSearch}>
-            <input type="text" name="profile-search" id="profile-search" placeholder="Search" maxLength={100} />
-            <SelectDropdown<"alphabetical" | "creationDate">
-              class={sidebarStyles.sidebar__profilesSearchSortBtn}
-              multiselect={false}
-              options={{
-                "A-Z": {
-                  value: "alphabetical",
-                },
-
-                "Creation Date": {
-                  value: "creationDate",
-                },
-              }}
-              label={{ labelText: "preset", preset: "Sort" }}
-              onChanged={(key, selected) => console.log(key, selected)}
-            />
-            <button
-              class={sidebarStyles.sidebar__profilesSearchSortByBtn}
-              on:click={() => setProfileSortOrder((order) => !order)}
+            <OverlayScrollbarsComponent
+              defer
+              options={{ scrollbars: { autoHide: "leave" } }}
+              class={sidebarStyles.sidebar__profilesListContainer}
             >
-              {profileSortOrder() ? <Fa icon={faArrowUpWideShort} /> : <Fa icon={faArrowDownShortWide} />}
-            </button>
-          </form>
+              <ol class={sidebarStyles.sidebar__profilesList}>
+                <For each={Object.keys(profiles())}>
+                  {(id) => (
+                    <Show when={profiles()[id].pinned}>
+                      <SidebarProfileComponent
+                        gameId={params.gameId}
+                        profile={profiles()[id]}
+                        refetchProfiles={refetchProfiles}
+                        selected={id === params.profileId}
+                      />
+                    </Show>
+                  )}
+                </For>
+                <For each={Object.keys(profiles())}>
+                  {(id) => (
+                    <Show when={!profiles()[id].pinned}>
+                      <SidebarProfileComponent
+                        gameId={params.gameId}
+                        profile={profiles()[id]}
+                        refetchProfiles={refetchProfiles}
+                        selected={id === params.profileId}
+                      />
+                    </Show>
+                  )}
+                </For>
+              </ol>
+            </OverlayScrollbarsComponent>
+          </section>
+          <section class={styles.sidebar__group}>
+            <div class={styles.sidebar__otherGrid}>
+              <A href="/settings">
+                <button>
+                  <Fa icon={faGear} class={styles.sidebar__otherGridIcon} />
+                  <br />
+                  Settings
+                </button>
+              </A>
+            </div>
+          </section>
+        </aside>
 
-          <OverlayScrollbarsComponent
-            defer
-            options={{ scrollbars: { autoHide: "leave" } }}
-            class={sidebarStyles.sidebar__profilesListContainer}
+        <div class={styles.content}>
+          <Show
+            when={params.profileId}
+            fallback={
+              <NoSelectedProfileContent gameId={params.gameId} profiles={profiles} refetchProfiles={refetchProfiles} />
+            }
           >
-            <ol class={sidebarStyles.sidebar__profilesList}>
-              <For each={Object.keys(profiles())}>
-                {(id) => (
-                  <Show when={profiles()[id].pinned}>
-                    <SidebarProfileComponent
-                      gameId={params.gameId}
-                      profile={profiles()[id]}
-                      refetchProfiles={refetchProfiles}
-                      selected={id === params.profileId}
-                    />
-                  </Show>
-                )}
-              </For>
-              <For each={Object.keys(profiles())}>
-                {(id) => (
-                  <Show when={!profiles()[id].pinned}>
-                    <SidebarProfileComponent
-                      gameId={params.gameId}
-                      profile={profiles()[id]}
-                      refetchProfiles={refetchProfiles}
-                      selected={id === params.profileId}
-                    />
-                  </Show>
-                )}
-              </For>
-            </ol>
-          </OverlayScrollbarsComponent>
-        </section>
-        <section class={styles.sidebar__group}>
-          <div class={styles.sidebar__otherGrid}>
-            <A href="/settings">
-              <button>
-                <Fa icon={faGear} class={styles.sidebar__otherGridIcon} />
-                <br />
-                Settings
-              </button>
-            </A>
-            <button on:click={() => setTasksDialogOpen(true)}>
-              <Fa icon={faDownload} class={styles.sidebar__otherGridIcon} />
-              <br />
-              Downloads
-            </button>
-          </div>
-        </section>
-      </aside>
+            {(profileId) => {
+              const [installed, { refetch: refetchInstalled0 }] = createResource(
+                profileId,
+                (profileId) => getProfileMods(profileId),
+                { initialValue: [] },
+              );
 
-      <div class={styles.content}>
-        <Show
-          when={params.profileId}
-          fallback={
-            <NoSelectedProfileContent gameId={params.gameId} profiles={profiles} refetchProfiles={refetchProfiles} />
-          }
-        >
-          {(profileId) => {
-            const [installed, { refetch: refetchInstalled0 }] = createResource(
-              profileId,
-              (profileId) => getProfileMods(profileId),
-              { initialValue: [] },
-            );
-
-            const refetchInstalled = async () => {
-              await refetchInstalled0();
-            };
+              const refetchInstalled = async () => {
+                await refetchInstalled0();
+              };
 
             return (
               <ModInstallContext.Provider value={{ profileId, installed, refetchInstalled }}>
-                <TabRenderer<TabId>
+                <TabRenderer
                   id="profile"
                   styles={{
                     tabs: {
@@ -332,41 +324,40 @@ export default function Profile() {
                       component: () => <OnlineModList game={params.gameId} />,
                     },
 
-                    {
-                      id: "logs",
-                      name: "Logs",
-                      component: () => (
-                        <div class={styles.content__console}>
-                          <Console />
-                        </div>
-                      ),
-                    },
+                      {
+                        id: "logs",
+                        name: "Logs",
+                        component: () => (
+                          <div class={styles.content__console}>
+                            <Console />
+                          </div>
+                        ),
+                      },
 
-                    {
-                      id: "config",
-                      name: "Config",
-                      component: () => <div></div>,
-                    },
-                  ]}
-                />
-              </ModInstallContext.Provider>
-            );
-          }}
-        </Show>
-      </div>
+                      {
+                        id: "config",
+                        name: "Config",
+                        component: () => <div></div>,
+                      },
+                    ]}
+                  />
+                </ModInstallContext.Provider>
+              );
+            }}
+          </Show>
+        </div>
+      </main>
+
+      <StatusBar />
 
       <Show when={importDialogOpen()}>
         <ImportDialog dismiss={() => setImportDialogOpen(false)} gameId={params.gameId} profile={params.profileId} />
       </Show>
 
-      <Show when={tasksDialogOpen()}>
-        <TasksDialog onDismiss={() => setTasksDialogOpen(false)} />
-      </Show>
-
       <DoctorReports />
 
       <Show when={err()}>{(err) => <ErrorDialog err={err()} reset={() => setErr(undefined)} />}</Show>
-    </main>
+    </div>
   );
 }
 

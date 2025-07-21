@@ -50,9 +50,6 @@ export const [profiles, { refetch: refetchProfiles }] = createResource(
 
 export const initialGame = createSignalResource(async () => (await settingsResource.loaded).defaultGame.value);
 
-// Global signal for current profile name displayed in titlebar
-export const [currentProfileName, setCurrentProfileName] = createSignal("");
-
 // You can use this for testing splashscreen errors. Add it to coreResources.
 // const [dummyResource] = createResource(() => {
 //   return new Promise((_, reject) => setTimeout(() => reject("this is a made up error"), 2000));

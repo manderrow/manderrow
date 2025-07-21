@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
-import { createSignal, Setter } from "solid-js";
+import { Accessor, createMemo, createSignal, Setter } from "solid-js";
 import { createStore, SetStoreFunction, Store } from "solid-js/store";
 
 import { wrapInvoke } from "../api";
@@ -92,53 +92,66 @@ export type TaskEvent =
   | (Omit<TaskDependencyEvent, "id"> & { event: "dependency" })
   | (Omit<TaskDroppedEvent, "id"> & { event: "dropped" });
 
-const SET_METADATA = Symbol();
-const SET_STATUS = Symbol();
-const SET_PROGRESS = Symbol();
-const SET_DEPENDENCIES = Symbol();
+const METADATA_OPTIONS = { name: "Task.metadata" };
+const STATUS_OPTIONS = { name: "Task.status" };
+const PROGRESS_OPTIONS = { name: "Task.progress" };
+const DEPENDENCIES_OPTIONS = { name: "Task.dependencies" };
+const IS_COMPLETE_OPTIONS = { name: "Task.isComplete" };
 
 export class Task {
   readonly metadata: Store<Metadata>;
   readonly status: Store<Status>;
   readonly progress: Store<Progress>;
   readonly dependencies: Store<Id[]>;
+  readonly #_isComplete: Accessor<boolean>;
 
-  readonly [SET_METADATA]: SetStoreFunction<Metadata>;
-  readonly [SET_STATUS]: SetStoreFunction<Status>;
-  readonly [SET_PROGRESS]: SetStoreFunction<Progress>;
-  readonly [SET_DEPENDENCIES]: SetStoreFunction<Id[]>;
+  readonly _setMetadata: SetStoreFunction<Metadata>;
+  readonly _setStatus: SetStoreFunction<Status>;
+  readonly _setProgress: SetStoreFunction<Progress>;
+  readonly _setDependencies: SetStoreFunction<Id[]>;
 
   listeners: Listener[];
+  /**
+   * Used by notifyTaskListeners and unregisterTaskListener.
+   */
+  _listenerIndex: number;
 
   constructor(initialMetadata: Metadata, initialStatus: Status, listeners: Listener[]) {
-    const [metadata, setMetadata] = createStore(initialMetadata);
+    const [metadata, setMetadata] = createStore(initialMetadata, METADATA_OPTIONS);
     this.metadata = metadata;
-    this[SET_METADATA] = setMetadata;
+    this._setMetadata = setMetadata;
 
-    const [status, setStatus] = createStore(initialStatus);
+    const [status, setStatus] = createStore(initialStatus, STATUS_OPTIONS);
     this.status = status;
-    this[SET_STATUS] = setStatus;
+    this._setStatus = setStatus;
 
-    const [progress, setProgress] = createStore(initProgress());
+    const [progress, setProgress] = createStore(initProgress(), PROGRESS_OPTIONS);
     this.progress = progress;
-    this[SET_PROGRESS] = setProgress;
+    this._setProgress = setProgress;
 
-    const [dependencies, setDependencies] = createStore<Id[]>([]);
+    const [dependencies, setDependencies] = createStore<Id[]>([], DEPENDENCIES_OPTIONS);
     this.dependencies = dependencies;
-    this[SET_DEPENDENCIES] = setDependencies;
+    this._setDependencies = setDependencies;
+
+    this.#_isComplete = createMemo(() => {
+      const status = this.status.status;
+      return status === "Success" || status === "Failed" || status === "Cancelled";
+    }, IS_COMPLETE_OPTIONS);
 
     this.listeners = listeners;
+    this._listenerIndex = 0;
   }
 
-  get isComplete(): boolean {
-    const status = this.status.status;
-    return status === "Success" || status === "Failed" || status === "Cancelled";
+  get isComplete() {
+    return this.#_isComplete();
   }
 }
 
 const _tasks = new Map<Id, Task>();
+const [_tasksSignal, _setTasksSignalValue] = createSignal<ReadonlyMap<Id, Task>>(_tasks, { equals: false });
 
-export const tasks: ReadonlyMap<Id, Task> = _tasks;
+export const tasks = _tasksSignal;
+export const tasksArray: Accessor<readonly Task[]> = createMemo(() => Array.from(tasks().values()), { equals: false });
 
 export function registerTaskListener(id: Id, listener: Listener) {
   const task = _tasks.get(id);
@@ -155,6 +168,7 @@ export function registerTaskListener(id: Id, listener: Listener) {
         [listener],
       ),
     );
+    _setTasksSignalValue(_tasks);
   } else {
     task.listeners.push(listener);
   }
@@ -166,6 +180,10 @@ export function unregisterTaskListener(id: Id, listener: Listener) {
     const i = task.listeners.indexOf(listener);
     if (i !== -1) {
       task.listeners.splice(i, 1);
+    }
+    // adjust so that if removed during iteration, subsequent listeners are not skipped
+    if (task._listenerIndex >= i) {
+      task._listenerIndex--;
     }
   }
 }
@@ -198,7 +216,10 @@ export async function cancelTask(id: Id): Promise<void> {
 }
 
 async function notifyTaskListeners(task: Task, event: TaskEvent) {
-  task.listeners.forEach((listener) => listener(event));
+  for (task._listenerIndex = 0; task._listenerIndex < task.listeners.length; task._listenerIndex++) {
+    const listener = task.listeners[task._listenerIndex];
+    listener(event);
+  }
 }
 
 // Rust event listeners
@@ -208,13 +229,14 @@ listen<TaskCreatedEvent>("task_created", (event) => {
   let task = _tasks.get(id);
   if (task === undefined) {
     _tasks.set(id, new Task(metadata, { status: "Running" }, []));
+    _setTasksSignalValue(_tasks);
   } else {
     if (task.status.status !== "Unstarted") {
       console.error(`Duplicate id ${id} in TaskCreatedEvent`, metadata);
       return;
     }
-    task[SET_METADATA](metadata);
-    task[SET_STATUS]({ status: "Running" });
+    task._setMetadata(metadata);
+    task._setStatus({ status: "Running" });
     notifyTaskListeners(task, { ...event.payload, event: "created", progress: task.progress });
   }
 });
@@ -224,7 +246,7 @@ listen<TaskProgressEvent>("task_progress", (event) => {
   if (task !== undefined) {
     // enable only when you need it.
     // console.log("Received progress update", event.payload.progress);
-    task[SET_PROGRESS](event.payload.progress);
+    task._setProgress(event.payload.progress);
     notifyTaskListeners(task, { ...event.payload, event: "progress" });
   }
 });
@@ -232,7 +254,7 @@ listen<TaskProgressEvent>("task_progress", (event) => {
 listen<TaskDependencyEvent>("task_dependency", (event) => {
   const task = _tasks.get(event.payload.id);
   if (task !== undefined) {
-    task[SET_DEPENDENCIES](task.dependencies.length, event.payload.dependency);
+    task._setDependencies(task.dependencies.length, event.payload.dependency);
     if (task.metadata.kind === "Aggregate") {
       const dependency = event.payload.dependency;
       registerTaskListener(dependency, function handler(event) {
@@ -247,14 +269,14 @@ listen<TaskDependencyEvent>("task_dependency", (event) => {
           let total = event.progress.total;
           for (const id of task.dependencies) {
             if (id !== dependency) {
-              const subTask = tasks.get(id);
+              const subTask = _tasks.get(id);
               if (subTask === undefined) continue;
               completed += subTask.progress.completed;
               total += subTask.progress.total;
             }
           }
 
-          task[SET_PROGRESS]({
+          task._setProgress({
             completed,
             total,
           });
@@ -268,7 +290,7 @@ listen<TaskDependencyEvent>("task_dependency", (event) => {
 listen<TaskDroppedEvent>("task_dropped", (event) => {
   const task = _tasks.get(event.payload.id);
   if (task !== undefined) {
-    task[SET_STATUS](event.payload.status);
+    task._setStatus(event.payload.status);
     notifyTaskListeners(task, { ...event.payload, event: "dropped" });
     task.listeners = Object.freeze<Listener[]>([]) as Listener[];
   }

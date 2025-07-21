@@ -2,20 +2,20 @@ import "./styles/App.css";
 import "./styles/Markdown.css";
 
 import { Route, Router } from "@solidjs/router";
-import { platform } from "@tauri-apps/plugin-os";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { platform } from "@tauri-apps/plugin-os";
 import { Show, createResource, onCleanup, onMount } from "solid-js";
 
 import { relaunch } from "./api/app";
 import { coreResources } from "./globals";
 
 import ErrorBoundary, { ErrorDialog } from "./components/global/ErrorBoundary";
+import TitleBar from "./components/global/TitleBar.tsx";
 import ErrorPage from "./pages/error/Error";
 import GameSelect from "./pages/game_select/GameSelect";
 import Profile from "./pages/profile/Profile";
 import Settings from "./pages/settings/Settings";
 import Splashscreen from "./pages/splashscreen/Splashscreen.tsx";
-import Titlebar from "./components/titlebar/Titlebar.tsx";
 
 export default function App() {
   const [fontLoaded] = createResource(async () => {
@@ -65,7 +65,7 @@ export default function App() {
 
   return (
     <>
-      <Titlebar />
+      <TitleBar />
       <Show
         when={
           coreResources.every((resource) => resource.state !== "pending" && resource.state !== "unresolved") &&

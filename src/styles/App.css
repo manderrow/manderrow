@@ -154,7 +154,7 @@ a:disabled {
 input,
 button,
 select {
-  font-size: 1rem;
+  font-size: inherit;
   color: var(--clr-neutral-1);
   display: block;
   font-family: var(--font);

@@ -273,7 +273,7 @@ async fn import_onto_profile(
                         uuid4: Default::default(),
                         file_size: version.file_size.into(),
                     },
-                    Some(sub_task_id),
+                    sub_task_id,
                 )
                 .await
             }

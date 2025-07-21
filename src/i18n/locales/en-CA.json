@@ -9,7 +9,8 @@
       "relevance": "Relevance",
       "downloads": "Downloads",
       "name": "Name",
-      "owner": "Owner"
+      "owner": "Owner",
+      "size": "Size"
     },
     "sort_order": {
       "ascending": "Ascending",
