@@ -119,15 +119,15 @@
 
 html {
   height: 100dvh;
-  padding-top: var(--titlebar-height);
 }
 
 body {
   background-color: var(--clr-neutral-9);
   color: var(--clr-neutral-1);
-  min-height: 100%;
+  height: 100dvh;
+  overflow: hidden;
   font-size: 1rem;
-  overscroll-behavior: none;
+  position: relative;
 }
 
 * {
@@ -136,6 +136,7 @@ body {
 
 main {
   height: calc(100dvh - var(--titlebar-height));
+  overscroll-behavior: none;
 }
 
 a {

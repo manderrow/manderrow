@@ -42,14 +42,6 @@ export default function GameSelect() {
     { initialValue: initialSortedGames() },
   );
 
-  onMount(() => {
-    document.body.classList.add(styles.body);
-  });
-
-  onCleanup(() => {
-    document.body.classList.remove(styles.body);
-  });
-
   const navigate = useNavigate();
   const location = useLocation<GameSelectState>();
 
@@ -64,7 +56,7 @@ export default function GameSelect() {
   });
 
   return (
-    <>
+    <div class={styles.page}>
       <div class={blobStyles.gradientBlobs} aria-hidden="true">
         <div class={blobStyles.gradientBlob} data-blob-1></div>
         <div class={blobStyles.gradientBlob} data-blob-2></div>
@@ -143,7 +135,7 @@ export default function GameSelect() {
           </For>
         </ol>
       </main>
-    </>
+    </div>
   );
 }
 

@@ -5,10 +5,6 @@
   user-select: none;
   display: grid;
   grid-template-columns: auto max-content;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
   z-index: var(--titlebar-z-index);
 
   .titlebar__content {
