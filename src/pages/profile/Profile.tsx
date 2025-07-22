@@ -160,17 +160,20 @@ export default function Profile() {
   const hasLiveConnection = () => focusedConnection() !== undefined && focusedConnection()?.status() !== "disconnected";
 
   return (
-    <div class={styles.page}>
-      <main class={styles.main}>
-        <aside class={styles.sidebar}>
+    <main class={styles.main}>
+      <aside class={styles.sidebar}>
+        <section
+          classList={{ [styles.sidebar__group]: true, [styles.sidebar__mainActions]: true }}
+          style={{ "--game-hero--url": `url("/img/game_heros/${gameInfo.id}.webp")` }}
+        >
           <nav class={styles.sidebar__nav}>
-            <button class={styles.sidebar__btn} on:click={() => navigate(-1)}>
+            <button class={styles.backBtn} on:click={() => navigate(-1)}>
               <Fa icon={faChevronLeft} />
             </button>
 
             <h1>{gameInfo.name}</h1>
           </nav>
-          <section classList={{ [styles.sidebar__group]: true, [styles.sidebar__mainActions]: true }}>
+          <div class={styles.sidebar__mainActionBtns}>
             <Switch>
               <Match when={focusedConnection()?.status() === "connected"}>
                 <button on:click={() => killGame()} data-kill>
@@ -192,112 +195,113 @@ export default function Profile() {
             <button on:click={() => launch(false)} data-vanilla>
               <Fa icon={faCirclePlayOutline} /> {t("profile.sidebar.launch_vanilla_btn")}
             </button>
-          </section>
-          <section classList={{ [styles.sidebar__group]: true, [sidebarStyles.sidebar__profiles]: true }}>
-            <h3 class={styles.sidebar__profilesTitle}>
-              {t("profile.sidebar.profiles_title")}
-              <div class={styles.sidebar__profilesActions}>
-                <A class={styles.sidebar__profilesActionBtn} href={`/profile/${params.gameId}`}>
-                  <Fa icon={faPlus} />
-                </A>
-                <button
-                  class={styles.sidebar__profilesActionBtn}
-                  title="Import"
-                  on:click={() => setImportDialogOpen(true)}
-                >
-                  <Fa icon={faFileImport} class={sidebarStyles.sidebar__profileActionsBtnIcon} />
-                </button>
-              </div>
-            </h3>
-
-            <form on:submit={(e) => e.preventDefault()} class={sidebarStyles.sidebar__profilesSearch}>
-              <input type="text" name="profile-search" id="profile-search" placeholder="Search" maxLength={100} />
-              <SelectDropdown<"alphabetical" | "creationDate">
-                class={sidebarStyles.sidebar__profilesSearchSortBtn}
-                multiselect={false}
-                options={{
-                  "A-Z": {
-                    value: "alphabetical",
-                  },
-
-                  "Creation Date": {
-                    value: "creationDate",
-                  },
-                }}
-                label={{ labelText: "preset", preset: "Sort" }}
-                onChanged={(key, selected) => console.log(key, selected)}
-              />
-              <button
-                class={sidebarStyles.sidebar__profilesSearchSortByBtn}
-                on:click={() => setProfileSortOrder((order) => !order)}
-              >
-                {profileSortOrder() ? <Fa icon={faArrowUpWideShort} /> : <Fa icon={faArrowDownShortWide} />}
-              </button>
-            </form>
-
-            <OverlayScrollbarsComponent
-              defer
-              options={{ scrollbars: { autoHide: "leave" } }}
-              class={sidebarStyles.sidebar__profilesListContainer}
-            >
-              <ol class={sidebarStyles.sidebar__profilesList}>
-                <For each={Object.keys(profiles())}>
-                  {(id) => (
-                    <Show when={profiles()[id].pinned}>
-                      <SidebarProfileComponent
-                        gameId={params.gameId}
-                        profile={profiles()[id]}
-                        refetchProfiles={refetchProfiles}
-                        selected={id === params.profileId}
-                      />
-                    </Show>
-                  )}
-                </For>
-                <For each={Object.keys(profiles())}>
-                  {(id) => (
-                    <Show when={!profiles()[id].pinned}>
-                      <SidebarProfileComponent
-                        gameId={params.gameId}
-                        profile={profiles()[id]}
-                        refetchProfiles={refetchProfiles}
-                        selected={id === params.profileId}
-                      />
-                    </Show>
-                  )}
-                </For>
-              </ol>
-            </OverlayScrollbarsComponent>
-          </section>
-          <section class={styles.sidebar__group}>
-            <div class={styles.sidebar__otherGrid}>
-              <A href="/settings">
-                <button>
-                  <Fa icon={faGear} class={styles.sidebar__otherGridIcon} />
-                  <br />
-                  Settings
-                </button>
+          </div>
+        </section>
+        <section classList={{ [styles.sidebar__group]: true, [sidebarStyles.sidebar__profiles]: true }}>
+          <h3 class={styles.sidebar__profilesTitle}>
+            {t("profile.sidebar.profiles_title")}
+            <div class={styles.sidebar__profilesActions}>
+              <A class={styles.sidebar__profilesActionBtn} href={`/profile/${params.gameId}`}>
+                <Fa icon={faPlus} />
               </A>
+              <button
+                class={styles.sidebar__profilesActionBtn}
+                title="Import"
+                on:click={() => setImportDialogOpen(true)}
+              >
+                <Fa icon={faFileImport} class={sidebarStyles.sidebar__profileActionsBtnIcon} />
+              </button>
             </div>
-          </section>
-        </aside>
+          </h3>
 
-        <div class={styles.content}>
-          <Show
-            when={params.profileId}
-            fallback={
-              <NoSelectedProfileContent gameId={params.gameId} profiles={profiles} refetchProfiles={refetchProfiles} />
-            }
+          <form on:submit={(e) => e.preventDefault()} class={sidebarStyles.sidebar__profilesSearch}>
+            <input type="text" name="profile-search" id="profile-search" placeholder="Search" maxLength={100} />
+            <SelectDropdown<"alphabetical" | "creationDate">
+              class={sidebarStyles.sidebar__profilesSearchSortBtn}
+              multiselect={false}
+              options={{
+                "A-Z": {
+                  value: "alphabetical",
+                },
+
+                "Creation Date": {
+                  value: "creationDate",
+                },
+              }}
+              label={{ labelText: "preset", preset: "Sort" }}
+              onChanged={(key, selected) => console.log(key, selected)}
+            />
+            <button
+              class={sidebarStyles.sidebar__profilesSearchSortByBtn}
+              on:click={() => setProfileSortOrder((order) => !order)}
+            >
+              {profileSortOrder() ? <Fa icon={faArrowUpWideShort} /> : <Fa icon={faArrowDownShortWide} />}
+            </button>
+          </form>
+
+          <OverlayScrollbarsComponent
+            defer
+            options={{ scrollbars: { autoHide: "leave" } }}
+            class={sidebarStyles.sidebar__profilesListContainer}
           >
-            {(profileId) => {
-              const [installed, { refetch: refetchInstalled0 }] = createResource(
-                profileId,
-                (profileId) => getProfileMods(profileId),
-                { initialValue: [] },
-              );
+            <ol class={sidebarStyles.sidebar__profilesList}>
+              <For each={Object.keys(profiles())}>
+                {(id) => (
+                  <Show when={profiles()[id].pinned}>
+                    <SidebarProfileComponent
+                      gameId={params.gameId}
+                      profile={profiles()[id]}
+                      refetchProfiles={refetchProfiles}
+                      selected={id === params.profileId}
+                    />
+                  </Show>
+                )}
+              </For>
+              <For each={Object.keys(profiles())}>
+                {(id) => (
+                  <Show when={!profiles()[id].pinned}>
+                    <SidebarProfileComponent
+                      gameId={params.gameId}
+                      profile={profiles()[id]}
+                      refetchProfiles={refetchProfiles}
+                      selected={id === params.profileId}
+                    />
+                  </Show>
+                )}
+              </For>
+            </ol>
+          </OverlayScrollbarsComponent>
+        </section>
+        <section class={styles.sidebar__group}>
+          <div class={styles.sidebar__otherGrid}>
+            <A href="/settings">
+              <button>
+                <Fa icon={faGear} class={styles.sidebar__otherGridIcon} />
+                <br />
+                Settings
+              </button>
+            </A>
+          </div>
+        </section>
+      </aside>
 
-              const refetchInstalled = async () => {
-                await refetchInstalled0();
-              };
+      <div class={styles.content}>
+        <Show
+          when={params.profileId}
+          fallback={
+            <NoSelectedProfileContent gameId={params.gameId} profiles={profiles} refetchProfiles={refetchProfiles} />
+          }
+        >
+          {(profileId) => {
+            const [installed, { refetch: refetchInstalled0 }] = createResource(
+              profileId,
+              (profileId) => getProfileMods(profileId),
+              { initialValue: [] },
+            );
+
+            const refetchInstalled = async () => {
+              await refetchInstalled0();
+            };
 
             return (
               <ModInstallContext.Provider value={{ profileId, installed, refetchInstalled }}>
@@ -324,29 +328,28 @@ export default function Profile() {
                       component: () => <OnlineModList game={params.gameId} />,
                     },
 
-                      {
-                        id: "logs",
-                        name: "Logs",
-                        component: () => (
-                          <div class={styles.content__console}>
-                            <Console />
-                          </div>
-                        ),
-                      },
+                    {
+                      id: "logs",
+                      name: "Logs",
+                      component: () => (
+                        <div class={styles.content__console}>
+                          <Console />
+                        </div>
+                      ),
+                    },
 
-                      {
-                        id: "config",
-                        name: "Config",
-                        component: () => <div></div>,
-                      },
-                    ]}
-                  />
-                </ModInstallContext.Provider>
-              );
-            }}
-          </Show>
-        </div>
-      </main>
+                    {
+                      id: "config",
+                      name: "Config",
+                      component: () => <div></div>,
+                    },
+                  ]}
+                />
+              </ModInstallContext.Provider>
+            );
+          }}
+        </Show>
+      </div>
 
       <StatusBar />
 
@@ -357,7 +360,7 @@ export default function Profile() {
       <DoctorReports />
 
       <Show when={err()}>{(err) => <ErrorDialog err={err()} reset={() => setErr(undefined)} />}</Show>
-    </div>
+    </main>
   );
 }
 

@@ -1,5 +1,7 @@
 .statusBar {
-  padding: 0.4rem;
+  grid-area: statusbar;
+
+  padding: 0.2rem 0.4rem;
   font-size: 0.8rem;
   text-align: center;
   border-top: 1px solid var(--clr-neutral-8);
