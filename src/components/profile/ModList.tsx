@@ -179,6 +179,19 @@ export function InstalledModList(props: { game: string }) {
 
   const [progress, setProgress] = createProgressProxyStore();
 
+  const getFetcher: () => Fetcher = () => {
+    const data = context.installed();
+
+    return async (game, query, sort) => {
+      // TODO: implement filter and sort
+
+      return {
+        count: data.length,
+        mods: async (page) => (page === 0 ? data : []),
+      };
+    };
+  };
+
   return (
     <Show when={context.installed.latest.length !== 0} fallback={<p>Looks like you haven't installed any mods yet.</p>}>
       <ModList
@@ -188,15 +201,7 @@ export function InstalledModList(props: { game: string }) {
         // TODO: implement local refreshing
         refresh={() => {}} // looks like eyes
         // kinda gross
-        mods={async (game, query, sort) => {
-          // TODO: implement filter and sort
-          const data = context.installed();
-
-          return {
-            count: data.length,
-            mods: async (page) => (page === 0 ? data : []),
-          };
-        }}
+        mods={getFetcher()}
       />
     </Show>
   );
