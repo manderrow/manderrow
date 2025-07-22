@@ -105,6 +105,7 @@
   --clr-ok-9: hsl(var(--clr-ok-hs), 90%);
 
   --titlebar-height: 28px;
+  --titlebar-logo-size: 16px;
   --titlebar-z-index: 100;
   --portal-z-index: 9;
 }

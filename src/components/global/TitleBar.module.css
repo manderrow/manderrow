@@ -16,8 +16,21 @@
     display: flex;
   }
 
-  .appTitle {
-    font-size: 0.85rem;
+  .appTitleContainer {
+    padding-left: 0.5em;
+    color: var(--clr-neutral-2);
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+
+    .appTitle {
+      font-size: 0.85rem;
+    }
+
+    img {
+      width: var(--titlebar-logo-size);
+      aspect-ratio: 1 / 1;
+    }
   }
 
   .profileName {
@@ -25,7 +38,6 @@
     line-height: var(--titlebar-height);
     position: absolute;
     z-index: -1;
-    height: 100%;
     left: 50%;
     translate: -50%;
     max-width: 50%;
@@ -33,11 +45,6 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     color: var(--clr-neutral-3);
-  }
-
-  .appTitleContainer {
-    padding-left: 0.5em;
-    color: var(--clr-neutral-2);
   }
 
   button {

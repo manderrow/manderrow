@@ -4,6 +4,8 @@ import { createSignal, onMount } from "solid-js";
 import { t } from "../../i18n/i18n";
 import styles from "./Titlebar.module.css";
 
+import logo from "../../assets/Manderrow logo.svg";
+
 const appWindow = getCurrentWindow();
 
 // Global signal for current profile name displayed in title bar
@@ -25,7 +27,7 @@ export default function TitleBar() {
     <div class={styles.titlebar}>
       <div data-tauri-drag-region class={styles.titlebar__content}>
         <div class={styles.appTitleContainer}>
-          {/* TODO: insert app logo */}
+          <img src={logo} alt="Manderrow logo" />
           <span class={styles.appTitle}>Manderrow</span>
         </div>
         <p class={styles.profileName}>{currentProfileName()}</p>
