@@ -2,7 +2,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { createSignal, onMount } from "solid-js";
 
 import { t } from "../../i18n/i18n";
-import styles from "./Titlebar.module.css";
+import styles from "./TitleBar.module.css";
 
 import logo from "../../assets/Manderrow logo.svg";
 
