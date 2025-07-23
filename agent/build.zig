@@ -87,6 +87,11 @@ fn createLib(
     build_zig_zon: *std.Build.Module,
     install_step: *std.Build.Step,
 ) !struct { mod: *std.Build.Module, compile: *std.Build.Step.Compile } {
+    if (wine and (target.result.cpu.arch != .x86_64 or target.result.os.tag != .windows)) {
+        std.log.err("wine build option is only supported when targeting Windows x86_64, but you are targeting {}", .{target});
+        return error.UnsupportedOS;
+    }
+
     const lib_mod = b.createModule(.{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
