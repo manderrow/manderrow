@@ -29,14 +29,17 @@ export default function StatusBar() {
 
   return (
     <div class={styles.statusBar}>
-      <button class={styles.taskManagerBtn} on:click={() => setTasksDialogOpen(true)}>
-        <span class={styles.statusBar__chunk}>{counts().downloads} downloads</span>
-        <span class={styles.statusBar__chunk}>{counts().other} other tasks</span>
-      </button>
+      {/* <div aria-hidden="true" class={styles.statusBarBorderCover}></div> */}
+      <div class={styles.statusBar__content}>
+        <button class={styles.taskManagerBtn} on:click={() => setTasksDialogOpen(true)}>
+          <span class={styles.statusBar__chunk}>{counts().downloads} downloads</span>
+          <span class={styles.statusBar__chunk}>{counts().other} other tasks</span>
+        </button>
 
-      <Show when={tasksDialogOpen()}>
-        <TasksDialog onDismiss={() => setTasksDialogOpen(false)} />
-      </Show>
+        <Show when={tasksDialogOpen()}>
+          <TasksDialog onDismiss={() => setTasksDialogOpen(false)} />
+        </Show>
+      </div>
     </div>
   );
 }

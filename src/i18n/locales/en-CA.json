@@ -103,6 +103,8 @@
   },
 
   "settings": {
+    "title": "Settings",
+
     "section": {
       "general": "General",
       "launching": "Launching"

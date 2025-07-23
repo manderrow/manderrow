@@ -108,3 +108,9 @@ form.profileList__itemName {
 .profileList__item button:hover:not(:disabled) {
   background-color: var(--clr-neutral-7);
 }
+
+@media screen AND (max-width: 1200px) {
+  [data-sidebar-open="false"] .sidebar__profiles {
+    display: none;
+  }
+}

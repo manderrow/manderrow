@@ -26,6 +26,7 @@ import {
   faSkullCrossbones,
   faXmark,
   faThumbTackSlash,
+  faAnglesRight,
 } from "@fortawesome/free-solid-svg-icons";
 import { OverlayScrollbarsComponent } from "overlayscrollbars-solid";
 import { Fa } from "solid-fa";
@@ -159,9 +160,12 @@ export default function Profile() {
 
   const hasLiveConnection = () => focusedConnection() !== undefined && focusedConnection()?.status() !== "disconnected";
 
+  // For mini sidebar on small app width only
+  const [sidebarOpen, setSidebarOpen] = createSignal(false);
+
   return (
     <main class={styles.main}>
-      <aside class={styles.sidebar}>
+      <aside class={styles.sidebar} data-sidebar-open={sidebarOpen()}>
         <section
           classList={{ [styles.sidebar__group]: true, [styles.sidebar__mainActions]: true }}
           style={{ "--game-hero--url": `url("/img/game_heros/${gameInfo.id}.webp")` }}
@@ -177,12 +181,12 @@ export default function Profile() {
             <Switch>
               <Match when={focusedConnection()?.status() === "connected"}>
                 <button on:click={() => killGame()} data-kill>
-                  <Fa icon={faSkullCrossbones} /> {t("profile.sidebar.kill_game_btn")}
+                  <Fa icon={faSkullCrossbones} /> <span>{t("profile.sidebar.kill_game_btn")}</span>
                 </button>
               </Match>
               <Match when={hasLiveConnection()}>
                 <button on:click={() => setFocusedConnection(undefined)} data-cancel>
-                  <Fa icon={faXmark} /> {t("profile.sidebar.cancel_launch_btn")}
+                  <Fa icon={faXmark} /> <span>{t("profile.sidebar.cancel_launch_btn")}</span>
                 </button>
               </Match>
             </Switch>
@@ -190,10 +194,7 @@ export default function Profile() {
               // TODO: based on hasLiveConnection change the UI of these a bit
             }
             <button disabled={params.profileId === undefined} on:click={() => launch(true)} data-modded>
-              <Fa icon={faCirclePlay} /> {t("profile.sidebar.launch_modded_btn")}
-            </button>
-            <button on:click={() => launch(false)} data-vanilla>
-              <Fa icon={faCirclePlayOutline} /> {t("profile.sidebar.launch_vanilla_btn")}
+              <Fa icon={faCirclePlay} /> <span>{t("profile.sidebar.launch_modded_btn")}</span>
             </button>
           </div>
         </section>
@@ -272,14 +273,16 @@ export default function Profile() {
             </ol>
           </OverlayScrollbarsComponent>
         </section>
+
+        {/* Displayed on small window width */}
+        <button class={styles.expandBtn} onClick={() => setSidebarOpen((open) => !open)}>
+          <Fa icon={faAnglesRight} rotate={sidebarOpen() ? 180 : 0} />
+        </button>
+
         <section class={styles.sidebar__group}>
           <div class={styles.sidebar__otherGrid}>
-            <A href="/settings">
-              <button>
-                <Fa icon={faGear} class={styles.sidebar__otherGridIcon} />
-                <br />
-                Settings
-              </button>
+            <A href="/settings" class={styles.sidebar__otherGridIcon} title={t("settings.title")}>
+              <Fa icon={faGear} />
             </A>
           </div>
         </section>
