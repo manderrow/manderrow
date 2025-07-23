@@ -118,6 +118,11 @@
   box-sizing: border-box;
 }
 
+/* For Tauri Windows custom titlebar */
+*[data-tauri-drag-region] {
+  app-region: drag;
+}
+
 html {
   height: 100dvh;
 }

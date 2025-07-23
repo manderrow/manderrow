@@ -12,10 +12,6 @@
     align-items: center;
   }
 
-  .controls {
-    display: flex;
-  }
-
   .appTitleContainer {
     padding-left: 0.5em;
     color: var(--clr-neutral-2);
@@ -37,7 +33,6 @@
     text-align: center;
     line-height: var(--titlebar-height);
     position: absolute;
-    z-index: -1;
     left: 50%;
     translate: -50%;
     max-width: 50%;
@@ -47,33 +42,30 @@
     color: var(--clr-neutral-3);
   }
 
-  button {
-    appearance: none;
-    padding: 0 0.5em;
-    margin: 0;
-    outline: none;
-    border: none;
-    display: inline-flex;
-    justify-content: center;
-    align-items: center;
-    height: 100%;
-    background-color: transparent;
-    transition: background-color 0.2s ease;
+  .controls {
+    display: flex;
 
-    &[data-minimize]:hover,
-    &[data-maximize]:hover {
-      background-color: var(--clr-neutral-7);
-    }
+    button {
+      appearance: none;
+      padding: 0 0.5em;
+      margin: 0;
+      outline: none;
+      border: none;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      background-color: transparent;
+      transition: background-color 0.2s ease;
 
-    &[data-close]:hover {
-      background-color: var(--clr-danger-5);
+      &[data-minimize]:hover,
+      &[data-maximize]:hover {
+        background-color: var(--clr-neutral-7);
+      }
+
+      &[data-close]:hover {
+        background-color: var(--clr-danger-5);
+      }
     }
   }
-  button:hover {
-    background: #5bbec3;
-  }
-}
-
-*[data-tauri-drag-region] {
-  app-region: drag;
 }
