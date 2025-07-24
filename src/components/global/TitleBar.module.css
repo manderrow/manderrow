@@ -1,4 +1,9 @@
 .titlebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+
   height: var(--titlebar-height);
   background: var(--clr-neutral-9);
   border-bottom: 1px solid var(--clr-neutral-8);

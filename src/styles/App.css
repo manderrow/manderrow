@@ -134,6 +134,7 @@ body {
   overflow: hidden;
   font-size: 1rem;
   position: relative;
+  margin-top: var(--titlebar-height);
 }
 
 * {
