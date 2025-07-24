@@ -33,7 +33,7 @@ import { Fa } from "solid-fa";
 
 import Console, { DoctorReports } from "../../components/global/Console";
 import { PromptDialog } from "../../components/global/Dialog";
-import { ErrorDialog } from "../../components/global/ErrorBoundary";
+import ErrorDialog from "../../components/global/ErrorDialog.tsx";
 import SelectDropdown from "../../components/global/SelectDropdown";
 import TabRenderer from "../../components/global/TabRenderer";
 import { InstalledModList, ModInstallContext, OnlineModList } from "../../components/profile/ModList";

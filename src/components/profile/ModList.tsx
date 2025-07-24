@@ -35,7 +35,7 @@ import { Mod, ModListing, ModPackage, ModVersion } from "../../types";
 import { humanizeFileSize, numberFormatter, removeProperty, roundedNumberFormatter } from "../../utils";
 
 import { SimpleAsyncButton } from "../global/AsyncButton";
-import ErrorBoundary, { ErrorContext } from "../global/ErrorBoundary";
+import ErrorBoundary, { ErrorContext } from "../global/ErrorBoundary.tsx";
 import TabRenderer, { Tab, TabContent } from "../global/TabRenderer";
 import ModMarkdown from "./ModMarkdown.tsx";
 import ModSearch from "./ModSearch.tsx";

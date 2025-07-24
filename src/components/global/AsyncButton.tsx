@@ -1,5 +1,5 @@
 import { Accessor, createEffect, createSignal, JSX, Show } from "solid-js";
-import { ErrorDialog } from "./ErrorBoundary";
+import ErrorDialog from "./ErrorDialog";
 import { createProgressProxyStore, Listener, Progress } from "../../api/tasks";
 import { SimpleProgressIndicator } from "./Progress";
 
