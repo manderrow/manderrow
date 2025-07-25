@@ -22,7 +22,6 @@ export default function TitleBar() {
     setIsMaximizedCached(await isMaximized());
     // TODO: custom event that includes the new status so we don't need to make another request
     appWindow.onResized(async () => {
-      console.log("onResized");
       setIsMaximizedCached(await isMaximized());
     });
   });
@@ -51,7 +50,7 @@ export default function TitleBar() {
         <button title={t("titlebar.minimize_btn")} on:click={() => minimize()} data-minimize>
           {/* <!-- https://api.iconify.design/mdi:window-minimize.svg --> */}
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-            <path fill="currentColor" d="M19 13H5v-2h14z"/>
+            <path fill="currentColor" d="M19 13H5v-2h14z" />
           </svg>
         </button>
         <button
@@ -59,17 +58,20 @@ export default function TitleBar() {
           on:click={() => setMaximized(!isMaximizedCached())}
           data-maximize
         >
-          <Show when={isMaximizedCached()}
-            fallback={<>
-              {/* <!-- https://api.iconify.design/mdi:window-maximize.svg --> */}
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M4 4h16v16H4zm2 4v10h12V8z"/>
-              </svg>
-            </>}
+          <Show
+            when={isMaximizedCached()}
+            fallback={
+              <>
+                {/* <!-- https://api.iconify.design/mdi:window-maximize.svg --> */}
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                  <path fill="currentColor" d="M4 4h16v16H4zm2 4v10h12V8z" />
+                </svg>
+              </>
+            }
           >
             {/* <!-- https://api.iconify.design/mdi:window-restore.svg --> */}
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-              <path fill="currentColor" d="M4 8h4V4h12v12h-4v4H4zm12 0v6h2V6h-8v2zM6 12v6h8v-6z"/>
+              <path fill="currentColor" d="M4 8h4V4h12v12h-4v4H4zm12 0v6h2V6h-8v2zM6 12v6h8v-6z" />
             </svg>
           </Show>
         </button>
