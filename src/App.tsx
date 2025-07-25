@@ -86,9 +86,7 @@ export default function App() {
           </Show>
         }
       >
-        <Suspense>
-          <AppLoaded />
-        </Suspense>
+        <AppLoaded />
       </Show>
     </>
   );
