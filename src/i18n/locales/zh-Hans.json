@@ -9,7 +9,8 @@
       "relevance": "相关性",
       "downloads": "下载",
       "name": "名称",
-      "owner": "管理人"
+      "owner": "管理人",
+      "size": "大小"
     },
     "sort_order": {
       "ascending": "升序",
@@ -25,6 +26,13 @@
     }
   },
 
+  "titlebar": {
+    "minimize_btn": "最小化",
+    "maximize_btn": "最大化",
+    "restore_btn": "恢复",
+    "close_btn": "关闭"
+  },
+  
   "game_select": {
     "title": "选择游戏",
     "subtitle": "选择需要管理模组的游戏",
@@ -95,6 +103,7 @@
   },
 
   "settings": {
+    "title": "设置",
     "section": {
       "general": "通用",
       "launching": "正在启动"
@@ -114,7 +123,7 @@
     "native_stack_trace": "本地栈追踪",
     "js_stack_trace": "JavaScript栈追踪",
 
-    "reportBtn": "发送报告",
-    "ignoreBtn": "不理"
+    "report_btn": "发送报告",
+    "ignore_btn": "不理"
   }
 }
