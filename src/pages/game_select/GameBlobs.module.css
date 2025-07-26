@@ -3,7 +3,6 @@
   pointer-events: none;
   overflow: hidden;
   inset: 0;
-  z-index: -1;
 }
 
 .gradientBlob {

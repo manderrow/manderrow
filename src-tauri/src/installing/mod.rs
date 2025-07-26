@@ -28,7 +28,7 @@ use trie_rs::TrieBuilder;
 use walkdir::WalkDir;
 use zip::{result::ZipError, ZipArchive};
 
-use crate::tasks::{self, TaskBuilder, TaskHandle};
+use crate::tasks::{self, SuccessInfo, TaskBuilder, TaskHandle};
 use crate::util::{IoErrorKindExt, UsizeExt};
 use crate::Reqwest;
 
@@ -605,6 +605,7 @@ pub async fn fetch_resource<'a>(
     app: Option<&AppHandle>,
     log: &slog::Logger,
     reqwest: &Reqwest,
+    title: String,
     url: &str,
     cache: Option<CacheOptions<'_>>,
     task_id: Option<tasks::Id>,
@@ -613,16 +614,18 @@ pub async fn fetch_resource<'a>(
         Some(CacheOptions {
             key: CacheKey::Hash(hash_str),
             suffix,
-        }) => fetch_resource_cached_by_hash(app, log, reqwest, url, hash_str, suffix, task_id)
-            .await
-            .map(FetchedResource::File),
+        }) => {
+            fetch_resource_cached_by_hash(app, log, reqwest, title, url, hash_str, suffix, task_id)
+                .await
+                .map(FetchedResource::File)
+        }
         Some(CacheOptions {
             key: CacheKey::Url,
             suffix,
-        }) => fetch_resource_cached_by_url(app, log, reqwest, url, suffix, task_id)
+        }) => fetch_resource_cached_by_url(app, log, reqwest, title, url, suffix, task_id)
             .await
             .map(FetchedResource::File),
-        None => fetch_resource_uncached(app, log, reqwest, url, task_id)
+        None => fetch_resource_uncached(app, log, reqwest, title, url, task_id)
             .await
             .map(FetchedResource::Bytes),
     }
@@ -632,11 +635,14 @@ pub async fn fetch_resource_uncached<'a>(
     app: Option<&AppHandle>,
     log: &slog::Logger,
     reqwest: &Reqwest,
+    title: String,
     url: &str,
     task_id: Option<tasks::Id>,
 ) -> Result<BytesMut> {
-    TaskBuilder::with_id(task_id.unwrap_or_else(tasks::allocate_task), url.to_owned())
-        .kind(tasks::Kind::Download)
+    TaskBuilder::with_id(task_id.unwrap_or_else(tasks::allocate_task), title)
+        .kind(tasks::Kind::Download {
+            url: url.to_owned(),
+        })
         .progress_unit(tasks::ProgressUnit::Bytes)
         .run_with_handle(app, |handle| async move {
             debug!(log, "Fetching resource from {url:?} without caching");
@@ -672,7 +678,7 @@ pub async fn fetch_resource_uncached<'a>(
                 bytes
             };
 
-            Ok::<_, anyhow::Error>(bytes)
+            Ok::<_, anyhow::Error>((None, bytes))
         })
         .await
         .map_err(Into::into)
@@ -682,6 +688,7 @@ pub async fn fetch_resource_cached_by_hash(
     app: Option<&AppHandle>,
     log: &slog::Logger,
     reqwest: &Reqwest,
+    title: String,
     url: &str,
     hash_str: &str,
     suffix: &str,
@@ -690,7 +697,8 @@ pub async fn fetch_resource_cached_by_hash(
     let mut path = cache_dir().join(hash_str);
     path.as_mut_os_string().push(suffix);
 
-    fetch_resource_cached_by_hash_at_path(app, log, reqwest, url, hash_str, &path, task_id).await?;
+    fetch_resource_cached_by_hash_at_path(app, log, reqwest, title, url, hash_str, &path, task_id)
+        .await?;
     Ok(path)
 }
 
@@ -698,13 +706,14 @@ pub async fn fetch_resource_cached_by_hash_at_path(
     app: Option<&AppHandle>,
     log: &slog::Logger,
     reqwest: &Reqwest,
+    title: String,
     url: &str,
     hash_str: &str,
     path: &Path,
     task_id: Option<tasks::Id>,
 ) -> Result<()> {
-    TaskBuilder::with_id(task_id.unwrap_or_else(tasks::allocate_task), url.to_owned())
-        .kind(tasks::Kind::Download)
+    TaskBuilder::with_id(task_id.unwrap_or_else(tasks::allocate_task), title)
+        .kind(tasks::Kind::Download { url: url.to_owned() })
         .progress_unit(tasks::ProgressUnit::Bytes)
         .run_with_handle(app, |handle| async move {
             debug!(log, "Fetching resource from {url:?} cached by hash");
@@ -718,7 +727,7 @@ pub async fn fetch_resource_cached_by_hash_at_path(
                     Err(e) => return Err(e.into()),
                 }
             };
-            if hash_on_disk.map(|h| h != hash).unwrap_or(true) {
+            let success = if hash_on_disk.map(|h| h != hash).unwrap_or(true) {
                 let mut resp = reqwest.get(url).send().await?.error_for_status()?;
                 tokio::fs::create_dir_all(cache_dir()).await?;
                 // TODO: should this be buffered?
@@ -744,12 +753,15 @@ pub async fn fetch_resource_cached_by_hash_at_path(
                 if hash_on_disk != hash {
                     bail!("Bad hash of downloaded resource at {path:?}: expected {hash}, found {hash_on_disk}");
                 }
+
+                None
             } else {
                 debug!(log, "Resource is cached at {path:?}");
                 let metadata = tokio::fs::metadata(&path).await?;
                 report_progress_from_file_metadata(app, handle, metadata)?;
-            }
-            Ok::<_, anyhow::Error>(())
+                Some(SuccessInfo::Cached)
+            };
+            Ok::<_, anyhow::Error>((success, ()))
         })
         .await
         .map_err(Into::into)
@@ -780,12 +792,15 @@ pub async fn fetch_resource_cached_by_url(
     app: Option<&AppHandle>,
     log: &slog::Logger,
     reqwest: &Reqwest,
+    title: String,
     url: &str,
     suffix: &str,
     task_id: Option<tasks::Id>,
 ) -> Result<PathBuf> {
-    TaskBuilder::with_id(task_id.unwrap_or_else(tasks::allocate_task), url.to_owned())
-        .kind(tasks::Kind::Download)
+    TaskBuilder::with_id(task_id.unwrap_or_else(tasks::allocate_task), title)
+        .kind(tasks::Kind::Download {
+            url: url.to_owned(),
+        })
         .progress_unit(tasks::ProgressUnit::Bytes)
         .run_with_handle(app, |handle| async move {
             debug!(log, "Fetching resource from {url:?} cached by url");
@@ -794,10 +809,11 @@ pub async fn fetch_resource_cached_by_url(
             path.as_mut_os_string()
                 .push(base64::engine::general_purpose::URL_SAFE.encode(url));
             path.as_mut_os_string().push(suffix);
-            match tokio::fs::metadata(&path).await {
+            let success = match tokio::fs::metadata(&path).await {
                 Ok(metadata) => {
                     debug!(log, "Resource is cached at {path:?}");
                     report_progress_from_file_metadata(app, handle, metadata)?;
+                    Some(SuccessInfo::Cached)
                 }
                 Err(e) if e.is_not_found() => {
                     tokio::fs::create_dir_all(cache_dir()).await?;
@@ -839,10 +855,12 @@ pub async fn fetch_resource_cached_by_url(
                         .context("Failed to move temp file into place")?;
 
                     debug!(log, "Cached resource at {path:?}");
+
+                    None
                 }
                 Err(e) => return Err(e.into()),
-            }
-            Ok::<_, anyhow::Error>(path)
+            };
+            Ok::<_, anyhow::Error>((success, path))
         })
         .await
         .map_err(Into::into)
@@ -852,11 +870,12 @@ pub async fn fetch_resource_as_bytes<'a>(
     app: Option<&AppHandle>,
     log: &slog::Logger,
     reqwest: &Reqwest,
+    title: String,
     url: &str,
     cache: Option<CacheOptions<'_>>,
     task_id: Option<tasks::Id>,
 ) -> Result<BytesMut> {
-    match fetch_resource(app, log, reqwest, url, cache, task_id).await? {
+    match fetch_resource(app, log, reqwest, title, url, cache, task_id).await? {
         FetchedResource::File(path_buf) => {
             Ok(Bytes::from(tokio::fs::read(&path_buf).await?).into())
         }
@@ -869,6 +888,7 @@ pub async fn prepare_install_zip<'a>(
     app: Option<&AppHandle>,
     log: &slog::Logger,
     reqwest: &Reqwest,
+    title: String,
     url: &str,
     cache: Option<CacheOptions<'_>>,
     target: &'a Path,
@@ -886,7 +906,7 @@ pub async fn prepare_install_zip<'a>(
 
     let temp_dir = tempfile::tempdir_in(target_parent)?;
 
-    match fetch_resource(app, log, reqwest, url, cache, task_id).await? {
+    match fetch_resource(app, log, reqwest, title, url, cache, task_id).await? {
         FetchedResource::Bytes(bytes) => {
             tokio::task::block_in_place(|| {
                 let mut archive = ZipArchive::new(std::io::Cursor::new(bytes))?;
@@ -912,6 +932,7 @@ pub async fn install_zip<'a>(
     app: Option<&AppHandle>,
     log: &slog::Logger,
     reqwest: &Reqwest,
+    title: String,
     url: &str,
     cache: Option<CacheOptions<'_>>,
     target: &'a Path,
@@ -919,7 +940,8 @@ pub async fn install_zip<'a>(
 ) -> anyhow::Result<StagedPackage<'a, 'static>> {
     debug!(log, "Installing zip from {url:?} to {target:?}");
 
-    let temp_dir = prepare_install_zip(app, log, reqwest, url, cache, target, task_id).await?;
+    let temp_dir =
+        prepare_install_zip(app, log, reqwest, title, url, cache, target, task_id).await?;
 
     let staged = install_folder(log, temp_dir.path(), target).await?;
 
@@ -1007,6 +1029,7 @@ pub async fn install_file<'a>(
     app: Option<&AppHandle>,
     log: &slog::Logger,
     reqwest: &Reqwest,
+    title: String,
     url: &str,
     cache: Option<CacheOptions<'_>>,
     target: &'a Path,
@@ -1024,7 +1047,7 @@ pub async fn install_file<'a>(
 
     let mut temp_file = tempfile::NamedTempFile::new_in(target_parent)?;
     let temp_path;
-    match fetch_resource(app, log, reqwest, url, cache, task_id).await? {
+    match fetch_resource(app, log, reqwest, title, url, cache, task_id).await? {
         FetchedResource::Bytes(bytes) => {
             tokio::task::block_in_place(|| temp_file.write_all(&bytes))?;
             temp_path = temp_file.into_temp_path();

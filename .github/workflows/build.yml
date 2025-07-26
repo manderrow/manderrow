@@ -12,12 +12,16 @@ jobs:
         include:
           - platform: 'macos-latest' # for Arm based macs (M1 and above).
             args: '--target aarch64-apple-darwin'
+            rust_targets: 'aarch64-apple-darwin'
           - platform: 'macos-latest' # for Intel based macs.
             args: '--target x86_64-apple-darwin'
+            rust_targets: 'x86_64-apple-darwin'
           - platform: 'ubuntu-22.04' # for Tauri v1 you could replace this with ubuntu-20.04.
             args: ''
+            rust_targets: ''
           - platform: 'windows-latest'
             args: ''
+            rust_targets: 'x86_64-pc-windows-gnu'
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -28,23 +32,29 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-
-      - uses: denoland/setup-deno@v2
+      - name: Setup PNPM
+        uses: pnpm/action-setup@v4
         with:
-          deno-version: v2.x
+          version: latest
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: 'pnpm'
+          cache-dependency-path: 'pnpm-lock.yaml'
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@nightly
         with:
-          # Those targets are only used on macos runners so it's in an `if` to slightly speed up windows and linux builds.
-          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+          targets: ${{ matrix.rust_targets }}
 
-      - uses: mlugg/setup-zig@v1
+      - uses: mlugg/setup-zig@v2
         with:
-          version: 0.15.0-dev.769+4d7980645
+          version: 0.15.0-dev.1092+d772c0627
 
       - name: Install frontend dependencies
-        run: deno install
+        run: pnpm install
 
       - uses: tauri-apps/tauri-action@v0
         env:

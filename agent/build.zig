@@ -1,3 +1,4 @@
+const builtin = @import("builtin");
 const std = @import("std");
 
 const IpcMode = enum {
@@ -7,6 +8,8 @@ const IpcMode = enum {
 };
 
 pub fn build(b: *std.Build) !void {
+    b.reference_trace = 24;
+
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{
         .preferred_optimize_mode = .ReleaseSafe,
@@ -53,7 +56,7 @@ pub fn build(b: *std.Build) !void {
         host_lib: bool = false,
     };
 
-    inline for ([_]Cfg{
+    for ([_]Cfg{
         .{ .target = b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .linux, .abi = .gnu }) },
         .{ .target = b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .linux, .abi = .gnu }), .host_lib = true },
         .{ .target = b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .macos }) },
@@ -62,6 +65,10 @@ pub fn build(b: *std.Build) !void {
         .{ .target = b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .windows, .abi = .gnu }), .ipc = .stderr },
         .{ .target = b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .windows, .abi = .gnu }), .ipc = .winelib },
     }) |cfg| {
+        if (builtin.os.tag != .linux and cfg.host_lib) {
+            // building host_lib is currently only supported on Linux
+            continue;
+        }
         const lib_2 = try createLib(b, cfg.target, optimize, strip, cfg.wine, cfg.ipc, cfg.host_lib, build_zig_zon, build_all_step);
         build_all_step.dependOn(&b.addInstallArtifact(lib_2.compile, .{
             .dest_dir = .{ .override = .lib },
@@ -80,6 +87,11 @@ fn createLib(
     build_zig_zon: *std.Build.Module,
     install_step: *std.Build.Step,
 ) !struct { mod: *std.Build.Module, compile: *std.Build.Step.Compile } {
+    if (wine and (target.result.cpu.arch != .x86_64 or target.result.os.tag != .windows)) {
+        std.log.err("wine build option is only supported when targeting Windows x86_64, but you are targeting {}", .{target});
+        return error.UnsupportedOS;
+    }
+
     const lib_mod = b.createModule(.{
         .root_source_file = b.path("src/root.zig"),
         .target = target,

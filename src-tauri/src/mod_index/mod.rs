@@ -69,7 +69,7 @@ pub async fn fetch_mod_index(
                 let Ok(_lock) = mod_index.refresh_lock.try_lock() else {
                     // just wait for the current refetch to complete.
                     _ = mod_index.refresh_lock.lock().await;
-                    return Ok(());
+                    return Ok((None, ()));
                 };
 
                 #[cfg(feature = "statistics")]
@@ -246,7 +246,7 @@ pub async fn fetch_mod_index(
                 let (inline_version_count, out_of_line_version_count) = (None::<u32>, None::<u32>);
                 info!(log, "Finished fetching mods"; "inline_version_count" => inline_version_count, "out_of_line_version_count" => out_of_line_version_count);
 
-                Ok::<_, anyhow::Error>(())
+                Ok::<_, anyhow::Error>((None, ()))
             })
             .await
             .map_err(Into::into)
@@ -262,6 +262,7 @@ pub enum SortColumn {
     Name,
     Owner,
     Downloads,
+    Size,
 }
 
 pub type ModIndexReadGuard = RwLockReadGuard<'static, Vec<MemoryModIndex>>;
@@ -326,6 +327,11 @@ pub async fn query_mod_index<'a>(
                                 .sum::<u64>()
                         };
                         sum_downloads(m1).cmp(&sum_downloads(m2))
+                    }
+                    SortColumn::Size => {
+                        let latest_size =
+                            |m: &ArchivedModRef| m.versions.first().map(|v| v.file_size);
+                        latest_size(m1).cmp(&latest_size(m2))
                     }
                 };
                 if descending {

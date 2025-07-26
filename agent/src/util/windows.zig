@@ -16,7 +16,7 @@ pub fn panicWindowsError(src: std.builtin.SourceLocation, func: []const u8) nore
         buf_wstr.len,
         null,
     );
-    crash.crash(src, "error.Unexpected(0x{x}): {s}: {}\n", .{
+    crash.crash(src, "error.Unexpected(0x{x}): {s}: {f}\n", .{
         @intFromEnum(err),
         func,
         std.unicode.fmtUtf16Le(buf_wstr[0..len]),

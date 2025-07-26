@@ -104,6 +104,9 @@
   --clr-ok-8: hsl(var(--clr-ok-hs), 80%);
   --clr-ok-9: hsl(var(--clr-ok-hs), 90%);
 
+  --titlebar-height: 28px;
+  --titlebar-logo-size: 16px;
+  --titlebar-z-index: 100;
   --portal-z-index: 9;
 }
 
@@ -115,6 +118,11 @@
   box-sizing: border-box;
 }
 
+/* For Tauri Windows custom titlebar */
+*[data-tauri-drag-region] {
+  app-region: drag;
+}
+
 html {
   height: 100dvh;
 }
@@ -122,9 +130,11 @@ html {
 body {
   background-color: var(--clr-neutral-9);
   color: var(--clr-neutral-1);
-  min-height: 100%;
+  height: 100dvh;
+  overflow: hidden;
   font-size: 1rem;
-  overscroll-behavior: none;
+  position: relative;
+  margin-top: var(--titlebar-height);
 }
 
 * {
@@ -132,7 +142,8 @@ body {
 }
 
 main {
-  height: 100dvh;
+  height: calc(100dvh - var(--titlebar-height));
+  overscroll-behavior: none;
 }
 
 a {
@@ -151,7 +162,7 @@ a:disabled {
 input,
 button,
 select {
-  font-size: 1rem;
+  font-size: inherit;
   color: var(--clr-neutral-1);
   display: block;
   font-family: var(--font);

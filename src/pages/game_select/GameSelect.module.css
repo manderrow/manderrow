@@ -1,7 +1,7 @@
-.body {
+.page {
   background-color: hsl(214, 28%, 5%);
-  position: relative;
-  overflow-y: scroll;
+  overflow-y: auto;
+  height: calc(100dvh - var(--titlebar-height));
 }
 
 .language {

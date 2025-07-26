@@ -61,13 +61,19 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
             window.set_focus().ok();
         }))
         .setup(|app| {
+            let window = app.get_webview_window("main").context("no main window")?;
+
+            #[cfg(target_os = "macos")]
+            {
+                window.set_decorations(true)?;
+            }
+
             if !std::env::var_os("TAURI_IMMEDIATE_DEVTOOLS")
                 .unwrap_or_default()
                 .is_empty()
             {
                 #[cfg(debug_assertions)]
                 {
-                    let window = app.get_webview_window("main").context("no main window")?;
                     window.open_devtools();
                 }
                 if cfg!(not(debug_assertions)) {
@@ -86,7 +92,12 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
         .plugin(tauri_plugin_os::init())
         .plugin(window_state::init())
         .invoke_handler(tauri::generate_handler![
+            app_commands::close,
+            app_commands::is_maximized,
+            app_commands::minimize,
             app_commands::relaunch,
+            app_commands::set_maximized,
+            app_commands::start_dragging,
             games::commands::get_games,
             games::commands::search_games,
             games::commands::get_games_popularity,
@@ -107,6 +118,7 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
             mod_index::thunderstore::commands::thunderstore_fetch_mod_markdown,
             profiles::commands::get_profiles,
             profiles::commands::create_profile,
+            profiles::commands::overwrite_profile_metadata,
             profiles::commands::delete_profile,
             profiles::commands::get_profile_mods,
             profiles::commands::install_profile_mod,

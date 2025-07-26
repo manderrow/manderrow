@@ -6,16 +6,15 @@ import {
   createUniqueId,
   For,
   Match,
+  onCleanup,
   Show,
   Switch,
-  useContext,
 } from "solid-js";
 import { A, useNavigate, useParams } from "@solidjs/router";
 import { faCirclePlay as faCirclePlayOutline, faTrashCan } from "@fortawesome/free-regular-svg-icons";
 import {
   faChevronLeft,
   faCirclePlay,
-  faDownload,
   faFileImport,
   faPenToSquare,
   faPlus,
@@ -26,34 +25,37 @@ import {
   faArrowDownShortWide,
   faSkullCrossbones,
   faXmark,
+  faThumbTackSlash,
+  faAnglesRight,
 } from "@fortawesome/free-solid-svg-icons";
 import { OverlayScrollbarsComponent } from "overlayscrollbars-solid";
 import { Fa } from "solid-fa";
 
 import Console, { DoctorReports } from "../../components/global/Console";
 import { PromptDialog } from "../../components/global/Dialog";
-import { ErrorDialog } from "../../components/global/ErrorBoundary";
+import ErrorDialog from "../../components/global/ErrorDialog.tsx";
 import SelectDropdown from "../../components/global/SelectDropdown";
 import TabRenderer from "../../components/global/TabRenderer";
-import ModList, { ModInstallContext } from "../../components/profile/ModList";
-import ModSearch from "../../components/profile/ModSearch";
+import { InstalledModList, ModInstallContext, OnlineModList } from "../../components/profile/ModList";
 
-import { createProfile, deleteProfile, getProfileMods, ProfileWithId } from "../../api";
+import { createProfile, deleteProfile, getProfileMods, overwriteProfileMetadata, ProfileWithId } from "../../api";
 import * as globals from "../../globals";
 import { refetchProfiles } from "../../globals";
-import { Refetcher } from "../../types.d.ts";
-import { autofocus } from "../../components/global/Directives";
+import type { Refetcher } from "../../types.d.ts";
+import { autofocus, bindValue } from "../../components/global/Directives";
 
 import styles from "./Profile.module.css";
 import sidebarStyles from "./SidebarProfiles.module.css";
 import ImportDialog from "../../components/profile/ImportDialog";
-import TasksDialog from "../../components/global/TasksDialog";
 import { settings } from "../../api/settings";
 import { useSearchParamsInPlace } from "../../utils/router";
 import { killIpcClient } from "../../api/ipc";
 import { t } from "../../i18n/i18n.ts";
 import { launchProfile } from "../../api/launching";
 import { ConsoleConnection, focusedConnection, setFocusedConnection } from "../../console";
+import { ActionContext } from "../../components/global/AsyncButton.tsx";
+import StatusBar from "../../components/profile/StatusBar.tsx";
+import { setCurrentProfileName } from "../../components/global/TitleBar.tsx";
 
 interface ProfileParams {
   profileId?: string;
@@ -79,14 +81,16 @@ export default function Profile() {
   const [profiles] = createResource(
     globals.profiles,
     (profiles) => {
-      return profiles.filter((profile) => profile.game === params.gameId);
+      return Object.fromEntries(
+        profiles.filter((profile) => profile.game === params.gameId).map((profile) => [profile.id, profile]),
+      );
     },
-    { initialValue: [] },
+    { initialValue: {} },
   );
 
   const currentProfile = createMemo(() => {
     if (params.profileId === undefined) return undefined;
-    const profile = globals.profiles().find((profile) => profile.id === params.profileId);
+    const profile = profiles()[params.profileId];
     if (profile !== undefined) return profile;
     throw new Error(`Unknown profile ${params.profileId}`);
   });
@@ -96,6 +100,16 @@ export default function Profile() {
     if (game !== undefined && game !== params.gameId) {
       throw new Error(`Profile ${params.profileId} is for ${game}, not ${params.gameId}`);
     }
+  });
+
+  // Update title bar with current profile name
+  createEffect(() => {
+    const profile = currentProfile();
+    setCurrentProfileName(profile?.name ?? "");
+  });
+
+  onCleanup(() => {
+    setCurrentProfileName("");
   });
 
   // track launch errors here instead of reporting to the error boundary to avoid rebuilding the UI
@@ -117,10 +131,8 @@ export default function Profile() {
         );
       } catch (error) {
         conn.handleEvent({
-          connId: conn.id,
-          Error: {
-            error,
-          },
+          type: "Error",
+          error,
         });
         setErr(error);
       }
@@ -136,10 +148,8 @@ export default function Profile() {
         await killIpcClient(conn.id);
       } catch (error) {
         conn.handleEvent({
-          connId: conn.id,
-          Error: {
-            error,
-          },
+          type: "Error",
+          error,
         });
         setErr(error);
       }
@@ -148,42 +158,45 @@ export default function Profile() {
 
   const [importDialogOpen, setImportDialogOpen] = createSignal(false);
 
-  const [tasksDialogOpen, setTasksDialogOpen] = createSignal(false);
-
   const hasLiveConnection = () => focusedConnection() !== undefined && focusedConnection()?.status() !== "disconnected";
+
+  // For mini sidebar on small app width only
+  const [sidebarOpen, setSidebarOpen] = createSignal(false);
 
   return (
     <main class={styles.main}>
-      <aside class={styles.sidebar}>
-        <nav class={styles.sidebar__nav}>
-          <button class={styles.sidebar__btn} on:click={() => navigate(-1)}>
-            <Fa icon={faChevronLeft} />
-          </button>
+      <aside class={styles.sidebar} data-sidebar-open={sidebarOpen()}>
+        <section
+          classList={{ [styles.sidebar__group]: true, [styles.sidebar__mainActions]: true }}
+          style={{ "--game-hero--url": `url("/img/game_heros/${gameInfo.id}.webp")` }}
+        >
+          <nav class={styles.sidebar__nav}>
+            <button class={styles.backBtn} on:click={() => navigate(-1)}>
+              <Fa icon={faChevronLeft} />
+            </button>
 
-          <h1>{gameInfo.name}</h1>
-        </nav>
-        <section classList={{ [styles.sidebar__group]: true, [styles.sidebar__mainActions]: true }}>
-          <Switch>
-            <Match when={focusedConnection()?.status() === "connected"}>
-              <button on:click={() => killGame()} data-kill>
-                <Fa icon={faSkullCrossbones} /> {t("profile.sidebar.kill_game_btn")}
-              </button>
-            </Match>
-            <Match when={hasLiveConnection()}>
-              <button on:click={() => setFocusedConnection(undefined)} data-cancel>
-                <Fa icon={faXmark} /> {t("profile.sidebar.cancel_launch_btn")}
-              </button>
-            </Match>
-          </Switch>
-          {
-            // TODO: based on hasLiveConnection change the UI of these a bit
-          }
-          <button disabled={params.profileId === undefined} on:click={() => launch(true)} data-modded>
-            <Fa icon={faCirclePlay} /> {t("profile.sidebar.launch_modded_btn")}
-          </button>
-          <button on:click={() => launch(false)} data-vanilla>
-            <Fa icon={faCirclePlayOutline} /> {t("profile.sidebar.launch_vanilla_btn")}
-          </button>
+            <h1>{gameInfo.name}</h1>
+          </nav>
+          <div class={styles.sidebar__mainActionBtns}>
+            <Switch>
+              <Match when={focusedConnection()?.status() === "connected"}>
+                <button on:click={() => killGame()} data-kill>
+                  <Fa icon={faSkullCrossbones} /> <span>{t("profile.sidebar.kill_game_btn")}</span>
+                </button>
+              </Match>
+              <Match when={hasLiveConnection()}>
+                <button on:click={() => setFocusedConnection(undefined)} data-cancel>
+                  <Fa icon={faXmark} /> <span>{t("profile.sidebar.cancel_launch_btn")}</span>
+                </button>
+              </Match>
+            </Switch>
+            {
+              // TODO: based on hasLiveConnection change the UI of these a bit
+            }
+            <button disabled={params.profileId === undefined} on:click={() => launch(true)} data-modded>
+              <Fa icon={faCirclePlay} /> <span>{t("profile.sidebar.launch_modded_btn")}</span>
+            </button>
+          </div>
         </section>
         <section classList={{ [styles.sidebar__group]: true, [sidebarStyles.sidebar__profiles]: true }}>
           <h3 class={styles.sidebar__profilesTitle}>
@@ -233,34 +246,44 @@ export default function Profile() {
             class={sidebarStyles.sidebar__profilesListContainer}
           >
             <ol class={sidebarStyles.sidebar__profilesList}>
-              <For each={profiles()}>
-                {(profile) => (
-                  <SidebarProfileComponent
-                    gameId={params.gameId}
-                    profileId={profile.id}
-                    profileName={profile.name}
-                    refetchProfiles={refetchProfiles}
-                    selected={profile.id === params.profileId}
-                  />
+              <For each={Object.keys(profiles())}>
+                {(id) => (
+                  <Show when={profiles()[id].pinned}>
+                    <SidebarProfileComponent
+                      gameId={params.gameId}
+                      profile={profiles()[id]}
+                      refetchProfiles={refetchProfiles}
+                      selected={id === params.profileId}
+                    />
+                  </Show>
+                )}
+              </For>
+              <For each={Object.keys(profiles())}>
+                {(id) => (
+                  <Show when={!profiles()[id].pinned}>
+                    <SidebarProfileComponent
+                      gameId={params.gameId}
+                      profile={profiles()[id]}
+                      refetchProfiles={refetchProfiles}
+                      selected={id === params.profileId}
+                    />
+                  </Show>
                 )}
               </For>
             </ol>
           </OverlayScrollbarsComponent>
         </section>
+
+        {/* Displayed on small window width */}
+        <button class={styles.expandBtn} onClick={() => setSidebarOpen((open) => !open)}>
+          <Fa icon={faAnglesRight} rotate={sidebarOpen() ? 180 : 0} />
+        </button>
+
         <section class={styles.sidebar__group}>
           <div class={styles.sidebar__otherGrid}>
-            <A href="/settings">
-              <button>
-                <Fa icon={faGear} class={styles.sidebar__otherGridIcon} />
-                <br />
-                Settings
-              </button>
+            <A href="/settings" class={styles.sidebar__otherGridIcon} title={t("settings.title")}>
+              <Fa icon={faGear} />
             </A>
-            <button on:click={() => setTasksDialogOpen(true)}>
-              <Fa icon={faDownload} class={styles.sidebar__otherGridIcon} />
-              <br />
-              Downloads
-            </button>
           </div>
         </section>
       </aside>
@@ -285,7 +308,7 @@ export default function Profile() {
 
             return (
               <ModInstallContext.Provider value={{ profileId, installed, refetchInstalled }}>
-                <TabRenderer<TabId>
+                <TabRenderer
                   id="profile"
                   styles={{
                     tabs: {
@@ -298,20 +321,20 @@ export default function Profile() {
                   tabs={[
                     {
                       id: "mod-list",
-                      name: "Installed",
-                      component: <InstalledModsList game={params.gameId} />,
+                      name: "Installed Mods",
+                      component: () => <InstalledModList game={params.gameId} />,
                     },
 
                     {
                       id: "mod-search",
-                      name: "Online",
-                      component: <ModSearch game={params.gameId} />,
+                      name: "Online Mods",
+                      component: () => <OnlineModList game={params.gameId} />,
                     },
 
                     {
                       id: "logs",
                       name: "Logs",
-                      component: (
+                      component: () => (
                         <div class={styles.content__console}>
                           <Console />
                         </div>
@@ -321,7 +344,7 @@ export default function Profile() {
                     {
                       id: "config",
                       name: "Config",
-                      component: <div></div>,
+                      component: () => <div></div>,
                     },
                   ]}
                 />
@@ -331,12 +354,10 @@ export default function Profile() {
         </Show>
       </div>
 
+      <StatusBar />
+
       <Show when={importDialogOpen()}>
         <ImportDialog dismiss={() => setImportDialogOpen(false)} gameId={params.gameId} profile={params.profileId} />
-      </Show>
-
-      <Show when={tasksDialogOpen()}>
-        <TasksDialog onDismiss={() => setTasksDialogOpen(false)} />
       </Show>
 
       <DoctorReports />
@@ -348,7 +369,7 @@ export default function Profile() {
 
 function NoSelectedProfileContent(props: {
   gameId: string;
-  profiles: () => ProfileWithId[];
+  profiles: () => { [id: string]: ProfileWithId };
   refetchProfiles: Refetcher<ProfileWithId[]>;
 }) {
   const [name, setName] = createSignal("");
@@ -368,7 +389,7 @@ function NoSelectedProfileContent(props: {
   return (
     <>
       <p>
-        {props.profiles().length !== 0
+        {Object.keys(props.profiles()).length !== 0
           ? "Select a profile from the sidebar or create a new one"
           : "Create a new profile"}
       </p>
@@ -381,26 +402,9 @@ function NoSelectedProfileContent(props: {
   );
 }
 
-function InstalledModsList(props: { game: string }) {
-  const context = useContext(ModInstallContext)!;
-
-  return (
-    <Show when={context.installed.latest.length !== 0} fallback={<p>Looks like you haven't installed any mods yet.</p>}>
-      <ModList
-        // kinda gross
-        mods={(() => {
-          const data = context.installed();
-          return async (page) => (page === 0 ? data : []);
-        })()}
-      />
-    </Show>
-  );
-}
-
 function SidebarProfileComponent(props: {
   gameId: string;
-  profileId: string;
-  profileName: string;
+  profile: ProfileWithId;
   refetchProfiles: Refetcher<ProfileWithId[]>;
   selected: boolean;
 }) {
@@ -409,60 +413,133 @@ function SidebarProfileComponent(props: {
 
   const navigate = useNavigate();
 
+  const [renaming, setRenaming] = createSignal(false);
+
   return (
     <li class={sidebarStyles.profileList__item}>
-      <A href={`/profile/${props.gameId}/${props.profileId}`}>{props.profileName}</A>
-      <div class={sidebarStyles.profileItem__options}>
-        <button data-pin title={t("profile.sidebar.pin_profile_ptn")}>
-          <Fa icon={faThumbTack} rotate={90} />
-        </button>
-        <button data-pin title={t("profile.sidebar.rename_profile_btn")}>
-          <Fa icon={faPenToSquare} />
-        </button>
-        <button
-          data-delete
-          title={t("profile.sidebar.delete_profile_btn")}
-          on:click={() => setConfirmingDeletion(true)}
-        >
-          <Fa icon={faTrashCan} />
-        </button>
-        <button data-export title={t("profile.sidebar.export_profile_btn")}>
-          <Fa icon={faFileExport} />
-        </button>
-      </div>
+      <Show
+        when={renaming()}
+        fallback={
+          <>
+            <A class={sidebarStyles.profileList__itemName} href={`/profile/${props.gameId}/${props.profile.id}`}>
+              {props.profile.name}
+            </A>
+            <div class={sidebarStyles.profileItem__options}>
+              <ActionContext>
+                {(busy, wrapAction) => (
+                  <button
+                    data-pin
+                    title={t("profile.sidebar.pin_profile_ptn")}
+                    disabled={busy()}
+                    on:click={async (e) => {
+                      e.stopPropagation();
+                      await wrapAction(async () => {
+                        try {
+                          const obj: ProfileWithId = { ...props.profile };
+                          const id = obj.id;
+                          // @ts-ignore I want to remove the property
+                          delete obj.id;
+                          obj.pinned = !obj.pinned;
+                          await overwriteProfileMetadata(id, obj);
+                        } finally {
+                          await props.refetchProfiles();
+                        }
+                      });
+                    }}
+                  >
+                    <Fa icon={props.profile.pinned ? faThumbTackSlash : faThumbTack} rotate={90} />
+                  </button>
+                )}
+              </ActionContext>
+              <button data-pin title={t("profile.sidebar.rename_profile_btn")} on:click={() => setRenaming(true)}>
+                <Fa icon={faPenToSquare} />
+              </button>
+              <button
+                data-delete
+                title={t("profile.sidebar.delete_profile_btn")}
+                on:click={() => setConfirmingDeletion(true)}
+              >
+                <Fa icon={faTrashCan} />
+              </button>
+              <button data-export title={t("profile.sidebar.export_profile_btn")}>
+                <Fa icon={faFileExport} />
+              </button>
+            </div>
 
-      <Show when={confirmingDeletion()}>
-        <PromptDialog
-          options={{
-            title: "Confirm",
-            question: `You are about to delete ${props.profileName}`,
-            btns: {
-              ok: {
-                type: "danger",
-                text: "Delete",
-                async callback() {
-                  if (props.selected) {
-                    navigate(`/profile/${props.gameId}`, { replace: true });
-                  }
-                  if (deleting()) return;
-                  setDeleting(true);
+            <Show when={confirmingDeletion()}>
+              <PromptDialog
+                options={{
+                  title: "Confirm",
+                  question: `You are about to delete ${props.profile.name}`,
+                  btns: {
+                    ok: {
+                      type: "danger",
+                      text: "Delete",
+                      async callback() {
+                        if (props.selected) {
+                          navigate(`/profile/${props.gameId}`, { replace: true });
+                        }
+                        if (deleting()) return;
+                        setDeleting(true);
+                        try {
+                          await deleteProfile(props.profile.id);
+                        } finally {
+                          setConfirmingDeletion(false);
+                          setDeleting(false);
+                          await props.refetchProfiles();
+                        }
+                      },
+                    },
+                    cancel: {
+                      callback() {
+                        setConfirmingDeletion(false);
+                      },
+                    },
+                  },
+                }}
+              />
+            </Show>
+          </>
+        }
+      >
+        <ActionContext>
+          {(busy, wrapAction) => (
+            <form
+              class={sidebarStyles.profileList__itemName}
+              on:submit={async (e) => {
+                e.preventDefault();
+                await wrapAction(async () => {
                   try {
-                    await deleteProfile(props.profileId);
+                    const obj: ProfileWithId = { ...props.profile };
+                    const id = obj.id;
+                    // @ts-ignore I want to remove the property
+                    delete obj.id;
+                    obj.name = (e.target.firstChild as HTMLInputElement).value;
+                    await overwriteProfileMetadata(id, obj);
                   } finally {
-                    setConfirmingDeletion(false);
-                    setDeleting(false);
                     await props.refetchProfiles();
                   }
-                },
-              },
-              cancel: {
-                callback() {
-                  setConfirmingDeletion(false);
-                },
-              },
-            },
-          }}
-        />
+                });
+              }}
+            >
+              <input
+                value={props.profile.name}
+                disabled={busy()}
+                use:autofocus
+                on:focus={(e) => {
+                  const target = e.target as HTMLInputElement;
+                  target.setSelectionRange(0, target.value.length);
+                }}
+                on:focusout={() => setRenaming(false)}
+                on:keydown={(e) => {
+                  if (e.key === "Escape") {
+                    setRenaming(false);
+                  }
+                }}
+              />
+            </form>
+          )}
+        </ActionContext>
       </Show>
     </li>
   );

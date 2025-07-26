@@ -7,14 +7,16 @@ pub struct Id(pub(super) u64);
 #[derive(Clone, serde::Serialize)]
 pub struct Metadata {
     pub title: Cow<'static, str>,
+    #[serde(flatten)]
     pub kind: Kind,
     pub progress_unit: ProgressUnit,
 }
 
-#[derive(Debug, Clone, Copy, serde::Serialize)]
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(tag = "kind")]
 pub enum Kind {
     Aggregate,
-    Download,
+    Download { url: String },
     Other,
 }
 
@@ -80,7 +82,9 @@ impl TaskEventBody for TaskDropped {
 #[derive(Clone, serde::Serialize)]
 #[serde(tag = "status")]
 pub enum DropStatus {
-    Success,
+    Success {
+        success: Option<SuccessInfo>,
+    },
     Cancelled {
         /// If true, the cancellation was due to the user acting directly on the task. Otherwise, it was likely due to the task's [`Future`](std::future::Future) being dropped.
         direct: bool,
@@ -88,4 +92,9 @@ pub enum DropStatus {
     Failed {
         error: Cow<'static, str>,
     },
+}
+
+#[derive(Clone, Copy, serde::Serialize)]
+pub enum SuccessInfo {
+    Cached,
 }

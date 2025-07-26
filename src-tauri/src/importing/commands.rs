@@ -176,7 +176,7 @@ pub async fn import_modpack_from_thunderstore_code(
             return Err(e.into());
         }
 
-        Ok(profile_id)
+        Ok((None, profile_id))
     })
     .await
     .map_err(|e: TaskError<anyhow::Error>| anyhow::Error::from(e).into())
@@ -273,7 +273,7 @@ async fn import_onto_profile(
                         uuid4: Default::default(),
                         file_size: version.file_size.into(),
                     },
-                    Some(sub_task_id),
+                    sub_task_id,
                 )
                 .await
             }

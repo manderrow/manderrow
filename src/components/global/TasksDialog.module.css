@@ -17,6 +17,10 @@
 }
 
 .tabs {
+  display: inline-block;
+}
+
+.tabs__list {
   display: inline flex;
   padding: 0.2em;
   box-shadow: 0 0 8px -2px inset rgba(0, 0, 0, 0.6);
@@ -35,6 +39,11 @@
 .tabs__tabActive button {
   box-shadow: 0 0 8px -2px rgba(0, 0, 0, 0.6);
   background-color: var(--clr-primary-4);
+}
+
+.tabs__trailing {
+  float: right;
+  display: inline-block;
 }
 
 .section {

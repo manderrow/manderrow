@@ -77,6 +77,7 @@ export enum ModSortColumn {
   Downloads = "downloads",
   Name = "name",
   Owner = "owner",
+  Size = "size",
 }
 
 export interface SortOption<C> {
@@ -124,6 +125,7 @@ export async function getPreferredLocales(): Promise<string[]> {
 export interface Profile {
   name: string;
   game: string;
+  pinned: boolean;
 }
 
 export interface ProfileWithId extends Profile {
@@ -136,6 +138,10 @@ export async function getProfiles(): Promise<ProfileWithId[]> {
 
 export async function createProfile(game: string, name: string): Promise<string> {
   return await wrapInvoke(() => invoke("create_profile", { game, name }));
+}
+
+export async function overwriteProfileMetadata(id: string, metadata: Profile): Promise<void> {
+  return await wrapInvoke(() => invoke("overwrite_profile_metadata", { id, metadata }));
 }
 
 export async function deleteProfile(id: string): Promise<void> {

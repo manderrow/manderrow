@@ -29,22 +29,23 @@ pub fn panic(msg: []const u8, error_return_trace: ?*std.builtin.StackTrace, ret_
 const FormatSourceLocation = struct {
     src: std.builtin.SourceLocation,
 
-    pub fn format(self: FormatSourceLocation, comptime fmt: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
-        if (fmt.len != 0) @compileError("Unrecognized format specifier: " ++ fmt);
+    pub fn format(self: FormatSourceLocation, writer: *std.io.Writer) !void {
         const src = self.src;
         return writer.print("at {s}:{s}:{}:{}:{s}: ", .{ src.module, src.file, src.line, src.column, src.fn_name });
     }
 };
 
 pub fn crash(src: std.builtin.SourceLocation, comptime fmt: []const u8, args: anytype) noreturn {
-    std.debug.panic("{}" ++ fmt, .{FormatSourceLocation{ .src = src }} ++ args);
+    std.debug.panic("{f}" ++ fmt, .{FormatSourceLocation{ .src = src }} ++ args);
 }
 
 export fn manderrow_agent_crash(msg_ptr: [*]const u8, msg_len: usize) noreturn {
     @panic(msg_ptr[0..msg_len]);
 }
 
-fn dumpCrashReport(writer: anytype, msg: []const u8, ret_addr: ?usize) void {
+/// The writer should be unbuffered so that as much is written as possible in case of hard failure,
+/// and to slightly improve resistance against stack overflows.
+fn dumpCrashReport(writer: *std.io.Writer, msg: []const u8, ret_addr: ?usize) void {
     writer.print(
         \\{s}
         \\
@@ -72,7 +73,8 @@ fn dumpCrashReport(writer: anytype, msg: []const u8, ret_addr: ?usize) void {
         writer.print("Executable hash: error {}", .{e}) catch return;
         break :blk null;
     }) |hash| {
-        writer.print("Executable hash: {}", .{std.fmt.fmtSliceHexLower(&hash)}) catch return;
+        writer.writeAll("Executable hash: ") catch return;
+        writer.printHex(&hash, .lower) catch return;
     }
     // TODO: hash agent, host agent and host_dlfcn libraries
 }
@@ -125,7 +127,9 @@ fn reportCrashToFile(msg: []const u8, ret_addr: ?usize) void {
         ) catch return;
     }
 
-    dumpCrashReport(file.writer(), msg, ret_addr);
+    // see doc comment on dumpCrashReport for unbuffered rationale
+    var wtr = file.writer(&.{});
+    dumpCrashReport(&wtr.interface, msg, ret_addr);
 }
 
 fn reportCrashToStderr(msg: []const u8, ret_addr: ?usize) void {
@@ -135,5 +139,7 @@ fn reportCrashToStderr(msg: []const u8, ret_addr: ?usize) void {
     if (stdio.real_stderr == null) std.debug.lockStdErr();
     defer if (stdio.real_stderr == null) std.debug.unlockStdErr();
 
-    dumpCrashReport((stdio.real_stderr orelse std.io.getStdErr()).writer(), msg, ret_addr);
+    // see doc comment on dumpCrashReport for unbuffered rationale
+    var wtr = (stdio.real_stderr orelse std.fs.File.stderr()).writer(&.{});
+    dumpCrashReport(&wtr.interface, msg, ret_addr);
 }

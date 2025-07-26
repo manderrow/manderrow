@@ -47,7 +47,7 @@ fn logFn(
         .stderr => {
             std.debug.lockStdErr();
             defer std.debug.unlockStdErr();
-            logToFile(std.io.getStdErr(), level, @tagName(scope), format, args);
+            logToFile(std.fs.File.stderr(), level, @tagName(scope), format, args);
         },
     }
 }
@@ -72,8 +72,11 @@ pub fn logToFile(
     comptime format: []const u8,
     args: anytype,
 ) void {
-    file.writer().print("{s} {s} ", .{ @tagName(message_level), scope }) catch return;
-    file.writer().print(format ++ "\n", args) catch return;
+    var file_buf: [4096]u8 = undefined;
+    var wtr = file.writer(&file_buf);
+    defer wtr.interface.flush() catch {};
+    wtr.interface.print("{s} {s} ", .{ @tagName(message_level), scope }) catch return;
+    wtr.interface.print(format ++ "\n", args) catch return;
 }
 
 pub const logger = std.log.scoped(.manderrow_agent);
@@ -91,7 +94,7 @@ comptime {
                 _ = windows;
             },
             .macos => {
-                @export(&[1]*const fn () callconv(.C) void{entrypoint_macos}, .{
+                @export(&[1]*const fn () callconv(.c) void{entrypoint_macos}, .{
                     .section = "__DATA,__mod_init_func",
                     .name = "init_array",
                 });
@@ -101,7 +104,7 @@ comptime {
                     @export(&[1]*const fn (
                         argc: c_int,
                         argv: [*][*:0]u8,
-                    ) callconv(.C) void{entrypoint_linux_gnu}, .{
+                    ) callconv(.c) void{entrypoint_linux_gnu}, .{
                         .section = ".init_array",
                         .name = "init_array",
                     });
@@ -146,8 +149,8 @@ pub fn entrypoint(module: if (builtin.os.tag == .windows) std.os.windows.HMODULE
 
     logger.debug("Attached segfault handler", .{});
 
-    logger.debug("{}", .{dump_args});
-    logger.debug("{}", .{dump_env});
+    logger.debug("{f}", .{dump_args});
+    logger.debug("{f}", .{dump_env});
 
     startAgent();
 
@@ -180,8 +183,8 @@ fn startAgent() void {
 
     logger.debug("Parsed arguments", .{});
 
-    logger.debug("{}", .{dump_args});
-    logger.debug("{}", .{dump_env});
+    logger.debug("{f}", .{dump_args});
+    logger.debug("{f}", .{dump_env});
 
     switch (build_options.ipc_mode) {
         .ipc_channel, .winelib => |t| {
@@ -207,28 +210,28 @@ fn startAgent() void {
 
     logger.info("Agent started", .{});
     {
-        var buf: std.ArrayListUnmanaged(u8) = .empty;
-        defer buf.deinit(alloc);
+        var buf = std.io.Writer.Allocating.init(alloc);
+        defer buf.deinit();
 
-        dumpArgs(buf.writer(alloc)) catch {};
+        dumpArgs(&buf.writer) catch {};
         switch (build_options.ipc_mode) {
             .ipc_channel, .winelib => {
-                rs.sendLog(.debug, "manderrow_agent", buf.items) catch |e| logger.warn("{}", .{e});
+                rs.sendLog(.debug, "manderrow_agent", buf.getWritten()) catch |e| logger.warn("{}", .{e});
             },
             .stderr => {
-                logger.debug("{s}", .{buf.items});
+                logger.debug("{s}", .{buf.getWritten()});
             },
         }
 
         buf.clearRetainingCapacity();
 
-        dumpEnv(buf.writer(alloc)) catch {};
+        dumpEnv(&buf.writer) catch {};
         switch (build_options.ipc_mode) {
             .ipc_channel, .winelib => {
-                rs.sendLog(.debug, "manderrow_agent", buf.items) catch |e| logger.warn("{}", .{e});
+                rs.sendLog(.debug, "manderrow_agent", buf.getWritten()) catch |e| logger.warn("{}", .{e});
             },
             .stderr => {
-                logger.debug("{s}", .{buf.items});
+                logger.debug("{s}", .{buf.getWritten()});
             },
         }
     }
@@ -300,7 +303,7 @@ fn interpret_instructions(instructions: []const Args.Instruction) void {
     for (instructions) |insn| {
         switch (insn) {
             .load_library => |ll| {
-                logger.debug("Loading library from \"{}\"", .{std.zig.fmtEscapes(ll.path)});
+                logger.debug("Loading library from \"{f}\"", .{std.zig.fmtString(ll.path)});
                 switch (builtin.os.tag) {
                     .windows => {
                         const buf = path_buf orelse blk: {
@@ -331,7 +334,7 @@ fn interpret_instructions(instructions: []const Args.Instruction) void {
             .set_var => |sv| {
                 const key = sv.kv[0..sv.eq_sign];
                 const value = sv.kv[sv.eq_sign + 1 .. :0];
-                logger.debug("Setting environment variable {s}=\"{}\"", .{ key, std.zig.fmtEscapes(value) });
+                logger.debug("Setting environment variable {s}=\"{f}\"", .{ key, std.zig.fmtString(value) });
                 switch (builtin.os.tag) {
                     .windows => {
                         const key_buf = std.unicode.wtf8ToWtf16LeAllocZ(alloc, key) catch |e| switch (e) {
@@ -365,20 +368,18 @@ fn interpret_instructions(instructions: []const Args.Instruction) void {
 }
 
 const dump_args = struct {
-    pub fn format(_: @This(), comptime fmt: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
-        if (fmt.len != 0) @compileError("Unsupported format specifier: " ++ fmt);
+    pub fn format(_: @This(), writer: *std.io.Writer) !void {
         dumpArgs(writer) catch {};
     }
 }{};
 
 const dump_env = struct {
-    pub fn format(_: @This(), comptime fmt: []const u8, _: std.fmt.FormatOptions, writer: anytype) !void {
-        if (fmt.len != 0) @compileError("Unsupported format specifier: " ++ fmt);
+    pub fn format(_: @This(), writer: *std.io.Writer) !void {
         dumpEnv(writer) catch {};
     }
 }{};
 
-fn dumpArgs(writer: anytype) !void {
+fn dumpArgs(writer: *std.io.Writer) !void {
     try writer.writeAll("Args:");
     var iter = std.process.argsWithAllocator(alloc) catch |e| {
         try writer.writeAll("Failed to get args (Out of memory)");
@@ -386,7 +387,7 @@ fn dumpArgs(writer: anytype) !void {
     };
     defer iter.deinit();
     while (iter.next()) |arg| {
-        try writer.print(" \"{}\"", .{std.zig.fmtEscapes(arg)});
+        try writer.print(" \"{f}\"", .{std.zig.fmtString(arg)});
     }
 }
 
@@ -399,7 +400,7 @@ fn dumpEnv(writer: anytype) !void {
     defer map.deinit();
     var iter = map.iterator();
     while (iter.next()) |entry| {
-        try writer.print("  {s}=\"{}\"\n", .{ entry.key_ptr.*, std.zig.fmtEscapes(entry.value_ptr.*) });
+        try writer.print("  {s}=\"{f}\"\n", .{ entry.key_ptr.*, std.zig.fmtString(entry.value_ptr.*) });
     }
     try writer.writeAll("}");
 }

@@ -144,18 +144,18 @@ impl OwnedTaskHandleInner<'_> {
     }
 }
 
-struct OwnedTaskHandle<'a> {
+pub struct OwnedTaskHandle<'a> {
     inner: ManuallyDrop<OwnedTaskHandleInner<'a>>,
 }
 
 impl<'a> OwnedTaskHandle<'a> {
     /// Once a future returned by this method completes, subsequent attempts to poll futures
     /// returned from this method will panic.
-    fn cancelled(&mut self) -> CancelledFuture<'_, 'a> {
+    pub fn cancelled(&mut self) -> CancelledFuture<'_, 'a> {
         CancelledFuture { handle: self }
     }
 
-    fn drop(self, status: DropStatus) -> Result<()> {
+    pub fn drop(self, status: DropStatus) -> Result<()> {
         // use ManuallyDrop to avoid calling <TaskHandle as Drop>::drop which exists only to
         // handle cases where the task Future is dropped
         let mut this = ManuallyDrop::new(self);
@@ -163,7 +163,7 @@ impl<'a> OwnedTaskHandle<'a> {
         unsafe { ManuallyDrop::take(&mut this.inner) }.drop(status)
     }
 
-    fn fail(self, e: &impl std::fmt::Display) -> Result<()> {
+    pub fn fail(self, e: &impl std::fmt::Display) -> Result<()> {
         self.drop(DropStatus::Failed {
             error: e.to_string().into(),
         })
@@ -180,6 +180,14 @@ impl Drop for OwnedTaskHandle<'_> {
 
 pub fn allocate_task() -> Id {
     Id(NEXT_TASK_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
+}
+
+#[derive(Debug, thiserror::Error)]
+pub enum CreateTaskError {
+    #[error("task id collision")]
+    IdCollision,
+    #[error("emitting TaskCreated event failed: {0}")]
+    EmitEventFailed(tauri::Error),
 }
 
 impl TaskBuilder {
@@ -208,23 +216,28 @@ impl TaskBuilder {
         self
     }
 
-    async fn create<'a>(self, app: &'a AppHandle) -> Result<OwnedTaskHandle<'a>> {
+    pub async fn create<'a>(
+        self,
+        app: &'a AppHandle,
+    ) -> Result<OwnedTaskHandle<'a>, CreateTaskError> {
         let (cancel, cancelled) = oneshot::channel();
         match TASKS.write().await.entry(self.id) {
             std::collections::hash_map::Entry::Occupied(_) => {
                 // the NEXT_TASK_ID counter not only wrapped around, but also collided with a task that has not been removed yet.
-                bail!("User never reboots their computer")
+                return Err(CreateTaskError::IdCollision);
             }
             std::collections::hash_map::Entry::Vacant(entry) => {
                 entry.insert(TaskData {
                     cancel: Some(cancel),
                 });
-                self.id.emit(
-                    app,
-                    TaskCreated {
-                        metadata: self.metadata,
-                    },
-                )?;
+                self.id
+                    .emit(
+                        app,
+                        TaskCreated {
+                            metadata: self.metadata,
+                        },
+                    )
+                    .map_err(CreateTaskError::EmitEventFailed)?;
                 Ok(OwnedTaskHandle {
                     inner: ManuallyDrop::new(OwnedTaskHandleInner {
                         app,
@@ -238,7 +251,7 @@ impl TaskBuilder {
 
     pub async fn run<F, T, E>(self, app: Option<&AppHandle>, fut: F) -> Result<T, TaskError<E>>
     where
-        F: Future<Output = Result<T, E>>,
+        F: Future<Output = Result<(Option<SuccessInfo>, T), E>>,
         E: std::fmt::Display + Into<anyhow::Error>,
     {
         self.run_with_handle(app, move |_| fut).await
@@ -250,38 +263,54 @@ impl TaskBuilder {
         fut: impl FnOnce(TaskHandle) -> F + 'b,
     ) -> Result<T, TaskError<E>>
     where
-        F: Future<Output = Result<T, E>>,
+        F: Future<Output = Result<(Option<SuccessInfo>, T), E>>,
         E: std::fmt::Display + Into<anyhow::Error>,
     {
-        let mut handle = if let Some(app) = app {
-            Some(self.create(app).await.map_err(TaskError::Management)?)
+        let handle = if let Some(app) = app {
+            Some(
+                self.create(app)
+                    .await
+                    .map_err(|e| TaskError::Management(e.into()))?,
+            )
         } else {
             None
         };
-        let fut = fut(TaskHandle(handle.as_ref().map(|handle| handle.inner.id)));
-        select! {
-            () = async { if let Some(handle) = &mut handle {
-                handle.cancelled().await
-            } else {
-                std::future::pending().await
-            } } => {
-                handle.unwrap().drop(DropStatus::Cancelled { direct: true }).map_err(TaskError::Management)?;
-                Err(TaskError::Cancelled)
-            }
-            r = fut => {
-                match r {
-                    Ok(t) => {
-                        if let Some(handle) = handle {
-                            handle.drop(DropStatus::Success).map_err(TaskError::Management)?;
-                        }
-                        Ok(t)
+        let (handle, (success, t)) = run_non_terminal(handle, fut).await?;
+        if let Some(handle) = handle {
+            handle
+                .drop(DropStatus::Success { success })
+                .map_err(TaskError::Management)?;
+        }
+        Ok(t)
+    }
+}
+
+pub async fn run_non_terminal<'a, 'b, 'c, F, T, E>(
+    mut handle: Option<OwnedTaskHandle<'a>>,
+    fut: impl FnOnce(TaskHandle) -> F + 'b,
+) -> Result<(Option<OwnedTaskHandle<'a>>, T), TaskError<E>>
+where
+    F: Future<Output = Result<T, E>>,
+    E: std::fmt::Display + Into<anyhow::Error>,
+{
+    let fut = fut(TaskHandle(handle.as_ref().map(|handle| handle.inner.id)));
+    select! {
+        () = async { if let Some(handle) = &mut handle {
+            handle.cancelled().await
+        } else {
+            std::future::pending().await
+        } } => {
+            handle.unwrap().drop(DropStatus::Cancelled { direct: true }).map_err(TaskError::Management)?;
+            Err(TaskError::Cancelled)
+        }
+        r = fut => {
+            match r {
+                Ok(t) => Ok((handle, t)),
+                Err(e) => {
+                    if let Some(handle) = handle {
+                        handle.fail(&e).map_err(TaskError::Management)?;
                     }
-                    Err(e) => {
-                        if let Some(handle) = handle {
-                            handle.fail(&e).map_err(TaskError::Management)?;
-                        }
-                        Err(TaskError::Failed(e))
-                    }
+                    Err(TaskError::Failed(e))
                 }
             }
         }

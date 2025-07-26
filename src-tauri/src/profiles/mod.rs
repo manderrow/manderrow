@@ -26,9 +26,12 @@ use crate::{tasks, Reqwest};
 pub static PROFILES_DIR: LazyLock<PathBuf> = LazyLock::new(|| local_data_dir().join("profiles"));
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
 pub struct Profile {
     pub name: SmolStr,
     pub game: SmolStr,
+    #[serde(default)]
+    pub pinned: bool,
 }
 
 #[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
@@ -46,14 +49,33 @@ pub enum ReadProfileError {
     Decoding(#[from] serde_json::Error),
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum WriteProfileError {
+    #[error("failed to write profile.json: {0}")]
+    Io(#[from] std::io::Error),
+    #[error("failed to encode profile.json: {0}")]
+    Encoding(#[from] serde_json::Error),
+}
+
 pub async fn read_profile_file(path: &Path) -> Result<Profile, ReadProfileError> {
     Ok(serde_json::from_slice(&tokio::fs::read(path).await?)?)
+}
+
+pub async fn write_profile_file(path: &Path, metadata: &Profile) -> Result<(), WriteProfileError> {
+    tokio::fs::write(path, serde_json::to_vec(metadata)?).await?;
+    Ok(())
 }
 
 pub async fn read_profile(id: Uuid) -> Result<Profile, ReadProfileError> {
     let mut path = profile_path(id);
     path.push("profile.json");
     read_profile_file(&path).await
+}
+
+pub async fn write_profile(id: Uuid, metadata: &Profile) -> Result<(), WriteProfileError> {
+    let mut path = profile_path(id);
+    path.push("profile.json");
+    write_profile_file(&path, metadata).await
 }
 
 pub fn profile_path(id: Uuid) -> PathBuf {
@@ -108,9 +130,16 @@ pub async fn create_profile(game: SmolStr, name: SmolStr) -> Result<Uuid> {
         .await
         .context("Failed to create profile directory")?;
     path.push("profile.json");
-    tokio::fs::write(path, &serde_json::to_vec(&Profile { name, game }).unwrap())
-        .await
-        .context("Failed to write profile metadata")?;
+    write_profile_file(
+        &path,
+        &Profile {
+            name,
+            game,
+            pinned: false,
+        },
+    )
+    .await
+    .context("Failed to write profile metadata")?;
     Ok(id)
 }
 
@@ -178,7 +207,7 @@ pub async fn install_profile_mod(
     id: Uuid,
     r#mod: ModMetadata<'_>,
     version: ModVersion<'_>,
-    task_id: Option<tasks::Id>,
+    task_id: tasks::Id,
 ) -> Result<()> {
     let log = slog_scope::logger();
 
@@ -240,7 +269,7 @@ async fn install_profile_mod_inner<'a, 'b>(
     mod_owner: &'a str,
     mod_name: &'a str,
     mod_version: Version,
-    task_id: Option<tasks::Id>,
+    task_id: tasks::Id,
     seen: &Mutex<HashMap<ModId<'a>, InstallingMod>>,
 ) -> Result<()> {
     let mod_id = ModId {
@@ -264,192 +293,211 @@ async fn install_profile_mod_inner<'a, 'b>(
         return Ok(());
     }
 
-    let Some(m) = crate::mod_index::get_one_from_mod_index(
-        mod_index,
-        ModId {
-            owner: mod_owner.into(),
-            name: mod_name.into(),
-        },
-    )
-    .await?
-    else {
-        return Err(anyhow!("Missing dependency {}", mod_id));
-    };
-    let Some(version) = m
-        .versions
-        .iter()
-        .find(|v| v.version_number.get() == mod_version)
-    else {
-        return Err(anyhow!(
-            "Missing version {} of dependency {}",
-            mod_version,
-            mod_id
-        ));
-    };
-
-    let mut mod_folder_path = profile_path.join(MODS_FOLDER);
-    let mut patchers_folder_path = profile_path.join(PATCHERS_FOLDER);
-
-    create_dir_if_not_exists(&patchers_folder_path)
-        .await
-        .context("failed to create profile patchers folder")?;
-
-    push_mod_folder(&mut mod_folder_path, mod_owner, mod_name);
-    push_mod_folder(&mut patchers_folder_path, mod_owner, mod_name);
-
-    let url = format!(
-        "https://gcdn.thunderstore.io/live/repository/packages/{}-{}-{}.zip",
-        mod_owner, mod_name, version.version_number
-    );
-
-    debug!(
-        log,
-        "Installing mod from {url:?} to profile {id} at {mod_folder_path:?}"
-    );
-
-    futures_util::future::try_join_all(version.dependencies.iter().map(
-        |dep: &'a manderrow_types::util::rkyv::ArchivedInternedString| async move {
-            // you get a really nasty lifetime error if you forget the `.map_err(...)`
-            let mod_spec = ModSpec::<'a>::from_str(&*dep).map_err(|e| anyhow!("{e}"))?;
-
-            if &*mod_spec.id().owner == "BepInEx" && &*mod_spec.id().name == "BepInExPack" {
-                return Ok(());
-            }
-
-            install_profile_mod_inner(
-                log,
-                app,
-                reqwest,
-                id,
-                profile_path,
-                mod_index,
-                mod_spec.id().owner.0,
-                mod_spec.id().name.0,
-                mod_spec.version,
-                None,
-                seen,
-            )
-            .await
-        },
-    ))
-    .await?;
-
-    let mod_temp_dir = prepare_install_zip(
-        Some(app),
-        &log,
-        reqwest,
-        &url,
-        Some(crate::installing::CacheOptions::by_url()),
-        &mod_folder_path,
+    let handle = tasks::TaskBuilder::with_id(
         task_id,
+        format!("Install {mod_owner}-{mod_name}-{mod_version}"),
     )
+    .kind(tasks::Kind::Aggregate)
+    .create(app)
     .await?;
 
-    {
-        let mut entries = Vec::new();
-        let mut iter = tokio::fs::read_dir(mod_temp_dir.path()).await?;
-        while let Some(e) = iter.next_entry().await? {
-            entries.push(e.path());
+    let (handle, ()) = tasks::run_non_terminal(Some(handle), |handle| async move {
+        let Some(m) = crate::mod_index::get_one_from_mod_index(
+            mod_index,
+            ModId {
+                owner: mod_owner.into(),
+                name: mod_name.into(),
+            },
+        )
+        .await?
+        else {
+            return Err(anyhow!("Missing dependency {}", mod_id));
+        };
+        let Some(version) = m
+            .versions
+            .iter()
+            .find(|v| v.version_number.get() == mod_version)
+        else {
+            return Err(anyhow!(
+                "Missing version {} of dependency {}",
+                mod_version,
+                mod_id
+            ));
+        };
+
+        let mut mod_folder_path = profile_path.join(MODS_FOLDER);
+        let mut patchers_folder_path = profile_path.join(PATCHERS_FOLDER);
+
+        create_dir_if_not_exists(&patchers_folder_path)
+            .await
+            .context("failed to create profile patchers folder")?;
+
+        push_mod_folder(&mut mod_folder_path, mod_owner, mod_name);
+        push_mod_folder(&mut patchers_folder_path, mod_owner, mod_name);
+
+        let url = format!(
+            "https://gcdn.thunderstore.io/live/repository/packages/{}-{}-{}.zip",
+            mod_owner, mod_name, version.version_number
+        );
+
+        debug!(
+            log,
+            "Installing mod from {url:?} to profile {id} at {mod_folder_path:?}"
+        );
+
+        futures_util::future::try_join_all(version.dependencies.iter().map(
+            |dep: &'a manderrow_types::util::rkyv::ArchivedInternedString| async move {
+                // you get a really nasty lifetime error if you forget the `.map_err(...)`
+                let mod_spec = ModSpec::<'a>::from_str(&*dep).map_err(|e| anyhow!("{e}"))?;
+
+                if &*mod_spec.id().owner == "BepInEx" && &*mod_spec.id().name == "BepInExPack" {
+                    return Ok(());
+                }
+
+                install_profile_mod_inner(
+                    log,
+                    app,
+                    reqwest,
+                    id,
+                    profile_path,
+                    mod_index,
+                    mod_spec.id().owner.0,
+                    mod_spec.id().name.0,
+                    mod_spec.version,
+                    tasks::allocate_task(),
+                    seen,
+                )
+                .await
+            },
+        ))
+        .await?;
+
+        let mod_temp_dir = prepare_install_zip(
+            Some(app),
+            &log,
+            reqwest,
+            format!("{mod_owner}-{mod_name}-{mod_version}"),
+            &url,
+            Some(crate::installing::CacheOptions::by_url()),
+            &mod_folder_path,
+            Some(handle.allocate_dependency(app)?),
+        )
+        .await?;
+
+        {
+            let mut entries = Vec::new();
+            let mut iter = tokio::fs::read_dir(mod_temp_dir.path()).await?;
+            while let Some(e) = iter.next_entry().await? {
+                entries.push(e.path());
+            }
+            debug!(log, "prepared mod package for installation: {:?}", entries);
         }
-        debug!(log, "prepared mod package for installation: {:?}", entries);
-    }
 
-    let patchers_temp_dir =
-        crate::installing::generate_temp_path(&patchers_folder_path, ".tmp-").await?;
-    let patchers_og_dir = mod_temp_dir.path().join(PATCHERS_FOLDER);
-    let patchers_staged: Option<StagedPackage>;
-    match tokio::fs::rename(&patchers_og_dir, &patchers_temp_dir).await {
-        Ok(()) => {
-            patchers_staged =
-                Some(install_folder(&log, &patchers_temp_dir, &patchers_folder_path).await?);
+        let patchers_temp_dir =
+            crate::installing::generate_temp_path(&patchers_folder_path, ".tmp-").await?;
+        let patchers_og_dir = mod_temp_dir.path().join(PATCHERS_FOLDER);
+        let patchers_staged: Option<StagedPackage>;
+        match tokio::fs::rename(&patchers_og_dir, &patchers_temp_dir).await {
+            Ok(()) => {
+                patchers_staged =
+                    Some(install_folder(&log, &patchers_temp_dir, &patchers_folder_path).await?);
 
+                ensure!(
+                    tokio::fs::try_exists(patchers_staged.as_ref().unwrap().path()).await?,
+                    "must exist after patchers install"
+                );
+            }
+            Err(e) if e.is_not_found() => {
+                patchers_staged = None;
+            }
+            Err(e) => return Err(e.into()),
+        }
+
+        let staged = install_folder(&log, mod_temp_dir.path(), &mod_folder_path).await?;
+        staged.check_with_temp_dir(&mod_temp_dir);
+
+        let mods_staged = StagedPackage {
+            target: &mod_folder_path,
+            source: crate::installing::StagedPackageSource::TempDir(mod_temp_dir),
+        };
+
+        if let Some(ref patchers_staged) = patchers_staged {
             ensure!(
-                tokio::fs::try_exists(patchers_staged.as_ref().unwrap().path()).await?,
-                "must exist after patchers install"
+                tokio::fs::try_exists(patchers_staged.path()).await?,
+                "must exist after mods install"
             );
         }
-        Err(e) if e.is_not_found() => {
-            patchers_staged = None;
+
+        // TODO: create a dedicated ModManifest type that is saved locally, with some fields stripped (all IgnoredAny, and some others)
+        tokio::task::block_in_place(|| {
+            serde_json::to_writer(
+                std::io::BufWriter::new(std::fs::File::create(
+                    mods_staged.path().join(MANIFEST_FILE_NAME),
+                )?),
+                &ModAndVersion {
+                    r#mod: ModMetadata {
+                        name: &m.name,
+                        full_name: IgnoredAny,
+                        owner: &m.owner,
+                        package_url: IgnoredAny,
+                        donation_link: m.donation_link.as_ref().map(|s| SmolStr::from(&**s)),
+                        date_created: m.date_created.into(),
+                        // TODO: don't save this locally?
+                        date_updated: m.date_updated.into(),
+                        // TODO: don't save this locally
+                        rating_score: m.rating_score.into(),
+                        // TODO: don't save this locally
+                        is_pinned: m.is_pinned,
+                        is_deprecated: m.is_deprecated,
+                        has_nsfw_content: m.has_nsfw_content,
+                        categories: m.categories.iter().map(|s| SmolStr::from(&**s)).collect(),
+                        uuid4: IgnoredAny,
+                    },
+                    version: ModVersion {
+                        name: IgnoredAny,
+                        full_name: IgnoredAny,
+                        description: SmolStr::from(&*version.description),
+                        icon: IgnoredAny,
+                        version_number: version.version_number.get(),
+                        dependencies: version.dependencies.iter().map(|s| s.into()).collect(),
+                        download_url: IgnoredAny,
+                        // TODO: don't save this locally
+                        downloads: version.downloads.into(),
+                        date_created: version.date_created.into(),
+                        website_url: version.website_url.as_ref().map(|s| SmolStr::from(&**s)),
+                        is_active: version.is_active,
+                        uuid4: IgnoredAny,
+                        file_size: version.file_size.into(),
+                    },
+                },
+            )?;
+            Ok::<_, anyhow::Error>(())
+        })?;
+
+        let patchers_transaction = if let Some(patchers_staged) = patchers_staged {
+            Some(patchers_staged.apply(&log).await?)
+        } else {
+            None
+        };
+        let mods_transaction = mods_staged.apply(&log).await?;
+
+        // must not hold the lock across an await
+        let mut seen = seen.lock();
+        let transactions = &mut seen.get_mut(&mod_id).unwrap().transactions;
+
+        if let Some(transaction) = patchers_transaction {
+            transactions.push(transaction);
         }
-        Err(e) => return Err(e.into()),
-    }
+        transactions.push(mods_transaction);
 
-    let staged = install_folder(&log, mod_temp_dir.path(), &mod_folder_path).await?;
-    staged.check_with_temp_dir(&mod_temp_dir);
+        Ok(())
+    })
+    .await?;
 
-    let mods_staged = StagedPackage {
-        target: &mod_folder_path,
-        source: crate::installing::StagedPackageSource::TempDir(mod_temp_dir),
-    };
-
-    if let Some(ref patchers_staged) = patchers_staged {
-        ensure!(
-            tokio::fs::try_exists(patchers_staged.path()).await?,
-            "must exist after mods install"
-        );
-    }
-
-    // TODO: create a dedicated ModManifest type that is saved locally, with some fields stripped (all IgnoredAny, and some others)
-    tokio::task::block_in_place(|| {
-        serde_json::to_writer(
-            std::io::BufWriter::new(std::fs::File::create(
-                mods_staged.path().join(MANIFEST_FILE_NAME),
-            )?),
-            &ModAndVersion {
-                r#mod: ModMetadata {
-                    name: &m.name,
-                    full_name: IgnoredAny,
-                    owner: &m.owner,
-                    package_url: IgnoredAny,
-                    donation_link: m.donation_link.as_ref().map(|s| SmolStr::from(&**s)),
-                    date_created: m.date_created.into(),
-                    // TODO: don't save this locally?
-                    date_updated: m.date_updated.into(),
-                    // TODO: don't save this locally
-                    rating_score: m.rating_score.into(),
-                    // TODO: don't save this locally
-                    is_pinned: m.is_pinned,
-                    is_deprecated: m.is_deprecated,
-                    has_nsfw_content: m.has_nsfw_content,
-                    categories: m.categories.iter().map(|s| SmolStr::from(&**s)).collect(),
-                    uuid4: IgnoredAny,
-                },
-                version: ModVersion {
-                    name: IgnoredAny,
-                    full_name: IgnoredAny,
-                    description: SmolStr::from(&*version.description),
-                    icon: IgnoredAny,
-                    version_number: version.version_number.get(),
-                    dependencies: version.dependencies.iter().map(|s| s.into()).collect(),
-                    download_url: IgnoredAny,
-                    // TODO: don't save this locally
-                    downloads: version.downloads.into(),
-                    date_created: version.date_created.into(),
-                    website_url: version.website_url.as_ref().map(|s| SmolStr::from(&**s)),
-                    is_active: version.is_active,
-                    uuid4: IgnoredAny,
-                    file_size: version.file_size.into(),
-                },
-            },
-        )?;
-        Ok::<_, anyhow::Error>(())
-    })?;
-
-    let patchers_transaction = if let Some(patchers_staged) = patchers_staged {
-        Some(patchers_staged.apply(&log).await?)
-    } else {
-        None
-    };
-    let mods_transaction = mods_staged.apply(&log).await?;
-
-    // must not hold the lock across an await
-    let mut seen = seen.lock();
-    let transactions = &mut seen.get_mut(&mod_id).unwrap().transactions;
-
-    if let Some(transaction) = patchers_transaction {
-        transactions.push(transaction);
-    }
-    transactions.push(mods_transaction);
+    // FIXME: include queued transactions in this task, handle cancellation, etc.
+    handle
+        .unwrap()
+        .drop(tasks::DropStatus::Success { success: None })?;
 
     Ok(())
 }

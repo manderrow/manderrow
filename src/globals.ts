@@ -1,4 +1,4 @@
-import { createResource } from "solid-js";
+import { createResource, createSignal } from "solid-js";
 
 import { GameSortColumn, getGameModDownloads, getGames, getGamesPopularity, getProfiles, searchGames } from "./api";
 import { Game } from "./types";
@@ -39,14 +39,11 @@ export const [gamesModDownloadsResource] = createResource<{ [key: string]: numbe
 });
 export const gamesModDownloads = () => gamesModDownloadsResource.latest!;
 
-export const [profiles, { refetch: refetchProfiles }] = createResource(
-  async () => {
-    const profiles = await getProfiles();
-    profiles.sort((a, b) => a.name.localeCompare(b.name));
-    return profiles;
-  },
-  { initialValue: [] },
-);
+export const [profiles, { refetch: refetchProfiles }] = createResource(async () => {
+  const profiles = await getProfiles();
+  profiles.sort((a, b) => a.name.localeCompare(b.name));
+  return profiles;
+});
 
 export const initialGame = createSignalResource(async () => (await settingsResource.loaded).defaultGame.value);
 

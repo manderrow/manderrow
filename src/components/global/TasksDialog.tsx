@@ -1,64 +1,93 @@
-import { createSignal, createUniqueId, For, JSX, Show } from "solid-js";
+import { faDownload, faListCheck } from "@fortawesome/free-solid-svg-icons";
+import Fa from "solid-fa";
+import { For, Show, createSelector, createSignal } from "solid-js";
 
-import Dialog, { DismissCallback } from "./Dialog";
-import { ProgressUnit, Task, tasks } from "../../api/tasks";
-import { humanizeFileSize, roundedNumberFormatter } from "../../utils";
 import { clearCache } from "../../api/installing";
+import { DownloadMetadata, Kind, ProgressUnit, tasksArray } from "../../api/tasks";
+import { t } from "../../i18n/i18n.ts";
+import { humanizeFileSize, roundedNumberFormatter } from "../../utils";
+
+
 import { SimpleAsyncButton } from "./AsyncButton";
+import Dialog, { DismissCallback } from "./Dialog";
+import { SimpleProgressIndicator } from "./Progress";
+import TabRenderer, { Tab, TabContent } from "./TabRenderer.tsx";
 
 import styles from "./TasksDialog.module.css";
-import { SimpleProgressIndicator } from "./Progress";
-import TabRenderer from "./TabRenderer.tsx";
-import { t } from "../../i18n/i18n.ts";
+
+type TabId = "active" | "completed";
 
 export default function TasksDialog(props: { onDismiss: DismissCallback }) {
+  const [tab, setTab] = createSignal<TabId>("active");
+  const isCurrentTab = createSelector(tab);
+
+  const tabs: readonly Tab<TabId>[] = [
+    {
+      id: "active",
+      name: t("global.task_manager.active_tab_name"),
+      component: () => <TaskList active />,
+    },
+    {
+      id: "completed",
+      name: t("global.task_manager.completed_tab_name"),
+      component: () => <TaskList />,
+    },
+  ];
+
   return (
     <Dialog onDismiss={props.onDismiss}>
       <div class={styles.tasks}>
         <div class={styles.tasks__header}>
           <h2>{t("global.task_manager.title")}</h2>
-          {/* <SimpleAsyncButton progress onClick={clearCache}>
-            Clear Cache
-          </SimpleAsyncButton> */}
         </div>
 
-        <TabRenderer
-          id="tasks"
-          tabs={[
-            {
-              id: "active",
-              name: t("global.task_manager.active_tab_name"),
-              component: <TaskList active />,
-            },
-            {
-              id: "completed",
-              name: t("global.task_manager.completed_tab_name"),
-              component: <TaskList />,
-            },
-          ]}
-          styles={{
-            tabs: {
-              list: styles.tabs,
-              list__item: styles.tabs__tab,
-              list__itemActive: styles.tabs__tabActive,
-            },
-          }}
-        />
+        <div>
+          <TabRenderer<TabId>
+            id="tasks"
+            tabs={tabs}
+            styles={{
+              tabs: {
+                container: styles.tabs,
+                list: styles.tabs__list,
+                list__item: styles.tabs__tab,
+                list__itemActive: styles.tabs__tabActive,
+              },
+            }}
+            setter={(tab) => setTab(tab.id)}
+          />
+
+          <div class={styles.tabs__trailing}>
+            <SimpleAsyncButton progress onClick={clearCache}>
+              Clear Cache
+            </SimpleAsyncButton>
+          </div>
+        </div>
+
+        <TabContent isCurrentTab={isCurrentTab} tabs={tabs} />
       </div>
     </Dialog>
   );
+}
+
+function TaskKindIcon(kind: Kind) {
+  switch (kind) {
+    case Kind.Aggregate:
+      return <Fa icon={faListCheck} />;
+    case Kind.Download:
+      return <Fa icon={faDownload} />;
+    case Kind.Other:
+      return <></>;
+  }
 }
 
 function TaskList(props: { active?: boolean }) {
   return (
     <ul class={styles.list}>
       <For
-        each={Array.from(tasks.entries()).filter(
-          ([_, task]) => task.isComplete != !!props.active && task.status.status !== "Unstarted",
-        )}
+        each={tasksArray().filter((task) => task.isComplete != !!props.active && task.status.status !== "Unstarted")}
         fallback={<li>No tasks yet.</li>}
       >
-        {([_, task]) => (
+        {(task) => (
           <li>
             <Show when={!task.isComplete}>
               <SimpleProgressIndicator progress={task.progress} />
@@ -66,7 +95,7 @@ function TaskList(props: { active?: boolean }) {
             <div>
               <div>
                 <h4>
-                  <Show when={task.metadata.kind === "Download"}>Download</Show> {task.metadata.title}
+                  {TaskKindIcon(task.metadata.kind)} {task.metadata.title}
                 </h4>
                 <p>
                   status=<span>{task.status.status}</span>
@@ -95,7 +124,15 @@ function TaskList(props: { active?: boolean }) {
                       </Show>
                     </span>
                   </Show>
+
+                  <Show when={task.status.status === "Success" ? task.status.success : undefined}>
+                    {(info) => <span>{info()}</span>}
+                  </Show>
                 </p>
+
+                <Show when={task.metadata.kind === Kind.Download}>
+                  <a href={(task.metadata as DownloadMetadata).url}>{(task.metadata as DownloadMetadata).url}</a>
+                </Show>
               </div>
             </div>
           </li>

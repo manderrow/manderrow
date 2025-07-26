@@ -4,6 +4,8 @@
 #![feature(panic_backtrace_config)]
 #![feature(round_char_boundary)]
 
+mod externs;
+
 use std::mem::MaybeUninit;
 use std::num::NonZeroU32;
 use std::ptr::NonNull;
@@ -13,13 +15,8 @@ use manderrow_ipc::client::Ipc;
 use manderrow_ipc::ipc_channel::ipc::{IpcOneShotServer, IpcSender};
 use manderrow_ipc::{C2SMessage, OutputLine, S2CMessage};
 
-unsafe extern "sysv64" {
-    fn manderrow_agent_crash(msg_ptr: NonNull<u8>, msg_len: usize) -> !;
-}
-
 /// `c2s_tx` must consist entirely of UTF-8 codepoints.
-#[unsafe(no_mangle)]
-pub unsafe extern "sysv64" fn manderrow_agent_init(
+unsafe fn manderrow_agent_init(
     c2s_tx_ptr: Option<NonNull<u8>>,
     c2s_tx_len: usize,
     error_buf: &mut ErrorBuffer,
@@ -33,7 +30,7 @@ pub unsafe extern "sysv64" fn manderrow_agent_init(
         } else {
             "Box<dyn Any>"
         };
-        unsafe { manderrow_agent_crash(NonNull::from(msg).cast(), msg.len()) }
+        unsafe { externs::manderrow_agent_crash(NonNull::from(msg).cast(), msg.len()) }
     }));
 
     let c2s_tx = match c2s_tx_ptr {
@@ -190,8 +187,7 @@ fn connect_ipc(c2s_tx: &str) -> Result<(), ConnectIpcError> {
         .map_err(|_| ConnectIpcError::IpcAlreadySet)
 }
 
-#[unsafe(no_mangle)]
-pub extern "sysv64" fn manderrow_agent_send_exit(code: i32, with_code: bool) {
+fn manderrow_agent_send_exit(code: i32, with_code: bool) {
     if let Some(ipc) = ipc() {
         _ = ipc.send(&C2SMessage::Exit {
             code: if with_code { Some(code) } else { None },
@@ -205,8 +201,7 @@ pub enum StandardOutputChannel {
     Err,
 }
 
-#[unsafe(no_mangle)]
-pub unsafe extern "sysv64" fn manderrow_agent_send_output_line(
+unsafe fn manderrow_agent_send_output_line(
     channel: StandardOutputChannel,
     line_ptr: NonNull<u8>,
     line_len: usize,
@@ -234,8 +229,7 @@ pub enum LogLevel {
     Trace,
 }
 
-#[unsafe(no_mangle)]
-pub unsafe extern "sysv64" fn manderrow_agent_send_log(
+unsafe fn manderrow_agent_send_log(
     level: LogLevel,
     scope_ptr: NonNull<u8>,
     scope_len: usize,
@@ -264,8 +258,7 @@ pub unsafe extern "sysv64" fn manderrow_agent_send_log(
     }
 }
 
-#[unsafe(no_mangle)]
-pub unsafe extern "sysv64" fn manderrow_agent_send_crash(msg_ptr: NonNull<u8>, msg_len: usize) {
+unsafe fn manderrow_agent_send_crash(msg_ptr: NonNull<u8>, msg_len: usize) {
     let msg = unsafe { NonNull::slice_from_raw_parts(msg_ptr, msg_len).as_ref() };
     let msg = std::str::from_utf8(msg).unwrap_or("<Crash messaged contained invalid UTF-8>");
     if let Some(ipc) = ipc() {

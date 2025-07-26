@@ -5,9 +5,10 @@ export const roundedNumberFormatter = new Intl.NumberFormat(undefined, {
   maximumSignificantDigits: 3,
   notation: "compact",
 });
+const BYTE_UNITS = Object.freeze(["B", "KB", "MB", "GB", "TB"]);
 export function humanizeFileSize(sizeBytes: number, space = false): string {
   const i = sizeBytes === 0 ? 0 : Math.floor(Math.log(sizeBytes) / Math.log(1000));
-  return (sizeBytes / Math.pow(1000, i)).toFixed(1) + (space ? " " : "") + ["B", "KB", "MB", "GB", "TB"][i];
+  return (sizeBytes / Math.pow(1000, i)).toFixed(1) + (space ? " " : "") + BYTE_UNITS[i];
 }
 
 export const removeProperty = <Obj, Prop extends keyof Obj>(obj: Obj, prop: Prop): Omit<Obj, Prop> => {
