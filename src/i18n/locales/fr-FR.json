@@ -9,7 +9,8 @@
       "relevance": "Pertinence",
       "downloads": "Téléchargements",
       "name": "Nom",
-      "owner": "Propriétaire"
+      "owner": "Propriétaire",
+      "size": "Taille"
     },
     "sort_order": {
       "ascending": "Ascendant",
@@ -23,6 +24,13 @@
       "active_tab_name": "Actives",
       "completed_tab_name": "Complètes"
     }
+  },
+  
+  "titlebar": {
+    "minimize_btn": "Minimiser",
+    "maximize_btn": "Maximiser",
+    "restore_btn": "Restaurer",
+    "close_btn": "Fermer"
   },
 
   "game_select": {
@@ -95,6 +103,7 @@
   },
 
   "settings": {
+    "title": "Paramètres",
     "section": {
       "general": "Général",
       "launching": "En train de lancer"
@@ -114,7 +123,7 @@
     "native_stack_trace": "Trace d'appels native",
     "js_stack_trace": "Trace d'appels de JavaScript",
 
-    "reportBtn": "Faire un rapport",
-    "ignoreBtn": "Ignorer"
+    "report_btn": "Faire un rapport",
+    "ignore_btn": "Ignorer"
   }
 }
