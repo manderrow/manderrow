@@ -223,3 +223,30 @@ export async function importModpackFromThunderstoreCode(
     invoke("import_modpack_from_thunderstore_code", { thunderstoreId, game, profileId, modProgressChannel, taskId }),
   );
 }
+
+export interface ConfigEntry {
+  key: string;
+  value: string;
+
+  // The datatype this entry is very likely to be based on parsing its default value. If unable to determine, this is be null.
+  datatype: "string" | "number" | "boolean" | "color" | null;
+}
+
+/**
+ * Get all config entries for a specific profile
+ * @param profile The profile UUID
+ * @returns An array of config paths
+ */
+export async function getConfigsForProfile(profile: string): Promise<string[]> {
+  return await wrapInvoke(() => invoke("get_configs_for_profile", { profile }));
+}
+
+/**
+ * Get all config entries for a specific profile and config
+ * @param profile The profile UUID
+ * @param config The config path
+ * @returns An array of config entries
+ */
+export async function getEntriesForProfileConfig(profile: string, config: string): Promise<ConfigEntry[]> {
+  return await wrapInvoke(() => invoke("get_entries_for_profile_config", { profile, config }));
+}
