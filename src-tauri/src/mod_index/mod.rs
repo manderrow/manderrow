@@ -366,25 +366,36 @@ fn score_mod<'a, 'b>(
 
 pub async fn get_from_mod_index<'a>(
     mod_index: &'a ModIndexReadGuard,
-    mod_ids: &HashSet<ModId<'_>>,
-) -> Result<Vec<&'a ArchivedModRef<'a>>> {
+    mod_ids: &[ModId<'_>],
+) -> Result<Vec<Option<&'a ArchivedModRef<'a>>>> {
     let log = slog_scope::logger();
 
     debug!(log, "Getting set of mods from mod index");
 
-    let buf = mod_index
+    // We need to check potentially tens of thousands of mods, and we don't
+    // want O(n*m) complexity. Instead, create an efficient mapping from mod id
+    // to index in the results array.
+    let mod_ids_idx = mod_ids
         .iter()
-        .flat_map(|mi| {
-            mi.mods().iter().filter(|m| {
-                mod_ids.contains(&ModId {
-                    owner: InternedString(&*m.owner),
-                    name: InternedString(&*m.name),
-                })
-            })
-        })
-        .collect::<Vec<_>>();
+        .enumerate()
+        .map(|(i, id)| (id, i))
+        .collect::<std::collections::HashMap<_, _>>();
 
-    Ok(buf)
+    let mut results = vec![None; mod_ids.len()];
+
+    mod_index
+        .iter()
+        .flat_map(|mi| mi.mods().iter())
+        .for_each(|m| {
+            if let Some(&i) = mod_ids_idx.get(&ModId {
+                owner: InternedString(&*m.owner),
+                name: InternedString(&*m.name),
+            }) {
+                results[i] = Some(m);
+            }
+        });
+
+    Ok(results)
 }
 
 pub async fn get_one_from_mod_index<'a>(

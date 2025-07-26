@@ -19,10 +19,10 @@ pub async fn fetch_mod_index(
     Ok(())
 }
 
-fn map_to_json<'a>(buf: &mut Vec<u8>, it: impl Iterator<Item = &'a ArchivedModRef<'a>>) {
+fn map_to_json<T: serde::Serialize>(buf: &mut Vec<u8>, it: impl Iterator<Item = T>) {
     let mut it = it.peekable();
     while let Some(m) = it.next() {
-        simd_json::serde::to_writer(&mut *buf, m).unwrap();
+        simd_json::serde::to_writer(&mut *buf, &m).unwrap();
         if it.peek().is_some() {
             buf.push(b',');
         }
@@ -70,7 +70,7 @@ pub async fn query_mod_index(
 #[tauri::command]
 pub async fn get_from_mod_index(
     game: &str,
-    mod_ids: HashSet<ModId<'_>>,
+    mod_ids: Vec<ModId<'_>>,
 ) -> Result<tauri::ipc::Response, CommandError> {
     let mod_index = read_mod_index(game).await?;
 
