@@ -65,6 +65,7 @@ import { setCurrentProfileName } from "../../components/global/TitleBar.tsx";
 import Tooltip from "../../components/global/Tooltip.tsx";
 import ContextMenu from "../../components/global/ContextMenu.tsx";
 import { CircularProgressIndicator, SimpleProgressIndicator } from "../../components/global/Progress.tsx";
+import ConfigEditor from "../../components/profile/ConfigEditor.tsx";
 
 interface ProfileParams {
   profileId?: string;
@@ -363,7 +364,7 @@ export default function Profile() {
                     {
                       id: "config",
                       name: "Config",
-                      component: () => <div></div>,
+                      component: () => <ConfigEditor />,
                     },
                   ]}
                 />

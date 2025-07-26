@@ -1,0 +1,27 @@
+.container {
+  flex-grow: 1;
+  position: relative;
+
+  display: flex;
+}
+
+.configs {
+}
+
+.configs,
+.sectionsOverview {
+  border: 1px solid var(--clr-neutral-8);
+  border-radius: 0.5em;
+  padding: 0.5em;
+}
+
+.editor {
+  flex-grow: 1;
+  padding: 0.5em;
+}
+
+.sectionsOverview {
+  position: absolute;
+  top: 0;
+  right: 0;
+}
