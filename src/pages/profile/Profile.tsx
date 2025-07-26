@@ -56,6 +56,7 @@ import { ConsoleConnection, focusedConnection, setFocusedConnection } from "../.
 import { ActionContext } from "../../components/global/AsyncButton.tsx";
 import StatusBar from "../../components/profile/StatusBar.tsx";
 import { setCurrentProfileName } from "../../components/global/TitleBar.tsx";
+import ConfigEditor from "../../components/profile/ConfigEditor.tsx";
 
 interface ProfileParams {
   profileId?: string;
@@ -344,7 +345,7 @@ export default function Profile() {
                     {
                       id: "config",
                       name: "Config",
-                      component: () => <div></div>,
+                      component: () => <ConfigEditor />,
                     },
                   ]}
                 />
