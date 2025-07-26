@@ -1,4 +1,4 @@
-use std::ops::{Add, Div};
+use std::ops::{Add, Div, Mul};
 
 use sublime_fuzzy::{FuzzySearch, Scoring};
 
@@ -22,6 +22,14 @@ impl Add for Score {
     }
 }
 
+impl Mul<u32> for Score {
+    type Output = Self;
+
+    fn mul(self, rhs: u32) -> Self::Output {
+        Self(self.0 * rhs as ScoreValue)
+    }
+}
+
 impl Div<u32> for Score {
     type Output = Self;
 
@@ -30,12 +38,18 @@ impl Div<u32> for Score {
     }
 }
 
+impl std::fmt::Display for Score {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
+    }
+}
+
 pub fn score(needle: &str, haystack: &str) -> Option<Score> {
     let mut score = FuzzySearch::new(needle, haystack)
         .case_insensitive()
         .score_with(&Scoring {
             bonus_consecutive: 24,
-            bonus_word_start: 48,
+            bonus_word_start: 0,
             bonus_match_case: 0,
             penalty_distance: 4,
         })

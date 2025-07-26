@@ -360,10 +360,18 @@ fn score_mod<'a, 'b>(
         Some((m, Score::MAX))
     } else {
         let owner_score =
-            search::score(&query, &m.owner).map(|s| std::cmp::max(s / 8, Score::ZERO));
+            search::score(&query, &m.owner).map(|s| std::cmp::max(s / 128, Score::ZERO));
         let name_score = search::score(&query, &m.name);
         let score = search::add_scores(name_score, owner_score)?;
-        Some((m, score))
+        let boosted_score = score
+            * m.versions
+                .iter()
+                .map(|v| v.downloads.to_native())
+                .sum::<u64>()
+                .checked_ilog10()
+                .unwrap_or(1)
+                .max(1);
+        Some((m, boosted_score))
     }
 }
 
@@ -424,10 +432,16 @@ pub async fn get_one_from_mod_index<'a>(
 
 #[cfg(test)]
 mod tests {
-    use crate::Reqwest;
+    use manderrow_types::mods::ArchivedModRef;
+
+    use crate::{
+        mod_index::ModIndexReadGuard,
+        util::search::{Score, SortOption},
+        Reqwest,
+    };
 
     #[test]
-    fn fetch_mod_index() {
+    fn mod_index_fetching() {
         tokio::runtime::Builder::new_multi_thread()
             .enable_all()
             .build()
@@ -438,17 +452,105 @@ mod tests {
                     .await
                     .unwrap();
 
-                let mod_count = super::count_mod_index(
-                    &super::read_mod_index("lethal-company").await.unwrap(),
-                    "",
-                )
-                .await
-                .unwrap();
+                let mod_index = super::read_mod_index("lethal-company").await.unwrap();
+
+                let mod_count = super::count_mod_index(&mod_index, "").await.unwrap();
                 assert!(
                     mod_count >= 40_000,
                     "mod count is lower than expected: {}",
                     mod_count
                 );
+
+                let mods = super::query_mod_index(&mod_index, "", &[]).await.unwrap();
+                assert_eq!(mods.len(), mod_count);
             });
+    }
+
+    #[test]
+    fn mod_index_querying_relevance() {
+        tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .expect("unable to build tokio runtime")
+            .block_on(async {
+                let reqwest = Reqwest(reqwest::Client::new());
+                super::fetch_mod_index(None, &reqwest, "lethal-company", true, None)
+                    .await
+                    .unwrap();
+
+                let mod_index = super::read_mod_index("lethal-company").await.unwrap();
+
+                assert_top_result(
+                    &mod_index,
+                    "more",
+                    &[
+                        // it would be ideal if these were swapped
+                        ("2wheelsNcoffee", "moresuits_2WC"),
+                        ("notnotnotswipez", "MoreCompany"),
+                    ],
+                )
+                .await;
+                assert_top_result(&mod_index, "com", &[
+                    ("HHunter", "company_cruiser_steering_fix"),
+                    // this should certainly not be ranked this high
+                    ("Xaymar", "common"),
+                    ("notnotnotswipez", "MoreCompany")
+                ]).await;
+            });
+    }
+
+    async fn assert_top_result(
+        mod_index: &ModIndexReadGuard,
+        query: &str,
+        top_expected: &[(&str, &str)],
+    ) {
+        let mod_count = super::count_mod_index(&mod_index, query).await.unwrap();
+        assert!(
+            mod_count >= top_expected.len(),
+            "mod count is lower than expected: {}",
+            mod_count
+        );
+
+        let mods = super::query_mod_index(
+            &mod_index,
+            query,
+            &[SortOption {
+                column: super::SortColumn::Relevance,
+                descending: true,
+            }],
+        )
+        .await
+        .unwrap();
+        assert_eq!(mods.len(), mod_count);
+        for ((m, _), &id) in mods.iter().zip(top_expected) {
+            assert_eq!((&*m.owner, &*m.name), id, "{}", TopResults(&mods));
+        }
+    }
+
+    struct TopResults<'a, 'b, 'c>(&'a [(&'b ArchivedModRef<'c>, Score)]);
+
+    impl std::fmt::Display for TopResults<'_, '_, '_> {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            // this is gross, but we're in a test. Who cares.
+            let score_width = self.0[0].1.to_string().len();
+            write!(
+                f,
+                "the top results are: {:#?}",
+                self.0
+                    .iter()
+                    .map(|(m, s)| std::fmt::from_fn(move |f| {
+                        write!(
+                            f,
+                            "{: >score_width$}: {}-{}",
+                            s,
+                            &*m.owner,
+                            &*m.name,
+                            score_width = score_width
+                        )
+                    }))
+                    .take(20)
+                    .collect::<Vec<_>>()
+            )
+        }
     }
 }
