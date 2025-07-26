@@ -1,20 +1,21 @@
-use std::{collections::HashSet, num::NonZeroUsize};
+use std::num::NonZeroUsize;
 
-use manderrow_types::mods::{ArchivedModRef, ModId};
-use tauri::AppHandle;
+use manderrow_types::mods::ModId;
+use tauri::{AppHandle, State};
 
-use crate::{tasks, CommandError};
+use crate::{tasks, CommandError, Reqwest};
 
 use super::{read_mod_index, SortColumn, SortOption};
 
 #[tauri::command]
 pub async fn fetch_mod_index(
     app_handle: AppHandle,
+    reqwest: State<'_, Reqwest>,
     game: &str,
     refresh: bool,
     task_id: tasks::Id,
 ) -> Result<(), CommandError> {
-    super::fetch_mod_index(&app_handle, game, refresh, Some(task_id)).await?;
+    super::fetch_mod_index(Some(&app_handle), &reqwest, game, refresh, Some(task_id)).await?;
 
     Ok(())
 }

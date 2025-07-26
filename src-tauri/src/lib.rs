@@ -42,6 +42,7 @@ pub use error::{CommandError, Error};
 use lexopt::ValueExt;
 use tauri::Manager;
 
+#[derive(Clone)]
 struct Reqwest(reqwest::Client);
 
 impl Deref for Reqwest {

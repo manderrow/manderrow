@@ -2,7 +2,7 @@ pub mod commands;
 mod memory;
 pub mod thunderstore;
 
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::sync::LazyLock;
 
 use anyhow::{Context as _, Result};
@@ -11,7 +11,7 @@ use manderrow_types::mods::{ArchivedModRef, ModId, ModRef};
 use manderrow_types::util::rkyv::InternedString;
 use rkyv_intern::Interner;
 use slog::{debug, info};
-use tauri::{AppHandle, Manager};
+use tauri::AppHandle;
 use tokio::io::AsyncReadExt;
 use tokio::select;
 use tokio::sync::{Mutex, RwLock, RwLockReadGuard};
@@ -44,7 +44,8 @@ static MOD_INDEXES: LazyLock<HashMap<&'static str, ModIndex>> = LazyLock::new(||
 });
 
 pub async fn fetch_mod_index(
-    app: &AppHandle,
+    app: Option<&AppHandle>,
+    reqwest: &Reqwest,
     game: &str,
     refresh: bool,
     task_id: Option<tasks::Id>,
@@ -63,7 +64,7 @@ pub async fn fetch_mod_index(
     {
         TaskBuilder::with_id(task_id.unwrap_or_else(tasks::allocate_task), format!("Fetch mod index for {}", game.id))
             .progress_unit(tasks::ProgressUnit::Bytes)
-            .run_with_handle(Some(app), |handle| async move {
+            .run_with_handle(app, |handle| async move {
                 info!(log, "Fetching mods");
 
                 let Ok(_lock) = mod_index.refresh_lock.try_lock() else {
@@ -78,18 +79,21 @@ pub async fn fetch_mod_index(
                 mod_index.progress.reset();
 
                 let progress_updater = async {
-                    loop {
-                        _ = handle.send_progress(app, &mod_index.progress);
+                    if let Some(app) = app {
+                        loop {
+                            _ = handle.send_progress(app, &mod_index.progress);
 
-                        mod_index.progress.updates().notified().await;
+                            mod_index.progress.updates().notified().await;
+                        }
+                    } else {
+                        std::future::pending().await
                     }
                 };
 
                 let new_mod_index = async {
                     let mut chunk_urls = Vec::new();
                     GzipDecoder::new(
-                        app
-                            .state::<Reqwest>()
+                        reqwest
                             .get(&*game.thunderstore_url)
                             .send()
                             .await
@@ -109,15 +113,14 @@ pub async fn fetch_mod_index(
 
                     futures_util::future::try_join_all(chunk_urls.into_iter().map(|url| async {
                         let log = log.clone();
-                        let app_handle = app.clone();
+                        let reqwest = reqwest.clone();
                         tokio::task::spawn(async move {
                             let spawned_at = std::time::Instant::now();
                             let latency = spawned_at.duration_since(started_at);
                             let mut buf = Vec::new();
                             {
                                 let mut rdr = GzipDecoder::new(
-                                    app_handle
-                                        .state::<Reqwest>()
+                                    reqwest
                                         .get(url.clone())
                                         .send()
                                         .await
@@ -417,4 +420,35 @@ pub async fn get_one_from_mod_index<'a>(
     });
 
     Ok(m)
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::Reqwest;
+
+    #[test]
+    fn fetch_mod_index() {
+        tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .expect("unable to build tokio runtime")
+            .block_on(async {
+                let reqwest = Reqwest(reqwest::Client::new());
+                super::fetch_mod_index(None, &reqwest, "lethal-company", true, None)
+                    .await
+                    .unwrap();
+
+                let mod_count = super::count_mod_index(
+                    &super::read_mod_index("lethal-company").await.unwrap(),
+                    "",
+                )
+                .await
+                .unwrap();
+                assert!(
+                    mod_count >= 40_000,
+                    "mod count is lower than expected: {}",
+                    mod_count
+                );
+            });
+    }
 }
