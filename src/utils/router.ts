@@ -25,3 +25,12 @@ export function useSearchParamsInPlace<T = SearchParams>(): [
     },
   ];
 }
+
+export function useSearchParam<T extends string>(name: string): [() => T | undefined, (value?: T) => void] {
+  const [searchParams, setSearchParams] = useSearchParamsInPlace();
+
+  return [
+    () => (Array.isArray(searchParams[name]) ? (searchParams[name]![0] as T) : searchParams[name] as T),
+    (value) => setSearchParams({ [name]: value }),
+  ];
+}
