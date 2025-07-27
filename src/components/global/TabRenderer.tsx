@@ -1,5 +1,6 @@
 import { createEffect, createSelector, For, JSX, Match, Switch, untrack } from "solid-js";
-import { useSearchParamsInPlace } from "../../utils/router";
+
+import { useSearchParam } from "../../utils/router";
 
 export interface Tab<Id extends string> {
   id: Id;
@@ -28,13 +29,10 @@ export default function TabRenderer<Id extends string>(props: {
   styles: TabStyles;
   setter?: (tab: Tab<Id>) => void;
 }) {
-  const [searchParams, setSearchParams] = useSearchParamsInPlace();
+  const [currentTabNonDefaulted, setCurrentTab] = useSearchParam(`${props.id}-tab`);
 
   const defaultTab = props.tabs.find((tab) => tab.selected)?.id ?? props.tabs[0].id;
-  const tablistId = `${props.id}-tab`;
-  const currentTab = () =>
-    ((Array.isArray(searchParams[tablistId]) ? searchParams[tablistId]![0] : searchParams[tablistId]) as Id) ??
-    defaultTab;
+  const currentTab = () => (currentTabNonDefaulted() as Id | undefined) ?? defaultTab;
 
   const tabsMap = Object.fromEntries(props.tabs.map((tab) => [tab.id, tab])) as Record<Id, Tab<Id>>;
 
@@ -60,7 +58,7 @@ export default function TabRenderer<Id extends string>(props: {
                   [props.styles.tabs.list__itemActive]: isCurrentTab(tab.id),
                 }}
               >
-                <button type="button" on:click={() => setSearchParams({ [tablistId]: tab.id })}>
+                <button type="button" on:click={() => setCurrentTab(tab.id)}>
                   {tab.name}
                 </button>
               </li>
