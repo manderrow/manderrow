@@ -48,7 +48,7 @@ import styles from "./Profile.module.css";
 import sidebarStyles from "./SidebarProfiles.module.css";
 import ImportDialog from "../../components/profile/ImportDialog";
 import { settings } from "../../api/settings";
-import { useSearchParamsInPlace } from "../../utils/router";
+import { useSearchParam, useSearchParamsInPlace } from "../../utils/router";
 import { killIpcClient } from "../../api/ipc";
 import { t } from "../../i18n/i18n.ts";
 import { launchProfile } from "../../api/launching";
@@ -66,14 +66,10 @@ interface ProfileParams {
 
 type TabId = "mod-list" | "mod-search" | "logs" | "config";
 
-interface ProfileSearchParams {
-  "profile-tab"?: TabId;
-}
-
 export default function Profile() {
   // @ts-expect-error params.profileId is an optional param, it can be undefined, and we don't expect any other params
   const params = useParams<ProfileParams>();
-  const [searchParams, setSearchParams] = useSearchParamsInPlace<ProfileSearchParams>();
+  const [currentTab, setCurrentTab] = useSearchParam("profile-tab");
   const navigate = useNavigate();
 
   const gameInfo = globals.gamesById().get(params.gameId)!; // TODO, handle undefined case
@@ -123,8 +119,8 @@ export default function Profile() {
       try {
         setFocusedConnection(conn);
         console.log(focusedConnection());
-        if (settings().openConsoleOnLaunch.value && searchParams["profile-tab"] !== "logs") {
-          setSearchParams({ "profile-tab": "logs" });
+        if (settings().openConsoleOnLaunch.value && currentTab() !== "logs") {
+          setCurrentTab("logs");
         }
         await launchProfile(
           conn.id,
@@ -354,7 +350,7 @@ export default function Profile() {
                     {
                       id: "config",
                       name: "Config",
-                      component: () => <ConfigEditor />,
+                      component: () => <ConfigEditor profile={params.profileId!} />,
                     },
                   ]}
                 />
