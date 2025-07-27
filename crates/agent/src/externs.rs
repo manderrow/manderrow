@@ -9,7 +9,7 @@ macro_rules! extern_block {
             $($tt)*
         }
 
-        #[cfg(target_arch = "aarch64")]
+        #[cfg(not(target_arch = "x86_64"))]
         unsafe extern "C" {
             $($tt)*
         }
@@ -24,7 +24,7 @@ macro_rules! extern_fn {
             super::$name($($arg_name),*)
         }
 
-        #[cfg(target_arch = "aarch64")]
+        #[cfg(not(target_arch = "x86_64"))]
         #[unsafe(no_mangle)]
         extern "C" fn $name($($arg_name: $arg_ty),*) $(-> $ret_ty)? {
             super::$name($($arg_name),*)
@@ -37,7 +37,7 @@ macro_rules! extern_fn {
             unsafe { super::$name($($arg_name),*) }
         }
 
-        #[cfg(target_arch = "aarch64")]
+        #[cfg(not(target_arch = "x86_64"))]
         #[unsafe(no_mangle)]
         unsafe extern "C" fn $name($($arg_name: $arg_ty),*) $(-> $ret_ty)? {
             unsafe { super::$name($($arg_name),*) }
