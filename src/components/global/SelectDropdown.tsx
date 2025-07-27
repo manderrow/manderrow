@@ -1,7 +1,6 @@
 import { batch, createEffect, For, untrack } from "solid-js";
 import { faCheck } from "@fortawesome/free-solid-svg-icons";
 import Fa from "solid-fa";
-import { DropdownOptions } from "./Dropdown";
 import { createStore } from "solid-js/store";
 import { t } from "../../i18n/i18n";
 
@@ -63,12 +62,10 @@ export default function SelectDropdown<T>(options: SelectDropdownOptions<T>) {
 
   return (
     <TogglableDropdown
-      align={options.align}
-      maxWidth={options.maxWidth}
-      class={options.class}
       dropdownClass={styles.dropdown}
       buttonId={options.buttonId}
       label={labelValue()}
+      offset={options.offset}
     >
       <ul class={styles.options}>
         <For each={Object.entries(options.options)}>

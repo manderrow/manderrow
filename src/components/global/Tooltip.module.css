@@ -1,0 +1,10 @@
+.tooltip {
+  background-color: var(--clr-neutral-8);
+  padding: 0.25em;
+  border-radius: 0.25em;
+  box-shadow: 0 0 0.5rem rgba(0, 0, 0, 0.3);
+}
+
+.arrow {
+  position: absolute;
+}

@@ -31,10 +31,12 @@
 
 .dropdown {
   padding: 0.5em 0 !important;
+  background-color: var(--clr-neutral-8);
+  border: 1px solid var(--clr-neutral-7);
+  border-radius: 0.5em;
 }
 
 .options {
-  border-radius: inherit;
   overflow-y: auto;
 }
 

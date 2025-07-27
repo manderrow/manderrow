@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@floating-ui/dom':
+        specifier: ^1.7.2
+        version: 1.7.2
       '@fortawesome/free-regular-svg-icons':
         specifier: ^6.7.2
         version: 6.7.2
@@ -59,6 +62,9 @@ importers:
       solid-fa:
         specifier: ^0.2.0
         version: 0.2.0(solid-js@1.9.7)
+      solid-floating-ui:
+        specifier: ^0.3.1
+        version: 0.3.1(@floating-ui/dom@1.7.2)(solid-js@1.9.7)
       solid-js:
         specifier: ^1.9.7
         version: 1.9.7
@@ -312,6 +318,15 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
+
+  '@floating-ui/core@1.7.2':
+    resolution: {integrity: sha512-wNB5ooIKHQc+Kui96jE/n69rHFWAVoxn5CAzL1Xdd8FG03cgY3MLO+GF9U3W737fYDSgPWA6MReKhBQBop6Pcw==}
+
+  '@floating-ui/dom@1.7.2':
+    resolution: {integrity: sha512-7cfaOQuCS27HD7DX+6ib2OrnW+b4ZBwDNnCcT0uTyidcmyWb03FnQqJybDBoCnpdxwBSfA94UAYlRCt7mV+TbA==}
+
+  '@floating-ui/utils@0.2.10':
+    resolution: {integrity: sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ==}
 
   '@fortawesome/fontawesome-common-types@6.7.2':
     resolution: {integrity: sha512-Zs+YeHUC5fkt7Mg1l6XTniei3k4bwG/yo3iFUtZWd/pMx9g3fdvkSK9E0FOC+++phXOka78uJcYb8JaFkW52Xg==}
@@ -748,6 +763,13 @@ packages:
     peerDependencies:
       solid-js: ^1.0.0
 
+  solid-floating-ui@0.3.1:
+    resolution: {integrity: sha512-o/QmGsWPS2Z3KidAxP0nDvN7alI7Kqy0kU+wd85Fz+au5SYcnYm7I6Fk3M60Za35azsPX0U+5fEtqfOuk6Ao0Q==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      '@floating-ui/dom': ^1.5
+      solid-js: ^1.8
+
   solid-js@1.9.7:
     resolution: {integrity: sha512-/saTKi8iWEM233n5OSi1YHCCuh66ZIQ7aK2hsToPe4tqGm7qAejU1SwNuTPivbWAYq7SjuHVVYxxuZQNRbICiw==}
 
@@ -1035,6 +1057,17 @@ snapshots:
 
   '@esbuild/win32-x64@0.25.5':
     optional: true
+
+  '@floating-ui/core@1.7.2':
+    dependencies:
+      '@floating-ui/utils': 0.2.10
+
+  '@floating-ui/dom@1.7.2':
+    dependencies:
+      '@floating-ui/core': 1.7.2
+      '@floating-ui/utils': 0.2.10
+
+  '@floating-ui/utils@0.2.10': {}
 
   '@fortawesome/fontawesome-common-types@6.7.2': {}
 
@@ -1411,6 +1444,11 @@ snapshots:
 
   solid-fa@0.2.0(solid-js@1.9.7):
     dependencies:
+      solid-js: 1.9.7
+
+  solid-floating-ui@0.3.1(@floating-ui/dom@1.7.2)(solid-js@1.9.7):
+    dependencies:
+      '@floating-ui/dom': 1.7.2
       solid-js: 1.9.7
 
   solid-js@1.9.7:
