@@ -2,6 +2,7 @@
   position: fixed;
   inset: 0;
   padding: 1em;
+  padding-top: calc(1em + var(--titlebar-height));
   z-index: var(--portal-z-index);
 
   background-color: rgba(0, 0, 0, 0.25);
