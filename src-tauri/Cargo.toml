@@ -56,6 +56,7 @@ bytes = "1.8.0"
 chrono = { version = "0.4.39", default-features = false, features = ["serde"] }
 fastrand = "2.3.0"
 hashbrown = "0.15.2"
+indexmap = { version = "2.10", features = ["serde"] }
 itertools = "0.14.0"
 lexopt = "0.3.0"
 parking_lot = { version = "0.12.3", features = ["send_guard"] }
@@ -93,6 +94,9 @@ slog-scope = "4.4.0"
 async-compression = { version = "0.4.18", features = ["gzip", "tokio"] }
 flate2 = "1.0.35"
 zip = "4"
+
+# additional formats supported for mod configs
+rust-ini = "0.21.2"
 
 [target.'cfg(windows)'.dependencies]
 registry = "1.3"

@@ -17,6 +17,7 @@
 
 mod app_commands;
 mod bench_commands;
+mod configs;
 mod error;
 mod games;
 mod i18n;
@@ -103,6 +104,9 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
             app_commands::start_dragging,
             bench_commands::bench_exit_interactive,
             bench_commands::bench_exit_splash,
+            configs::commands::read_mod_config,
+            configs::commands::scan_mod_configs,
+            configs::commands::update_mod_config,
             games::commands::get_games,
             games::commands::search_games,
             games::commands::get_games_popularity,
