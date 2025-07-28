@@ -34,7 +34,7 @@ fn map_to_json<T: serde::Serialize>(buf: &mut Vec<u8>, it: impl Iterator<Item = 
 pub async fn count_mod_index(game: &str, query: &str) -> Result<usize, CommandError> {
     let mod_index = read_mod_index(game).await?;
 
-    Ok(super::count_mod_index(&mod_index, query).await?)
+    Ok(super::count_mod_index(&mod_index, query)?)
 }
 
 #[tauri::command]
@@ -47,7 +47,7 @@ pub async fn query_mod_index(
 ) -> Result<tauri::ipc::Response, CommandError> {
     let mod_index = read_mod_index(game).await?;
 
-    let buf = super::query_mod_index(&mod_index, query, &sort).await?;
+    let buf = super::query_mod_index(&mod_index, query, &sort)?;
 
     let count = buf.len();
 

@@ -4,13 +4,14 @@ pub mod thunderstore;
 
 use std::collections::HashMap;
 use std::sync::LazyLock;
+use std::time::Instant;
 
 use anyhow::{Context as _, Result};
 use async_compression::tokio::bufread::GzipDecoder;
 use manderrow_types::mods::{ArchivedModRef, ModId, ModRef};
 use manderrow_types::util::rkyv::InternedString;
 use rkyv_intern::Interner;
-use slog::{debug, info};
+use slog::{debug, info, trace};
 use tauri::AppHandle;
 use tokio::io::AsyncReadExt;
 use tokio::select;
@@ -260,12 +261,25 @@ pub async fn fetch_mod_index(
 
 #[derive(Clone, Copy, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
+#[repr(u8)]
 pub enum SortColumn {
     Relevance,
     Name,
     Owner,
     Downloads,
     Size,
+}
+
+impl SortColumn {
+    pub const VALUES: &[Self] = &[
+        Self::Relevance,
+        Self::Name,
+        Self::Owner,
+        Self::Downloads,
+        Self::Size,
+    ];
+
+    pub const VALUE_COUNT: usize = Self::VALUES.len();
 }
 
 pub type ModIndexReadGuard = RwLockReadGuard<'static, Vec<MemoryModIndex>>;
@@ -280,40 +294,58 @@ pub async fn read_mod_index(game: &str) -> Result<ModIndexReadGuard> {
         .await)
 }
 
-pub async fn count_mod_index<'a>(mod_index: &'a ModIndexReadGuard, query: &str) -> Result<usize> {
+pub fn count_mod_index<'a>(mod_index: &'a ModIndexReadGuard, query: &str) -> Result<usize> {
     let log = slog_scope::logger();
 
-    debug!(log, "Counting mods in mod index");
+    trace!(log, "Counting mods in mod index");
 
-    Ok(mod_index
+    let start = Instant::now();
+
+    let count = mod_index
         .iter()
-        .flat_map(|mi| {
+        .map(|mi| {
             mi.mods()
                 .iter()
                 .filter_map(|m| score_mod(&log, query, m))
                 .filter(|&(_, score)| search::should_include(score))
+                .count()
         })
-        .count())
+        .sum();
+
+    let elapsed_counting = Instant::now() - start;
+
+    debug!(log, "Counted mods in mod index ({:?})", elapsed_counting);
+
+    Ok(count)
 }
 
-pub async fn query_mod_index<'a>(
+/// `sort` must not include the same [`SortColumn`] more than once.
+pub fn query_mod_index<'a>(
     mod_index: &'a ModIndexReadGuard,
     query: &str,
     sort: &[SortOption<SortColumn>],
 ) -> Result<Vec<(&'a ArchivedModRef<'a>, Score)>> {
     let log = slog_scope::logger();
 
-    debug!(log, "Querying mod index");
+    trace!(log, "Querying mod index");
 
-    let mut buf = mod_index
-        .iter()
-        .flat_map(|mi| {
+    let start = Instant::now();
+
+    let mut buf = Vec::new();
+
+    for mi in mod_index.iter() {
+        buf.extend(
             mi.mods()
                 .iter()
                 .filter_map(|m| score_mod(&log, query, m))
-                .filter(|&(_, score)| search::should_include(score))
-        })
-        .collect::<Vec<_>>();
+                .filter(|&(_, score)| search::should_include(score)),
+        );
+    }
+
+    let now = Instant::now();
+    let elapsed_collecting = now - start;
+    let start = now;
+
     if !sort.is_empty() {
         buf.sort_unstable_by(|(m1, score1), (m2, score2)| {
             let mut ordering = std::cmp::Ordering::Equal;
@@ -347,6 +379,13 @@ pub async fn query_mod_index<'a>(
             ordering
         });
     }
+
+    let elapsed_sorting = Instant::now() - start;
+
+    debug!(
+        log,
+        "Queried mod index ({:?} collecting, {:?} sorting)", elapsed_collecting, elapsed_sorting
+    );
 
     Ok(buf)
 }
@@ -454,14 +493,14 @@ mod tests {
 
                 let mod_index = super::read_mod_index("lethal-company").await.unwrap();
 
-                let mod_count = super::count_mod_index(&mod_index, "").await.unwrap();
+                let mod_count = super::count_mod_index(&mod_index, "").unwrap();
                 assert!(
                     mod_count >= 40_000,
                     "mod count is lower than expected: {}",
                     mod_count
                 );
 
-                let mods = super::query_mod_index(&mod_index, "", &[]).await.unwrap();
+                let mods = super::query_mod_index(&mod_index, "", &[]).unwrap();
                 assert_eq!(mods.len(), mod_count);
             });
     }
@@ -488,14 +527,17 @@ mod tests {
                         ("2wheelsNcoffee", "moresuits_2WC"),
                         ("notnotnotswipez", "MoreCompany"),
                     ],
-                )
-                .await;
-                assert_top_result(&mod_index, "com", &[
-                    ("HHunter", "company_cruiser_steering_fix"),
-                    // this should certainly not be ranked this high
-                    ("Xaymar", "common"),
-                    ("notnotnotswipez", "MoreCompany")
-                ]).await;
+                );
+                assert_top_result(
+                    &mod_index,
+                    "com",
+                    &[
+                        ("HHunter", "company_cruiser_steering_fix"),
+                        // this should certainly not be ranked this high
+                        ("Xaymar", "common"),
+                        ("notnotnotswipez", "MoreCompany"),
+                    ],
+                );
             });
     }
 
@@ -504,7 +546,7 @@ mod tests {
         query: &str,
         top_expected: &[(&str, &str)],
     ) {
-        let mod_count = super::count_mod_index(&mod_index, query).await.unwrap();
+        let mod_count = super::count_mod_index(&mod_index, query).unwrap();
         assert!(
             mod_count >= top_expected.len(),
             "mod count is lower than expected: {}",
@@ -519,7 +561,6 @@ mod tests {
                 descending: true,
             }],
         )
-        .await
         .unwrap();
         assert_eq!(mods.len(), mod_count);
         for ((m, _), &id) in mods.iter().zip(top_expected) {
