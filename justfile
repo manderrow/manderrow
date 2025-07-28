@@ -24,6 +24,11 @@ test:
 	cargo test --manifest-path crates/Cargo.toml
 	cargo test --manifest-path src-tauri/Cargo.toml
 
+update:
+	cargo update --manifest-path crates/Cargo.toml --verbose
+	cargo update --manifest-path src-tauri/Cargo.toml --verbose
+	pnpm update
+
 check:
 	cargo check --manifest-path crates/Cargo.toml
 	cargo check --manifest-path src-tauri/Cargo.toml
