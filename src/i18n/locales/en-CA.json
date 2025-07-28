@@ -1,5 +1,12 @@
 {
   "global": {
+    "phrases": {
+      "ok": "OK",
+      "yes": "Yes",
+      "no": "No",
+      "cancel": "Cancel"
+    },
+
     "game_sort_column": {
       "name": "Name",
       "mod_downloads": "Mod Downloads",
@@ -69,6 +76,27 @@
       "rename_profile_btn": "Rename",
       "delete_profile_btn": "Delete",
       "export_profile_btn": "Export"
+    }
+  },
+
+  "modlist": {
+    "installed": {
+      "no_mods_installed": "Looks like you haven't installed any mods yet.",
+      "check_updates_btn": "Check for Updates",
+      "updates_available_btn": "Updates Available",
+
+      "updater_title": "Mod Updater",
+      "updater_description": "Select mods to update:",
+      "update_selected_btn": "Update Selected",
+      "update_all_btn": "Update All"
+    },
+    "online": {
+      "no_mods": "No mods found.",
+      "install_btn": "Install"
+    },
+
+    "search": {
+      "input_placeholder": "Search for a mod"
     }
   },
 

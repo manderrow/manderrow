@@ -202,6 +202,7 @@
     padding: 0.5em 1em;
     border-right: 1px solid var(--clr-neutral-7);
     color: var(--clr-neutral-4);
+    border-radius: 0;
     display: block;
     font-size: 1.1rem;
     user-select: none;
@@ -333,10 +334,9 @@
         transform: translate(100%, -50%);
         background-color: inherit;
         border: 1px solid var(--clr-neutral-7);
+        border-left: none;
         border-radius: 0 0.75em 0.75em 0;
         padding-block: 1em;
-
-        box-shadow: inherit;
         z-index: -1;
       }
     }

@@ -1,5 +1,13 @@
 import { faHardDrive, faHeart, faThumbsUp } from "@fortawesome/free-regular-svg-icons";
-import { faDownLong, faDownload, faExternalLink, faRefresh, faTrash } from "@fortawesome/free-solid-svg-icons";
+import {
+  faArrowRightLong,
+  faCircleUp,
+  faDownLong,
+  faDownload,
+  faExternalLink,
+  faRefresh,
+  faTrash,
+} from "@fortawesome/free-solid-svg-icons";
 import { createInfiniteScroll } from "@solid-primitives/pagination";
 import { useParams } from "@solidjs/router";
 import { Fa } from "solid-fa";
@@ -7,12 +15,14 @@ import {
   Accessor,
   For,
   InitializedResource,
+  JSX,
   Match,
   ResourceFetcherInfo,
   Show,
   Signal,
   Switch,
   createContext,
+  createEffect,
   createMemo,
   createResource,
   createSelector,
@@ -41,6 +51,8 @@ import ModMarkdown from "./ModMarkdown.tsx";
 import ModSearch from "./ModSearch.tsx";
 
 import styles from "./ModList.module.css";
+import { t } from "../../i18n/i18n.ts";
+import { DefaultDialog } from "../global/Dialog.tsx";
 
 type PageFetcher = (page: number) => Promise<readonly Mod[]>;
 export type Fetcher = (
@@ -66,6 +78,7 @@ export default function ModList(props: {
   refresh: () => void;
   isLoading: boolean;
   progress: Progress;
+  trailingControls?: JSX.Element;
 }) {
   const [selectedMod, setSelectedMod] = createSignal<Mod>();
 
@@ -91,7 +104,7 @@ export default function ModList(props: {
 
   return (
     <div class={styles.modListAndView}>
-      <div class={styles.scrollOuter}>
+      <div class={`${styles.scrollOuter} ${styles.modListContainer}`}>
         <ModSearch
           game={params.gameId}
           query={query()}
@@ -104,14 +117,18 @@ export default function ModList(props: {
           progress={props.progress}
         />
 
-        <Show when={queriedMods.latest} fallback={<p>Querying mods...</p>}>
-          <div class={styles.discoveredLine}>
+        <div class={styles.discoveredLine}>
+          <Show when={queriedMods.latest} fallback={<p>Querying mods...</p>}>
             Discovered {numberFormatter.format(queriedMods()!.count)} mods
             <button class={styles.refreshButton} on:click={() => props.refresh()}>
               <Fa icon={faRefresh} />
             </button>
-          </div>
-        </Show>
+          </Show>
+
+          <Show when={props.trailingControls}>
+            <div class={styles.trailingControls}>{props.trailingControls}</div>
+          </Show>
+        </div>
 
         <Show when={queriedMods()} keyed>
           {(mods) => <ModListMods mods={mods.mods} selectedMod={[selectedMod, setSelectedMod]} />}
@@ -174,8 +191,14 @@ export function OnlineModList(props: { game: string }) {
   );
 }
 
+interface ModUpdate {
+  newMod: ModListing;
+  oldVersionNumber: string;
+}
 export function InstalledModList(props: { game: string }) {
   const context = useContext(ModInstallContext)!;
+  const [updaterShown, setUpdaterShown] = createSignal(false);
+  const [updates, setUpdates] = createSignal<ModUpdate[]>([]);
 
   const [progress, setProgress] = createProgressProxyStore();
 
@@ -192,18 +215,149 @@ export function InstalledModList(props: { game: string }) {
     };
   };
 
+  async function checkUpdates() {
+    const installedMods = context.installed.latest;
+
+    const latestMods = await getFromModIndex(
+      props.game,
+      installedMods.map((mod) => ({ owner: mod.owner, name: mod.name })),
+    );
+
+    setUpdates(
+      latestMods
+        .map((mod, i) => ({ newMod: mod, oldVersionNumber: installedMods[i].version.version_number }))
+        .filter((update) => update.newMod.versions[0].version_number !== update.oldVersionNumber),
+    );
+  }
+
   return (
-    <Show when={context.installed.latest.length !== 0} fallback={<p>Looks like you haven't installed any mods yet.</p>}>
+    <Show when={context.installed.latest.length !== 0} fallback={<p>{t("modlist.installed.no_mods_installed")}</p>}>
       <ModList
         game={props.game}
         isLoading={false}
         progress={progress}
-        // TODO: implement local refreshing
-        refresh={() => {}} // looks like eyes
-        // kinda gross
+        refresh={context.refetchInstalled}
         mods={getFetcher()}
+        trailingControls={
+          <Show
+            when={updates().length > 0}
+            fallback={
+              <button data-btn="ghost" onClick={checkUpdates}>
+                <Fa icon={faRefresh} /> {t("modlist.installed.check_updates_btn")}
+              </button>
+            }
+          >
+            <button data-btn="primary" onClick={() => setUpdaterShown(true)}>
+              <Fa icon={faCircleUp} /> {t("modlist.installed.updates_available_btn")}
+            </button>
+          </Show>
+        }
       />
+
+      <Show when={updaterShown()}>
+        <ModUpdateDialogue
+          onDismiss={() => {
+            setUpdaterShown(false);
+            checkUpdates();
+          }}
+          updates={updates()}
+        />
+      </Show>
     </Show>
+  );
+}
+
+function ModUpdateDialogue(props: { onDismiss: () => void; updates: ModUpdate[] }) {
+  const [progress, setProgress] = createProgressProxyStore();
+  const reportErr = useContext(ErrorContext)!;
+
+  const [selectedMods, setSelectedMods] = createSignal<Set<ModUpdate>>(new Set(props.updates), {
+    equals: false,
+  });
+
+  return (
+    <DefaultDialog onDismiss={props.onDismiss} class={styles.updateDialog}>
+      <h2>{t("modlist.installed.updater_title")}</h2>
+
+      <p>{t("modlist.installed.updater_description")}</p>
+
+      <div class={styles.listContainer}>
+        <form action="#">
+          <fieldset>
+            <input
+              type="checkbox"
+              id="update-select-all-mods"
+              checked={selectedMods().size === props.updates.length}
+              onInput={(e) => {
+                if (e.target.checked) {
+                  setSelectedMods(new Set(props.updates));
+                } else {
+                  setSelectedMods(new Set<ModUpdate>());
+                }
+              }}
+            />
+            <label for="update-select-all-mods">Select All</label>
+          </fieldset>
+          <fieldset>
+            <label for="update-search" class="phantom">
+              Search
+            </label>
+            <input type="text" id="update-search" placeholder="Search mod..." />
+          </fieldset>
+        </form>
+        <ul>
+          {props.updates.map((update) => (
+            <li>
+              <label for={update.newMod.name}>
+                <input
+                  id={update.newMod.name}
+                  type="checkbox"
+                  checked={selectedMods().has(update)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedMods((selectedMods) => selectedMods.add(update));
+                    } else {
+                      setSelectedMods((selectedMods) => {
+                        selectedMods.delete(update);
+                        return selectedMods;
+                      });
+                    }
+                  }}
+                />
+                <img
+                  width={48}
+                  height={48}
+                  alt="mod icon"
+                  src={getIconUrl(update.newMod.owner, update.newMod.name, update.newMod.versions[0].version_number)}
+                />
+                <div class={styles.updateMetadata}>
+                  <p data-name>{update.newMod.name}</p>
+                  <p data-owner>{update.newMod.owner}</p>
+                  <p data-version>
+                    <span data-old-version>{update.oldVersionNumber}</span>
+                    <span data-arrow>
+                      <Fa icon={faArrowRightLong} />
+                    </span>
+                    <span data-new-version>{update.newMod.versions[0].version_number}</span>
+                  </p>
+                </div>
+              </label>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div class={styles.updateBtns}>
+        <button data-btn="primary">
+          {selectedMods().size === props.updates.length
+            ? t("modlist.installed.update_all_btn")
+            : t("modlist.installed.update_selected_btn")}
+        </button>
+        <button onClick={props.onDismiss} style={{ order: -1 }} data-btn="ghost">
+          {t("global.phrases.cancel")}
+        </button>
+      </div>
+    </DefaultDialog>
   );
 }
 

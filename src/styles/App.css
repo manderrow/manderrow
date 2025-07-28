@@ -190,6 +190,10 @@ select:focus-visible {
   outline: none;
 }
 
+input[type="text"] {
+  border-radius: 4px;
+}
+
 button {
   border: none;
   padding: 0.35em 1.5em;
@@ -197,21 +201,35 @@ button {
   background-color: var(--bg-clr);
   color: var(--clr-neutral-1);
   width: fit-content;
+  border-radius: 100vmax;
 }
 
-button.primary {
+button[data-btn*="primary"] {
   --bg-clr: var(--clr-primary-4);
+  border: none;
+
+  &:hover,
+  &:focus {
+    --bg-clr: var(--clr-primary-5);
+  }
 }
 
-button.ghost {
-  border: 1px solid inherit;
+button[data-btn*="ghost"] {
+  border: 1px solid var(--clr-neutral-7);
+  --bg-clr: transparent;
+
+  &:hover,
+  &:focus {
+    --bg-clr: var(--clr-neutral-7);
+  }
 }
 
-button:hover:not(:disabled) {
+button:hover:not(:disabled),
+button:focus:not(:disabled) {
   cursor: pointer;
   --bg-clr: var(--clr-neutral-7);
 
-  &.primary {
+  &[data-btn*="primary"] {
     --bg-clr: var(--clr-primary-5);
   }
 }
