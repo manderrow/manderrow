@@ -1,4 +1,4 @@
-import { faDownload, faListCheck } from "@fortawesome/free-solid-svg-icons";
+import { faCopy, faDownload, faListCheck } from "@fortawesome/free-solid-svg-icons";
 import Fa from "solid-fa";
 import { For, Show, createSelector, createSignal } from "solid-js";
 
@@ -97,9 +97,6 @@ function TaskList(props: { active?: boolean }) {
                 <h4>
                   {TaskKindIcon(task.metadata.kind)} {task.metadata.title}
                 </h4>
-                <p>
-                  status=<span>{task.status.status}</span>
-                </p>
 
                 <p class={styles.status_line}>
                   <Show when={task.status.status !== "Running" || task.progress.total === 0}>
@@ -131,7 +128,7 @@ function TaskList(props: { active?: boolean }) {
                 </p>
 
                 <Show when={task.metadata.kind === Kind.Download}>
-                  <a href={(task.metadata as DownloadMetadata).url}>{(task.metadata as DownloadMetadata).url}</a>
+                  <DownloadUrlLine url={(task.metadata as DownloadMetadata).url} />
                 </Show>
               </div>
             </div>
@@ -140,6 +137,17 @@ function TaskList(props: { active?: boolean }) {
       </For>
     </ul>
   );
+}
+
+function DownloadUrlLine(props: { url: string }) {
+  return <div class={styles.downloadUrl}>
+    <a href={props.url} title={props.url}>Source</a>
+    <button onClick={() => {
+      navigator.clipboard.writeText(props.url);
+    }}>
+      <Fa icon={faCopy} />
+    </button>
+  </div>;
 }
 
 function ModDownloadTask() {}

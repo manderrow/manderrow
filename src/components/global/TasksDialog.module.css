@@ -81,12 +81,31 @@
       & > div {
         display: flex;
         flex-direction: column;
+        max-width: 100%;
       }
     }
 
-    & .status_line {
+    .status_line {
       & > span:not(:first-child)::before {
         content: " · ";
+      }
+    }
+
+    .downloadUrl {
+      & > a {
+        margin-right: 8px;
+      }
+
+      & > button {
+        display: inline-block;
+        width: 2em;
+        height: 2em;
+        padding: 0;
+        text-align: center;
+      }
+
+      &:not(:hover) > button {
+        opacity: 0;
       }
     }
   }
