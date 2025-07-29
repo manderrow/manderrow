@@ -5,15 +5,29 @@
 
   display: grid;
   grid-template-columns: auto 1fr max-content;
-  gap: 0.5em;
-  padding: 1em;
+  gap: 1em;
+  padding: 1em 2em;
+  padding-top: 0;
+  margin-top: 1em;
 }
 
 .configs {
+  button {
+    background-color: transparent;
+    padding: 0.25em 0;
+    color: var(--clr-neutral-2);
+  }
+
+  li.configActive button {
+    color: var(--clr-neutral-1);
+    border-left: 2px solid var(--clr-primary-4);
+    padding-left: 0.5em;
+    font-weight: 600;
+  }
 }
 
 .configs,
-.sectionsOverviewContent {
+.sectionsOverview {
   border: 1px solid var(--clr-neutral-8);
   border-radius: 0.5em;
   padding: 0.5em;
@@ -21,12 +35,30 @@
   top: 0;
   right: 0;
   left: 0;
+  max-height: 75dvh;
+  overflow: auto;
 }
 
 .editor {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+
+  > h2 {
+    position: sticky;
+    top: 0;
+    background-color: var(--clr-neutral-9);
+    padding-bottom: 0.35em;
+    border-bottom: 1px solid var(--clr-neutral-8);
+  }
 }
 
-.sectionsOverviewContent {
+.sectionsOverview {
+  .sectionActive {
+    color: var(--clr-primary-6);
+    border-left: 2px solid var(--clr-primary-5);
+    padding-left: 0.25em;
+  }
 }
 
 .valueEditor {
@@ -52,11 +84,17 @@
   }
 }
 
+.editor > .entry > .valueEditor {
+  margin-bottom: 0.75em;
+}
+
 .entry {
   display: grid;
   grid-template-columns: auto 1fr auto;
   grid-template-rows: auto;
   grid-template-areas: "key value actions";
+  padding-block: 0.25em;
+  color: var(--clr-neutral-2);
 
   &:has(> .valueEditor:is([data-type="array"], [data-type="object"])) {
     grid-template-columns: auto 1fr;
@@ -64,6 +102,11 @@
     grid-template-areas:
       "key actions"
       "value value";
+  }
+
+  .entry:hover,
+  .entry:focus-within:has(:focus-visible) {
+    background-color: var(--clr-neutral-8);
   }
 
   &:not(:hover) > .editorIconBtn {
@@ -82,6 +125,12 @@
     grid-area: actions;
     text-align: right;
   }
+}
+
+.editor > .entry > .entry__key {
+  font-size: 1.25rem;
+  color: var(--clr-neutral-1);
+  margin-bottom: 0.25em;
 }
 
 .editorIconBtn {
