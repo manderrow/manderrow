@@ -22,6 +22,8 @@ pub struct ModRef<'a> {
     pub metadata: ModMetadataRef<'a>,
     #[serde(borrow)]
     pub versions: Vec<ModVersionRef<'a>>,
+    #[serde(default)]
+    pub total_downloads: u64,
 }
 
 impl<'a> Deref for ModRef<'a> {
