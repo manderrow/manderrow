@@ -1,7 +1,7 @@
 import { IconDefinition } from "@fortawesome/free-regular-svg-icons";
 import { faAdd, faRemove } from "@fortawesome/free-solid-svg-icons";
 import Fa from "solid-fa";
-import { createEffect, createResource, For, JSX, Match, onMount, Show, Switch } from "solid-js";
+import { createEffect, createResource, For, JSX, Match, onCleanup, onMount, Show, Switch } from "solid-js";
 
 import { PathComponent, readModConfig, scanModConfigs, Value } from "../../api/configs";
 import { t } from "../../i18n/i18n";
@@ -27,6 +27,40 @@ export default function ConfigEditor(props: { profile: string }) {
     if (!currentFile() && configs.latest) setCurrentFile(configs.latest[0]);
   });
 
+  let editorRef!: HTMLDivElement;
+  let sectionsOverviewRef!: HTMLDivElement;
+  const intersectionObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        const link = sectionsOverviewRef.querySelector(`a[href="#${entry.target.id}"]`);
+
+        if (!link) return;
+
+        if (entry.isIntersecting) {
+          link!.classList.add(styles.sectionActive);
+        } else {
+          link!.classList.remove(styles.sectionActive);
+        }
+      });
+    },
+    {
+      // Only observe the center of the screen
+      rootMargin: "-49% 0px -50% 0px",
+    },
+  );
+
+  createEffect(() => {
+    if (currentConfig()) {
+      editorRef.querySelectorAll("." + styles.entry).forEach((el) => {
+        intersectionObserver.observe(el);
+      });
+    }
+  });
+
+  onCleanup(() => {
+    intersectionObserver.disconnect();
+  });
+
   return (
     <div class={styles.container}>
       <aside>
@@ -37,7 +71,7 @@ export default function ConfigEditor(props: { profile: string }) {
               <ul>
                 <For each={configs()}>
                   {(path) => (
-                    <li classList={{ [styles.active]: currentFile() === path }}>
+                    <li classList={{ [styles.configActive]: currentFile() === path }}>
                       <button onClick={() => setCurrentFile(path)}>{path}</button>
                     </li>
                   )}
@@ -48,10 +82,11 @@ export default function ConfigEditor(props: { profile: string }) {
         </div>
       </aside>
 
-      <Show when={currentConfig()} fallback="Loading...">
-        {(currentConfig) => (
-          <>
-            <div class={styles.editor}>
+      <div class={styles.editor} ref={editorRef}>
+        <Show when={currentConfig()} fallback="Loading...">
+          {(currentConfig) => (
+            <>
+              <h2>{currentFile()!}</h2>
               <For each={currentConfig().sections}>
                 {(section) => (
                   <EntryEditor
@@ -62,25 +97,29 @@ export default function ConfigEditor(props: { profile: string }) {
                   />
                 )}
               </For>
-            </div>
+            </>
+          )}
+        </Show>
+      </div>
 
-            <aside>
-              <div class={styles.sectionsOverviewContent}>
-                <h2>{t("config.sections_title")}</h2>
-                <ul>
-                  <For each={currentConfig().sections}>
-                    {(section) => (
-                      <li>
-                        <a href={`#${sectionId(section.path)}`}>{section.path.join(".")}</a>
-                      </li>
-                    )}
-                  </For>
-                </ul>
-              </div>
-            </aside>
-          </>
-        )}
-      </Show>
+      <aside>
+        <div class={styles.sectionsOverview} ref={sectionsOverviewRef}>
+          <h2>{t("config.sections_title")}</h2>
+          <ul>
+            <Show when={currentConfig()} fallback="Loading...">
+              {(currentConfig) => (
+                <For each={currentConfig().sections}>
+                  {(section) => (
+                    <li>
+                      <a href={`#${sectionId(section.path)}`}>{section.path.join(".")}</a>
+                    </li>
+                  )}
+                </For>
+              )}
+            </Show>
+          </ul>
+        </div>
+      </aside>
     </div>
   );
 }
