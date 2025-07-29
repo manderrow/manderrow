@@ -1,28 +1,32 @@
 .container {
   flex-grow: 1;
-  position: relative;
+  flex-basis: 0;
+  overflow: auto;
 
-  display: flex;
+  display: grid;
+  grid-template-columns: auto 1fr max-content;
+  gap: 0.5em;
+  padding: 1em;
 }
 
-.configs {}
+.configs {
+}
 
 .configs,
-.sectionsOverview {
+.sectionsOverviewContent {
   border: 1px solid var(--clr-neutral-8);
   border-radius: 0.5em;
   padding: 0.5em;
+  position: sticky;
+  top: 0;
+  right: 0;
+  left: 0;
 }
 
 .editor {
-  flex-grow: 1;
-  padding: 0.5em;
 }
 
-.sectionsOverview {
-  position: absolute;
-  top: 0;
-  right: 0;
+.sectionsOverviewContent {
 }
 
 .valueEditor {
@@ -52,8 +56,7 @@
   display: grid;
   grid-template-columns: auto 1fr auto;
   grid-template-rows: auto;
-  grid-template-areas:
-    "key value actions";
+  grid-template-areas: "key value actions";
 
   &:has(> .valueEditor:is([data-type="array"], [data-type="object"])) {
     grid-template-columns: auto 1fr;
@@ -63,19 +66,19 @@
       "value value";
   }
 
-  &:not(:hover)>.editorIconBtn {
+  &:not(:hover) > .editorIconBtn {
     opacity: 0;
   }
 
-  &>.entry__key {
+  & > .entry__key {
     grid-area: key;
   }
 
-  &>.valueEditor {
+  & > .valueEditor {
     grid-area: value;
   }
 
-  &>.entry__actions {
+  & > .entry__actions {
     grid-area: actions;
     text-align: right;
   }
@@ -108,7 +111,7 @@
   color: grey;
   font-size: 0.8em;
 
-  >svg {
+  > svg {
     margin-right: 0.25em;
   }
 }
