@@ -467,6 +467,9 @@ name = "bumpalo"
 version = "3.19.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "46c5e41b57b8bba42a04676d81cb89e9ee8e859a1a66f80a5a72e1cb76b34d43"
+dependencies = [
+ "allocator-api2",
+]
 
 [[package]]
 name = "bytecheck"
@@ -2552,6 +2555,7 @@ dependencies = [
  "base64 0.22.1",
  "bincode",
  "blake3",
+ "bumpalo",
  "bytes",
  "chrono",
  "fastrand",
@@ -2585,7 +2589,8 @@ dependencies = [
  "slog-envlogger",
  "slog-scope",
  "smol_str",
- "sublime_fuzzy",
+ "sublime_fuzzy 0.7.0 (git+https://github.com/manderrow/sublime_fuzzy?branch=master)",
+ "sublime_fuzzy 0.7.0 (git+https://github.com/manderrow/sublime_fuzzy?branch=simplified)",
  "tauri",
  "tauri-build",
  "tauri-plugin-clipboard-manager",
@@ -4728,8 +4733,20 @@ dependencies = [
 [[package]]
 name = "sublime_fuzzy"
 version = "0.7.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "fa7986063f7c0ab374407e586d7048a3d5aac94f103f751088bf398e07cd5400"
+source = "git+https://github.com/manderrow/sublime_fuzzy?branch=master#18ad2ad77f672d20031fdc458aad63565e6ebdbf"
+dependencies = [
+ "bumpalo",
+ "hashbrown 0.15.4",
+]
+
+[[package]]
+name = "sublime_fuzzy"
+version = "0.7.0"
+source = "git+https://github.com/manderrow/sublime_fuzzy?branch=simplified#776326eaaeec8aee5efbd5af7f41b7b4829d1947"
+dependencies = [
+ "bumpalo",
+ "hashbrown 0.15.4",
+]
 
 [[package]]
 name = "subtle"

@@ -1,4 +1,5 @@
 use anyhow::Context;
+use bumpalo::Bump;
 use tauri::ipc::InvokeResponseBody;
 
 use crate::{
@@ -37,6 +38,7 @@ pub async fn search_games(
         .context("Failed to load gameReviews.json")?;
     slog_scope::with_logger(|_logger| {
         let games = games()?;
+        let bump = Bump::new();
         let mut buf = games
             .iter()
             .enumerate()
@@ -44,7 +46,7 @@ pub async fn search_games(
                 if query.is_empty() {
                     Some((i, Score::MAX))
                 } else {
-                    let score = search::score(&query, &g.name)?;
+                    let score = search::score_non_simple(&bump, &query, &g.name)?;
                     // can be helpful when tweaking the search scoring
                     // slog::trace!(logger, "search_games [{i}] {:?}: {score:?}", g.name);
                     Some((i, score))
