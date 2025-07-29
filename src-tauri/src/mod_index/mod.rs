@@ -139,10 +139,18 @@ pub async fn fetch_mod_index(
                             let fetched_in = fetched_at.duration_since(spawned_at);
                             tokio::task::block_in_place(move || {
                                 let buf_len = buf.len();
-                                // TODO: rkyv serialize from simd_json tape directly, validating as we go
-                                let mods = simd_json::from_slice::<Vec<ModRef>>(&mut buf)?;
+                                // TODO: rkyv serialize from simd_json tape directly, validating
+                                //       as we go
+                                let mut mods = simd_json::from_slice::<Vec<ModRef>>(&mut buf)?;
                                 let decoded_at = std::time::Instant::now();
                                 let decoded_in = decoded_at.duration_since(fetched_at);
+
+                                for m in &mut mods {
+                                    m.total_downloads = m.versions
+                                        .iter()
+                                        .map(|v| u64::from(v.downloads))
+                                        .sum::<u64>();
+                                }
 
                                 #[cfg(feature = "statistics")]
                                 #[derive(Default)]
@@ -358,7 +366,7 @@ pub fn query_mod_index<'a>(
 
     let mut buf = Vec::new();
 
-    for mi in mod_index.chunks.iter() {
+    for (i, mi) in mod_index.chunks.iter().enumerate() {
         buf.extend(
             mi.mods()
                 .iter()
@@ -368,6 +376,9 @@ pub fn query_mod_index<'a>(
                 })
                 .filter(|&(_, score)| search::should_include(score)),
         );
+        if i == 0 {
+            buf.reserve(buf.len() * (mod_index.len() - 1));
+        }
     }
 
     let now = Instant::now();
@@ -375,22 +386,14 @@ pub fn query_mod_index<'a>(
     let start = now;
 
     if !sort.is_empty() {
-        buf.sort_unstable_by(|(m1, score1), (m2, score2)| {
+        buf.sort_unstable_by(|&(m1, score1), &(m2, score2)| {
             let mut ordering = std::cmp::Ordering::Equal;
             for &SortOption { column, descending } in sort {
                 ordering = match column {
-                    SortColumn::Relevance => score1.cmp(score2),
+                    SortColumn::Relevance => score1.cmp(&score2),
                     SortColumn::Name => m1.name.cmp(&m2.name),
                     SortColumn::Owner => m1.owner.cmp(&m2.owner),
-                    SortColumn::Downloads => {
-                        let sum_downloads = |m: &ArchivedModRef| {
-                            m.versions
-                                .iter()
-                                .map(|v| u64::from(v.downloads))
-                                .sum::<u64>()
-                        };
-                        sum_downloads(m1).cmp(&sum_downloads(m2))
-                    }
+                    SortColumn::Downloads => m1.total_downloads.cmp(&m2.total_downloads),
                     SortColumn::Size => {
                         let latest_size =
                             |m: &ArchivedModRef| m.versions.first().map(|v| v.file_size);
@@ -433,10 +436,8 @@ fn score_mod<'a, 'b>(
         let name_score = search::score(bump, query, &m.name);
         let score = search::add_scores(name_score, owner_score)?;
         let boosted_score = score
-            * m.versions
-                .iter()
-                .map(|v| v.downloads.to_native())
-                .sum::<u64>()
+            * m.total_downloads
+                .to_native()
                 .checked_ilog10()
                 .unwrap_or(1)
                 .max(1);
