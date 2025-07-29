@@ -1,23 +1,15 @@
 import { faArrowDownShortWide, faArrowUpWideShort } from "@fortawesome/free-solid-svg-icons";
 import { Fa } from "solid-fa";
-import { Setter, Show } from "solid-js";
+import { Setter } from "solid-js";
 
 import { ModSortColumn, SortOption } from "../../api";
-import { Progress } from "../../api/tasks";
 
-import { SimpleProgressIndicator } from "../global/Progress";
 import SelectDropdown from "../global/SelectDropdown";
 import { SortableList } from "../global/SortableList";
 import TogglableDropdown from "../global/TogglableDropdown";
 
 import styles from "./ModSearch.module.css";
 import { t } from "../../i18n/i18n";
-
-export interface InitialProgress {
-  completed_steps: null;
-  total_steps: null;
-  progress: null;
-}
 
 interface ModSearchProps {
   game: string;
@@ -27,8 +19,6 @@ interface ModSearchProps {
   setSort: Setter<readonly SortOption<ModSortColumn>[]>;
   profileSortOrder: boolean;
   setProfileSortOrder: Setter<boolean>;
-  isLoading: boolean;
-  progress: Progress;
 }
 export default function ModSearch(props: ModSearchProps) {
   return (
@@ -110,13 +100,6 @@ export default function ModSearch(props: ModSearchProps) {
           </TogglableDropdown>
         </div>
       </form>
-
-      <Show when={props.isLoading}>
-        <div class={styles.progressLine}>
-          <p>Fetching mods</p>
-          <SimpleProgressIndicator progress={props.progress} />
-        </div>
-      </Show>
     </div>
   );
 }

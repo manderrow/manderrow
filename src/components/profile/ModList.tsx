@@ -9,7 +9,6 @@ import {
   faTrash,
 } from "@fortawesome/free-solid-svg-icons";
 import { createInfiniteScroll } from "@solid-primitives/pagination";
-import { useParams } from "@solidjs/router";
 import { Fa } from "solid-fa";
 import {
   Accessor,
@@ -22,11 +21,11 @@ import {
   Signal,
   Switch,
   createContext,
-  createEffect,
   createMemo,
   createResource,
   createSelector,
   createSignal,
+  untrack,
   useContext,
 } from "solid-js";
 
@@ -44,7 +43,7 @@ import { Progress, createProgressProxyStore, initProgress, registerTaskListener,
 import { Mod, ModListing, ModPackage, ModVersion } from "../../types";
 import { humanizeFileSize, numberFormatter, removeProperty, roundedNumberFormatter } from "../../utils";
 
-import { SimpleAsyncButton } from "../global/AsyncButton";
+import { ActionContext, SimpleAsyncButton } from "../global/AsyncButton";
 import ErrorBoundary, { ErrorContext } from "../global/ErrorBoundary.tsx";
 import TabRenderer, { Tab, TabContent } from "../global/TabRenderer";
 import ModMarkdown from "./ModMarkdown.tsx";
@@ -53,6 +52,8 @@ import ModSearch from "./ModSearch.tsx";
 import styles from "./ModList.module.css";
 import { t } from "../../i18n/i18n.ts";
 import { DefaultDialog } from "../global/Dialog.tsx";
+import { ErrorIndicator } from "../global/ErrorDialog.tsx";
+import { SimpleProgressIndicator } from "../global/Progress.tsx";
 
 type PageFetcher = (page: number) => Promise<readonly Mod[]>;
 export type Fetcher = (
@@ -75,15 +76,12 @@ const MODS_PER_PAGE = 50;
 export default function ModList(props: {
   game: string;
   mods: Fetcher;
-  refresh: () => void;
+  refresh: () => Promise<void> | void;
   isLoading: boolean;
   progress: Progress;
   trailingControls?: JSX.Element;
 }) {
   const [selectedMod, setSelectedMod] = createSignal<Mod>();
-
-  // TODO: Type this properly with ProfileParams
-  const params = useParams();
 
   const [profileSortOrder, setProfileSortOrder] = createSignal(false);
   const [query, setQuery] = createSignal("");
@@ -97,8 +95,14 @@ export default function ModList(props: {
   ]);
 
   const [queriedMods] = createResource(
-    () => [props.game, query(), sort(), props.mods] as [string, string, readonly SortOption<ModSortColumn>[], Fetcher],
-    async ([game, query, sort, mods]) => mods(game, query, sort),
+    () => {
+      let mods;
+      try {
+        mods = props.mods;
+      } catch {}
+      return [props.game, query(), sort()] as [string, string, readonly SortOption<ModSortColumn>[]];
+    },
+    ([game, query, sort]) => untrack(() => props.mods)(game, query, sort),
     { initialValue: { mods: async (_: number) => [], count: 0 } },
   );
 
@@ -106,56 +110,61 @@ export default function ModList(props: {
     <div class={styles.modListAndView}>
       <div class={`${styles.scrollOuter} ${styles.modListContainer}`}>
         <ModSearch
-          game={params.gameId}
+          game={props.game}
           query={query()}
           setQuery={setQuery}
           sort={sort()}
           setSort={setSort}
           profileSortOrder={profileSortOrder()}
           setProfileSortOrder={setProfileSortOrder}
-          isLoading={props.isLoading}
-          progress={props.progress}
         />
 
         <div class={styles.discoveredLine}>
-          <Show when={queriedMods.latest} fallback={<p>Querying mods...</p>}>
-            Discovered {numberFormatter.format(queriedMods()!.count)} mods
-            <button class={styles.refreshButton} on:click={() => props.refresh()}>
-              <Fa icon={faRefresh} />
-            </button>
-          </Show>
+          <Switch>
+            <Match when={props.isLoading || queriedMods.loading}>
+              <span>Fetching mods</span>
+              <SimpleProgressIndicator progress={props.progress} />
+            </Match>
+            <Match when={queriedMods.error}>
+              {(err) => <ErrorIndicator icon={true} message="Query failed" err={err()} reset={props.refresh} />}
+            </Match>
+            <Match when={queriedMods.latest}>
+              <span>Discovered {numberFormatter.format(queriedMods()!.count)} mods</span>
+              <ActionContext>
+                {(busy, wrapOnClick) => (
+                  <button class={styles.refreshButton} disabled={busy()} on:click={() => wrapOnClick(props.refresh)}>
+                    <Fa icon={faRefresh} />
+                  </button>
+                )}
+              </ActionContext>
+            </Match>
+          </Switch>
 
           <Show when={props.trailingControls}>
             <div class={styles.trailingControls}>{props.trailingControls}</div>
           </Show>
         </div>
 
-        <Show when={queriedMods()} keyed>
+        <Show when={queriedMods.error === undefined && queriedMods()} keyed>
           {(mods) => <ModListMods mods={mods.mods} selectedMod={[selectedMod, setSelectedMod]} />}
         </Show>
       </div>
-      <ModView mod={selectedMod} gameId={params.gameId} />
+      <ModView mod={selectedMod} gameId={props.game} />
     </div>
   );
 }
 
 export function OnlineModList(props: { game: string }) {
   const [progress, setProgress] = createProgressProxyStore();
-  const reportErr = useContext(ErrorContext)!;
 
   const [loadStatus, { refetch: refetchModIndex }] = createResource(
     () => props.game,
     async (game, info: ResourceFetcherInfo<boolean, never>) => {
-      try {
-        await fetchModIndex(game, { refresh: info.refetching }, (event) => {
-          if (event.event === "created") {
-            setProgress(event.progress);
-          }
-        });
-      } catch (e) {
-        reportErr(e);
-        throw e;
-      }
+      await fetchModIndex(game, { refresh: info.refetching }, (event) => {
+        if (event.event === "created") {
+          setProgress(event.progress);
+        }
+      });
       return true;
     },
   );
@@ -185,7 +194,9 @@ export function OnlineModList(props: { game: string }) {
       game={props.game}
       isLoading={loadStatus.loading}
       progress={progress}
-      refresh={refetchModIndex}
+      refresh={async () => {
+        await refetchModIndex();
+      }}
       mods={getFetcher()}
     />
   );

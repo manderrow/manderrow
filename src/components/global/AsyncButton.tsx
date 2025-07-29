@@ -1,5 +1,5 @@
 import { Accessor, createEffect, createSignal, JSX, Show } from "solid-js";
-import ErrorDialog from "./ErrorDialog";
+import { ErrorIndicator } from "./ErrorDialog";
 import { createProgressProxyStore, Listener, Progress } from "../../api/tasks";
 import { SimpleProgressIndicator } from "./Progress";
 
@@ -23,7 +23,7 @@ export function ActionContext(props: {
         }
       })}
     >
-      {(err) => <ErrorDialog err={err()} reset={() => setErr(undefined)} />}
+      {(err) => <ErrorIndicator icon={true} message="Error" err={err()} reset={() => setErr(undefined)} />}
     </Show>
   );
 }

@@ -47,3 +47,9 @@
   display: flex;
   padding: 1em;
 }
+
+.errorIndicator {
+  & > svg {
+    margin-right: 8px;
+  }
+}
