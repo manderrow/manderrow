@@ -8,9 +8,11 @@ use std::time::Instant;
 
 use anyhow::{Context as _, Result};
 use async_compression::tokio::bufread::GzipDecoder;
+use bumpalo::Bump;
 use manderrow_types::mods::{ArchivedModRef, ModId, ModRef};
 use manderrow_types::util::rkyv::InternedString;
 use rkyv_intern::Interner;
+use simple_sublime_fuzzy::Query;
 use slog::{debug, info, trace};
 use tauri::AppHandle;
 use tokio::io::AsyncReadExt;
@@ -21,7 +23,7 @@ use url::Url;
 use crate::games::{games, games_by_id};
 use crate::tasks::{self, TaskBuilder};
 use crate::util::http::ResponseExt;
-use crate::util::search::{Score, SortOption};
+use crate::util::search::{Needle, Score, SortOption};
 use crate::util::{search, Progress};
 use crate::Reqwest;
 
@@ -302,13 +304,25 @@ pub fn count_mod_index<'a>(mod_index: &'a ModIndexReadGuard, query: &str) -> Res
 
     let start = Instant::now();
 
+    // FIXME: this is wasteful
+    let bump = Bump::new();
+    let query = Needle {
+        needle: query,
+        query: Query::new(&bump, query),
+    };
+
+    let mut bump = Bump::new();
+
     let count = mod_index
         .chunks
         .iter()
         .map(|mi| {
             mi.mods()
                 .iter()
-                .filter_map(|m| score_mod(&log, query, m))
+                .filter_map(|m| {
+                    bump.reset();
+                    score_mod(&log, &bump, &query, m)
+                })
                 .filter(|&(_, score)| search::should_include(score))
                 .count()
         })
@@ -333,13 +347,25 @@ pub fn query_mod_index<'a>(
 
     let start = Instant::now();
 
+    // FIXME: this is wasteful
+    let bump = Bump::new();
+    let query = Needle {
+        needle: query,
+        query: Query::new(&bump, query),
+    };
+
+    let mut bump = Bump::new();
+
     let mut buf = Vec::new();
 
     for mi in mod_index.chunks.iter() {
         buf.extend(
             mi.mods()
                 .iter()
-                .filter_map(|m| score_mod(&log, query, m))
+                .filter_map(|m| {
+                    bump.reset();
+                    score_mod(&log, &bump, &query, m)
+                })
                 .filter(|&(_, score)| search::should_include(score)),
         );
     }
@@ -394,15 +420,17 @@ pub fn query_mod_index<'a>(
 
 fn score_mod<'a, 'b>(
     _log: &slog::Logger,
-    query: &str,
+    bump: &Bump,
+    query: &Needle,
     m: &'a ArchivedModRef<'b>,
 ) -> Option<(&'a ArchivedModRef<'b>, Score)> {
-    if query.is_empty() {
+    // Please have mercy for this naming.
+    if query.query.query.is_empty() {
         Some((m, Score::MAX))
     } else {
         let owner_score =
-            search::score(&query, &m.owner).map(|s| std::cmp::max(s / 128, Score::ZERO));
-        let name_score = search::score(&query, &m.name);
+            search::score(bump, query, &m.owner).map(|s| std::cmp::max(s / 128, Score::ZERO));
+        let name_score = search::score(bump, query, &m.name);
         let score = search::add_scores(name_score, owner_score)?;
         let boosted_score = score
             * m.versions
