@@ -1,6 +1,8 @@
 import { Accessor, createEffect, createSignal, JSX, Show } from "solid-js";
-import { ErrorIndicator } from "./ErrorDialog";
+
 import { createProgressProxyStore, Listener, Progress } from "../../api/tasks";
+
+import { ErrorIndicator } from "./ErrorDialog";
 import { SimpleProgressIndicator } from "./Progress";
 
 export function ActionContext(props: {
@@ -28,20 +30,28 @@ export function ActionContext(props: {
   );
 }
 
-type ProgressProps<Progress extends true | undefined> = Progress extends true
+type ProgressProps<P extends true | Progress | undefined> = P extends true
   ? {
       progress: true;
       onClick: (listener: Listener) => Promise<void> | void;
+    }
+  : P extends Progress
+  ? {
+      progress: P;
+      onClick: () => Promise<void> | void;
     }
   : {
       progress?: never;
       onClick: () => Promise<void> | void;
     };
 
-export function SimpleAsyncButton<const P extends true | undefined>(
+export function SimpleAsyncButton<const P extends true | Progress | undefined>(
   props: {
     class?: string;
     type?: "submit" | "reset" | "button";
+    style?: string;
+    /// Optional external busy value.
+    busy?: boolean;
     ref?: (element: HTMLButtonElement) => void;
     whenBusy?: (progress: Progress) => JSX.Element;
     children: JSX.Element;
@@ -49,7 +59,7 @@ export function SimpleAsyncButton<const P extends true | undefined>(
 ) {
   type ProgressSignal = P extends true ? ReturnType<typeof createProgressProxyStore> : [undefined, undefined];
   const [progress, setProgress]: ProgressSignal = (
-    props.progress ? createProgressProxyStore() : [undefined, undefined]
+    props.progress === true ? createProgressProxyStore() : [props.progress, undefined]
   ) as ProgressSignal;
   let ref!: HTMLButtonElement;
   createEffect(() => {
@@ -60,7 +70,8 @@ export function SimpleAsyncButton<const P extends true | undefined>(
       {(busy, wrapOnClick) => (
         <button
           class={props.class}
-          disabled={busy()}
+          disabled={props.busy || busy()}
+          data-btn={props.style}
           type={props.type}
           on:click={async (e) => {
             e.stopPropagation();
@@ -78,7 +89,7 @@ export function SimpleAsyncButton<const P extends true | undefined>(
           }}
           ref={ref}
         >
-          <Show when={props.progress && busy()} fallback={props.children}>
+          <Show when={props.progress && (props.busy || busy())} fallback={props.children}>
             <Show when={props.whenBusy} fallback={<SimpleProgressIndicator progress={progress!} />}>
               {(whenBusy) => whenBusy()(progress!)}
             </Show>

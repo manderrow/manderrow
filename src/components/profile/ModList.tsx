@@ -96,9 +96,8 @@ export default function ModList(props: {
 
   const [queriedMods] = createResource(
     () => {
-      let mods;
       try {
-        mods = props.mods;
+        props.mods;
       } catch {}
       return [props.game, query(), sort()] as [string, string, readonly SortOption<ModSortColumn>[]];
     },
@@ -206,15 +205,44 @@ interface ModUpdate {
   newMod: ModListing;
   oldVersionNumber: string;
 }
+
+const CHECK_UPDATES_REFETCH: unique symbol = Symbol();
+
 export function InstalledModList(props: { game: string }) {
   const context = useContext(ModInstallContext)!;
   const [updaterShown, setUpdaterShown] = createSignal(false);
-  const [updates, setUpdates] = createSignal<ModUpdate[]>([]);
+
+  const [checkUpdatesProgress, setCheckUpdatesProgress] = createProgressProxyStore();
+
+  const [updates, { refetch: refreshUpdates }] = createResource<ModUpdate[], true, typeof CHECK_UPDATES_REFETCH>(() => {
+    try {
+      // track
+      context.installed.latest
+    } catch {}
+    return true;
+  }, async (_, info) => {
+    await fetchModIndex(props.game, { refresh: info.refetching === CHECK_UPDATES_REFETCH }, (event) => {
+      if (event.event === "progress") {
+        setCheckUpdatesProgress(event.progress);
+      }
+    });
+
+    const installedMods = untrack(() => context.installed.latest);
+
+    const latestMods = await getFromModIndex(
+      props.game,
+      installedMods.map((mod) => ({ owner: mod.owner, name: mod.name })),
+    );
+
+    return latestMods
+      .map((mod, i) => ({ newMod: mod, oldVersionNumber: installedMods[i].version.version_number }))
+      .filter((update) => update.newMod.versions[0].version_number !== update.oldVersionNumber);
+  }, { initialValue: [] });
 
   const [progress, setProgress] = createProgressProxyStore();
 
   const getFetcher: () => Fetcher = () => {
-    const data = context.installed();
+    const data = context.installed.latest;
 
     return async (game, query, sort) => {
       // TODO: implement filter and sort
@@ -227,18 +255,7 @@ export function InstalledModList(props: { game: string }) {
   };
 
   async function checkUpdates() {
-    const installedMods = context.installed.latest;
-
-    const latestMods = await getFromModIndex(
-      props.game,
-      installedMods.map((mod) => ({ owner: mod.owner, name: mod.name })),
-    );
-
-    setUpdates(
-      latestMods
-        .map((mod, i) => ({ newMod: mod, oldVersionNumber: installedMods[i].version.version_number }))
-        .filter((update) => update.newMod.versions[0].version_number !== update.oldVersionNumber),
-    );
+    await refreshUpdates(CHECK_UPDATES_REFETCH);
   }
 
   return (
@@ -253,9 +270,14 @@ export function InstalledModList(props: { game: string }) {
           <Show
             when={updates().length > 0}
             fallback={
-              <button data-btn="ghost" onClick={checkUpdates}>
+              <SimpleAsyncButton
+                style="ghost"
+                busy={updates.loading}
+                progress={checkUpdatesProgress}
+                onClick={checkUpdates}
+              >
                 <Fa icon={faRefresh} /> {t("modlist.installed.check_updates_btn")}
-              </button>
+              </SimpleAsyncButton>
             }
           >
             <button data-btn="primary" onClick={() => setUpdaterShown(true)}>
@@ -269,7 +291,6 @@ export function InstalledModList(props: { game: string }) {
         <ModUpdateDialogue
           onDismiss={() => {
             setUpdaterShown(false);
-            checkUpdates();
           }}
           updates={updates()}
         />
