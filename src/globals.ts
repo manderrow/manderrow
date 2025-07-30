@@ -1,4 +1,4 @@
-import { createResource, createSignal } from "solid-js";
+import { createResource } from "solid-js";
 
 import { GameSortColumn, getGameModDownloads, getGames, getGamesPopularity, getProfiles, searchGames } from "./api";
 import { Game } from "./types";

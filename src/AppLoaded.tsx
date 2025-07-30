@@ -1,7 +1,6 @@
 import { Route, Router } from "@solidjs/router";
 
 import ErrorPage from "./pages/error/Error";
-import GameSelect from "./pages/game_select/GameSelect";
 import Profile from "./pages/profile/Profile";
 import Settings from "./pages/settings/Settings";
 import ErrorBoundary from "./components/global/ErrorBoundary";

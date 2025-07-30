@@ -14,7 +14,6 @@ import { Portal } from "solid-js/web";
 import { A, useNavigate, useParams } from "@solidjs/router";
 import { faTrashCan } from "@fortawesome/free-regular-svg-icons";
 import {
-  faChevronLeft,
   faCirclePlay,
   faFileImport,
   faPenToSquare,
@@ -43,6 +42,7 @@ import { InstalledModList, ModInstallContext, OnlineModList } from "../../compon
 import { createProfile, deleteProfile, getProfileMods, overwriteProfileMetadata, ProfileWithId } from "../../api";
 import * as globals from "../../globals";
 import { initialGame, refetchProfiles } from "../../globals";
+// @ts-ignore: TS is unaware of `use:` directives despite using them for type definitions
 import { autofocus, bindValue } from "../../components/global/Directives";
 
 import styles from "./Profile.module.css";
@@ -91,7 +91,6 @@ export default function Profile() {
 
 function ProfileWithGame(params: ProfileParams & { gameId: string }) {
   const [searchParams, setSearchParams] = useSearchParamsInPlace<ProfileSearchParams>();
-  const navigate = useNavigate();
 
  // TODO, handle undefined case
   const gameInfo = createMemo(() => globals.gamesById().get(params.gameId)!);
