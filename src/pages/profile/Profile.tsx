@@ -11,8 +11,9 @@ import {
   Show,
   Switch,
 } from "solid-js";
+import { Portal } from "solid-js/web";
 import { A, useNavigate, useParams } from "@solidjs/router";
-import { faCirclePlay as faCirclePlayOutline, faTrashCan } from "@fortawesome/free-regular-svg-icons";
+import { faTrashCan } from "@fortawesome/free-regular-svg-icons";
 import {
   faChevronLeft,
   faCirclePlay,
@@ -32,6 +33,7 @@ import {
   faFolderOpen,
   faShare,
   faEllipsisVertical,
+  faChevronDown,
   IconDefinition,
   faArrowRightLong,
 } from "@fortawesome/free-solid-svg-icons";
@@ -47,8 +49,7 @@ import { InstalledModList, ModInstallContext, OnlineModList } from "../../compon
 
 import { createProfile, deleteProfile, getProfileMods, overwriteProfileMetadata, ProfileWithId } from "../../api";
 import * as globals from "../../globals";
-import { refetchProfiles } from "../../globals";
-import type { Refetcher } from "../../types.d.ts";
+import { initialGame, refetchProfiles } from "../../globals";
 import { autofocus, bindValue } from "../../components/global/Directives";
 
 import styles from "./Profile.module.css";
@@ -63,13 +64,14 @@ import { ConsoleConnection, focusedConnection, setFocusedConnection } from "../.
 import { ActionContext } from "../../components/global/AsyncButton.tsx";
 import StatusBar from "../../components/profile/StatusBar.tsx";
 import { setCurrentProfileName } from "../../components/global/TitleBar.tsx";
+import GameSelect from "../game_select/GameSelect.tsx";
 import Tooltip from "../../components/global/Tooltip.tsx";
 import ContextMenu from "../../components/global/ContextMenu.tsx";
 import { CircularProgressIndicator, SimpleProgressIndicator } from "../../components/global/Progress.tsx";
 
 interface ProfileParams {
   profileId?: string;
-  gameId: string;
+  gameId?: string;
 }
 
 type TabId = "mod-list" | "mod-search" | "logs" | "config";
@@ -81,10 +83,26 @@ interface ProfileSearchParams {
 export default function Profile() {
   // @ts-expect-error params.profileId is an optional param, it can be undefined, and we don't expect any other params
   const params = useParams<ProfileParams>();
+
+  const navigate = useNavigate();
+
+  createEffect(() => {
+    const game = initialGame.latestOrThrow;
+    if (game) {
+      navigate(`/profile/${game}`, { replace: true });
+    }
+  });
+
+  return <Show when={params.gameId} fallback={<GameSelect replace={true} />}>
+    {(gameId) => <ProfileWithGame gameId={gameId()} profileId={params.profileId} />}
+  </Show>;
+}
+
+function ProfileWithGame(params: ProfileParams & { gameId: string }) {
   const [searchParams, setSearchParams] = useSearchParamsInPlace<ProfileSearchParams>();
   const navigate = useNavigate();
 
-  const gameInfo = globals.gamesById().get(params.gameId)!; // TODO, handle undefined case
+  const gameInfo = () => globals.gamesById().get(params.gameId)!; // TODO, handle undefined case
 
   const [profileSortOrder, setProfileSortOrder] = createSignal(false);
 
@@ -173,19 +191,21 @@ export default function Profile() {
   // For mini sidebar on small app width only
   const [sidebarOpen, setSidebarOpen] = createSignal(false);
 
+  const [pickingGame, setPickingGame] = createSignal(false);
+
   return (
     <main class={styles.main}>
       <aside class={styles.sidebar} data-sidebar-open={sidebarOpen()}>
         <section
           classList={{ [styles.sidebar__group]: true, [styles.sidebar__mainActions]: true }}
-          style={{ "--game-hero--url": `url("/img/game_heros/${gameInfo.id}.webp")` }}
+          style={{ "--game-hero--url": `url("/img/game_heros/${gameInfo().id}.webp")` }}
         >
           <nav class={styles.sidebar__nav}>
-            <button class={styles.backBtn} on:click={() => navigate(-1)}>
-              <Fa icon={faChevronLeft} />
+            <button class={styles.backBtn} on:click={() => setPickingGame(true)}>
+              <Fa icon={faChevronDown} />
             </button>
 
-            <h1>{gameInfo.name}</h1>
+            <h1>{gameInfo().name}</h1>
           </nav>
           <div class={styles.sidebar__mainActionBtns}>
             <Switch>
@@ -389,9 +409,17 @@ export default function Profile() {
       <DoctorReports />
 
       <Show when={err()}>{(err) => <ErrorDialog err={err()} reset={() => setErr(undefined)} />}</Show>
+
+      <Show when={pickingGame()}>
+        <Portal>
+          <GameSelect replace={false} dismiss={() => setPickingGame(false)} />
+        </Portal>
+      </Show>
     </main>
   );
 }
+
+type Refetcher<T> = () => T | undefined | null | Promise<T | undefined | null>;
 
 function NoSelectedProfileContent(props: {
   gameId: string;

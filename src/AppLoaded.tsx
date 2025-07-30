@@ -9,8 +9,7 @@ import ErrorBoundary from "./components/global/ErrorBoundary";
 export default function AppLoaded() {
   return <ErrorBoundary>
     <Router>
-      <Route path="/" component={GameSelect} />
-      <Route path="/profile/:gameId/:profileId?" component={Profile} />
+      <Route path="/profile/:gameId?/:profileId?" component={Profile} />
       <Route path="/settings" component={Settings} />
       <Route path="*path" component={ErrorPage} />
     </Router>

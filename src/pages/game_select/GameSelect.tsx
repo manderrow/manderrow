@@ -26,7 +26,10 @@ interface GameSelectState {
   explicit?: true;
 }
 
-export default function GameSelect() {
+export default function GameSelect(props: {
+  replace: boolean;
+  dismiss?: () => void;
+}) {
   const [displayType, setDisplayType] = createSignal<DisplayType>(DisplayType.Card);
   const [search, setSearch] = createSignal("");
   const [sort, setSort] = createSignal<GameSortColumn>(GameSortColumn.ModDownloads);
@@ -42,21 +45,9 @@ export default function GameSelect() {
     { initialValue: initialSortedGames() },
   );
 
-  const navigate = useNavigate();
-  const location = useLocation<GameSelectState>();
-
-  createEffect(() => {
-    if (location.state?.explicit != null) return;
-    const game = initialGame.latestOrThrow;
-    if (game) {
-      // don't trigger again when the user manually navigates back
-      replaceRouteState((current) => ({ ...current, explicit: true }));
-      navigate(`/profile/${game}`);
-    }
-  });
-
   return (
     <div class={styles.page}>
+      <div class={styles.pageInner}>
       <div class={blobStyles.gradientBlobs} aria-hidden="true">
         <div class={blobStyles.gradientBlob} data-blob-1></div>
         <div class={blobStyles.gradientBlob} data-blob-2></div>
@@ -131,21 +122,27 @@ export default function GameSelect() {
               </li>
             }
           >
-            {(game) => <GameComponent game={games()[game]} />}
+            {(game) => <GameComponent game={games()[game]} replace={props.replace} dismiss={props.dismiss} />}
           </For>
         </ol>
       </main>
+      </div>
     </div>
   );
 }
 
-function GameComponent(props: { game: Game }) {
+function GameComponent(props: {
+  game: Game;
+  replace: boolean;
+  dismiss?: () => void;
+}) {
   const url = `/img/game_covers/${props.game.thunderstoreId}.webp`;
 
   const navigate = useNavigate();
 
   function navigateToGame() {
-    navigate(`/profile/${props.game.id}/`);
+    navigate(`/profile/${props.game.id}/`, { replace: props.replace });
+    props.dismiss?.();
   }
 
   return (
