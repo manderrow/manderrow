@@ -599,6 +599,7 @@ function ModListMods(props: { mods: PageFetcher; selectedMod: Signal<Mod | undef
   });
   const paginatedMods = () => infiniteScroll()[0]();
   // idk why we're passing props here
+  // @ts-ignore: static analysis doesn't understand `use:` directives
   const infiniteScrollLoader = (el: Element) => infiniteScroll()[1](el);
   const end = () => infiniteScroll()[2].end();
 
@@ -616,6 +617,17 @@ function getIconUrl(owner: string, name: string, version: string) {
   return `https://gcdn.thunderstore.io/live/repository/icons/${owner}-${name}-${version}.png`;
 }
 
+function useInstalled(installContext: typeof ModInstallContext.defaultValue, modAccessor: Accessor<Mod>): Accessor<ModPackage | undefined> {
+  return createMemo(() => {
+    const mod = modAccessor();
+    if ("version" in mod) {
+      return mod;
+    } else {
+      return installContext?.installed.latest.find((pkg) => pkg.owner === mod.owner && pkg.name === mod.name);
+    }
+  });
+}
+
 function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) {
   const displayVersion = createMemo(() => {
     if ("version" in props.mod) return props.mod.version;
@@ -623,15 +635,7 @@ function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) 
   });
 
   const installContext = useContext(ModInstallContext);
-
-  const installed = createMemo(() => {
-    const mod = props.mod;
-    if ("version" in mod) {
-      return mod;
-    } else {
-      return installContext?.installed.latest.find((pkg) => pkg.owner === mod.owner && pkg.name === mod.name);
-    }
-  });
+  const installed = useInstalled(installContext, () => props.mod);
 
   function onSelect() {
     props.selectedMod[1](props.selectedMod[0]() === props.mod ? undefined : props.mod);
