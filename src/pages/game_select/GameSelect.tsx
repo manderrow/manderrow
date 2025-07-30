@@ -1,12 +1,13 @@
 import { faStar } from "@fortawesome/free-regular-svg-icons";
 import { faGlobe, faList, faTableCellsLarge } from "@fortawesome/free-solid-svg-icons";
-import { useLocation, useNavigate } from "@solidjs/router";
+import { useNavigate } from "@solidjs/router";
 import Fa from "solid-fa";
-import { createEffect, createResource, createSignal, For, onCleanup, onMount } from "solid-js";
+import { createResource, createSignal, For } from "solid-js";
 
-import { games, initialGame, initialSortedGames } from "../../globals";
+import { games, initialSortedGames } from "../../globals";
 import { Locale, localeNamesMap, setLocale, locale, t, RAW_LOCALES } from "../../i18n/i18n";
 import { Game } from "../../types";
+// @ts-ignore: TS is unaware of `use:` directives despite using them for type definitions
 import { autofocus } from "../../components/global/Directives";
 
 import blobStyles from "./GameBlobs.module.css";
@@ -15,15 +16,10 @@ import styles from "./GameSelect.module.css";
 import { GameSortColumn, searchGames } from "../../api";
 import { updateSettings } from "../../api/settings";
 import { SimpleAsyncButton } from "../../components/global/AsyncButton";
-import { replaceRouteState } from "../../utils/router";
 
 enum DisplayType {
   Card = -1,
   List = 1,
-}
-
-interface GameSelectState {
-  explicit?: true;
 }
 
 export default function GameSelect(props: {
