@@ -102,7 +102,8 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
   const [searchParams, setSearchParams] = useSearchParamsInPlace<ProfileSearchParams>();
   const navigate = useNavigate();
 
-  const gameInfo = () => globals.gamesById().get(params.gameId)!; // TODO, handle undefined case
+ // TODO, handle undefined case
+  const gameInfo = createMemo(() => globals.gamesById().get(params.gameId)!);
 
   const [profileSortOrder, setProfileSortOrder] = createSignal(false);
 
