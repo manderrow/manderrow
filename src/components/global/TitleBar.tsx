@@ -1,12 +1,12 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { createSignal, onMount } from "solid-js";
+import { platform } from "@tauri-apps/plugin-os";
+import { createSignal, onMount, Show } from "solid-js";
 
 import { close, isMaximized, minimize, setMaximized, startDragging } from "../../api/app";
 import { t } from "../../i18n/i18n";
-import styles from "./TitleBar.module.css";
-import { platform } from "@tauri-apps/plugin-os";
 
 import logo from "../../assets/Manderrow logo.svg";
+import styles from "./TitleBar.module.css";
 
 const appWindow = getCurrentWindow();
 
@@ -61,12 +61,10 @@ export default function TitleBar() {
           <Show
             when={isMaximizedCached()}
             fallback={
-              <>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
                 {/* <!-- https://api.iconify.design/mdi:window-maximize.svg --> */}
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-                  <path fill="currentColor" d="M4 4h16v16H4zm2 4v10h12V8z" />
-                </svg>
-              </>
+                <path fill="currentColor" d="M4 4h16v16H4zm2 4v10h12V8z" />
+              </svg>
             }
           >
             {/* <!-- https://api.iconify.design/mdi:window-restore.svg --> */}
