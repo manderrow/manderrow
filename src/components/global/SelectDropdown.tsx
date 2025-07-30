@@ -22,8 +22,7 @@ type LabelTextPreset = {
 };
 type LabelText = LabelTextValue | LabelTextPreset;
 
-interface SelectDropdownOptions<T>
-  extends Omit<TogglableDropdownOptions, "children" | "label" | "labelClass" | "dropdownClass"> {
+interface SelectDropdownOptions<T> extends Omit<TogglableDropdownOptions, "children" | "label"> {
   label: LabelText;
   options: Record<string, Option<T>>;
   onChanged: (value: T, selected: boolean) => void;
@@ -62,9 +61,10 @@ export default function SelectDropdown<T>(options: SelectDropdownOptions<T>) {
 
   return (
     <TogglableDropdown
-      dropdownClass={styles.dropdown}
+      dropdownClass={`${styles.dropdown} ${options.dropdownClass || ""}`}
       buttonId={options.buttonId}
       label={labelValue()}
+      labelClass={options.labelClass}
       offset={options.offset}
     >
       <ul class={styles.options}>

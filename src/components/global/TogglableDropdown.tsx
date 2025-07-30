@@ -31,6 +31,7 @@ export default function TogglableDropdown(options: TogglableDropdownOptions) {
 
   return (
     <FloatingElement
+      class={styles.dropdown}
       ref={setDropdownElement}
       content={
         <Show when={open()}>

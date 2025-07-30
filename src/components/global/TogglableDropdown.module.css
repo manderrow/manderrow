@@ -1,3 +1,7 @@
+.dropdown {
+  z-index: var(--dropdown-z-index);
+}
+
 .toggle {
   padding: 0.25em;
   display: flex;

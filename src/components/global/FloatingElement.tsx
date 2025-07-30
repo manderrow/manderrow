@@ -5,13 +5,14 @@ import { autoUpdate } from "@floating-ui/dom";
 interface FloatingElementProps {
   content: string | JSX.Element;
   options?: UseFloatingOptions<HTMLElement, HTMLElement>;
+  style?: JSX.CSSProperties;
   class?: JSX.HTMLAttributes<HTMLElement>["class"];
   classList?: JSX.CustomAttributes<HTMLElement>["classList"];
   children?: JSX.Element;
   ref?: (element: HTMLElement) => void;
 }
 /**
- * ging gang goolie goolie goolie watcha
+ * Spawn a floating element. `props.content` is the content of the floating element, anchored to the first element passed into `props.children`.
  */
 export function FloatingElement(props: FloatingElementProps) {
   const [reference, setReference] = createSignal<HTMLElement | null>();
@@ -51,6 +52,8 @@ export function FloatingElement(props: FloatingElementProps) {
         classList={props.classList}
         ref={setFloating}
         style={{
+          ...props.style,
+
           position: position.strategy,
           top: `${position.y ?? 0}px`,
           left: `${position.x ?? 0}px`,

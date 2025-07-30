@@ -3,6 +3,14 @@
   display: flex;
 }
 
+.dropdown {
+  padding: 0.5em 0 !important;
+  background-color: var(--clr-neutral-8);
+  border: 1px solid var(--clr-neutral-7);
+  border-radius: 0.5em;
+  z-index: var(--dropdown-z-index);
+}
+
 .toggle {
   padding: 0.25em;
   display: flex;
@@ -27,13 +35,6 @@
 .toggleDefault {
   background-color: var(--clr-neutral-7);
   border-radius: 4px;
-}
-
-.dropdown {
-  padding: 0.5em 0 !important;
-  background-color: var(--clr-neutral-8);
-  border: 1px solid var(--clr-neutral-7);
-  border-radius: 0.5em;
 }
 
 .options {

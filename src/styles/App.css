@@ -107,6 +107,7 @@
   --titlebar-height: 28px;
   --titlebar-logo-size: 16px;
   --titlebar-z-index: 100;
+  --dropdown-z-index: 99;
   --portal-z-index: 9;
 }
 

@@ -4,7 +4,8 @@
       "ok": "OK",
       "yes": "Yes",
       "no": "No",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "loading": "Loading"
     },
 
     "game_sort_column": {
@@ -69,8 +70,11 @@
       "cancel_launch_btn": "Cancel",
       "launch_modded_btn": "Start modded",
       "launch_vanilla_btn": "Start vanilla",
+      "game_settings_btn": "Game Settings",
 
       "profiles_title": "Profiles",
+      "create_profile_tooltip": "Create new profile",
+      "import_profile_tooltip": "Import profile",
 
       "pin_profile_ptn": "Pin",
       "rename_profile_btn": "Rename",
@@ -132,6 +136,7 @@
 
   "settings": {
     "title": "Settings",
+    "link_title": "App Settings",
 
     "section": {
       "general": "General",

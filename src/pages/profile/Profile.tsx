@@ -56,6 +56,7 @@ import { ConsoleConnection, focusedConnection, setFocusedConnection } from "../.
 import { ActionContext } from "../../components/global/AsyncButton.tsx";
 import StatusBar from "../../components/profile/StatusBar.tsx";
 import { setCurrentProfileName } from "../../components/global/TitleBar.tsx";
+import Tooltip from "../../components/global/Tooltip.tsx";
 
 interface ProfileParams {
   profileId?: string;
@@ -196,29 +197,37 @@ export default function Profile() {
             <button disabled={params.profileId === undefined} on:click={() => launch(true)} data-modded>
               <Fa icon={faCirclePlay} /> <span>{t("profile.sidebar.launch_modded_btn")}</span>
             </button>
+
+            <div class={styles.gameBtns}>
+              <Tooltip content={t("profile.sidebar.game_settings_btn")}>
+                <button>
+                  <Fa icon={faGear} />
+                </button>
+              </Tooltip>
+            </div>
           </div>
         </section>
         <section classList={{ [styles.sidebar__group]: true, [sidebarStyles.sidebar__profiles]: true }}>
           <h3 class={styles.sidebar__profilesTitle}>
             {t("profile.sidebar.profiles_title")}
             <div class={styles.sidebar__profilesActions}>
-              <A class={styles.sidebar__profilesActionBtn} href={`/profile/${params.gameId}`}>
-                <Fa icon={faPlus} />
-              </A>
-              <button
-                class={styles.sidebar__profilesActionBtn}
-                title="Import"
-                on:click={() => setImportDialogOpen(true)}
-              >
-                <Fa icon={faFileImport} class={sidebarStyles.sidebar__profileActionsBtnIcon} />
-              </button>
+              <Tooltip content={t("profile.sidebar.create_profile_tooltip")}>
+                <A class={styles.sidebar__profilesActionBtn} href={`/profile/${params.gameId}`}>
+                  <Fa icon={faPlus} />
+                </A>
+              </Tooltip>
+              <Tooltip content={t("profile.sidebar.import_profile_tooltip")}>
+                <button class={styles.sidebar__profilesActionBtn} on:click={() => setImportDialogOpen(true)}>
+                  <Fa icon={faFileImport} class={sidebarStyles.sidebar__profileActionsBtnIcon} />
+                </button>
+              </Tooltip>
             </div>
           </h3>
 
           <form on:submit={(e) => e.preventDefault()} class={sidebarStyles.sidebar__profilesSearch}>
             <input type="text" name="profile-search" id="profile-search" placeholder="Search" maxLength={100} />
             <SelectDropdown<"alphabetical" | "creationDate">
-              class={sidebarStyles.sidebar__profilesSearchSortBtn}
+              dropdownClass={sidebarStyles.sidebar__profilesSearchSortBtn}
               multiselect={false}
               options={{
                 "A-Z": {
@@ -280,11 +289,11 @@ export default function Profile() {
         </button>
 
         <section class={styles.sidebar__group}>
-          <div class={styles.sidebar__otherGrid}>
-            <A href="/settings" class={styles.sidebar__otherGridIcon} title={t("settings.title")}>
-              <Fa icon={faGear} />
-            </A>
-          </div>
+          <A href="/settings" class={styles.sidebar__settingsLink}>
+            <Fa icon={faGear} />
+
+            <span>{t("settings.link_title")}</span>
+          </A>
         </section>
       </aside>
 
