@@ -62,4 +62,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: ${{ matrix.args }}
+          releaseName: ${{ github.event_name != 'release' && 'Nightly' || null }}
+          releaseId: ${{ github.event.release && github.event.release.id }}
+          tagName: ${{ github.event.release && github.event.release.tag_name || 'nightly' }}
+          prerelease: ${{ github.event_name != 'release' || github.event.release.tag_name == 'nightly' }}
 
