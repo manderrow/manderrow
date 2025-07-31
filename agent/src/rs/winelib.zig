@@ -9,8 +9,15 @@ const crash = @import("../crash.zig").crash;
 const ipc = @import("../ipc.zig");
 const LogLevel = ipc.LogLevel;
 const StandardOutputChannel = ipc.StandardOutputChannel;
-const proto = @import("../winelib_proto.zig");
+const proto = @import("proto.zig");
 const rs = @import("../rs.zig");
+
+comptime {
+    switch (builtin.cpu.arch) {
+        .x86_64 => {},
+        else => @compileError("winelib is only supported on x86_64"),
+    }
+}
 
 pub fn manderrow_agent_init(c2s_tx_ptr: ?[*]const u8, c2s_tx_len: usize, error_buf: *rs.ErrorBuffer) rs.InitStatusCode {
     return (init_fn orelse crash(@src(), "not initialized", .{}))(c2s_tx_ptr, c2s_tx_len, error_buf);

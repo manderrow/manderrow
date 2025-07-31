@@ -1,22 +1,15 @@
 import { faArrowDownShortWide, faArrowUpWideShort } from "@fortawesome/free-solid-svg-icons";
 import { Fa } from "solid-fa";
-import { Setter, Show } from "solid-js";
+import { Setter } from "solid-js";
 
 import { ModSortColumn, SortOption } from "../../api";
-import { Progress } from "../../api/tasks";
 
-import { SimpleProgressIndicator } from "../global/Progress";
 import SelectDropdown from "../global/SelectDropdown";
 import { SortableList } from "../global/SortableList";
 import TogglableDropdown from "../global/TogglableDropdown";
 
 import styles from "./ModSearch.module.css";
-
-export interface InitialProgress {
-  completed_steps: null;
-  total_steps: null;
-  progress: null;
-}
+import { t } from "../../i18n/i18n";
 
 interface ModSearchProps {
   game: string;
@@ -26,8 +19,6 @@ interface ModSearchProps {
   setSort: Setter<readonly SortOption<ModSortColumn>[]>;
   profileSortOrder: boolean;
   setProfileSortOrder: Setter<boolean>;
-  isLoading: boolean;
-  progress: Progress;
 }
 export default function ModSearch(props: ModSearchProps) {
   return (
@@ -43,30 +34,30 @@ export default function ModSearch(props: ModSearchProps) {
           <label for="mod-search" class="phantom">
             Mod search
           </label>
-
+          {/* TODO: change select dropdown to support names for values so i18n works good */}
           <SelectDropdown
             label={{ labelText: "preset", preset: "Sort By" }}
             options={{
               [ModSortColumn.Relevance]: {
-                value: "relevance",
+                value: t("global.mod_sort_column.relevance"),
                 selected: true,
               },
               [ModSortColumn.Downloads]: {
-                value: "downloads",
+                value: t("global.mod_sort_column.downloads"),
               },
               [ModSortColumn.Name]: {
-                value: "name",
+                value: t("global.mod_sort_column.name"),
               },
               [ModSortColumn.Owner]: {
-                value: "owner",
+                value: t("global.mod_sort_column.owner"),
               },
               [ModSortColumn.Size]: {
-                value: "size",
+                value: t("global.mod_sort_column.size"),
               },
             }}
             onChanged={() => {}}
+            offset={{ mainAxis: 4 }}
           />
-
           <button
             type="button"
             // class={sidebarStyles.sidebar__profilesSearchSortByBtn}
@@ -74,8 +65,7 @@ export default function ModSearch(props: ModSearchProps) {
           >
             {props.profileSortOrder ? <Fa icon={faArrowUpWideShort} /> : <Fa icon={faArrowDownShortWide} />}
           </button>
-
-          <TogglableDropdown label="Advanced" labelClass={styles.modSearch__dropdownBtn}>
+          <TogglableDropdown label="Advanced" labelClass={styles.modSearch__dropdownBtn} offset={{ mainAxis: 4 }}>
             <div class={styles.searchOptions}>
               <div class={styles.sortOptions}>
                 <div class={styles.inner}>
@@ -110,13 +100,6 @@ export default function ModSearch(props: ModSearchProps) {
           </TogglableDropdown>
         </div>
       </form>
-
-      <Show when={props.isLoading}>
-        <div class={styles.progressLine}>
-          <p>Fetching mods</p>
-          <SimpleProgressIndicator progress={props.progress} />
-        </div>
-      </Show>
     </div>
   );
 }

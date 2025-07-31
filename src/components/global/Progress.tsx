@@ -6,9 +6,10 @@ export function SimpleProgressIndicator(props: {
    */
   progress: Progress | undefined;
 }) {
-  // this complains about taking null but expecting undefined, but if we give it undefined it throws an error about the value being non-finite
   return (
     <progress
+      // @ts-ignore: this complains about taking null but expecting undefined, but if we give it
+      //             undefined it throws an error about the value being non-finite
       value={(props.progress?.total ?? 0) === 0 ? null : props.progress!.completed}
       max={props.progress?.total}
     />

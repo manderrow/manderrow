@@ -81,13 +81,12 @@
   .sidebar__mainActionBtns {
     margin-top: auto;
     display: flex;
-    gap: 0.35em;
+    gap: 1em;
     z-index: 1;
 
     button {
       border-radius: 100vmax;
       padding: 0.5em;
-      flex-grow: 1;
     }
 
     button[data-modded] {
@@ -99,6 +98,7 @@
         var(--clr-primary-5) 100%
       );
       border: 2px solid hsl(var(--clr-primary-hs), 70%, 20%);
+      flex-grow: 1;
     }
 
     button[data-kill] {
@@ -116,6 +116,17 @@
       background-color: var(--clr-warn-4);
       background-image: linear-gradient(20deg, var(--clr-warn-3) 10%, var(--clr-warn-4) 80%, var(--clr-warn-5) 100%);
       border: 2px solid hsl(var(--clr-warn-hs), 70%, 20%);
+    }
+
+    .gameBtns {
+      display: flex;
+      margin-left: auto;
+      align-items: end;
+
+      button {
+        background-color: transparent;
+        padding: 0.1em 0.25em;
+      }
     }
   }
 
@@ -163,18 +174,26 @@
   margin-top: auto;
 }
 
-.sidebar__otherGrid {
-  display: flex;
-  gap: 0.5em;
-}
-
-.sidebar__otherGridIcon {
+.sidebar__settingsLink {
   font-size: 1.75rem;
   color: var(--clr-neutral-2);
+  display: flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 0.25em;
+
+  > span {
+    font-size: 1.1rem;
+    color: var(--clr-neutral-3);
+  }
 }
 
-.sidebar__otherGridIcon:hover {
+.sidebar__settingsLink:hover {
   color: var(--clr-primary-5);
+
+  > span {
+    color: inherit;
+  }
 }
 
 .expandBtn {
@@ -202,6 +221,7 @@
     padding: 0.5em 1em;
     border-right: 1px solid var(--clr-neutral-7);
     color: var(--clr-neutral-4);
+    border-radius: 0;
     display: block;
     font-size: 1.1rem;
     user-select: none;
@@ -297,6 +317,10 @@
           font-size: 1.65rem;
           padding: 0.5em 0.25em;
         }
+
+        .gameBtns {
+          display: none;
+        }
       }
 
       .sidebarMini {
@@ -312,8 +336,12 @@
         align-items: center;
       }
 
-      .sidebar__otherGridIcon {
+      .sidebar__settingsLink {
         padding: 0.5em 0.35em;
+
+        > span {
+          display: none;
+        }
       }
     }
 
@@ -333,10 +361,9 @@
         transform: translate(100%, -50%);
         background-color: inherit;
         border: 1px solid var(--clr-neutral-7);
+        border-left: none;
         border-radius: 0 0.75em 0.75em 0;
         padding-block: 1em;
-
-        box-shadow: inherit;
         z-index: -1;
       }
     }

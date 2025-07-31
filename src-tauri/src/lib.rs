@@ -1,4 +1,5 @@
 #![deny(unused_must_use)]
+#![feature(debug_closure_helpers)]
 #![feature(error_generic_member_access)]
 #![feature(exit_status_error)]
 #![feature(extend_one)]
@@ -42,6 +43,7 @@ pub use error::{CommandError, Error};
 use lexopt::ValueExt;
 use tauri::Manager;
 
+#[derive(Clone)]
 struct Reqwest(reqwest::Client);
 
 impl Deref for Reqwest {

@@ -1,5 +1,5 @@
-.container {
-  position: relative;
+.dropdown {
+  z-index: var(--dropdown-z-index);
 }
 
 .toggle {
@@ -24,6 +24,7 @@
 }
 
 .toggleDefault {
-  background-color: var(--clr-neutral-7);
+  background-color: var(--clr-neutral-8);
+  border: 1px solid var(--clr-neutral-7);
   border-radius: 4px;
 }

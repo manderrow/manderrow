@@ -1,16 +1,21 @@
-import { createSignal, createUniqueId, Show } from "solid-js";
+import { createEffect, createSignal, createUniqueId, JSX, Show } from "solid-js";
 
 import { faCaretDown } from "@fortawesome/free-solid-svg-icons";
 import Fa from "solid-fa";
-import Dropdown, { DropdownOptions } from "./Dropdown";
 
 import styles from "./TogglableDropdown.module.css";
+import { FloatingElement } from "./FloatingElement";
+import { UseFloatingOptions } from "solid-floating-ui";
+import { flip, offset, OffsetOptions, shift } from "@floating-ui/dom";
 
-export interface TogglableDropdownOptions extends Omit<DropdownOptions, "ref"> {
+export interface TogglableDropdownOptions {
   label: string;
-  labelClass?: string;
-  dropdownClass?: string;
+  labelClass?: JSX.HTMLAttributes<HTMLElement>["class"];
+  dropdownClass?: JSX.HTMLAttributes<HTMLElement>["class"];
   buttonId?: string;
+  children: JSX.Element;
+  dropdownOptions?: UseFloatingOptions<HTMLElement, HTMLElement>;
+  offset?: OffsetOptions;
 }
 
 export default function TogglableDropdown(options: TogglableDropdownOptions) {
@@ -18,29 +23,49 @@ export default function TogglableDropdown(options: TogglableDropdownOptions) {
   const [open, setOpen] = createSignal(false);
   const [dropdownElement, setDropdownElement] = createSignal<HTMLElement>();
 
+  let dropdownContainer!: HTMLDivElement;
+
+  createEffect(() => {
+    if (open()) dropdownContainer.focus();
+  });
+
   return (
-    <div
-      id={id}
-      classList={{ [styles.container]: true, [options.class || ""]: true }}
-      on:focusout={(event) => {
-        if (event.relatedTarget != null) {
-          if (!(event.relatedTarget instanceof HTMLElement)) return;
-          if (event.relatedTarget?.closest("#" + id) != null || dropdownElement()?.contains(event.relatedTarget)) {
-            // keep it focused. TODO: detect clicks outside the dropdown element from inside Dropdown and allow focusing its content
-            event.target.focus();
-            return;
-          }
-        }
-        setOpen(false);
+    <FloatingElement
+      class={styles.dropdown}
+      ref={setDropdownElement}
+      content={
+        <Show when={open()}>
+          <div
+            class={options.dropdownClass || styles.toggleDefault}
+            id={id}
+            on:focusout={(event) => {
+              if (event.relatedTarget != null) {
+                if (event.relatedTarget instanceof HTMLElement && event.relatedTarget.dataset.labelBtn === id) {
+                  return; // don't fire here if focus is moved to the toggle button, let it close through its click handler
+                }
+              }
+              if (dropdownElement()!.matches(":focus-within")) return;
+
+              setOpen(false);
+            }}
+            tabindex="0"
+            ref={dropdownContainer}
+          >
+            {options.children}
+          </div>
+        </Show>
+      }
+      options={{
+        middleware: [flip(), shift(), offset(options.offset)],
+        ...options.dropdownOptions,
       }}
     >
       <button
         type="button"
         id={options.buttonId}
-        class={styles.toggle}
-        data-btn
-        classList={{ [styles.label]: true, [options.labelClass || styles.labelDefault]: true }}
+        classList={{ [styles.toggle]: true, [options.labelClass || styles.labelDefault]: true }}
         role="checkbox"
+        data-label-btn={id}
         aria-checked={open()}
         on:click={() => setOpen((checked) => !checked)}
         tabindex="-1"
@@ -48,11 +73,6 @@ export default function TogglableDropdown(options: TogglableDropdownOptions) {
         <Fa icon={faCaretDown} class={styles.toggle__icon} />
         {options.label}
       </button>
-      <Show when={open()}>
-        <Dropdown align={options.align} class={options.dropdownClass} ref={setDropdownElement}>
-          {options.children}
-        </Dropdown>
-      </Show>
-    </div>
+    </FloatingElement>
   );
 }

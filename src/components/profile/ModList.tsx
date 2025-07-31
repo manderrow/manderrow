@@ -1,12 +1,20 @@
 import { faHardDrive, faHeart, faThumbsUp } from "@fortawesome/free-regular-svg-icons";
-import { faDownLong, faDownload, faExternalLink, faRefresh, faTrash } from "@fortawesome/free-solid-svg-icons";
+import {
+  faArrowRightLong,
+  faCircleUp,
+  faDownLong,
+  faDownload,
+  faExternalLink,
+  faRefresh,
+  faTrash,
+} from "@fortawesome/free-solid-svg-icons";
 import { createInfiniteScroll } from "@solid-primitives/pagination";
-import { useParams } from "@solidjs/router";
 import { Fa } from "solid-fa";
 import {
   Accessor,
   For,
   InitializedResource,
+  JSX,
   Match,
   ResourceFetcherInfo,
   Show,
@@ -17,6 +25,7 @@ import {
   createResource,
   createSelector,
   createSignal,
+  untrack,
   useContext,
 } from "solid-js";
 
@@ -34,13 +43,17 @@ import { Progress, createProgressProxyStore, initProgress, registerTaskListener,
 import { Mod, ModListing, ModPackage, ModVersion } from "../../types";
 import { humanizeFileSize, numberFormatter, removeProperty, roundedNumberFormatter } from "../../utils";
 
-import { SimpleAsyncButton } from "../global/AsyncButton";
+import { ActionContext, SimpleAsyncButton } from "../global/AsyncButton";
 import ErrorBoundary, { ErrorContext } from "../global/ErrorBoundary.tsx";
 import TabRenderer, { Tab, TabContent } from "../global/TabRenderer";
 import ModMarkdown from "./ModMarkdown.tsx";
 import ModSearch from "./ModSearch.tsx";
 
 import styles from "./ModList.module.css";
+import { t } from "../../i18n/i18n.ts";
+import { DefaultDialog } from "../global/Dialog.tsx";
+import { ErrorIndicator } from "../global/ErrorDialog.tsx";
+import { SimpleProgressIndicator } from "../global/Progress.tsx";
 
 type PageFetcher = (page: number) => Promise<readonly Mod[]>;
 export type Fetcher = (
@@ -63,14 +76,12 @@ const MODS_PER_PAGE = 50;
 export default function ModList(props: {
   game: string;
   mods: Fetcher;
-  refresh: () => void;
+  refresh: () => Promise<void> | void;
   isLoading: boolean;
   progress: Progress;
+  trailingControls?: JSX.Element;
 }) {
   const [selectedMod, setSelectedMod] = createSignal<Mod>();
-
-  // TODO: Type this properly with ProfileParams
-  const params = useParams();
 
   const [profileSortOrder, setProfileSortOrder] = createSignal(false);
   const [query, setQuery] = createSignal("");
@@ -84,61 +95,75 @@ export default function ModList(props: {
   ]);
 
   const [queriedMods] = createResource(
-    () => [props.game, query(), sort(), props.mods] as [string, string, readonly SortOption<ModSortColumn>[], Fetcher],
-    async ([game, query, sort, mods]) => mods(game, query, sort),
+    () => {
+      try {
+        props.mods;
+      } catch {}
+      return [props.game, query(), sort()] as [string, string, readonly SortOption<ModSortColumn>[]];
+    },
+    ([game, query, sort]) => untrack(() => props.mods)(game, query, sort),
     { initialValue: { mods: async (_: number) => [], count: 0 } },
   );
 
   return (
     <div class={styles.modListAndView}>
-      <div class={styles.scrollOuter}>
+      <div class={`${styles.scrollOuter} ${styles.modListContainer}`}>
         <ModSearch
-          game={params.gameId}
+          game={props.game}
           query={query()}
           setQuery={setQuery}
           sort={sort()}
           setSort={setSort}
           profileSortOrder={profileSortOrder()}
           setProfileSortOrder={setProfileSortOrder}
-          isLoading={props.isLoading}
-          progress={props.progress}
         />
 
-        <Show when={queriedMods.latest} fallback={<p>Querying mods...</p>}>
-          <div class={styles.discoveredLine}>
-            Discovered {numberFormatter.format(queriedMods()!.count)} mods
-            <button class={styles.refreshButton} on:click={() => props.refresh()}>
-              <Fa icon={faRefresh} />
-            </button>
-          </div>
-        </Show>
+        <div class={styles.discoveredLine}>
+          <Switch>
+            <Match when={props.isLoading || queriedMods.loading}>
+              <span>Fetching mods</span>
+              <SimpleProgressIndicator progress={props.progress} />
+            </Match>
+            <Match when={queriedMods.error}>
+              {(err) => <ErrorIndicator icon={true} message="Query failed" err={err()} reset={props.refresh} />}
+            </Match>
+            <Match when={queriedMods.latest}>
+              <span>Discovered {numberFormatter.format(queriedMods()!.count)} mods</span>
+              <ActionContext>
+                {(busy, wrapOnClick) => (
+                  <button class={styles.refreshButton} disabled={busy()} on:click={() => wrapOnClick(props.refresh)}>
+                    <Fa icon={faRefresh} />
+                  </button>
+                )}
+              </ActionContext>
+            </Match>
+          </Switch>
 
-        <Show when={queriedMods()} keyed>
+          <Show when={props.trailingControls}>
+            <div class={styles.trailingControls}>{props.trailingControls}</div>
+          </Show>
+        </div>
+
+        <Show when={queriedMods.error === undefined && queriedMods()} keyed>
           {(mods) => <ModListMods mods={mods.mods} selectedMod={[selectedMod, setSelectedMod]} />}
         </Show>
       </div>
-      <ModView mod={selectedMod} gameId={params.gameId} />
+      <ModView mod={selectedMod} gameId={props.game} />
     </div>
   );
 }
 
 export function OnlineModList(props: { game: string }) {
   const [progress, setProgress] = createProgressProxyStore();
-  const reportErr = useContext(ErrorContext)!;
 
   const [loadStatus, { refetch: refetchModIndex }] = createResource(
     () => props.game,
     async (game, info: ResourceFetcherInfo<boolean, never>) => {
-      try {
-        await fetchModIndex(game, { refresh: info.refetching }, (event) => {
-          if (event.event === "created") {
-            setProgress(event.progress);
-          }
-        });
-      } catch (e) {
-        reportErr(e);
-        throw e;
-      }
+      await fetchModIndex(game, { refresh: info.refetching }, (event) => {
+        if (event.event === "created") {
+          setProgress(event.progress);
+        }
+      });
       return true;
     },
   );
@@ -168,19 +193,56 @@ export function OnlineModList(props: { game: string }) {
       game={props.game}
       isLoading={loadStatus.loading}
       progress={progress}
-      refresh={refetchModIndex}
+      refresh={async () => {
+        await refetchModIndex();
+      }}
       mods={getFetcher()}
     />
   );
 }
 
+interface ModUpdate {
+  newMod: ModListing;
+  oldVersionNumber: string;
+}
+
+const CHECK_UPDATES_REFETCH: unique symbol = Symbol();
+
 export function InstalledModList(props: { game: string }) {
   const context = useContext(ModInstallContext)!;
+  const [updaterShown, setUpdaterShown] = createSignal(false);
+
+  const [checkUpdatesProgress, setCheckUpdatesProgress] = createProgressProxyStore();
+
+  const [updates, { refetch: refreshUpdates }] = createResource<ModUpdate[], true, typeof CHECK_UPDATES_REFETCH>(() => {
+    try {
+      // track
+      context.installed.latest
+    } catch {}
+    return true;
+  }, async (_, info) => {
+    await fetchModIndex(props.game, { refresh: info.refetching === CHECK_UPDATES_REFETCH }, (event) => {
+      if (event.event === "progress") {
+        setCheckUpdatesProgress(event.progress);
+      }
+    });
+
+    const installedMods = untrack(() => context.installed.latest);
+
+    const latestMods = await getFromModIndex(
+      props.game,
+      installedMods.map((mod) => ({ owner: mod.owner, name: mod.name })),
+    );
+
+    return latestMods
+      .map((mod, i) => ({ newMod: mod, oldVersionNumber: installedMods[i].version.version_number }))
+      .filter((update) => update.newMod.versions[0].version_number !== update.oldVersionNumber);
+  }, { initialValue: [] });
 
   const [progress, setProgress] = createProgressProxyStore();
 
   const getFetcher: () => Fetcher = () => {
-    const data = context.installed();
+    const data = context.installed.latest;
 
     return async (game, query, sort) => {
       // TODO: implement filter and sort
@@ -192,18 +254,142 @@ export function InstalledModList(props: { game: string }) {
     };
   };
 
+  async function checkUpdates() {
+    await refreshUpdates(CHECK_UPDATES_REFETCH);
+  }
+
   return (
-    <Show when={context.installed.latest.length !== 0} fallback={<p>Looks like you haven't installed any mods yet.</p>}>
+    <Show when={context.installed.latest.length !== 0} fallback={<p>{t("modlist.installed.no_mods_installed")}</p>}>
       <ModList
         game={props.game}
         isLoading={false}
         progress={progress}
-        // TODO: implement local refreshing
-        refresh={() => {}} // looks like eyes
-        // kinda gross
+        refresh={context.refetchInstalled}
         mods={getFetcher()}
+        trailingControls={
+          <Show
+            when={updates().length > 0}
+            fallback={
+              <SimpleAsyncButton
+                style="ghost"
+                busy={updates.loading}
+                progress={checkUpdatesProgress}
+                onClick={checkUpdates}
+              >
+                <Fa icon={faRefresh} /> {t("modlist.installed.check_updates_btn")}
+              </SimpleAsyncButton>
+            }
+          >
+            <button data-btn="primary" onClick={() => setUpdaterShown(true)}>
+              <Fa icon={faCircleUp} /> {t("modlist.installed.updates_available_btn")}
+            </button>
+          </Show>
+        }
       />
+
+      <Show when={updaterShown()}>
+        <ModUpdateDialogue
+          onDismiss={() => {
+            setUpdaterShown(false);
+          }}
+          updates={updates()}
+        />
+      </Show>
     </Show>
+  );
+}
+
+function ModUpdateDialogue(props: { onDismiss: () => void; updates: ModUpdate[] }) {
+  const [progress, setProgress] = createProgressProxyStore();
+  const reportErr = useContext(ErrorContext)!;
+
+  const [selectedMods, setSelectedMods] = createSignal<Set<ModUpdate>>(new Set(props.updates), {
+    equals: false,
+  });
+
+  return (
+    <DefaultDialog onDismiss={props.onDismiss} class={styles.updateDialog}>
+      <h2>{t("modlist.installed.updater_title")}</h2>
+
+      <p>{t("modlist.installed.updater_description")}</p>
+
+      <div class={styles.listContainer}>
+        <form action="#">
+          <fieldset>
+            <input
+              type="checkbox"
+              id="update-select-all-mods"
+              checked={selectedMods().size === props.updates.length}
+              onInput={(e) => {
+                if (e.target.checked) {
+                  setSelectedMods(new Set(props.updates));
+                } else {
+                  setSelectedMods(new Set<ModUpdate>());
+                }
+              }}
+            />
+            <label for="update-select-all-mods">Select All</label>
+          </fieldset>
+          <fieldset>
+            <label for="update-search" class="phantom">
+              Search
+            </label>
+            <input type="text" id="update-search" placeholder="Search mod..." />
+          </fieldset>
+        </form>
+        <ul>
+          {props.updates.map((update) => (
+            <li>
+              <label for={update.newMod.name}>
+                <input
+                  id={update.newMod.name}
+                  type="checkbox"
+                  checked={selectedMods().has(update)}
+                  onChange={(e) => {
+                    if (e.target.checked) {
+                      setSelectedMods((selectedMods) => selectedMods.add(update));
+                    } else {
+                      setSelectedMods((selectedMods) => {
+                        selectedMods.delete(update);
+                        return selectedMods;
+                      });
+                    }
+                  }}
+                />
+                <img
+                  width={48}
+                  height={48}
+                  alt="mod icon"
+                  src={getIconUrl(update.newMod.owner, update.newMod.name, update.newMod.versions[0].version_number)}
+                />
+                <div class={styles.updateMetadata}>
+                  <p data-name>{update.newMod.name}</p>
+                  <p data-owner>{update.newMod.owner}</p>
+                  <p data-version>
+                    <span data-old-version>{update.oldVersionNumber}</span>
+                    <span data-arrow>
+                      <Fa icon={faArrowRightLong} />
+                    </span>
+                    <span data-new-version>{update.newMod.versions[0].version_number}</span>
+                  </p>
+                </div>
+              </label>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div class={styles.updateBtns}>
+        <button data-btn="primary">
+          {selectedMods().size === props.updates.length
+            ? t("modlist.installed.update_all_btn")
+            : t("modlist.installed.update_selected_btn")}
+        </button>
+        <button onClick={props.onDismiss} style={{ order: -1 }} data-btn="ghost">
+          {t("global.phrases.cancel")}
+        </button>
+      </div>
+    </DefaultDialog>
   );
 }
 
@@ -413,6 +599,7 @@ function ModListMods(props: { mods: PageFetcher; selectedMod: Signal<Mod | undef
   });
   const paginatedMods = () => infiniteScroll()[0]();
   // idk why we're passing props here
+  // @ts-ignore: static analysis doesn't understand `use:` directives
   const infiniteScrollLoader = (el: Element) => infiniteScroll()[1](el);
   const end = () => infiniteScroll()[2].end();
 
@@ -430,6 +617,17 @@ function getIconUrl(owner: string, name: string, version: string) {
   return `https://gcdn.thunderstore.io/live/repository/icons/${owner}-${name}-${version}.png`;
 }
 
+function useInstalled(installContext: typeof ModInstallContext.defaultValue, modAccessor: Accessor<Mod>): Accessor<ModPackage | undefined> {
+  return createMemo(() => {
+    const mod = modAccessor();
+    if ("version" in mod) {
+      return mod;
+    } else {
+      return installContext?.installed.latest.find((pkg) => pkg.owner === mod.owner && pkg.name === mod.name);
+    }
+  });
+}
+
 function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) {
   const displayVersion = createMemo(() => {
     if ("version" in props.mod) return props.mod.version;
@@ -437,15 +635,7 @@ function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) 
   });
 
   const installContext = useContext(ModInstallContext);
-
-  const installed = createMemo(() => {
-    const mod = props.mod;
-    if ("version" in mod) {
-      return mod;
-    } else {
-      return installContext?.installed.latest.find((pkg) => pkg.owner === mod.owner && pkg.name === mod.name);
-    }
-  });
+  const installed = useInstalled(installContext, () => props.mod);
 
   function onSelect() {
     props.selectedMod[1](props.selectedMod[0]() === props.mod ? undefined : props.mod);

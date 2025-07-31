@@ -1,5 +1,13 @@
 {
   "global": {
+    "phrases": {
+      "ok": "OK",
+      "yes": "Yes",
+      "no": "No",
+      "cancel": "Cancel",
+      "loading": "Loading"
+    },
+
     "game_sort_column": {
       "name": "Name",
       "mod_downloads": "Mod Downloads",
@@ -62,13 +70,37 @@
       "cancel_launch_btn": "Cancel",
       "launch_modded_btn": "Start modded",
       "launch_vanilla_btn": "Start vanilla",
+      "game_settings_btn": "Game Settings",
 
       "profiles_title": "Profiles",
+      "create_profile_tooltip": "Create new profile",
+      "import_profile_tooltip": "Import profile",
 
       "pin_profile_ptn": "Pin",
       "rename_profile_btn": "Rename",
       "delete_profile_btn": "Delete",
       "export_profile_btn": "Export"
+    }
+  },
+
+  "modlist": {
+    "installed": {
+      "no_mods_installed": "Looks like you haven't installed any mods yet.",
+      "check_updates_btn": "Check for Updates",
+      "updates_available_btn": "Updates Available",
+
+      "updater_title": "Mod Updater",
+      "updater_description": "Select mods to update:",
+      "update_selected_btn": "Update Selected",
+      "update_all_btn": "Update All"
+    },
+    "online": {
+      "no_mods": "No mods found.",
+      "install_btn": "Install"
+    },
+
+    "search": {
+      "input_placeholder": "Search for a mod"
     }
   },
 
@@ -104,6 +136,7 @@
 
   "settings": {
     "title": "Settings",
+    "link_title": "App Settings",
 
     "section": {
       "general": "General",

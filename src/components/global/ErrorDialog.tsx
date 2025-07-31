@@ -1,4 +1,4 @@
-import { For, Match, Show, Switch } from "solid-js";
+import { createSignal, For, Match, Show, Switch } from "solid-js";
 
 import { NativeError } from "../../api";
 import { t } from "../../i18n/i18n";
@@ -7,8 +7,10 @@ import { ActionContext } from "./AsyncButton";
 import { DefaultDialog } from "./Dialog";
 
 import styles from "./ErrorDialog.module.css";
+import Fa from "solid-fa";
+import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons";
 
-export default function ErrorDialog(props: { err: unknown; reset: () => Promise<void> | void }) {
+export default function ErrorDialog(props: { err: Exclude<unknown, undefined | null>; reset: () => Promise<void> | void }) {
   return (
     <DefaultDialog class={styles.errorDialog}>
       <div class={styles.error}>
@@ -67,4 +69,33 @@ export default function ErrorDialog(props: { err: unknown; reset: () => Promise<
       </div>
     </DefaultDialog>
   );
+}
+
+export function ErrorIndicator(props: {
+  /// Whether to display an icon if an error occurs.
+  icon: boolean;
+  /// A short message to be displayed if an error occurs.
+  message?: string;
+  err: Exclude<unknown, undefined | null>;
+  reset: () => Promise<void> | void;
+}) {
+  const [dialogOpen, setDialogOpen] = createSignal(false);
+
+  return <ActionContext>
+    {(busy, wrapOnClick) => (<>
+      <button class={styles.errorIndicator} type="button" disabled={busy()} onClick={() => setDialogOpen(true)}>
+        <Show when={props.icon}>
+          <Fa icon={faCircleExclamation} />
+        </Show>
+        {props.message}
+      </button>
+
+      <Show when={dialogOpen()}>
+        <ErrorDialog err={props.err} reset={() => {
+          setDialogOpen(false);
+          wrapOnClick(props.reset);
+        }} />
+      </Show>
+    </>)}
+  </ActionContext>;
 }

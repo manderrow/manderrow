@@ -1,28 +1,29 @@
-use std::{collections::HashSet, num::NonZeroUsize};
+use std::num::NonZeroUsize;
 
-use manderrow_types::mods::{ArchivedModRef, ModId};
-use tauri::AppHandle;
+use manderrow_types::mods::ModId;
+use tauri::{AppHandle, State};
 
-use crate::{tasks, CommandError};
+use crate::{tasks, CommandError, Reqwest};
 
 use super::{read_mod_index, SortColumn, SortOption};
 
 #[tauri::command]
 pub async fn fetch_mod_index(
     app_handle: AppHandle,
+    reqwest: State<'_, Reqwest>,
     game: &str,
     refresh: bool,
     task_id: tasks::Id,
 ) -> Result<(), CommandError> {
-    super::fetch_mod_index(&app_handle, game, refresh, Some(task_id)).await?;
+    super::fetch_mod_index(Some(&app_handle), &reqwest, game, refresh, Some(task_id)).await?;
 
     Ok(())
 }
 
-fn map_to_json<'a>(buf: &mut Vec<u8>, it: impl Iterator<Item = &'a ArchivedModRef<'a>>) {
+fn map_to_json<T: serde::Serialize>(buf: &mut Vec<u8>, it: impl Iterator<Item = T>) {
     let mut it = it.peekable();
     while let Some(m) = it.next() {
-        simd_json::serde::to_writer(&mut *buf, m).unwrap();
+        simd_json::serde::to_writer(&mut *buf, &m).unwrap();
         if it.peek().is_some() {
             buf.push(b',');
         }
@@ -33,7 +34,7 @@ fn map_to_json<'a>(buf: &mut Vec<u8>, it: impl Iterator<Item = &'a ArchivedModRe
 pub async fn count_mod_index(game: &str, query: &str) -> Result<usize, CommandError> {
     let mod_index = read_mod_index(game).await?;
 
-    Ok(super::count_mod_index(&mod_index, query).await?)
+    Ok(super::count_mod_index(&mod_index, query)?)
 }
 
 #[tauri::command]
@@ -46,7 +47,7 @@ pub async fn query_mod_index(
 ) -> Result<tauri::ipc::Response, CommandError> {
     let mod_index = read_mod_index(game).await?;
 
-    let buf = super::query_mod_index(&mod_index, query, &sort).await?;
+    let buf = super::query_mod_index(&mod_index, query, &sort)?;
 
     let count = buf.len();
 
@@ -70,7 +71,7 @@ pub async fn query_mod_index(
 #[tauri::command]
 pub async fn get_from_mod_index(
     game: &str,
-    mod_ids: HashSet<ModId<'_>>,
+    mod_ids: Vec<ModId<'_>>,
 ) -> Result<tauri::ipc::Response, CommandError> {
     let mod_index = read_mod_index(game).await?;
 

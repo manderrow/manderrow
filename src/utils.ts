@@ -17,6 +17,41 @@ export const removeProperty = <Obj, Prop extends keyof Obj>(obj: Obj, prop: Prop
   return rest;
 };
 
+export function callWithErrorStack<T>(f: () => Promise<T>): Promise<T> {
+  return promiseWithErrorStack(f());
+}
+
+export async function promiseWithErrorStack<T>(promise: Promise<T>): Promise<T> {
+  const stack = new Error().stack;
+  try {
+    return await promise;
+  } catch (e: any) {
+    let mStack = stack;
+    if (mStack !== undefined) {
+      let stackLines = mStack.split("\n");
+      let removed = 0;
+      if (stackLines[0].includes('/src/utils.ts:')) {
+        stackLines = stackLines.splice(1);
+        removed++;
+      }
+      if (stackLines.length !== 0 && stackLines[0].startsWith('promiseWithErrorStack@') && stackLines[0].includes('/src/utils.ts:')) {
+        stackLines = stackLines.splice(1);
+        removed++;
+      }
+      if (removed !== 0) {
+        stackLines = [`[${removed} hidden frames]`, ...stackLines];
+      }
+      mStack = stackLines.join("\n");
+    }
+    if (e.stack) {
+      e.stack += "\n" + mStack;
+    } else {
+      e.stack = mStack;
+    }
+    throw e;
+  }
+}
+
 export function createSignalResource<T>(initialValue: () => Promise<T>) {
   const [getT, _setT] = createSignal<T>();
   const [getError, setError] = createSignal<unknown>();

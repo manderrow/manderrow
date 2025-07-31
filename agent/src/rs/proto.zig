@@ -1,11 +1,12 @@
+const builtin = @import("builtin");
 const std = @import("std");
 
-const ipc = @import("ipc.zig");
+const ipc = @import("../ipc.zig");
 const LogLevel = ipc.LogLevel;
 const StandardOutputChannel = ipc.StandardOutputChannel;
-const rs = @import("rs.zig");
+const rs = @import("../rs.zig");
 
-pub const calling_convention: std.builtin.CallingConvention = .{ .x86_64_sysv = .{} };
+pub const calling_convention: std.builtin.CallingConvention = if (builtin.cpu.arch == .x86_64) .{ .x86_64_sysv = .{} } else .c;
 
 pub const init = fn (
     c2s_tx_ptr: ?[*]const u8,

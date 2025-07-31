@@ -4,6 +4,7 @@ import { Accessor, createMemo, createSignal, Setter } from "solid-js";
 import { createStore, SetStoreFunction, Store } from "solid-js/store";
 
 import { wrapInvoke } from "../api";
+import { callWithErrorStack } from "../utils";
 
 export type Id = number;
 
@@ -202,10 +203,12 @@ export async function allocateTask(): Promise<Id> {
  * @param f the callback to invoke
  * @returns the return value of the callback
  */
-export async function invokeWithListener<R>(listener: Listener, f: (taskId: Id) => Promise<R>): Promise<R> {
-  const taskId = await allocateTask();
-  registerTaskListener(taskId, listener);
-  return await wrapInvoke(() => f(taskId));
+export function invokeWithListener<R>(listener: Listener, f: (taskId: Id) => Promise<R>): Promise<R> {
+  return callWithErrorStack(async () => {
+    const taskId = await allocateTask();
+    registerTaskListener(taskId, listener);
+    return await wrapInvoke(() => f(taskId));
+  });
 }
 
 /**

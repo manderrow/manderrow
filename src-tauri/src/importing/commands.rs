@@ -5,7 +5,7 @@ use manderrow_types::mods::{ModId, ModMetadata, ModVersion};
 use packed_semver::Version;
 use serde::Serialize;
 use tauri::ipc::{Channel, InvokeResponseBody};
-use tauri::{AppHandle, State};
+use tauri::{AppHandle, Manager, State};
 use tokio_util::compat::FuturesAsyncReadCompatExt;
 use uuid::Uuid;
 
@@ -133,7 +133,14 @@ pub async fn import_modpack_from_thunderstore_code(
     .kind(tasks::Kind::Aggregate)
     .progress_unit(tasks::ProgressUnit::Bytes)
     .run_with_handle(Some(app), |handle| async move {
-        fetch_mod_index(app, game, false, Some(handle.allocate_dependency(app)?)).await?;
+        fetch_mod_index(
+            Some(app),
+            &app.state(),
+            game,
+            false,
+            Some(handle.allocate_dependency(app)?),
+        )
+        .await?;
 
         _ = profile_id;
         let profile = {
