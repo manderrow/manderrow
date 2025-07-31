@@ -1,5 +1,13 @@
 {
   "global": {
+    "phrases": {  
+      "ok": "确定",
+      "yes": "是",
+      "no": "否",
+      "cancel": "取消",
+      "loading": "加载中"
+    },
+
     "game_sort_column": {
       "name": "名称",
       "mod_downloads": "下载",
@@ -62,8 +70,11 @@
       "cancel_launch_btn": "取消",
       "launch_modded_btn": "使用模组启动游戏",
       "launch_vanilla_btn": "以原版启动游戏",
+      "game_settings_btn": "游戏设置",
 
       "profiles_title": "游戏配置",
+      "create_profile_tooltip": "创建新配置",
+      "import_profile_tooltip": "导入配置",
 
       "pin_profile_ptn": "固定",
       "rename_profile_btn": "重命名",
@@ -71,6 +82,28 @@
       "export_profile_btn": "导出"
     }
   },
+
+  "modlist": {
+    "installed": {
+      "no_mods_installed": "看样子还没有模组呢~",
+      "check_updates_btn": "检查更新",
+      "updates_available_btn": "有可用更新",
+
+      "updater_title": "模组更新管理器",
+      "updater_description": "选择更新：",
+      "update_selected_btn": "更新选定的",
+      "update_all_btn": "全部更新"
+    },
+    "online": {
+      "no_mods": "未找到模组",
+      "install_btn": "安装"
+    },
+
+    "search": {
+      "input_placeholder": "搜索模组"
+    }
+  },
+
 
   "doctor": {
     "launch_options": {
@@ -104,6 +137,7 @@
 
   "settings": {
     "title": "设置",
+    "link_title": "应用设置",
     "section": {
       "general": "通用",
       "launching": "正在启动"
