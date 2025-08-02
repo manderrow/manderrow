@@ -43,6 +43,7 @@ use ipc::IpcState;
 
 pub use error::{CommandError, Error};
 use lexopt::ValueExt;
+use slog::Drain;
 use tauri::Manager;
 
 #[derive(Clone)]
@@ -174,7 +175,27 @@ pub fn main() -> anyhow::Result<()> {
         }
     }
 
-    let _guard = slog_envlogger::init()?;
+    let drain =
+        slog_term::CompactFormat::new(slog_term::TermDecorator::new().stderr().build()).build();
+    let mut builder = slog_envlogger::LogBuilder::new(drain);
+
+    if let Ok(s) = std::env::var("RUST_LOG") {
+        builder = builder.parse(&s);
+    }
+
+    match std::env::var("RUST_LOG_RESET").as_ref().map(String::as_str) {
+        Ok("0") | Err(std::env::VarError::NotPresent) => {
+            builder = builder.filter(Some("html5ever"), slog::FilterLevel::Info)
+        }
+        _ => {}
+    }
+
+    let drain = builder.build();
+    let drain = std::sync::Mutex::new(drain.fuse());
+
+    let _guard =
+        slog_scope::set_global_logger(slog::Logger::root(drain.fuse(), slog::o!()).into_erased());
+    slog_stdlog::init()?;
 
     // TODO: remove this when https://github.com/tauri-apps/tauri/pull/12313 is released
     if let Some(pid) = relaunch {

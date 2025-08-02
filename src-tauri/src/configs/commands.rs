@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use crate::CommandError;
 
-use super::{Config, Patch};
+use super::{File, Patch};
 
 #[tauri::command]
 pub async fn scan_mod_configs(profile: Uuid) -> Result<Response, CommandError> {
@@ -25,7 +25,7 @@ pub async fn scan_mod_configs(profile: Uuid) -> Result<Response, CommandError> {
 }
 
 #[tauri::command]
-pub async fn read_mod_config(profile: Uuid, path: PathBuf) -> Result<Config, CommandError> {
+pub async fn read_mod_config(profile: Uuid, path: PathBuf) -> Result<File, CommandError> {
     Ok(super::read_config(profile, &path).await?)
 }
 
@@ -34,6 +34,6 @@ pub async fn update_mod_config(
     profile: Uuid,
     path: PathBuf,
     patches: Vec<Patch>,
-) -> Result<Config, CommandError> {
+) -> Result<File, CommandError> {
     Ok(super::update_config(profile, &path, &patches).await?)
 }
