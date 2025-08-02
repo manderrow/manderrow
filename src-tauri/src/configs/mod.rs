@@ -39,27 +39,43 @@ pub async fn scan_configs(profile: Uuid) -> Result<(PathBuf, Vec<PathBuf>)> {
     let mut configs_path = profile_path(profile);
     configs_path.push(CONFIG_FOLDER);
     tokio::task::spawn_blocking(move || {
-        let paths = walkdir::WalkDir::new(&configs_path)
-            .into_iter()
+        let mut iter = walkdir::WalkDir::new(&configs_path).into_iter();
+        match iter.next().expect("root entry") {
+            Ok(e) => {}
+            Err(e) => match e.io_error() {
+                Some(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                _ => return Err(e).context(format!("Failed to walk {:?}", configs_path)),
+            },
+        }
+        let paths = iter
             .filter_map(|r| match r {
                 Ok(e) if !e.file_type().is_dir() => Some(Ok(e.into_path())),
                 Ok(_) => None,
-                Err(e) => Some(Err(e)),
+                Err(e) => Some(Err(e).context(format!("Failed to walk {:?}", configs_path))),
             })
-            .collect::<Result<Vec<_>, _>>()
-            .or_else(|e| match e.io_error() {
-                Some(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Vec::new()),
-                _ => Err(e),
-            })
-            .with_context(|| format!("Failed to walk {:?}", configs_path))?;
+            .collect::<Result<Vec<_>, _>>()?;
         Ok((configs_path, paths))
     })
     .await?
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
-pub struct Config {
-    pub sections: Vec<Section>,
+pub struct DocumentSection {
+    title: String,
+    id: String,
+    children: Vec<DocumentSection>,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(tag = "type")]
+pub enum File {
+    Config {
+        sections: Vec<Section>,
+    },
+    Document {
+        html: String,
+        sections: Vec<DocumentSection>,
+    },
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -86,16 +102,44 @@ pub fn build_config_path(profile: Uuid, path: &Path) -> PathBuf {
     buf
 }
 
-pub async fn read_config(profile: Uuid, path: &Path) -> Result<Config> {
+pub async fn read_config(profile: Uuid, path: &Path) -> Result<File> {
     read_config_at(&build_config_path(profile, path)).await
 }
 
-async fn read_config_at(path: &Path) -> Result<Config> {
+async fn read_config_at(path: &Path) -> Result<File> {
     match path.extension().and_then(|ext| ext.to_str()) {
-        Some("json") => {
+        Some(s) if s.eq_ignore_ascii_case("txt") => {
+            let content = tokio::fs::read_to_string(&path).await?;
+            Ok(File::Document {
+                html: ammonia::clean_text(&content),
+                sections: Vec::new(),
+            })
+        }
+        Some(s) if s.eq_ignore_ascii_case("md") => {
+            let content = tokio::fs::read_to_string(&path).await?;
+            // let mut stack = Vec::new();
+            // let mut current_sections = Vec::new();
+            // let mut current_section = None::<DocumentSection>;
+            let html = crate::util::markdown::render(&content, |event| {
+                // match event {
+                //     pulldown_cmark::Event::Start(pulldown_cmark::Tag::Heading { level, id, .. }) => {
+                //         if let Some(section) = current_section {
+                //             stack.push(current_section);
+                //         }
+                //         current_section = Some(DocumentSection { title: String::new(), id: id, children: () });
+                //     }
+                // }
+                event
+            })?;
+            Ok(File::Document {
+                html,
+                sections: Vec::new(),
+            })
+        }
+        Some(s) if s.eq_ignore_ascii_case("json") => {
             let content = tokio::fs::read_to_string(&path).await?;
             let content = serde_json::from_str::<IndexMap<String, Value>>(&content)?;
-            Ok(Config {
+            Ok(File::Config {
                 sections: content
                     .into_iter()
                     .map(|(k, v)| Section {
@@ -105,10 +149,10 @@ async fn read_config_at(path: &Path) -> Result<Config> {
                     .collect(),
             })
         }
-        Some("cfg" | "ini") => {
+        Some(s) if s.eq_ignore_ascii_case("cfg") || s.eq_ignore_ascii_case("ini") => {
             let content = tokio::fs::read_to_string(&path).await?;
             let content = ini::Ini::load_from_str(&content)?;
-            Ok(Config {
+            Ok(File::Config {
                 sections: content
                     .into_iter()
                     .map(|(k, p)| Section {
@@ -125,12 +169,12 @@ async fn read_config_at(path: &Path) -> Result<Config> {
                     .collect(),
             })
         }
-        _ => bail!("Unsupported config format"),
+        format => bail!("Unsupported config format {:?}", format),
     }
 }
 
 /// Updates and returns the config.
-pub async fn update_config(profile: Uuid, path: &Path, patches: &[Patch]) -> Result<Config> {
+pub async fn update_config(profile: Uuid, path: &Path, patches: &[Patch]) -> Result<File> {
     let path = build_config_path(profile, path);
     match path.extension() {
         _ => bail!("Unsupported config format"),
