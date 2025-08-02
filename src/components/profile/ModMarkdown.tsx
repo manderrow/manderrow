@@ -1,7 +1,6 @@
 import { Show, createResource } from "solid-js";
 import { fetchModMarkdown } from "../../api/mod_index/thunderstore";
 import { Mod } from "../../types";
-import Markdown from "../global/Markdown";
 import { createProgressProxyStore } from "../../api/tasks";
 import { SimpleProgressIndicator } from "../global/Progress";
 
@@ -42,7 +41,7 @@ export default function ModMarkdown(props: {
 
   return (
     <Show
-      when={!resource.loading && resource.state !== "errored" ? resource() : undefined}
+      when={!resource.loading && resource.state !== "errored" ? { value: resource() } : undefined}
       fallback={
         <Show when={resource.error} fallback={<SimpleProgressIndicator progress={progress} />}>
           {(error) => <p>{error().toString()}</p>}
@@ -50,8 +49,8 @@ export default function ModMarkdown(props: {
       }
     >
       {(resource) => (
-        <Show when={resource().markdown} fallback={<p>No {LABELS[props.endpoint]} provided.</p>}>
-          {(markdown) => <Markdown source={markdown()} div={{ class: "markdown" }} />}
+        <Show when={resource().value} fallback={<p>No {LABELS[props.endpoint]} provided.</p>}>
+          {(markdownHtml) => <div class="markdown" innerHTML={markdownHtml()}></div>}
         </Show>
       )}
     </Show>

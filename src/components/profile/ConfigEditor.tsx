@@ -1,9 +1,9 @@
 import { IconDefinition } from "@fortawesome/free-regular-svg-icons";
 import { faAdd, faRemove } from "@fortawesome/free-solid-svg-icons";
 import Fa from "solid-fa";
-import { createEffect, createResource, For, JSX, Match, onCleanup, onMount, Show, Switch } from "solid-js";
+import { createEffect, createResource, For, JSX, Match, onCleanup, Show, Switch } from "solid-js";
 
-import { PathComponent, readModConfig, scanModConfigs, Value } from "../../api/configs";
+import { Config, Document, DocumentSection, PathComponent, readModConfig, scanModConfigs, Value } from "../../api/configs";
 import { t } from "../../i18n/i18n";
 import { useSearchParam } from "../../utils/router";
 
@@ -87,16 +87,23 @@ export default function ConfigEditor(props: { profile: string }) {
           {(currentConfig) => (
             <>
               <h2>{currentFile()!}</h2>
-              <For each={currentConfig().sections}>
-                {(section) => (
-                  <EntryEditor
-                    key={section.path.join(".")}
-                    value={section.value}
-                    id={sectionId(section.path)}
-                    onClick={() => {}}
-                  />
-                )}
-              </For>
+              <Switch>
+                <Match when={currentConfig().type === "Document"}>
+                  <div class="markdown" innerHTML={(currentConfig() as Document).html}></div>
+                </Match>
+                <Match when={currentConfig().type === "Config"}>
+                  <For each={(currentConfig() as Config).sections}>
+                    {(section) => (
+                      <EntryEditor
+                        key={section.path.join(".")}
+                        value={section.value}
+                        id={sectionId(section.path)}
+                        onClick={() => {}}
+                      />
+                    )}
+                  </For>
+                </Match>
+              </Switch>
             </>
           )}
         </Show>
@@ -105,23 +112,41 @@ export default function ConfigEditor(props: { profile: string }) {
       <aside>
         <div class={styles.sectionsOverview} ref={sectionsOverviewRef}>
           <h2>{t("config.sections_title")}</h2>
-          <ul>
             <Show when={currentConfig()} fallback="Loading...">
               {(currentConfig) => (
-                <For each={currentConfig().sections}>
-                  {(section) => (
-                    <li>
-                      <a href={`#${sectionId(section.path)}`}>{section.path.join(".")}</a>
-                    </li>
-                  )}
-                </For>
+                <Switch>
+                  <Match when={currentConfig().type === "Document"}>
+                    <DocumentSectionsList sections={(currentConfig() as Document).sections} />
+                  </Match>
+                  <Match when={currentConfig().type === "Config"}>
+                    <ul>
+                      <For each={(currentConfig() as Config).sections}>
+                        {(section) => (
+                          <li>
+                            <a href={`#${sectionId(section.path)}`}>{section.path.join(".")}</a>
+                          </li>
+                        )}
+                      </For>
+                    </ul>
+                  </Match>
+                </Switch>
               )}
             </Show>
-          </ul>
         </div>
       </aside>
     </div>
   );
+}
+
+function DocumentSectionsList(props: { sections: DocumentSection[] }) {
+  return <ol>
+    <For each={props.sections}>
+      {(section) => <li>
+        <a href={`#${section.id}`}>{section.title}</a>
+        <DocumentSectionsList sections={section.children} />
+      </li>}
+    </For>
+  </ol>;
 }
 
 function ValueEditor(props: { value: Value }) {

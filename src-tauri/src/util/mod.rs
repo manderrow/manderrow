@@ -1,4 +1,5 @@
 pub mod http;
+pub mod markdown;
 mod progress;
 pub mod search;
 

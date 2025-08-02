@@ -1,8 +1,11 @@
 pub mod commands;
 
-use anyhow::Result;
+use std::time::Instant;
+
+use anyhow::{Context, Result};
 use packed_semver::Version;
-use slog::Logger;
+use simd_json::base::ValueAsScalar;
+use slog::{debug, Logger};
 use tauri::AppHandle;
 
 use crate::installing::{fetch_resource_as_bytes, CacheOptions};
@@ -25,8 +28,9 @@ pub async fn fetch_mod_markdown(
     version: Version,
     endpoint: ModMarkdown,
     task_id: Option<tasks::Id>,
-) -> Result<String> {
-    let bytes = fetch_resource_as_bytes(
+) -> Result<Option<String>> {
+    let start = Instant::now();
+    let mut bytes = fetch_resource_as_bytes(
         app,
         log,
         reqwest,
@@ -48,5 +52,21 @@ pub async fn fetch_mod_markdown(
         task_id,
     )
     .await?;
-    Ok(String::from_utf8(Vec::from(bytes))?)
+    let tape = simd_json::to_tape(&mut bytes)?;
+    let obj = tape.as_value().try_as_object()?;
+    let markdown = obj
+        .get("markdown")
+        .context("JSON object missing required property \"markdown\"")?;
+    let html = if markdown.as_null().is_some() {
+        None
+    } else {
+        let markdown = markdown
+            .as_str()
+            .context("JSON property \"markdown\" is not a string")?;
+        // TODO: cache
+        Some(crate::util::markdown::render(markdown, |event| event)?)
+    };
+    let elapsed = Instant::now() - start;
+    debug!(log, "Fetched and rendered mod markdown in {:?}", elapsed);
+    Ok(html)
 }
