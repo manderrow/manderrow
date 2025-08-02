@@ -18,19 +18,34 @@ interface ValueRecord extends ValueRecordT<Value> {}
 export type Change = { "Set": Value } | { "Append": Value } | "Remove";
 
 export interface Config {
-  sections: Section[],
+  type: "Config";
+  sections: Section[];
 }
 
+export interface Document {
+  type: "Document";
+  html: string;
+  sections: DocumentSection[];
+}
+
+export type File = Config | Document;
+
 export interface Section {
-  path: PathComponent[],
-  value: Value,
+  path: PathComponent[];
+  value: Value;
+}
+
+export interface DocumentSection {
+  title: string;
+  id: string;
+  children: DocumentSection[];
 }
 
 export function scanModConfigs(profile: string): Promise<string[]> {
   return wrapInvoke(() => invoke("scan_mod_configs", { profile }));
 }
 
-export function readModConfig(profile: string, path: string): Promise<Config> {
+export function readModConfig(profile: string, path: string): Promise<File> {
   return wrapInvoke(() => invoke("read_mod_config", { profile, path }));
 }
 
