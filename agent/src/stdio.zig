@@ -94,9 +94,9 @@ fn forwardFromPipe(channel: ipc.StandardOutputChannel, pipe: std.fs.File) void {
             logger.err("Error in stdio forwarder: {}", .{e});
             return;
         };
-        if (rdr.interface.buffer.len != 0) {
-            std.debug.assert(rdr.interface.buffer[0] == '\n');
-            rdr.interface.buffer = rdr.interface.buffer[1..];
+        if (rdr.interface.bufferedLen() != 0) {
+            std.debug.assert(rdr.interface.buffered()[0] == '\n');
+            rdr.interface.seek += 1;
         }
 
         var line = buf.getWritten();
