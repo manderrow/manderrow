@@ -11,10 +11,12 @@
   transition-delay: var(--tooltip-delay-end, 0s);
   width: max-content;
   max-width: 200px;
+  pointer-events: none;
 }
 
 *:hover + .tooltip,
 *:focus-visible + .tooltip {
+  pointer-events: initial;
   visibility: visible;
   opacity: 1;
   transition-delay: var(--tooltip-delay-start, 0.1s);

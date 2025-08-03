@@ -227,17 +227,17 @@ export default function Profile() {
           <form on:submit={(e) => e.preventDefault()} class={sidebarStyles.sidebar__profilesSearch}>
             <input type="text" name="profile-search" id="profile-search" placeholder="Search" maxLength={100} />
             <SelectDropdown<"alphabetical" | "creationDate">
-              dropdownClass={sidebarStyles.sidebar__profilesSearchSortBtn}
               multiselect={false}
-              options={{
-                "A-Z": {
+              options={[
+                {
                   value: "alphabetical",
+                  text: "A-Z",
                 },
-
-                "Creation Date": {
+                {
                   value: "creationDate",
+                  text: "Creation Date",
                 },
-              }}
+              ]}
               label={{ labelText: "preset", preset: "Sort" }}
               onChanged={(key, selected) => console.log(key, selected)}
             />

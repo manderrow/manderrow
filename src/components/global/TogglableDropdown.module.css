@@ -1,5 +1,21 @@
-.dropdown {
+.dropdownBase {
   z-index: var(--dropdown-z-index);
+}
+
+.dropdownDefault {
+  padding: 0.5em 0;
+  background-color: var(--clr-neutral-8);
+  border: 1px solid var(--clr-neutral-7);
+  border-radius: 4px;
+
+  opacity: 0;
+
+  transition: opacity 0.1s ease;
+
+  &.dropdownOpen {
+    pointer-events: all;
+    opacity: 1;
+  }
 }
 
 .toggle {

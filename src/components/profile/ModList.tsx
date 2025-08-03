@@ -7,6 +7,7 @@ import {
   faExternalLink,
   faRefresh,
   faTrash,
+  faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { createInfiniteScroll } from "@solid-primitives/pagination";
 import { Fa } from "solid-fa";
@@ -54,6 +55,8 @@ import { t } from "../../i18n/i18n.ts";
 import { DefaultDialog } from "../global/Dialog.tsx";
 import { ErrorIndicator } from "../global/ErrorDialog.tsx";
 import { SimpleProgressIndicator } from "../global/Progress.tsx";
+import SelectDropdown from "../global/SelectDropdown.tsx";
+import TogglableDropdown from "../global/TogglableDropdown.tsx";
 
 type PageFetcher = (page: number) => Promise<readonly Mod[]>;
 export type Fetcher = (
@@ -148,7 +151,7 @@ export default function ModList(props: {
           {(mods) => <ModListMods mods={mods.mods} selectedMod={[selectedMod, setSelectedMod]} />}
         </Show>
       </div>
-      <ModView mod={selectedMod} gameId={props.game} />
+      <ModView mod={selectedMod()} gameId={props.game} closeModView={() => setSelectedMod(undefined)} />
     </div>
   );
 }
@@ -214,30 +217,34 @@ export function InstalledModList(props: { game: string }) {
 
   const [checkUpdatesProgress, setCheckUpdatesProgress] = createProgressProxyStore();
 
-  const [updates, { refetch: refreshUpdates }] = createResource<ModUpdate[], true, typeof CHECK_UPDATES_REFETCH>(() => {
-    try {
-      // track
-      context.installed.latest
-    } catch {}
-    return true;
-  }, async (_, info) => {
-    await fetchModIndex(props.game, { refresh: info.refetching === CHECK_UPDATES_REFETCH }, (event) => {
-      if (event.event === "progress") {
-        setCheckUpdatesProgress(event.progress);
-      }
-    });
+  const [updates, { refetch: refreshUpdates }] = createResource<ModUpdate[], true, typeof CHECK_UPDATES_REFETCH>(
+    () => {
+      try {
+        // track
+        context.installed.latest;
+      } catch {}
+      return true;
+    },
+    async (_, info) => {
+      await fetchModIndex(props.game, { refresh: info.refetching === CHECK_UPDATES_REFETCH }, (event) => {
+        if (event.event === "progress") {
+          setCheckUpdatesProgress(event.progress);
+        }
+      });
 
-    const installedMods = untrack(() => context.installed.latest);
+      const installedMods = untrack(() => context.installed.latest);
 
-    const latestMods = await getFromModIndex(
-      props.game,
-      installedMods.map((mod) => ({ owner: mod.owner, name: mod.name })),
-    );
+      const latestMods = await getFromModIndex(
+        props.game,
+        installedMods.map((mod) => ({ owner: mod.owner, name: mod.name })),
+      );
 
-    return latestMods
-      .map((mod, i) => ({ newMod: mod, oldVersionNumber: installedMods[i].version.version_number }))
-      .filter((update) => update.newMod.versions[0].version_number !== update.oldVersionNumber);
-  }, { initialValue: [] });
+      return latestMods
+        .map((mod, i) => ({ newMod: mod, oldVersionNumber: installedMods[i].version.version_number }))
+        .filter((update) => update.newMod.versions[0].version_number !== update.oldVersionNumber);
+    },
+    { initialValue: [] },
+  );
 
   const [progress, setProgress] = createProgressProxyStore();
 
@@ -310,8 +317,6 @@ function ModUpdateDialogue(props: { onDismiss: () => void; updates: ModUpdate[] 
   return (
     <DefaultDialog onDismiss={props.onDismiss} class={styles.updateDialog}>
       <h2>{t("modlist.installed.updater_title")}</h2>
-
-      <p>{t("modlist.installed.updater_description")}</p>
 
       <div class={styles.listContainer}>
         <form action="#">
@@ -393,7 +398,7 @@ function ModUpdateDialogue(props: { onDismiss: () => void; updates: ModUpdate[] 
   );
 }
 
-function ModView({ mod, gameId }: { mod: Accessor<Mod | undefined>; gameId: string }) {
+function ModView(props: { mod: Mod | undefined; gameId: string; closeModView: () => void }) {
   const [progress, setProgress] = createProgressProxyStore();
 
   function getInitialModListing(mod: Mod | undefined) {
@@ -408,21 +413,17 @@ function ModView({ mod, gameId }: { mod: Accessor<Mod | undefined>; gameId: stri
     }
   }
 
-  const [modListing, { refetch: refetchModListing }] = createResource<
-    ModListing | undefined,
-    Mod | Record<never, never>,
-    never
-  >(
+  const [modListing] = createResource<ModListing | undefined, Mod | Record<never, never>, never>(
     // we need the "nullish" value passed through, so disguise it as non-nullish
-    () => mod() ?? {},
-    async (mod, info: ResourceFetcherInfo<ModListing | undefined, never>) => {
-      if ("game" in mod) {
-        await fetchModIndex(mod.game, { refresh: info.refetching }, (event) => {
+    () => props.mod ?? {},
+    async (mod) => {
+      if ("version" in mod) {
+        await fetchModIndex(props.gameId, { refresh: false }, (event) => {
           if (event.event === "created") {
             setProgress(event.progress);
           }
         });
-        return (await getFromModIndex(mod.game, [{ owner: mod.owner, name: mod.name }]))[0];
+        return (await getFromModIndex(props.gameId, [{ owner: mod.owner, name: mod.name }]))[0];
       } else if ("versions" in mod) {
         setProgress(initProgress());
         return mod;
@@ -430,9 +431,10 @@ function ModView({ mod, gameId }: { mod: Accessor<Mod | undefined>; gameId: stri
         return undefined;
       }
     },
-    { initialValue: getInitialModListing(mod()) },
+    { initialValue: getInitialModListing(props.mod) },
   );
 
+  // [string: the version number string, number: the index of the version in the listing versions array]
   const [selectedVersion, setSelectedVersion] = createSignal<[string, number]>();
 
   const modVersionData = (mod: Mod) => {
@@ -443,13 +445,13 @@ function ModView({ mod, gameId }: { mod: Accessor<Mod | undefined>; gameId: stri
     {
       id: "overview",
       name: "Overview",
-      component: () => <ModMarkdown mod={mod()} selectedVersion={selectedVersion()?.[0]} endpoint="readme" />,
+      component: () => <ModMarkdown mod={props.mod} selectedVersion={selectedVersion()?.[0]} endpoint="readme" />,
     },
     {
       id: "dependencies",
       name: "Dependencies",
       component: () => (
-        <Show when={mod()}>
+        <Show when={props.mod}>
           {(mod) => <For each={modVersionData(mod()).dependencies}>{(dependency) => <p>{dependency}</p>}</For>}
         </Show>
       ),
@@ -457,18 +459,20 @@ function ModView({ mod, gameId }: { mod: Accessor<Mod | undefined>; gameId: stri
     {
       id: "changelog",
       name: "Changelog",
-      component: () => <ModMarkdown mod={mod()} selectedVersion={selectedVersion()?.[0]} endpoint="changelog" />,
+      component: () => <ModMarkdown mod={props.mod} selectedVersion={selectedVersion()?.[0]} endpoint="changelog" />,
     },
   ];
 
   const [currentTab, setCurrentTab] = createSignal(tabs[0].id);
   const isCurrentTab = createSelector(currentTab);
 
+  const installContext = useContext(ModInstallContext);
+
   return (
     <div class={styles.scrollOuter}>
       <div class={`${styles.scrollInner} ${styles.modView}`}>
         <Show
-          when={mod()}
+          when={props.mod}
           fallback={
             <div class={styles.nothingMsg}>
               <h2>No mod selected</h2>
@@ -477,12 +481,18 @@ function ModView({ mod, gameId }: { mod: Accessor<Mod | undefined>; gameId: stri
           }
         >
           {(mod) => {
+            const installed = useInstalled(installContext, mod);
+
             const modVersionData = () => {
               const modConstant = mod();
+              const versionIndex = selectedVersion()?.[1] ?? 0;
 
+              // If online, display the mod listing. Otherwise, in installed, display mod package initially, then
+              // mod listing after it loads. Coincidentally, this undefined logic check works as the mod listing
+              // loads after the initial mod package is always displayed by default first
               return "versions" in modConstant
-                ? modConstant.versions[selectedVersion()?.[1] ?? 0]
-                : modConstant.version;
+                ? modConstant.versions[versionIndex]
+                : modListing?.latest?.versions[versionIndex] ?? modConstant.version;
             };
 
             return (
@@ -492,7 +502,7 @@ function ModView({ mod, gameId }: { mod: Accessor<Mod | undefined>; gameId: stri
                     {/* TODO: For local mod with no package URL, remove link */}
                     <div style={{ "grid-area": "name" }}>
                       <a
-                        href={`https://thunderstore.io/c/${gameId}/p/${mod().owner}/${mod().name}/`}
+                        href={`https://thunderstore.io/c/${props.gameId}/p/${mod().owner}/${mod().name}/`}
                         target="_blank"
                         rel="noopener noreferrer"
                         class={styles.modMetaLink}
@@ -503,7 +513,7 @@ function ModView({ mod, gameId }: { mod: Accessor<Mod | undefined>; gameId: stri
                     </div>
                     <div style={{ "grid-area": "owner" }}>
                       <a
-                        href={`https://thunderstore.io/c/${gameId}/p/${mod().owner}/`}
+                        href={`https://thunderstore.io/c/${props.gameId}/p/${mod().owner}/`}
                         target="_blank"
                         rel="noopener noreferrer"
                         class={styles.modMetaLink}
@@ -513,9 +523,7 @@ function ModView({ mod, gameId }: { mod: Accessor<Mod | undefined>; gameId: stri
                       </a>
                     </div>
                     <ul class={styles.modMetadata}>
-                      <li class={styles.metadata__field}>
-                        <Fa icon={faThumbsUp} /> {roundedNumberFormatter.format(mod().rating_score)}
-                      </li>
+                      <li class={styles.metadata__field}>v{modVersionData().version_number}</li>
                       <li class={styles.metadata__field}>
                         <Fa icon={faDownload} /> {roundedNumberFormatter.format(modVersionData().downloads)}
                       </li>
@@ -535,6 +543,14 @@ function ModView({ mod, gameId }: { mod: Accessor<Mod | undefined>; gameId: stri
                         <br /> Donate
                       </a>
                     </Show>
+
+                    <button
+                      style={{ "grid-area": "close" }}
+                      class={styles.modMeta__closeBtn}
+                      onClick={props.closeModView}
+                    >
+                      <Fa icon={faXmark} />
+                    </button>
                   </div>
 
                   <TabRenderer
@@ -557,31 +573,95 @@ function ModView({ mod, gameId }: { mod: Accessor<Mod | undefined>; gameId: stri
                 </div>
 
                 <form class={styles.modView__form} action="#">
-                  <div class={styles.modView__downloader}>
-                    <select
-                      class={styles.modView__versions}
-                      onInput={(event) =>
-                        setSelectedVersion([
-                          event.target.value,
-                          parseInt(event.target.selectedOptions[0].dataset.index!, 10),
-                        ])
-                      }
-                    >
-                      {/* This entire thing is temporary anyway, it will be removed in a later commit */}
-                      <For each={modListing.latest?.versions}>
-                        {(version, i) => {
-                          return (
-                            <option value={version.version_number} data-index={i()}>
-                              v{version.version_number} {i() === 0 ? "(latest)" : ""}
-                            </option>
-                          );
+                  <Show
+                    when={installed()}
+                    fallback={
+                      <div class={styles.modView__onlineActions}>
+                        <select
+                          class={styles.modView__versions}
+                          onInput={(event) =>
+                            setSelectedVersion([
+                              event.target.value,
+                              parseInt(event.target.selectedOptions[0].dataset.index!, 10),
+                            ])
+                          }
+                        >
+                          {/* This entire thing is temporary anyway, it will be removed in a later commit */}
+                          <For each={modListing.latest?.versions}>
+                            {(version, i) => {
+                              return (
+                                <option value={version.version_number} data-index={i()}>
+                                  v{version.version_number} {i() === 0 ? "(latest)" : ""}
+                                </option>
+                              );
+                            }}
+                          </For>
+                        </select>
+                        <InstallButton
+                          mod={mod() as ModListing}
+                          installContext={installContext!}
+                          class={styles.modView__downloadBtn}
+                        >
+                          Download
+                        </InstallButton>
+                      </div>
+                    }
+                  >
+                    <div class={styles.modView__installedActions}>
+                      <TogglableDropdown
+                        label={t("modlist.installed.change_version_btn")}
+                        labelClass={styles.modView__versionLabel}
+                        floatingContainerClass={styles.modView__versionsDropdown}
+                        dropdownClass={styles.modView__versionsDropdownContent}
+                      >
+                        <input
+                          type="text"
+                          name="version-search"
+                          id="version-search"
+                          placeholder={t("modlist.installed.search_version_placeholder")}
+                        />
+                        <label for="version-search" class="phantom">
+                          {t("modlist.installed.search_version_placeholder")}
+                        </label>
+
+                        <Show when={modListing.latest}>
+                          {(listing) => (
+                            <>
+                              <SelectDropdown
+                                label={{ labelText: "value" }}
+                                onChanged={(value) => {
+                                  setSelectedVersion([listing().versions[value].version_number, value]);
+                                }}
+                                options={(listing().versions ?? []).map((version, i) => ({
+                                  text: version.version_number,
+                                  value: i,
+                                  selected: i === selectedVersion()?.[1],
+                                }))}
+                              />
+
+                              <InstallButton
+                                mod={listing()}
+                                installContext={installContext!}
+                                class={styles.downloadBtn}
+                              >
+                                Apply
+                              </InstallButton>
+                            </>
+                          )}
+                        </Show>
+                      </TogglableDropdown>
+                      <UninstallButton
+                        mod={installed()!}
+                        installContext={installContext!}
+                        class={styles.modView__uninstall}
+                        onFinished={() => {
+                          props.closeModView();
                         }}
-                      </For>
-                    </select>
-                    <button type="button" class={styles.modView__downloadBtn}>
-                      Download
-                    </button>
-                  </div>
+                      >
+                        {t("modlist.installed.uninstall_btn")}
+                      </UninstallButton>
+                    </div>
+                  </Show>
                 </form>
               </>
             );
@@ -617,7 +697,10 @@ function getIconUrl(owner: string, name: string, version: string) {
   return `https://gcdn.thunderstore.io/live/repository/icons/${owner}-${name}-${version}.png`;
 }
 
-function useInstalled(installContext: typeof ModInstallContext.defaultValue, modAccessor: Accessor<Mod>): Accessor<ModPackage | undefined> {
+function useInstalled(
+  installContext: typeof ModInstallContext.defaultValue,
+  modAccessor: Accessor<Mod>,
+): Accessor<ModPackage | undefined> {
   return createMemo(() => {
     const mod = modAccessor();
     if ("version" in mod) {
@@ -655,6 +738,7 @@ function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) 
       >
         <img
           class={styles.icon}
+          width={64}
           alt="mod icon"
           src={getIconUrl(props.mod.owner, props.mod.name, displayVersion().version_number)}
         />
@@ -665,7 +749,7 @@ function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) 
               <span class={styles.separator} aria-hidden>
                 &bull;
               </span>
-              <span class={styles.owner}>{props.mod.owner}</span>
+              <span class={styles.medHierarchy}>{props.mod.owner}</span>
               <Show when={"version" in props.mod}>
                 <span class={styles.separator} aria-hidden>
                   &bull;
@@ -673,12 +757,22 @@ function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) 
                 <span class={styles.version}>{(props.mod as ModPackage).version.version_number}</span>
               </Show>
             </p>
-            <p class={styles.downloads}>
+            <p class={styles.info}>
+              <span class={styles.lowHierarchy}>
+                <Fa icon={faThumbsUp} /> {roundedNumberFormatter.format(props.mod.rating_score)}
+              </span>
+
               <Show when={"versions" in props.mod}>
-                <Fa icon={faDownload} />
-                {roundedNumberFormatter.format(
-                  (props.mod as ModListing).versions.map((v) => v.downloads).reduce((acc, x) => acc + x),
-                )}
+                <span class={styles.separator} aria-hidden>
+                  &bull;
+                </span>
+
+                <span class={styles.lowHierarchy}>
+                  <Fa icon={faDownload} />{" "}
+                  {roundedNumberFormatter.format(
+                    (props.mod as ModListing).versions.map((v) => v.downloads).reduce((acc, x) => acc + x),
+                  )}
+                </span>
               </Show>
             </p>
             <p class={styles.description}>{displayVersion().description}</p>
@@ -688,14 +782,22 @@ function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) 
               <Switch
                 fallback={
                   <ErrorBoundary>
-                    <InstallButton mod={props.mod as ModListing} installContext={installContext!} />
+                    <InstallButton
+                      mod={props.mod as ModListing}
+                      installContext={installContext!}
+                      class={styles.downloadBtn}
+                    >
+                      <Fa icon={faDownLong} />
+                    </InstallButton>
                   </ErrorBoundary>
                 }
               >
                 <Match when={installed()}>
                   {(installed) => (
                     <ErrorBoundary>
-                      <UninstallButton mod={installed()} installContext={installContext!} />
+                      <UninstallButton mod={installed()} installContext={installContext!} class={styles.downloadBtn}>
+                        <Fa icon={faTrash} />
+                      </UninstallButton>
                     </ErrorBoundary>
                   )}
                 </Match>
@@ -708,17 +810,22 @@ function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) 
   );
 }
 
-function InstallButton(props: { mod: ModListing; installContext: NonNullable<typeof ModInstallContext.defaultValue> }) {
+function InstallButton(props: {
+  mod: Mod;
+  installContext: NonNullable<typeof ModInstallContext.defaultValue>;
+  class: JSX.HTMLAttributes<Element>["class"];
+  children: JSX.Element;
+}) {
   return (
     <SimpleAsyncButton
       progress
-      class={styles.downloadBtn}
+      class={props.class}
       onClick={async (listener) => {
         let foundDownloadTask = false;
         await installProfileMod(
           props.installContext.profileId(),
-          removeProperty(props.mod, "versions"),
-          props.mod.versions[0],
+          "versions" in props.mod ? removeProperty(props.mod, "versions") : props.mod,
+          "versions" in props.mod ? props.mod.versions[0] : props.mod.version,
           (event) => {
             if (!foundDownloadTask && event.event === "dependency") {
               const dependency = tasks().get(event.dependency)!;
@@ -740,7 +847,7 @@ function InstallButton(props: { mod: ModListing; installContext: NonNullable<typ
         await props.installContext.refetchInstalled();
       }}
     >
-      <Fa icon={faDownLong} />
+      {props.children}
     </SimpleAsyncButton>
   );
 }
@@ -748,17 +855,21 @@ function InstallButton(props: { mod: ModListing; installContext: NonNullable<typ
 function UninstallButton(props: {
   mod: ModPackage;
   installContext: NonNullable<typeof ModInstallContext.defaultValue>;
+  class: JSX.HTMLAttributes<Element>["class"];
+  children: JSX.Element;
+  onFinished?: () => void;
 }) {
   return (
     <SimpleAsyncButton
       progress
-      class={styles.downloadBtn}
+      class={props.class}
       onClick={async (_listener) => {
         await uninstallProfileMod(props.installContext.profileId(), props.mod.owner, props.mod.name);
         await props.installContext.refetchInstalled();
+        props.onFinished?.();
       }}
     >
-      <Fa icon={faTrash} />
+      {props.children}
     </SimpleAsyncButton>
   );
 }

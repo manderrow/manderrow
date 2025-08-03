@@ -89,10 +89,13 @@
       "check_updates_btn": "Check for Updates",
       "updates_available_btn": "Updates Available",
 
-      "updater_title": "Mod Updater",
-      "updater_description": "Select mods to update:",
+      "updater_title": "Select mods to update",
       "update_selected_btn": "Update Selected",
-      "update_all_btn": "Update All"
+      "update_all_btn": "Update All",
+      "change_version_btn": "Change Version",
+      "select_version_label": "Select Version",
+      "search_version_placeholder": "Search version",
+      "uninstall_btn": "Uninstall"
     },
     "online": {
       "no_mods": "No mods found.",

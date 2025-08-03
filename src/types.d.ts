@@ -68,7 +68,6 @@ export interface ModListing extends ModMetadata {
  * A versioned mod package.
  */
 export interface ModPackage extends ModMetadata {
-  game: string;
   version: ModVersion;
 }
 

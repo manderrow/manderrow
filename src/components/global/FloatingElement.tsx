@@ -1,4 +1,4 @@
-import { createSignal, JSX, onCleanup, onMount } from "solid-js";
+import { Accessor, createSignal, JSX, onCleanup, onMount } from "solid-js";
 import { useFloating, UseFloatingOptions } from "solid-floating-ui";
 import { autoUpdate } from "@floating-ui/dom";
 
@@ -9,6 +9,7 @@ interface FloatingElementProps {
   class?: JSX.HTMLAttributes<HTMLElement>["class"];
   classList?: JSX.CustomAttributes<HTMLElement>["classList"];
   children?: JSX.Element;
+  hidden?: boolean;
   ref?: (element: HTMLElement) => void;
 }
 /**
@@ -54,6 +55,8 @@ export function FloatingElement(props: FloatingElementProps) {
         style={{
           ...props.style,
 
+          "pointer-events": props.hidden == null ? undefined : props.hidden ? "none" : "auto",
+          visibility: props.hidden == null ? undefined : props.hidden ? "hidden" : "visible", // for ARIA only
           position: position.strategy,
           top: `${position.y ?? 0}px`,
           left: `${position.x ?? 0}px`,

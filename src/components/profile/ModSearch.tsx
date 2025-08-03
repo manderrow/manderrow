@@ -37,24 +37,29 @@ export default function ModSearch(props: ModSearchProps) {
           {/* TODO: change select dropdown to support names for values so i18n works good */}
           <SelectDropdown
             label={{ labelText: "preset", preset: "Sort By" }}
-            options={{
-              [ModSortColumn.Relevance]: {
-                value: t("global.mod_sort_column.relevance"),
+            options={[
+              {
+                value: ModSortColumn.Relevance,
+                text: t("global.mod_sort_column.relevance"),
                 selected: true,
               },
-              [ModSortColumn.Downloads]: {
-                value: t("global.mod_sort_column.downloads"),
+              {
+                value: ModSortColumn.Downloads,
+                text: t("global.mod_sort_column.downloads"),
               },
-              [ModSortColumn.Name]: {
-                value: t("global.mod_sort_column.name"),
+              {
+                value: ModSortColumn.Name,
+                text: t("global.mod_sort_column.name"),
               },
-              [ModSortColumn.Owner]: {
-                value: t("global.mod_sort_column.owner"),
+              {
+                value: ModSortColumn.Owner,
+                text: t("global.mod_sort_column.owner"),
               },
-              [ModSortColumn.Size]: {
-                value: t("global.mod_sort_column.size"),
+              {
+                value: ModSortColumn.Size,
+                text: t("global.mod_sort_column.size"),
               },
-            }}
+            ]}
             onChanged={() => {}}
             offset={{ mainAxis: 4 }}
           />

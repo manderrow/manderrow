@@ -119,7 +119,6 @@
 
   .icon {
     aspect-ratio: 1;
-    width: 4rem;
     align-self: flex-start;
     border-radius: 6px;
   }
@@ -142,6 +141,10 @@
 
     .info * {
       flex-shrink: 0;
+    }
+
+    .info:first-child {
+      margin-bottom: 0.2em;
     }
 
     .separator {
@@ -187,22 +190,21 @@
       white-space: nowrap;
     }
 
-    .downloads,
+    .medHierarchy {
+      color: var(--clr-neutral-2);
+      font-size: 0.9rem;
+    }
+
+    .lowHierarchy,
     .description {
       color: var(--clr-neutral-3);
-      font-size: 0.9rem;
+      font-size: 0.85rem;
     }
 
     .description {
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-    }
-
-    .owner {
-    }
-
-    .label {
     }
   }
 
@@ -270,7 +272,7 @@
 .modMeta {
   display: grid;
   grid-template-areas:
-    "name donate"
+    "name close"
     "owner donate"
     "meta donate";
   grid-template-columns: minmax(min-content, 100%) 1fr;
@@ -284,6 +286,13 @@
   align-items: center;
   width: min-content;
   gap: 0.35em;
+}
+
+.modMeta__closeBtn {
+  padding: 0.1em 0.5em;
+  font-size: 1.25rem;
+  background-color: transparent;
+  justify-self: right;
 }
 
 .modMetadata {
@@ -305,15 +314,17 @@
   border: 1px solid var(--clr-neutral-7);
   border-radius: 4px;
   text-align: center;
-}
+  font-size: 0.9rem;
 
-.donate__icon {
-  font-size: 1.25rem;
+  .donate__icon {
+    font-size: 1.25em;
+  }
 }
 
 .tabs {
   border-bottom: 1px solid var(--clr-neutral-7);
   overflow-x: auto;
+  scrollbar-width: thin;
 }
 
 .tabs__list {
@@ -361,7 +372,7 @@
   border-top: 1px solid var(--clr-neutral-7);
 }
 
-.modView__downloader {
+.modView__onlineActions {
   display: flex;
   align-items: center;
   gap: 0.25em;
@@ -383,7 +394,49 @@
   border-radius: 0 100vmax 100vmax 0;
 }
 
+.modView__installedActions {
+  display: grid;
+  align-items: stretch;
+  justify-items: stretch;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas: "versions uninstall";
+  gap: 0.75em;
+  position: relative;
+
+  button {
+    width: 100%;
+  }
+}
+
+.modView__versionLabel {
+  grid-area: versions;
+  justify-content: center;
+}
+
+.modView__versionsDropdown {
+  grid-area: versions;
+  left: 0;
+  right: 0;
+}
+
+.modView__versionsDropdownContent {
+  padding: 0.5em;
+}
+
+.modView__uninstall {
+  grid-area: uninstall;
+  border: 1px solid var(--clr-danger-4);
+  background-color: transparent;
+}
+
+.modView__uninstall:hover,
+.modView__uninstall:focus {
+  border-color: var(--clr-danger-5);
+  background-color: var(--clr-danger-5);
+}
+
 /* Mod update dialog */
+
 .updateDialog {
   display: flex;
   flex-direction: column;

@@ -8,6 +8,7 @@ import styles from "./SelectDropdown.module.css";
 import TogglableDropdown, { TogglableDropdownOptions } from "./TogglableDropdown";
 
 interface Option<T> {
+  text: string;
   value: T;
   selected?: boolean;
 }
@@ -22,16 +23,16 @@ type LabelTextPreset = {
 };
 type LabelText = LabelTextValue | LabelTextPreset;
 
-interface SelectDropdownOptions<T> extends Omit<TogglableDropdownOptions, "children" | "label"> {
+interface SelectDropdownOptions<T> extends Omit<TogglableDropdownOptions, "children" | "label" | "dropdownClass"> {
   label: LabelText;
-  options: Record<string, Option<T>>;
+  options: Option<T>[];
   onChanged: (value: T, selected: boolean) => void;
   nullable?: boolean;
   multiselect?: boolean;
 }
 
 export default function SelectDropdown<T>(options: SelectDropdownOptions<T>) {
-  const [selected, setSelected] = createStore(options.options);
+  const [selected, setSelected] = createStore(Object.fromEntries(options.options.map((option, i) => [i, option])));
 
   createEffect(() => {
     batch(() => {
@@ -55,13 +56,13 @@ export default function SelectDropdown<T>(options: SelectDropdownOptions<T>) {
     options.label.labelText === "preset"
       ? options.label.preset
       : // FIXME: correct label for multiselect
-        Object.entries(options.options).find(([key, value]) => value.selected)?.[0] ??
+        Object.values(options.options).find((value) => value.selected)?.text ??
         options.label.fallback ??
         t("global.select_dropdown.default_fallback");
 
   return (
     <TogglableDropdown
-      dropdownClass={`${styles.dropdown} ${options.dropdownClass || ""}`}
+      dropdownClass={styles.dropdown}
       buttonId={options.buttonId}
       label={labelValue()}
       labelClass={options.labelClass}
@@ -112,7 +113,7 @@ export default function SelectDropdown<T>(options: SelectDropdownOptions<T>) {
                 ref={ref}
               >
                 <Fa icon={faCheck} class={styles.option__check} />
-                {key}
+                {option.text}
               </li>
             );
           }}

@@ -1,14 +1,7 @@
-.container {
-  position: relative;
-  display: flex;
-}
-
 .dropdown {
-  padding: 0.5em 0 !important;
-  background-color: var(--clr-neutral-8);
-  border: 1px solid var(--clr-neutral-7);
-  border-radius: 0.5em;
-  z-index: var(--dropdown-z-index);
+  overflow: auto;
+  max-height: 50dvh;
+  scrollbar-width: thin;
 }
 
 .toggle {
@@ -30,11 +23,6 @@
 
 .toggle[aria-checked="true"] .toggle__icon {
   rotate: 180deg;
-}
-
-.toggleDefault {
-  background-color: var(--clr-neutral-7);
-  border-radius: 4px;
 }
 
 .options {

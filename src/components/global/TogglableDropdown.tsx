@@ -9,6 +9,7 @@ import { UseFloatingOptions } from "solid-floating-ui";
 import { flip, offset, OffsetOptions, shift } from "@floating-ui/dom";
 
 export interface TogglableDropdownOptions {
+  floatingContainerClass?: JSX.HTMLAttributes<HTMLElement>["class"];
   label: string;
   labelClass?: JSX.HTMLAttributes<HTMLElement>["class"];
   dropdownClass?: JSX.HTMLAttributes<HTMLElement>["class"];
@@ -31,34 +32,36 @@ export default function TogglableDropdown(options: TogglableDropdownOptions) {
 
   return (
     <FloatingElement
-      class={styles.dropdown}
       ref={setDropdownElement}
+      class={`${styles.dropdownBase} ${options.floatingContainerClass || ""}`}
       content={
-        <Show when={open()}>
-          <div
-            class={options.dropdownClass || styles.toggleDefault}
-            id={id}
-            on:focusout={(event) => {
-              if (event.relatedTarget != null) {
-                if (event.relatedTarget instanceof HTMLElement && event.relatedTarget.dataset.labelBtn === id) {
-                  return; // don't fire here if focus is moved to the toggle button, let it close through its click handler
-                }
+        <div
+          class={`${styles.dropdownDefault} ${options.dropdownClass || ""}`}
+          classList={{
+            [styles.dropdownOpen]: open(),
+          }}
+          id={id}
+          on:focusout={(event) => {
+            if (event.relatedTarget != null) {
+              if (event.relatedTarget instanceof HTMLElement && event.relatedTarget.dataset.labelBtn === id) {
+                return; // don't fire here if focus is moved to the toggle button, let it close through its click handler
               }
-              if (dropdownElement()!.matches(":focus-within")) return;
+            }
+            if (dropdownElement()!.matches(":focus-within")) return;
 
-              setOpen(false);
-            }}
-            tabindex="0"
-            ref={dropdownContainer}
-          >
-            {options.children}
-          </div>
-        </Show>
+            setOpen(false);
+          }}
+          tabindex="0"
+          ref={dropdownContainer}
+        >
+          {options.children}
+        </div>
       }
       options={{
         middleware: [flip(), shift(), offset(options.offset)],
         ...options.dropdownOptions,
       }}
+      hidden={!open()}
     >
       <button
         type="button"

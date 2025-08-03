@@ -56,12 +56,11 @@ export default function Console() {
   function getSelectConnectionOptions() {
     // track updates
     connectionsUpdate();
-    return Object.fromEntries(
-      Array.from(connections.keys()).map((id) => [
-        id.toString(),
-        { value: id, selected: id === focusedConnection()?.id },
-      ]),
-    );
+    return Array.from(connections.keys()).map((id) => ({
+      text: id.toString(),
+      value: id,
+      selected: id === focusedConnection()?.id,
+    }));
   }
 
   const [visibleLevels, setVisibleLevels] = createStore<VisibleLevels>({
@@ -206,7 +205,9 @@ function ConsoleEvent(event: Event, visibleLevels: VisibleLevels, searchInput: (
     case "Output": {
       const levelKey = OUTPUT_CHANNEL_LABELS[event.channel];
       const visibleByLevels = createMemo(() => visibleLevels[levelKey]);
-      const visibleBySearch = createMemo(() => !("Unicode" in event.line) || event.line.Unicode.includes(searchInput()));
+      const visibleBySearch = createMemo(
+        () => !("Unicode" in event.line) || event.line.Unicode.includes(searchInput()),
+      );
       visibleTmp = createMemo(() => visibleByLevels() && visibleBySearch());
       break;
     }

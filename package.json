@@ -17,7 +17,7 @@
   },
   "license": "UNLICENSED",
   "dependencies": {
-    "@floating-ui/dom": "^1.7.2",
+    "@floating-ui/dom": "^1.7.3",
     "@fortawesome/free-regular-svg-icons": "^6.7.2",
     "@fortawesome/free-solid-svg-icons": "^6.7.2",
     "@solid-primitives/i18n": "2.2.1",
