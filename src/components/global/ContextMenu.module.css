@@ -1,0 +1,25 @@
+.contextMenu {
+  display: flex;
+  flex-direction: column;
+}
+
+.contextMenuItem {
+  button {
+    color: var(--clr-neutral-2);
+    font-size: 0.9rem;
+    display: block;
+    padding: 0.35em 0.5em;
+    border-radius: 0;
+    width: 100%;
+    text-align: left;
+
+    &:hover {
+      color: var(--clr-neutral-1);
+    }
+  }
+}
+
+.contextMenuSpacer {
+  margin-block: 0.35em;
+  background-color: var(--clr-neutral-7);
+}

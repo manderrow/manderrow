@@ -452,7 +452,7 @@ function ModView(props: { mod: Mod | undefined; gameId: string; closeModView: ()
       name: "Dependencies",
       component: () => (
         <Show when={props.mod}>
-          {(mod) => <For each={modVersionData(mod()).dependencies}>{(dependency) => <p>{dependency}</p>}</For>}
+          {(mod) => <ModViewDependencies dependencies={modVersionData(mod()).dependencies} />}
         </Show>
       ),
     },
@@ -669,6 +669,21 @@ function ModView(props: { mod: Mod | undefined; gameId: string; closeModView: ()
         </Show>
       </div>
     </div>
+  );
+}
+
+function ModViewDependencies(props: { dependencies: string[] }) {
+  return (
+    <ul class={styles.modDeps}>
+      <For each={props.dependencies}>
+        {(dependency) => (
+          <li class={styles.dependency}>
+            <img src="" alt="" class={styles.dependencyIcon} />
+            {dependency}
+          </li>
+        )}
+      </For>
+    </ul>
   );
 }
 

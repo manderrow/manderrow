@@ -317,6 +317,23 @@
   }
 }
 
+.modDeps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  padding-right: 1em;
+
+  .dependency {
+    padding: 0.5em;
+    border: 1px solid var(--clr-neutral-7);
+    border-radius: 4px;
+
+    .dependencyIcon {
+      margin-right: 0.5em;
+    }
+  }
+}
+
 .tabs {
   border-bottom: 1px solid var(--clr-neutral-7);
   overflow-x: auto;

@@ -7,6 +7,7 @@ import {
   For,
   Match,
   onCleanup,
+  onMount,
   Show,
   Switch,
 } from "solid-js";
@@ -27,6 +28,12 @@ import {
   faXmark,
   faThumbTackSlash,
   faAnglesRight,
+  faEllipsis,
+  faCopy,
+  faClone,
+  faClipboard,
+  faFolderOpen,
+  faShare,
 } from "@fortawesome/free-solid-svg-icons";
 import { OverlayScrollbarsComponent } from "overlayscrollbars-solid";
 import { Fa } from "solid-fa";
@@ -57,6 +64,7 @@ import { ActionContext } from "../../components/global/AsyncButton.tsx";
 import StatusBar from "../../components/profile/StatusBar.tsx";
 import { setCurrentProfileName } from "../../components/global/TitleBar.tsx";
 import Tooltip from "../../components/global/Tooltip.tsx";
+import ContextMenu from "../../components/global/ContextMenu.tsx";
 
 interface ProfileParams {
   profileId?: string;
@@ -424,55 +432,163 @@ function SidebarProfileComponent(props: {
 
   const [renaming, setRenaming] = createSignal(false);
 
+  const [shifting, setShifting] = createSignal(false);
+
+  function onShiftDown(e: KeyboardEvent) {
+    if (e.key === "Shift") setShifting(true);
+  }
+  function onShiftUp(e: KeyboardEvent) {
+    if (e.key === "Shift") setShifting(false);
+  }
+
+  onMount(() => {
+    document.addEventListener("keydown", onShiftDown);
+    document.addEventListener("keyup", onShiftUp);
+  });
+
+  onCleanup(() => {
+    document.removeEventListener("keydown", onShiftDown);
+    document.removeEventListener("keyup", onShiftUp);
+  });
+
+  const ellipsisAnchorId = createUniqueId();
+
   return (
     <li class={sidebarStyles.profileList__item}>
       <Show
         when={renaming()}
         fallback={
           <>
-            <A class={sidebarStyles.profileList__itemName} href={`/profile/${props.gameId}/${props.profile.id}`}>
+            <A
+              class={sidebarStyles.profileList__itemName}
+              href={`/profile/${props.gameId}/${props.profile.id}`}
+              onDblClick={() => setRenaming(true)}
+            >
               {props.profile.name}
             </A>
             <div class={sidebarStyles.profileItem__options}>
               <ActionContext>
                 {(busy, wrapAction) => (
-                  <button
-                    data-pin
-                    title={t("profile.sidebar.pin_profile_ptn")}
-                    disabled={busy()}
-                    on:click={async (e) => {
-                      e.stopPropagation();
-                      await wrapAction(async () => {
-                        try {
-                          const obj: ProfileWithId = { ...props.profile };
-                          const id = obj.id;
-                          // @ts-ignore I want to remove the property
-                          delete obj.id;
-                          obj.pinned = !obj.pinned;
-                          await overwriteProfileMetadata(id, obj);
-                        } finally {
-                          await props.refetchProfiles();
-                        }
-                      });
-                    }}
+                  <Tooltip
+                    content={
+                      props.profile.pinned
+                        ? t("profile.sidebar.unpin_profile_btn")
+                        : t("profile.sidebar.pin_profile_btn")
+                    }
                   >
-                    <Fa icon={props.profile.pinned ? faThumbTackSlash : faThumbTack} rotate={90} />
-                  </button>
+                    <button
+                      data-pin
+                      disabled={busy()}
+                      on:click={async (e) => {
+                        e.stopPropagation();
+                        await wrapAction(async () => {
+                          try {
+                            const obj: ProfileWithId = { ...props.profile };
+                            const id = obj.id;
+                            // @ts-ignore I want to remove the property
+                            delete obj.id;
+                            obj.pinned = !obj.pinned;
+                            await overwriteProfileMetadata(id, obj);
+                          } finally {
+                            await props.refetchProfiles();
+                          }
+                        });
+                      }}
+                    >
+                      <Fa icon={props.profile.pinned ? faThumbTackSlash : faThumbTack} rotate={90} />
+                    </button>
+                  </Tooltip>
                 )}
               </ActionContext>
-              <button data-pin title={t("profile.sidebar.rename_profile_btn")} on:click={() => setRenaming(true)}>
-                <Fa icon={faPenToSquare} />
-              </button>
-              <button
-                data-delete
-                title={t("profile.sidebar.delete_profile_btn")}
-                on:click={() => setConfirmingDeletion(true)}
-              >
-                <Fa icon={faTrashCan} />
-              </button>
-              <button data-export title={t("profile.sidebar.export_profile_btn")}>
-                <Fa icon={faFileExport} />
-              </button>
+              <Show when={shifting()}>
+                <Tooltip content={t("profile.sidebar.duplicate_profile_btn")}>
+                  <button data-duplicate>
+                    <Fa icon={faCopy} />
+                  </button>
+                </Tooltip>
+                <Tooltip content={t("profile.sidebar.copy_id_profile_btn")}>
+                  <button data-copy-id>
+                    <Fa icon={faClipboard} />
+                  </button>
+                </Tooltip>
+                <Tooltip content={t("profile.sidebar.delete_profile_btn")}>
+                  <button data-delete>
+                    <Fa icon={faTrashCan} />
+                  </button>
+                </Tooltip>
+              </Show>
+              <Tooltip content={t("profile.sidebar.ellipsis_btn")} anchorId={ellipsisAnchorId}>
+                <ContextMenu
+                  anchorId={ellipsisAnchorId}
+                  items={[
+                    {
+                      label: (
+                        <>
+                          <Fa icon={faPenToSquare} /> {t("profile.sidebar.rename_profile_btn")}
+                        </>
+                      ),
+                      action() {
+                        setRenaming(true);
+                      },
+                    },
+                    {
+                      label: (
+                        <>
+                          <Fa icon={faTrashCan} /> {t("profile.sidebar.delete_profile_btn")}
+                        </>
+                      ),
+                      action() {
+                        setConfirmingDeletion(true);
+                      },
+                    },
+                    {
+                      label: (
+                        <>
+                          <Fa icon={faCopy} /> {t("profile.sidebar.duplicate_profile_btn")}
+                        </>
+                      ),
+                      action() {
+                        // TODO: implement duplicate profile
+                      },
+                    },
+                    {
+                      label: (
+                        <>
+                          <Fa icon={faShare} /> {t("profile.sidebar.share_profile_btn")}
+                        </>
+                      ),
+                      action() {
+                        // TODO: implement share profile
+                      },
+                    },
+                    {
+                      label: "spacer",
+                    },
+                    {
+                      label: (
+                        <>
+                          <Fa icon={faClipboard} /> {t("profile.sidebar.copy_id_profile_btn")}
+                        </>
+                      ),
+                      action() {
+                        // TODO: implement copy profile ID
+                      },
+                    },
+                    {
+                      label: (
+                        <>
+                          <Fa icon={faFolderOpen} /> {t("profile.sidebar.open_folder_profile_btn")}
+                        </>
+                      ),
+                      action() {
+                        // TODO: implement open folder
+                      },
+                    },
+                  ]}
+                >
+                  <Fa icon={faEllipsis} />
+                </ContextMenu>
+              </Tooltip>
             </div>
 
             <Show when={confirmingDeletion()}>

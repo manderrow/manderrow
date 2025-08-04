@@ -10,11 +10,13 @@ import { flip, offset, OffsetOptions, shift } from "@floating-ui/dom";
 
 export interface TogglableDropdownOptions {
   floatingContainerClass?: JSX.HTMLAttributes<HTMLElement>["class"];
-  label: string;
+  label: string | JSX.Element;
   labelClass?: JSX.HTMLAttributes<HTMLElement>["class"];
   dropdownClass?: JSX.HTMLAttributes<HTMLElement>["class"];
-  buttonId?: string;
+  labelBtnFocusable?: boolean;
+  hideCaret?: boolean;
   children: JSX.Element;
+  anchorId?: string; // Explicit ID of element to anchor to (needed for multiple floating elements on the same anchor)
   dropdownOptions?: UseFloatingOptions<HTMLElement, HTMLElement>;
   offset?: OffsetOptions;
 }
@@ -64,16 +66,19 @@ export default function TogglableDropdown(options: TogglableDropdownOptions) {
       hidden={!open()}
     >
       <button
+        id={options.anchorId}
         type="button"
-        id={options.buttonId}
+        data-anchor-id={options.anchorId}
         classList={{ [styles.toggle]: true, [options.labelClass || styles.labelDefault]: true }}
         role="checkbox"
         data-label-btn={id}
         aria-checked={open()}
         on:click={() => setOpen((checked) => !checked)}
-        tabindex="-1"
+        tabindex={options.labelBtnFocusable ? "0" : "-1"}
       >
-        <Fa icon={faCaretDown} class={styles.toggle__icon} />
+        <Show when={!options.hideCaret}>
+          <Fa icon={faCaretDown} />
+        </Show>
         {options.label}
       </button>
     </FloatingElement>

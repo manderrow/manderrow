@@ -76,10 +76,15 @@
       "create_profile_tooltip": "Create new profile",
       "import_profile_tooltip": "Import profile",
 
-      "pin_profile_ptn": "Pin",
+      "ellipsis_btn": "More",
+      "pin_profile_btn": "Pin",
+      "unpin_profile_btn": "Unpin",
       "rename_profile_btn": "Rename",
       "delete_profile_btn": "Delete",
-      "export_profile_btn": "Export"
+      "duplicate_profile_btn": "Duplicate",
+      "copy_id_profile_btn": "Copy UUID",
+      "open_folder_profile_btn": "Open Folder",
+      "share_profile_btn": "Share"
     }
   },
 

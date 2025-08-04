@@ -14,9 +14,8 @@
   pointer-events: none;
 }
 
-*:hover + .tooltip,
-*:focus-visible + .tooltip {
-  pointer-events: initial;
+[data-anchor]:hover + .tooltip,
+[data-anchor]:focus-visible + .tooltip {
   visibility: visible;
   opacity: 1;
   transition-delay: var(--tooltip-delay-start, 0.1s);
