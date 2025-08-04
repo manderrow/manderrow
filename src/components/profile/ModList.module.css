@@ -143,10 +143,6 @@
       flex-shrink: 0;
     }
 
-    .info:first-child {
-      margin-bottom: 0.2em;
-    }
-
     .separator {
       color: var(--clr-neutral-6);
       font-weight: 400;
@@ -155,7 +151,7 @@
 
     .left,
     .right {
-      gap: 0.25em;
+      gap: 0.35em;
     }
 
     .left {
