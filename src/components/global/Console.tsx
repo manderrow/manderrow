@@ -3,10 +3,12 @@ import {
   Match,
   Show,
   Switch,
+  createEffect,
   createMemo,
   createRenderEffect,
   createSignal,
   createUniqueId,
+  onCleanup,
   onMount,
   useContext,
 } from "solid-js";
@@ -76,29 +78,31 @@ export default function Console() {
 
   let consoleContainer!: HTMLDivElement;
 
+  let userScrolling = false;
+
+  function setScrolling() {
+    userScrolling = consoleContainer.scrollHeight - consoleContainer.clientHeight > consoleContainer.scrollTop + 4;
+  }
+
   onMount(() => {
-    createRenderEffect(() => {
-      focusedConnection()?.events().length;
+    consoleContainer.addEventListener("scroll", setScrolling);
+  });
 
-      // If no overflow yet, don't try to set overflowed to true by returning here
-      if (
-        consoleContainer.scrollHeight === consoleContainer.clientHeight &&
-        consoleContainer.dataset.overflowed === "false"
-      )
-        return;
+  onCleanup(() => {
+    consoleContainer.removeEventListener("scroll", setScrolling);
+  });
 
-      // If at bottom of scroll, scroll to the new bottom position after DOM updates,
-      // and set overflowed to true to stop always scrolling to bottom
-      if (
-        consoleContainer.scrollHeight - consoleContainer.clientHeight <= consoleContainer.scrollTop + 1 ||
-        consoleContainer.dataset.overflowed === "false"
-      ) {
-        queueMicrotask(() => {
-          consoleContainer.scrollTop = consoleContainer.scrollHeight - consoleContainer.clientHeight;
-          consoleContainer.dataset.overflowed = "true";
-        });
-      }
+  function scrollToBottom() {
+    consoleContainer.scrollTo({
+      top: consoleContainer.scrollHeight - consoleContainer.clientHeight,
+      behavior: "instant",
     });
+  }
+
+  createEffect(() => {
+    focusedConnection()?.events().length;
+
+    if (!userScrolling) scrollToBottom();
   });
 
   const [searchInput, setSearchInput] = createSignal("");
@@ -177,7 +181,7 @@ export default function Console() {
           </div>
         </div>
       </header>
-      <div class={styles.console} ref={consoleContainer} data-overflowed="false">
+      <div class={styles.console} ref={consoleContainer}>
         <For each={focusedConnection()?.events()} fallback={<p>Game not running.</p>}>
           {(event) => ConsoleEvent(event, visibleLevels, searchInput)}
         </For>

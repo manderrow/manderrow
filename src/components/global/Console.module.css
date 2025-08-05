@@ -78,9 +78,11 @@
 
 .console {
   max-width: 100%;
+  flex-grow: 1;
   display: grid;
   grid-template-columns: auto auto 1fr;
   grid-auto-rows: auto;
+  align-content: start;
   row-gap: 2px;
   column-gap: 8px;
   overflow-y: scroll;
