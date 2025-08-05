@@ -640,7 +640,12 @@ function ModView(props: { mod: Mod | undefined; gameId: string; closeModView: ()
                               />
 
                               <InstallButton
-                                mod={listing()}
+                                mod={
+                                  {
+                                    ...removeProperty(listing(), "versions"),
+                                    version: listing().versions[selectedVersion()?.[1] ?? 0],
+                                  } as ModPackage
+                                }
                                 installContext={installContext!}
                                 class={styles.downloadBtn}
                               >
@@ -839,7 +844,7 @@ function InstallButton(props: {
         let foundDownloadTask = false;
         await installProfileMod(
           props.installContext.profileId(),
-          "versions" in props.mod ? removeProperty(props.mod, "versions") : props.mod,
+          "versions" in props.mod ? removeProperty(props.mod, "versions") : removeProperty(props.mod, "version"),
           "versions" in props.mod ? props.mod.versions[0] : props.mod.version,
           (event) => {
             if (!foundDownloadTask && event.event === "dependency") {
