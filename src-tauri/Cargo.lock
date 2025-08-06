@@ -356,6 +356,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
 
 [[package]]
+name = "bepinex-cfg"
+version = "0.1.0"
+source = "git+https://git.pfaff.dev/michael/starling#f96b89125b4e426c56ae9caabf65df1a4b3b0de3"
+dependencies = [
+ "miette",
+ "thiserror 2.0.12",
+]
+
+[[package]]
 name = "bincode"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2649,6 +2658,7 @@ dependencies = [
  "anyhow",
  "async-compression",
  "base64 0.22.1",
+ "bepinex-cfg",
  "bincode",
  "blake3",
  "bytes",

@@ -4,7 +4,7 @@ use anyhow::Context;
 use tauri::{ipc::Response, AppHandle, Emitter};
 use uuid::Uuid;
 
-use crate::CommandError;
+use crate::{configs::ReadConfigOptions, CommandError};
 
 use super::{File, Patch};
 
@@ -25,15 +25,20 @@ pub async fn scan_mod_configs(profile: Uuid) -> Result<Response, CommandError> {
 }
 
 #[tauri::command]
-pub async fn read_mod_config(profile: Uuid, path: PathBuf) -> Result<File, CommandError> {
-    Ok(super::read_config(profile, &path).await?)
+pub async fn read_mod_config(
+    profile: Uuid,
+    path: PathBuf,
+    options: ReadConfigOptions,
+) -> Result<File, CommandError> {
+    Ok(super::read_config(profile, &path, options).await?)
 }
 
 #[tauri::command]
 pub async fn update_mod_config(
     profile: Uuid,
     path: PathBuf,
+    options: ReadConfigOptions,
     patches: Vec<Patch>,
 ) -> Result<File, CommandError> {
-    Ok(super::update_config(profile, &path, &patches).await?)
+    Ok(super::update_config(profile, &path, options, &patches).await?)
 }
