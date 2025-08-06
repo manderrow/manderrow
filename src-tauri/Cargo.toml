@@ -48,6 +48,7 @@ bincode = "2"
 rkyv = { version = "0.8.10", features = ["smol_str-0_3", "uuid-1"] }
 rkyv_intern = { git = "https://github.com/mpfaff/rkyv_intern", version = "0.1.0" }
 
+bepinex-cfg = { package = "bepinex-cfg", git = "https://git.pfaff.dev/michael/starling" }
 vdf = { package = "vdf", git = "https://git.pfaff.dev/michael/starling" }
 
 # general
