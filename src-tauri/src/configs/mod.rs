@@ -1,9 +1,13 @@
 pub mod commands;
 
-use std::path::{Path, PathBuf};
+use std::{
+    path::{Path, PathBuf},
+    str::FromStr,
+};
 
 use anyhow::{bail, Context, Result};
 use indexmap::IndexMap;
+use serde_json::Number;
 use smol_str::SmolStr;
 use uuid::Uuid;
 
@@ -81,18 +85,82 @@ pub enum File {
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct Section {
     path: Vec<PathComponent>,
+    #[serde(flatten)]
+    annotations: Annotations,
     value: Value,
 }
 
-#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, Default, serde::Serialize)]
+pub struct Annotations {
+    docs: Option<String>,
+    default_value: Option<Value>,
+    type_hint: Option<TypeHint>,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(tag = "type")]
+pub enum TypeHint {
+    Bool,
+    Int {
+        min: Option<i64>,
+        max: Option<Int>,
+    },
+    Float,
+    Enum {
+        values: Vec<Value>,
+        multiple: bool,
+    },
+    String,
+    Array {
+        /// The type of items in the array.
+        item: Option<Box<TypeHint>>,
+    },
+    Object {
+        /// The types of the values of the object.
+        entries: IndexMap<SmolStr, Annotations>,
+    },
+}
+
+#[derive(Debug, Clone, Copy, serde::Serialize)]
 #[serde(untagged)]
+pub enum Int {
+    PosOrZero(u64),
+    Neg(i64),
+}
+
+impl Int {
+    pub fn from_signed<T: Into<i64>>(value: T) -> Self {
+        match value.into() {
+            i @ 0.. => Self::PosOrZero(i as u64),
+            i => Self::Neg(i),
+        }
+    }
+
+    pub fn from_unsigned<T: Into<u64>>(value: T) -> Self {
+        Self::PosOrZero(value.into())
+    }
+}
+
+impl FromStr for Int {
+    type Err = std::num::ParseIntError;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        s.parse::<u64>()
+            .map(Self::PosOrZero)
+            .or_else(|_| s.parse::<i64>().map(Self::Neg))
+    }
+}
+
+#[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
+#[serde(tag = "type")]
 pub enum Value {
     Null,
     Bool(bool),
-    Number(serde_json::Number),
-    String(String),
+    Integer(SmolStr),
+    Float(SmolStr),
+    String(SmolStr),
     Array(Vec<Value>),
-    Object(IndexMap<String, Value>),
+    Object(IndexMap<SmolStr, Value>),
 }
 
 pub fn build_config_path(profile: Uuid, path: &Path) -> PathBuf {
@@ -102,11 +170,21 @@ pub fn build_config_path(profile: Uuid, path: &Path) -> PathBuf {
     buf
 }
 
-pub async fn read_config(profile: Uuid, path: &Path) -> Result<File> {
-    read_config_at(&build_config_path(profile, path)).await
+#[derive(Debug, Clone, Copy, Default, serde::Deserialize, serde::Serialize)]
+pub struct ReadConfigOptions {
+    cfg_format: Option<CfgFormat>,
 }
 
-async fn read_config_at(path: &Path) -> Result<File> {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+pub enum CfgFormat {
+    BepInEx,
+}
+
+pub async fn read_config(profile: Uuid, path: &Path, options: ReadConfigOptions) -> Result<File> {
+    read_config_at(&build_config_path(profile, path), options).await
+}
+
+async fn read_config_at(path: &Path, options: ReadConfigOptions) -> Result<File> {
     match path.extension().and_then(|ext| ext.to_str()) {
         Some(s) if s.eq_ignore_ascii_case("txt") => {
             let content = tokio::fs::read_to_string(&path).await?;
@@ -137,6 +215,8 @@ async fn read_config_at(path: &Path) -> Result<File> {
             })
         }
         Some(s) if s.eq_ignore_ascii_case("json") => {
+            // TODO: lossless parser
+            // FIXME: parse numbers
             let content = tokio::fs::read_to_string(&path).await?;
             let content = serde_json::from_str::<IndexMap<String, Value>>(&content)?;
             Ok(File::Config {
@@ -145,8 +225,21 @@ async fn read_config_at(path: &Path) -> Result<File> {
                     .map(|(k, v)| Section {
                         path: vec![PathComponent::Key(k.into())],
                         value: v,
+                        // TODO: consider building type hints from existing structure or spec if it can be detected
+                        annotations: Annotations {
+                            docs: None,
+                            default_value: None,
+                            type_hint: None,
+                        },
                     })
                     .collect(),
+            })
+        }
+        Some(s)
+            if options.cfg_format == Some(CfgFormat::BepInEx) && s.eq_ignore_ascii_case("cfg") =>
+        {
+            tokio::task::block_in_place(|| {
+                read_config_from_bepinex_cfg(std::fs::File::open(&path)?)
             })
         }
         Some(s) if s.eq_ignore_ascii_case("cfg") || s.eq_ignore_ascii_case("ini") => {
@@ -162,9 +255,10 @@ async fn read_config_at(path: &Path) -> Result<File> {
                             .collect::<Vec<_>>(),
                         value: Value::Object(
                             p.into_iter()
-                                .map(|(k, v)| (k.to_owned(), Value::String(v.to_owned())))
+                                .map(|(k, v)| (k.into(), Value::String(v.into())))
                                 .collect(),
                         ),
+                        annotations: Annotations::default(),
                     })
                     .collect(),
             })
@@ -173,11 +267,198 @@ async fn read_config_at(path: &Path) -> Result<File> {
     }
 }
 
+// TODO: tests
+fn read_config_from_bepinex_cfg(
+    rdr: impl std::io::Read,
+) -> std::result::Result<File, anyhow::Error> {
+    use bepinex_cfg::Event;
+    let mut rdr = bepinex_cfg::Reader::new(rdr);
+    type SectionMap<V> = IndexMap<SmolStr, V>;
+    let mut sections = IndexMap::<SmolStr, SectionMap<Value>>::default();
+    let mut section = None::<&mut SectionMap<Value>>;
+    let mut sections_annos = IndexMap::<SmolStr, SectionMap<Annotations>>::default();
+    let mut section_annos = None::<&mut SectionMap<Annotations>>;
+    let mut entry_anno = Annotations::default();
+    while let Some(event) = rdr.next()? {
+        match event {
+            Event::SectionStart { name, .. } => {
+                section = None;
+                section = Some(sections.entry(name.into()).or_default());
+                section_annos = None;
+                section_annos = Some(sections_annos.entry(name.into()).or_default());
+            }
+            Event::DocComment {
+                pre_whitespace,
+                text,
+            } => {
+                if let Some(ref mut s) = entry_anno.docs {
+                    s.push('\n');
+                    s.push_str(text);
+                } else {
+                    entry_anno.docs = Some(text.to_owned());
+                }
+            }
+            Event::TypeAnnotation {
+                pre_whitespace,
+                literal_prefix,
+                type_name,
+            } => {
+                entry_anno.type_hint = match type_name {
+                    "Boolean" => Some(TypeHint::Bool),
+                    // keep existing type hint
+                    "Int16" | "Int32" | "Int64" | "UInt16" | "UInt32" | "UInt64"
+                        if matches!(entry_anno.type_hint, Some(TypeHint::Int { .. })) =>
+                    {
+                        entry_anno.type_hint
+                    }
+                    "Int16" => Some(TypeHint::Int {
+                        min: Some(i16::MIN.into()),
+                        max: Some(Int::from_signed(i16::MAX)),
+                    }),
+                    "Int32" => Some(TypeHint::Int {
+                        min: Some(i32::MIN.into()),
+                        max: Some(Int::from_signed(i32::MAX)),
+                    }),
+                    "Int64" => Some(TypeHint::Int {
+                        min: Some(i64::MIN),
+                        max: Some(Int::from_signed(i64::MAX)),
+                    }),
+                    "UInt16" => Some(TypeHint::Int {
+                        min: Some(0),
+                        max: Some(Int::from_unsigned(u16::MAX)),
+                    }),
+                    "UInt32" => Some(TypeHint::Int {
+                        min: Some(0),
+                        max: Some(Int::from_unsigned(u32::MAX)),
+                    }),
+                    "UInt64" => Some(TypeHint::Int {
+                        min: Some(0),
+                        max: Some(Int::from_unsigned(u64::MAX)),
+                    }),
+                    "Single" | "Double" => Some(TypeHint::Float),
+                    "String" => Some(TypeHint::String),
+                    // keep existing type hint
+                    _ => entry_anno.type_hint,
+                };
+            }
+            Event::ValueRange {
+                pre_whitespace,
+                literal_prefix,
+                from,
+                literal_delimiter,
+                to,
+            } => {
+                if entry_anno.type_hint.is_none() {
+                    entry_anno.type_hint = Some(TypeHint::Int {
+                        min: None,
+                        max: None,
+                    });
+                }
+                if let Some(TypeHint::Int { min, max }) = &mut entry_anno.type_hint {
+                    *min = from.parse::<i64>().ok();
+                    *max = to.parse::<Int>().ok();
+                }
+            }
+            Event::EnumValues {
+                pre_whitespace,
+                literal_prefix,
+                values,
+            } => {
+                if matches!(entry_anno.type_hint, None | Some(TypeHint::Enum { .. })) {
+                    entry_anno.type_hint = Some(TypeHint::Enum {
+                        values: values
+                            .split(", ")
+                            .map(|s| Value::String(s.into()))
+                            .collect(),
+                        multiple: match entry_anno.type_hint {
+                            Some(TypeHint::Enum { multiple, .. }) => multiple,
+                            _ => false,
+                        },
+                    });
+                }
+            }
+            Event::EnumMultiValue {
+                pre_whitespace,
+                literal,
+                post_whitespace,
+            } => {
+                if matches!(entry_anno.type_hint, None | Some(TypeHint::Enum { .. })) {
+                    entry_anno.type_hint = Some(TypeHint::Enum {
+                        values: match entry_anno.type_hint {
+                            Some(TypeHint::Enum { values, .. }) => values,
+                            _ => Vec::new(),
+                        },
+                        multiple: true,
+                    });
+                }
+            }
+            Event::DefaultValue {
+                pre_whitespace,
+                literal_prefix,
+                value,
+            } => entry_anno.default_value = Some(parse_bepinex_value(value)),
+            Event::Comment {
+                pre_whitespace,
+                text,
+            } => {}
+            Event::Entry {
+                pre_whitespace,
+                key,
+                post_key_whitespace,
+                pre_value_whitespace,
+                value,
+            } => {
+                if let Some(section) = section {
+                    let section_annos = *section_annos.as_mut().unwrap();
+                    section.insert(key.into(), parse_bepinex_value(value));
+                    section_annos.insert(key.into(), std::mem::take(&mut entry_anno));
+                }
+            }
+            Event::FileEnd { whitespace } => todo!(),
+        }
+    }
+    Ok(File::Config {
+        sections: sections
+            .into_iter()
+            .zip(sections_annos.into_values())
+            .map(|((name, entries), annos)| Section {
+                path: vec![PathComponent::Key(name)],
+                annotations: Annotations {
+                    docs: None,
+                    default_value: None,
+                    type_hint: Some(TypeHint::Object { entries: annos }),
+                },
+                value: Value::Object(entries),
+            })
+            .collect(),
+    })
+}
+
+fn parse_bepinex_value(value: &str) -> Value {
+    if let Ok(b) = value.parse() {
+        return Value::Bool(b);
+    }
+    if value.parse::<u64>().is_ok() || value.parse::<i64>().is_ok() {
+        return Value::Integer(value.into());
+    }
+    if let Ok(f) = value.parse::<f64>() {
+        if f.is_finite() {
+            return Value::Float(value.into());
+        }
+    }
+    Value::String(value.into())
+}
+
 /// Updates and returns the config.
-pub async fn update_config(profile: Uuid, path: &Path, patches: &[Patch]) -> Result<File> {
+pub async fn update_config(
+    profile: Uuid,
+    path: &Path,
+    options: ReadConfigOptions,
+    patches: &[Patch],
+) -> Result<File> {
     let path = build_config_path(profile, path);
     match path.extension() {
         _ => bail!("Unsupported config format"),
     }
-    read_config_at(&path).await
+    read_config_at(&path, options).await
 }
