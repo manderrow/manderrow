@@ -10,7 +10,7 @@ import TogglableDropdown, { TogglableDropdownOptions } from "./TogglableDropdown
 interface Option<T> {
   text: string;
   value: T;
-  selected?: boolean;
+  selected: () => boolean;
 }
 
 type LabelTextValue = {
@@ -27,85 +27,44 @@ interface SelectDropdownOptions<T> extends Omit<TogglableDropdownOptions, "child
   label: LabelText;
   options: Option<T>[];
   onChanged: (value: T, selected: boolean) => void;
-  nullable?: boolean;
   multiselect?: boolean;
 }
 
 export default function SelectDropdown<T>(options: SelectDropdownOptions<T>) {
-  const [selected, setSelected] = createStore(Object.fromEntries(options.options.map((option, i) => [i, option])));
-
-  createEffect(() => {
-    batch(() => {
-      // don't want to depend on selected, only options.options
-      untrack(() => {
-        for (const [key, _] of Object.entries(selected)) {
-          if (!options.options.hasOwnProperty(key)) {
-            setSelected(({ [key]: _, ...selected }) => selected);
-          }
-        }
-      });
-      // which is tracked here.
-      for (const [key, value] of Object.entries(options.options)) {
-        setSelected(key, value);
-      }
-    });
-  });
-
   // TODO: use createEffect to support dynamically adding/removing options
   const labelValue = () =>
     options.label.labelText === "preset"
       ? options.label.preset
       : // FIXME: correct label for multiselect
-        Object.values(options.options).find((value) => value.selected)?.text ??
+        options.options.find((value) => value.selected())?.text ??
         options.label.fallback ??
         t("global.select_dropdown.default_fallback");
 
   return (
     <TogglableDropdown
       dropdownClass={styles.dropdown}
-      buttonId={options.buttonId}
       label={labelValue()}
       labelClass={options.labelClass}
       offset={options.offset}
     >
-      <ul class={styles.options}>
-        <For each={Object.entries(options.options)}>
-          {([key, option]) => {
+      <ul class={styles.options} role={options.multiselect === false ? "radiogroup" : "listbox"}>
+        <For each={options.options}>
+          {(option) => {
             let ref!: HTMLLIElement;
 
             function onSelect() {
               // use the cached value here, so the action performed by the
               // UI is **never** out of sync with the displayed value.
               const isSelected = ref.ariaChecked! !== "true";
-
-              if (!isSelected && !options.nullable) {
-                if (
-                  !options.multiselect ||
-                  Object.entries(options.options).find(([otherKey, value]) => value.selected && key !== otherKey) ===
-                    undefined
-                ) {
-                  return;
-                }
-              }
-
-              setSelected(key, "selected", isSelected);
               options.onChanged(option.value, isSelected);
-
-              if (!options.multiselect && isSelected) {
-                for (const other in options.options) {
-                  if (options.options[other].value !== option.value) {
-                    setSelected(other, "selected", false);
-                  }
-                }
-              }
             }
 
             return (
               <li
                 tabIndex={0}
-                role="checkbox"
+                role={options.multiselect === false ? "radio" : "option"}
                 class={styles.option}
-                aria-checked={selected[key].selected}
+                aria-checked={option.selected()}
                 on:click={onSelect}
                 on:keydown={(event) => {
                   if (event.key === "Enter" || event.key === " ") onSelect();

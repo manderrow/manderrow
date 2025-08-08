@@ -117,20 +117,25 @@ export default function ModList(props: {
       try {
         queriedMods.latest;
       } catch {}
-      return selectedModId();
+      return selectedModId() ?? {};
     },
-    (id) => untrack(() => queriedMods.latest.get(id)),
+    (id) => "owner" in id ? untrack(() => queriedMods.latest.get(id as ModId)) : undefined,
   );
 
   createEffect(() => {
     const mod = selectedModId();
 
     if (mod) {
-      const mods = queriedMods.latest;
+      let mods;
+      try {
+        mods = queriedMods.latest;
+      } catch {}
 
       (async () => {
         if (mods) {
-          if (await mods.get(mod)) return;
+          if (await mods.get(mod)) {
+            return;
+          }
         }
 
         setSelectedModId(undefined);
@@ -182,8 +187,8 @@ export default function ModList(props: {
         </Show>
       </div>
 
-      <Show when={selectedMod.error === undefined && selectedMod()}>
-        {(mod) => <ModView mod={mod()} gameId={props.game} closeModView={() => setSelectedModId(undefined)} />}
+      <Show when={selectedMod.error === undefined && selectedMod()} keyed>
+        {(mod) => <ModView mod={mod} gameId={props.game} closeModView={() => setSelectedModId(undefined)} />}
       </Show>
     </div>
   );
@@ -470,17 +475,22 @@ function ModView(props: { mod: Mod | undefined; gameId: string; closeModView: ()
   );
 
   // [string: the version number string, number: the index of the version in the listing versions array]
-  const [selectedVersion, setSelectedVersion] = createSignal<[string, number]>();
+  const [selectedVersion, setSelectedVersion] = createSignal<string>();
 
   const modVersionData = (mod: Mod) => {
-    return "versions" in mod ? mod.versions[selectedVersion()?.[1] ?? 0] : mod.version;
+    if ("versions" in mod) {
+      const selected = selectedVersion();
+      return mod.versions.find(v => v.version_number === selected) ?? mod.versions[0];
+    } else {
+      return mod.version;
+    }
   };
 
   const tabs: Tab<"overview" | "dependencies" | "changelog">[] = [
     {
       id: "overview",
       name: "Overview",
-      component: () => <ModMarkdown mod={props.mod} selectedVersion={selectedVersion()?.[0]} endpoint="readme" />,
+      component: () => <ModMarkdown mod={props.mod} selectedVersion={selectedVersion()} endpoint="readme" />,
     },
     {
       id: "dependencies",
@@ -494,7 +504,7 @@ function ModView(props: { mod: Mod | undefined; gameId: string; closeModView: ()
     {
       id: "changelog",
       name: "Changelog",
-      component: () => <ModMarkdown mod={props.mod} selectedVersion={selectedVersion()?.[0]} endpoint="changelog" />,
+      component: () => <ModMarkdown mod={props.mod} selectedVersion={selectedVersion()} endpoint="changelog" />,
     },
   ];
 
@@ -502,6 +512,8 @@ function ModView(props: { mod: Mod | undefined; gameId: string; closeModView: ()
   const isCurrentTab = createSelector(currentTab);
 
   const installContext = useContext(ModInstallContext);
+
+  const isSelectedVersion = createSelector(selectedVersion);
 
   return (
     <div class={styles.scrollOuter}>
@@ -520,14 +532,15 @@ function ModView(props: { mod: Mod | undefined; gameId: string; closeModView: ()
 
             const modVersionData = () => {
               const modConstant = mod();
-              const versionIndex = selectedVersion()?.[1] ?? 0;
+              const selected = selectedVersion();
+
+              const versions = "versions" in modConstant ? modConstant.versions : modListing?.latest?.versions;
 
               // If online, display the mod listing. Otherwise, in installed, display mod package initially, then
               // mod listing after it loads. Coincidentally, this undefined logic check works as the mod listing
               // loads after the initial mod package is always displayed by default first
-              return "versions" in modConstant
-                ? modConstant.versions[versionIndex]
-                : modListing?.latest?.versions[versionIndex] ?? modConstant.version;
+              return (selected === undefined ? undefined : versions?.find(v => v.version_number === selected))
+                ?? ("versions" in modConstant ? modConstant.versions[0] : modConstant.version);
             };
 
             return (
@@ -614,12 +627,7 @@ function ModView(props: { mod: Mod | undefined; gameId: string; closeModView: ()
                       <div class={styles.modView__onlineActions}>
                         <select
                           class={styles.modView__versions}
-                          onInput={(event) =>
-                            setSelectedVersion([
-                              event.target.value,
-                              parseInt(event.target.selectedOptions[0].dataset.index!, 10),
-                            ])
-                          }
+                          onInput={(event) => setSelectedVersion(event.target.value)}
                         >
                           {/* This entire thing is temporary anyway, it will be removed in a later commit */}
                           <For each={modListing.latest?.versions}>
@@ -664,13 +672,11 @@ function ModView(props: { mod: Mod | undefined; gameId: string; closeModView: ()
                             <>
                               <SelectDropdown
                                 label={{ labelText: "value" }}
-                                onChanged={(value) => {
-                                  setSelectedVersion([listing().versions[value].version_number, value]);
-                                }}
-                                options={(listing().versions ?? []).map((version, i) => ({
+                                onChanged={setSelectedVersion}
+                                options={(listing().versions ?? []).map((version) => ({
                                   text: version.version_number,
-                                  value: i,
-                                  selected: i === selectedVersion()?.[1],
+                                  value: version.version_number,
+                                  selected: () => isSelectedVersion(version.version_number),
                                 }))}
                               />
 
@@ -678,7 +684,7 @@ function ModView(props: { mod: Mod | undefined; gameId: string; closeModView: ()
                                 mod={
                                   {
                                     ...removeProperty(listing(), "versions"),
-                                    version: listing().versions[selectedVersion()?.[1] ?? 0],
+                                    version: listing().versions.find(v => v.version_number === selectedVersion()) ?? listing().versions[0],
                                   } as ModPackage
                                 }
                                 installContext={installContext!}

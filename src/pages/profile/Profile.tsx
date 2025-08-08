@@ -240,10 +240,12 @@ export default function Profile() {
                 {
                   value: "alphabetical",
                   text: "A-Z",
+                  selected: () => false,
                 },
                 {
                   value: "creationDate",
                   text: "Creation Date",
+                  selected: () => false,
                 },
               ]}
               label={{ labelText: "preset", preset: "Sort" }}

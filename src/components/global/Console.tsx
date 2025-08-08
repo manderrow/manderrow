@@ -5,7 +5,7 @@ import {
   Switch,
   createEffect,
   createMemo,
-  createRenderEffect,
+  createSelector,
   createSignal,
   createUniqueId,
   onCleanup,
@@ -55,13 +55,15 @@ const VISIBLE_LEVELS_OPTIONS = [...LOG_LEVELS, "STDOUT", "STDERR"] as const;
 type VisibleLevels = { [k in (typeof VISIBLE_LEVELS_OPTIONS)[number]]: boolean };
 
 export default function Console() {
+  const isFocusedConnection = createSelector<number | undefined, number>(() => focusedConnection()?.id);
+
   function getSelectConnectionOptions() {
     // track updates
     connectionsUpdate();
     return Array.from(connections.keys()).map((id) => ({
       text: id.toString(),
       value: id,
-      selected: id === focusedConnection()?.id,
+      selected: () => isFocusedConnection(id),
     }));
   }
 

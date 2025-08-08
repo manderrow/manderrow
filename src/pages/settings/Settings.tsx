@@ -160,15 +160,16 @@ function GameSelectInput(props: { idPrefix: string; setting: GameSelectSetting }
       }
     }
   }
+  const isSelectedGame = createSelector<string>(() => get(props.setting));
   return (
     <SelectDropdown
       label={{ labelText: "value" }}
       buttonId={`${props.idPrefix}_${props.setting.key}`}
       options={Object.fromEntries(
         games()
-          .map<[string, { value: string; selected: boolean }]>((game) => [
+          .map<[string, { value: string; selected: () => boolean }]>((game) => [
             game.name,
-            { value: game.id, selected: get(props.setting) === game.id },
+            { value: game.id, selected: () => isSelectedGame(game.id) },
           ])
           .sort((a, b) => a[0].localeCompare(b[0])),
       )}
