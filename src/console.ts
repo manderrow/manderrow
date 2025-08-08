@@ -25,12 +25,10 @@ function getOrInitConnection(connId: number): ConsoleConnection {
 })();
 
 listen<IdentifiedC2SMessage>("ipc_message", (event) => {
-  console.log("ipc_message", event.payload);
   getOrInitConnection(event.payload.connId).handleEvent(event.payload);
 });
 
 listen<number>("ipc_closed", (event) => {
-  console.log("ipc_closed", event.payload);
   let conn = connections.get(event.payload);
   if (conn !== undefined) {
     conn.setStatus("disconnected");
@@ -72,7 +70,6 @@ export class ConsoleConnection {
     const conn = new ConsoleConnection(connId);
     connections.set(connId, conn);
     setConnectionsUpdate(connectionsUpdate() + 1);
-    console.log(connId, conn, connections);
     return conn;
   }
 
