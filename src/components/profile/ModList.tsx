@@ -22,6 +22,7 @@ import {
   Signal,
   Switch,
   createContext,
+  createEffect,
   createMemo,
   createResource,
   createSelector,
@@ -31,12 +32,14 @@ import {
 } from "solid-js";
 
 import {
+  ModId,
   ModSortColumn,
   SortOption,
   countModIndex,
   fetchModIndex,
   getFromModIndex,
   installProfileMod,
+  modIdEquals,
   queryModIndex,
   uninstallProfileMod,
 } from "../../api";
@@ -66,6 +69,7 @@ export type Fetcher = (
 ) => Promise<{
   count: number;
   mods: PageFetcher;
+  get: (id: ModId) => Promise<Mod | undefined> | Mod | undefined;
 }>;
 
 export const ModInstallContext = createContext<{
@@ -84,7 +88,7 @@ export default function ModList(props: {
   progress: Progress;
   trailingControls?: JSX.Element;
 }) {
-  const [selectedMod, setSelectedMod] = createSignal<Mod>();
+  const [selectedModId, setSelectedModId] = createSignal<ModId>();
 
   const [profileSortOrder, setProfileSortOrder] = createSignal(false);
   const [query, setQuery] = createSignal("");
@@ -105,8 +109,34 @@ export default function ModList(props: {
       return [props.game, query(), sort()] as [string, string, readonly SortOption<ModSortColumn>[]];
     },
     ([game, query, sort]) => untrack(() => props.mods)(game, query, sort),
-    { initialValue: { mods: async (_: number) => [], count: 0 } },
+    { initialValue: { mods: async (_: number) => [], count: 0, get: (_: ModId) => undefined } },
   );
+
+  const [selectedMod] = createResource(
+    () => {
+      try {
+        queriedMods.latest;
+      } catch {}
+      return selectedModId();
+    },
+    (id) => untrack(() => queriedMods.latest.get(id)),
+  );
+
+  createEffect(() => {
+    const mod = selectedModId();
+
+    if (mod) {
+      const mods = queriedMods.latest;
+
+      (async () => {
+        if (mods) {
+          if (await mods.get(mod)) return;
+        }
+
+        setSelectedModId(undefined);
+      })();
+    }
+  });
 
   return (
     <div class={styles.modListAndView}>
@@ -148,10 +178,13 @@ export default function ModList(props: {
         </div>
 
         <Show when={queriedMods.error === undefined && queriedMods()} keyed>
-          {(mods) => <ModListMods mods={mods.mods} selectedMod={[selectedMod, setSelectedMod]} />}
+          {(mods) => <ModListMods mods={mods.mods} selectedMod={[selectedModId, setSelectedModId]} />}
         </Show>
       </div>
-      <ModView mod={selectedMod()} gameId={props.game} closeModView={() => setSelectedMod(undefined)} />
+
+      <Show when={selectedMod.error === undefined && selectedMod()}>
+        {(mod) => <ModView mod={mod()} gameId={props.game} closeModView={() => setSelectedModId(undefined)} />}
+      </Show>
     </div>
   );
 }
@@ -187,6 +220,7 @@ export function OnlineModList(props: { game: string }) {
               limit: MODS_PER_PAGE,
             })
           ).mods,
+        get: async (id) => (await getFromModIndex(game, [id]))[0],
       };
     };
   };
@@ -257,6 +291,7 @@ export function InstalledModList(props: { game: string }) {
       return {
         count: data.length,
         mods: async (page) => (page === 0 ? data : []),
+        get: (id) => data.find((mod) => modIdEquals(mod, id)),
       };
     };
   };
@@ -659,9 +694,6 @@ function ModView(props: { mod: Mod | undefined; gameId: string; closeModView: ()
                         mod={installed()!}
                         installContext={installContext!}
                         class={styles.modView__uninstall}
-                        onFinished={() => {
-                          props.closeModView();
-                        }}
                       >
                         {t("modlist.installed.uninstall_btn")}
                       </UninstallButton>
@@ -692,7 +724,7 @@ function ModViewDependencies(props: { dependencies: string[] }) {
   );
 }
 
-function ModListMods(props: { mods: PageFetcher; selectedMod: Signal<Mod | undefined> }) {
+function ModListMods(props: { mods: PageFetcher; selectedMod: Signal<ModId | undefined> }) {
   const infiniteScroll = createMemo(() => {
     // this should take readonly, which would make the cast unnecessary
     return createInfiniteScroll(props.mods as (page: number) => Promise<Mod[]>);
@@ -703,9 +735,16 @@ function ModListMods(props: { mods: PageFetcher; selectedMod: Signal<Mod | undef
   const infiniteScrollLoader = (el: Element) => infiniteScroll()[1](el);
   const end = () => infiniteScroll()[2].end();
 
+  const isSelectedMod = createSelector<ModId | undefined, ModId>(
+    props.selectedMod[0],
+    (a, b) => b !== undefined && modIdEquals(a, b),
+  );
+
   return (
     <ol class={`${styles.modList} ${styles.scrollInner}`}>
-      <For each={paginatedMods()}>{(mod) => <ModListItem mod={mod} selectedMod={props.selectedMod} />}</For>
+      <For each={paginatedMods()}>
+        {(mod) => <ModListItem mod={mod} isSelectedMod={isSelectedMod} setSelectedMod={props.selectedMod[1]} />}
+      </For>
       <Show when={!end()}>
         <li use:infiniteScrollLoader>Loading...</li>
       </Show>
@@ -731,7 +770,11 @@ function useInstalled(
   });
 }
 
-function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) {
+function ModListItem(props: {
+  mod: Mod;
+  isSelectedMod: (mod: ModId) => boolean;
+  setSelectedMod: (mod: ModId | undefined) => void;
+}) {
   const displayVersion = createMemo(() => {
     if ("version" in props.mod) return props.mod.version;
     return props.mod.versions[0];
@@ -741,11 +784,25 @@ function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) 
   const installed = useInstalled(installContext, () => props.mod);
 
   function onSelect() {
-    props.selectedMod[1](props.selectedMod[0]() === props.mod ? undefined : props.mod);
+    const isSelected = props.isSelectedMod(props.mod);
+
+    props.setSelectedMod(
+      isSelected
+        ? undefined
+        : {
+            owner: props.mod.owner,
+            name: props.mod.name,
+          },
+    );
   }
 
   return (
-    <li classList={{ [styles.mod]: true, [styles.selected]: props.selectedMod[0]() === props.mod }}>
+    <li
+      classList={{
+        [styles.mod]: true,
+        [styles.selected]: props.isSelectedMod(props.mod),
+      }}
+    >
       <div
         on:click={onSelect}
         onKeyDown={(key) => {
@@ -753,7 +810,7 @@ function ModListItem(props: { mod: Mod; selectedMod: Signal<Mod | undefined> }) 
         }}
         class={styles.mod__btn}
         role="button"
-        aria-pressed={props.selectedMod[0]() === props.mod}
+        aria-pressed={props.isSelectedMod(props.mod)}
         tabIndex={0}
       >
         <img
@@ -877,7 +934,6 @@ function UninstallButton(props: {
   installContext: NonNullable<typeof ModInstallContext.defaultValue>;
   class: JSX.HTMLAttributes<Element>["class"];
   children: JSX.Element;
-  onFinished?: () => void;
 }) {
   return (
     <SimpleAsyncButton
@@ -886,7 +942,6 @@ function UninstallButton(props: {
       onClick={async (_listener) => {
         await uninstallProfileMod(props.installContext.profileId(), props.mod.owner, props.mod.name);
         await props.installContext.refetchInstalled();
-        props.onFinished?.();
       }}
     >
       {props.children}

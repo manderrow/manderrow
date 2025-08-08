@@ -32,20 +32,22 @@ export class AbortedError extends Error {
 }
 
 export function wrapInvoke<T>(f: () => Promise<T>): Promise<T> {
-  return promiseWithErrorStack((async () => {
-    try {
-      return await f();
-    } catch (e: any) {
-      console.error("Error in invoke", e);
-      if (e === "Aborted") {
-        throw new AbortedError();
-      } else if (e instanceof Object && "Error" in e) {
-        throw new NativeError(e.Error.messages, e.Error.backtrace);
-      } else {
-        throw new Error(e.toString());
+  return promiseWithErrorStack(
+    (async () => {
+      try {
+        return await f();
+      } catch (e: any) {
+        console.error("Error in invoke", e);
+        if (e === "Aborted") {
+          throw new AbortedError();
+        } else if (e instanceof Object && "Error" in e) {
+          throw new NativeError(e.Error.messages, e.Error.backtrace);
+        } else {
+          throw new Error(e.toString());
+        }
       }
-    }
-  })());
+    })(),
+  );
 }
 
 export async function getGames(): Promise<Game[]> {
@@ -112,6 +114,10 @@ export type GetFromModIndexResult<ModIds extends readonly ModId[]> = ModIds exte
 export interface ModId {
   owner: string;
   name: string;
+}
+
+export function modIdEquals(a: ModId, b: ModId): boolean {
+  return a.owner === b.owner && a.name === b.name;
 }
 
 export async function getFromModIndex<const ModIds extends readonly ModId[]>(
