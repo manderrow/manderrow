@@ -1,17 +1,16 @@
-import { batch, createEffect, For, untrack } from "solid-js";
+import { For, JSX } from "solid-js";
 import { faCheck } from "@fortawesome/free-solid-svg-icons";
 import Fa from "solid-fa";
-import { createStore } from "solid-js/store";
 import { t } from "../../i18n/i18n";
 
 import styles from "./SelectDropdown.module.css";
 import TogglableDropdown, { TogglableDropdownOptions } from "./TogglableDropdown";
 
-interface Option<T> {
+type Option<T, CustomData = undefined> = {
   text: string;
   value: T;
   selected: () => boolean;
-}
+} & (CustomData extends undefined ? {} : { customData: CustomData });
 
 type LabelTextValue = {
   labelText: "value";
@@ -23,14 +22,17 @@ type LabelTextPreset = {
 };
 type LabelText = LabelTextValue | LabelTextPreset;
 
-interface SelectDropdownOptions<T> extends Omit<TogglableDropdownOptions, "children" | "label" | "dropdownClass"> {
+interface SelectDropdownOptions<T, CustomData = undefined>
+  extends Omit<TogglableDropdownOptions, "children" | "label" | "dropdownClass"> {
   label: LabelText;
-  options: Option<T>[];
+  options: Option<T, CustomData>[];
   onChanged: (value: T, selected: boolean) => void;
+  liRenderer?: (option: Option<T, CustomData>) => JSX.Element;
+  liClass?: string;
   multiselect?: boolean;
 }
 
-export default function SelectDropdown<T>(options: SelectDropdownOptions<T>) {
+export default function SelectDropdown<T, CustomData = undefined>(options: SelectDropdownOptions<T, CustomData>) {
   // TODO: use createEffect to support dynamically adding/removing options
   const labelValue = () =>
     options.label.labelText === "preset"
@@ -63,7 +65,7 @@ export default function SelectDropdown<T>(options: SelectDropdownOptions<T>) {
               <li
                 tabIndex={0}
                 role={options.multiselect === false ? "radio" : "option"}
-                class={styles.option}
+                class={`${styles.option} ${options.liClass || ""}`}
                 aria-checked={option.selected()}
                 on:click={onSelect}
                 on:keydown={(event) => {
@@ -72,7 +74,8 @@ export default function SelectDropdown<T>(options: SelectDropdownOptions<T>) {
                 ref={ref}
               >
                 <Fa icon={faCheck} class={styles.option__check} />
-                {option.text}
+
+                {options.liRenderer ? options.liRenderer(option) : option.text}
               </li>
             );
           }}

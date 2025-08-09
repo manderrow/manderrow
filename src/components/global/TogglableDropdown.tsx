@@ -77,7 +77,7 @@ export default function TogglableDropdown(options: TogglableDropdownOptions) {
         tabindex={options.labelBtnFocusable ? "0" : "-1"}
       >
         <Show when={!options.hideCaret}>
-          <Fa icon={faCaretDown} />
+          <Fa icon={faCaretDown} class={styles.toggle__icon} />
         </Show>
         {options.label}
       </button>

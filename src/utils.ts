@@ -5,6 +5,11 @@ export const roundedNumberFormatter = new Intl.NumberFormat(undefined, {
   maximumSignificantDigits: 3,
   notation: "compact",
 });
+export const dateFormatterMed = new Intl.DateTimeFormat(undefined, {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+});
 const BYTE_UNITS = Object.freeze(["B", "KB", "MB", "GB", "TB"]);
 export function humanizeFileSize(sizeBytes: number, space = false): string {
   const i = sizeBytes === 0 ? 0 : Math.floor(Math.log(sizeBytes) / Math.log(1000));
@@ -30,11 +35,15 @@ export async function promiseWithErrorStack<T>(promise: Promise<T>): Promise<T> 
     if (mStack !== undefined) {
       let stackLines = mStack.split("\n");
       let removed = 0;
-      if (stackLines[0].includes('/src/utils.ts:')) {
+      if (stackLines[0].includes("/src/utils.ts:")) {
         stackLines = stackLines.splice(1);
         removed++;
       }
-      if (stackLines.length !== 0 && stackLines[0].startsWith('promiseWithErrorStack@') && stackLines[0].includes('/src/utils.ts:')) {
+      if (
+        stackLines.length !== 0 &&
+        stackLines[0].startsWith("promiseWithErrorStack@") &&
+        stackLines[0].includes("/src/utils.ts:")
+      ) {
         stackLines = stackLines.splice(1);
         removed++;
       }

@@ -45,7 +45,13 @@ import {
 } from "../../api";
 import { Progress, createProgressProxyStore, initProgress, registerTaskListener, tasks } from "../../api/tasks";
 import { Mod, ModListing, ModPackage, ModVersion } from "../../types";
-import { humanizeFileSize, numberFormatter, removeProperty, roundedNumberFormatter } from "../../utils";
+import {
+  dateFormatterMed,
+  humanizeFileSize,
+  numberFormatter,
+  removeProperty,
+  roundedNumberFormatter,
+} from "../../utils";
 
 import { ActionContext, ProgressStyle, SimpleAsyncButton } from "../global/AsyncButton";
 import ErrorBoundary, { ErrorContext } from "../global/ErrorBoundary.tsx";
@@ -627,21 +633,29 @@ function ModView(props: { mod: Mod | undefined; gameId: string; closeModView: ()
                     when={installed()}
                     fallback={
                       <div class={styles.modView__onlineActions}>
-                        <select
-                          class={styles.modView__versions}
-                          onInput={(event) => setSelectedVersion(event.target.value)}
-                        >
-                          {/* This entire thing is temporary anyway, it will be removed in a later commit */}
-                          <For each={modListing.latest?.versions}>
-                            {(version, i) => {
-                              return (
-                                <option value={version.version_number} data-index={i()}>
-                                  v{version.version_number} {i() === 0 ? "(latest)" : ""}
-                                </option>
-                              );
-                            }}
-                          </For>
-                        </select>
+                        <SelectDropdown<string, { dateCreated: string }>
+                          options={
+                            modListing.latest?.versions.map((version, i) => ({
+                              text: version.version_number,
+                              value: version.version_number,
+                              selected: () =>
+                                selectedVersion() == null && i === 0 ? true : isSelectedVersion(version.version_number),
+                              customData: {
+                                dateCreated: dateFormatterMed.format(new Date(version.date_created)),
+                              },
+                            })) ?? []
+                          }
+                          label={{ labelText: "value" }}
+                          labelClass={styles.modView__versions}
+                          onChanged={(value) => setSelectedVersion(value)}
+                          liClass={styles.modView__versionsItem}
+                          liRenderer={(option) => (
+                            <div>
+                              <p data-version>{option.text}</p>
+                              <p data-date>{option.customData.dateCreated}</p>
+                            </div>
+                          )}
+                        />
                         <InstallButton
                           mod={mod() as ModListing}
                           installContext={installContext!}

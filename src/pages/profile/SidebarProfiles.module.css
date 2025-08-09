@@ -41,6 +41,10 @@
 
 .profileList__item {
   position: relative;
+
+  button {
+    border-radius: 4px;
+  }
 }
 
 .profileItem__options {
@@ -50,10 +54,17 @@
   bottom: 0;
   opacity: 0;
   display: flex;
-  align-items: center;
-  gap: 0.1em;
   pointer-events: none;
   transition: opacity 0.1s ease;
+
+  > button {
+    aspect-ratio: 1 / 1;
+    justify-content: center;
+    padding: 0.2em 0.1em;
+    margin: 0.2em 0;
+    background-color: transparent;
+    background-color: var(--clr-neutral-8);
+  }
 }
 
 .profileList__item:hover .profileItem__options,
@@ -97,12 +108,6 @@ form.profileList__itemName {
 .profileList__item:focus-within .profileList__itemName {
   background-color: var(--clr-neutral-8);
   color: var(--clr-neutral-1);
-}
-
-.profileList__item button {
-  padding: 0.2em 0.25em;
-  background-color: transparent;
-  border-radius: 4px;
 }
 
 .profileList__item button:hover:not(:disabled) {

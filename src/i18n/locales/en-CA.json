@@ -68,7 +68,7 @@
     "sidebar": {
       "kill_game_btn": "Kill game",
       "cancel_launch_btn": "Cancel",
-      "launch_modded_btn": "Start modded",
+      "launch_modded_btn": "Launch profile",
       "launch_vanilla_btn": "Start vanilla",
       "game_settings_btn": "Game Settings",
 

@@ -394,17 +394,43 @@
 .modView__versions {
   align-self: stretch;
   border: none;
-  padding: 0.25em;
-  background-color: var(--clr-primary-4);
+  border: 1px solid var(--clr-neutral-6);
   border-radius: 100vmax 0 0 100vmax;
+  flex-grow: 1;
+  max-width: 8rem;
+}
+
+.modView__versionsItem {
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+
+  > div {
+    padding: 0.5em 0.25em;
+
+    [data-version] {
+      font-weight: 600;
+      margin-bottom: 0.25em;
+    }
+
+    [data-date] {
+      color: var(--clr-neutral-3);
+      font-size: 0.8rem;
+    }
+  }
 }
 
 .modView__downloadBtn {
   flex-grow: 1;
   padding: 0.5em 0.25em;
-  font-size: 1.25rem;
+  font-size: 1.15rem;
+  font-weight: 500;
   --bg-clr: var(--clr-primary-4);
   border-radius: 0 100vmax 100vmax 0;
+
+  &:hover {
+    --bg-clr: var(--clr-primary-5);
+  }
 }
 
 .modView__installedActions {

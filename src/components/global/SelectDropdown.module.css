@@ -4,27 +4,6 @@
   scrollbar-width: thin;
 }
 
-.toggle {
-  padding: 0.25em;
-  display: flex;
-  align-items: center;
-  gap: 0.25em;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.toggle:hover {
-  cursor: pointer;
-}
-
-.toggle__icon {
-  transition: rotate 0.2s ease;
-}
-
-.toggle[aria-checked="true"] .toggle__icon {
-  rotate: 180deg;
-}
-
 .options {
   overflow-y: auto;
 }
