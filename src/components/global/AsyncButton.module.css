@@ -19,6 +19,7 @@
     left: 50%;
     translate: -50% -50%;
     text-align: center;
+    text-shadow: 0 0 0.5rem rgba(0, 0, 0, 0.5);
   }
 
   .widthRetainer {

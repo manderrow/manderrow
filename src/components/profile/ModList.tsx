@@ -66,6 +66,7 @@ import { ErrorIndicator } from "../global/ErrorDialog.tsx";
 import { SimpleProgressIndicator } from "../global/Progress.tsx";
 import SelectDropdown from "../global/SelectDropdown.tsx";
 import TogglableDropdown from "../global/TogglableDropdown.tsx";
+import Tooltip from "../global/Tooltip.tsx";
 
 type PageFetcher = (page: number) => Promise<readonly Mod[]>;
 export type Fetcher = (
@@ -878,39 +879,43 @@ function ModListItem(props: {
             </p>
             <p class={styles.description}>{displayVersion().description}</p>
           </div>
-          <div class={styles.right}>
-            <Show when={installContext !== undefined}>
-              <Switch
-                fallback={
-                  <ErrorBoundary>
+          <Show when={installContext !== undefined}>
+            <Switch
+              fallback={
+                <ErrorBoundary>
+                  <Tooltip content={t("modlist.online.install_btn")}>
                     <InstallButton
                       mod={props.mod as ModListing}
                       installContext={installContext!}
                       class={styles.downloadBtn}
+                      busyClass={styles.downloadBtnBusy}
                       progressStyle="circular"
                     >
                       <Fa icon={faDownLong} />
                     </InstallButton>
-                  </ErrorBoundary>
-                }
-              >
-                <Match when={installed()}>
-                  {(installed) => (
-                    <ErrorBoundary>
+                  </Tooltip>
+                </ErrorBoundary>
+              }
+            >
+              <Match when={installed()}>
+                {(installed) => (
+                  <ErrorBoundary>
+                    <Tooltip content={t("modlist.installed.uninstall_btn")}>
                       <UninstallButton
                         mod={installed()}
                         installContext={installContext!}
                         class={styles.downloadBtn}
+                        busyClass={styles.downloadBtnBusy}
                         progressStyle="circular"
                       >
                         <Fa icon={faTrash} />
                       </UninstallButton>
-                    </ErrorBoundary>
-                  )}
-                </Match>
-              </Switch>
-            </Show>
-          </div>
+                    </Tooltip>
+                  </ErrorBoundary>
+                )}
+              </Match>
+            </Switch>
+          </Show>
         </div>
       </div>
     </li>
@@ -921,6 +926,7 @@ function InstallButton(props: {
   mod: Mod;
   installContext: NonNullable<typeof ModInstallContext.defaultValue>;
   class: JSX.HTMLAttributes<Element>["class"];
+  busyClass?: JSX.HTMLAttributes<Element>["class"];
   children: JSX.Element;
   progressStyle?: ProgressStyle;
 }) {
@@ -929,6 +935,8 @@ function InstallButton(props: {
       progressStyle={props.progressStyle}
       progress
       class={props.class}
+      busyClass={props.busyClass}
+      dataset={{ "data-install": "" }}
       onClick={async (listener) => {
         let foundDownloadTask = false;
         await installProfileMod(
@@ -965,6 +973,7 @@ function UninstallButton(props: {
   mod: ModPackage;
   installContext: NonNullable<typeof ModInstallContext.defaultValue>;
   class: JSX.HTMLAttributes<Element>["class"];
+  busyClass?: JSX.HTMLAttributes<Element>["class"];
   children: JSX.Element;
   progressStyle?: ProgressStyle;
 }) {
@@ -973,6 +982,8 @@ function UninstallButton(props: {
       progressStyle={props.progressStyle}
       progress
       class={props.class}
+      dataset={{ "data-uninstall": "" }}
+      busyClass={props.busyClass}
       onClick={async (_listener) => {
         await uninstallProfileMod(props.installContext.profileId(), props.mod.owner, props.mod.name);
         await props.installContext.refetchInstalled();

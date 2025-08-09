@@ -92,7 +92,7 @@
         border-color: var(--clr-neutral-7);
         cursor: pointer;
 
-        .right {
+        .downloadBtn {
           visibility: visible;
         }
       }
@@ -161,18 +161,39 @@
       min-width: 0;
     }
 
-    .right {
-      display: flex;
-      justify-content: center;
-      flex-direction: column;
-      visibility: hidden;
-    }
-
     .downloadBtn {
-      background-color: var(--clr-primary-4);
+      visibility: hidden;
+      align-self: center;
+
       padding: 0.25em 0.65em;
-      border-radius: 1em;
       font-size: 1.5rem;
+      aspect-ratio: 1 / 1;
+
+      &[data-install] {
+        --bg-clr: var(--clr-primary-4);
+
+        &:hover,
+        &:focus-visible {
+          --bg-clr: var(--clr-primary-5);
+        }
+      }
+
+      &[data-uninstall] {
+        --bg-clr: var(--clr-danger-4);
+
+        &:hover,
+        &:focus-visible {
+          --bg-clr: var(--clr-danger-5);
+        }
+      }
+
+      &.downloadBtnBusy,
+      &.downloadBtnBusy:hover,
+      &.downloadBtnBusy:focus-visible {
+        padding: 0;
+        --bg-clr: transparent;
+        visibility: visible;
+      }
     }
 
     .name {

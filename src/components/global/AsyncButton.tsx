@@ -54,6 +54,8 @@ export type ProgressStyle = "circular" | "simple" | "in-place";
 export function SimpleAsyncButton<const P extends true | Progress | undefined>(
   props: {
     class?: string;
+    busyClass?: string;
+    dataset?: Record<string, string>;
     type?: "submit" | "reset" | "button";
     style?: string;
     /// Optional external busy value.
@@ -93,12 +95,20 @@ export function SimpleAsyncButton<const P extends true | Progress | undefined>(
               ? styles.inPlaceBtn
               : ""
           }`}
+          classList={
+            props.busyClass
+              ? {
+                  [props.busyClass]: props.busy || busy(),
+                }
+              : {}
+          }
           style={{
             "--percentage":
               props.progressStyle == null || props.progressStyle === "in-place"
                 ? `${progressPercent() || 0}%`
                 : undefined,
           }}
+          {...props.dataset}
           disabled={props.busy || busy()}
           data-btn={props.style}
           type={props.type}

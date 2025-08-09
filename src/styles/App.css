@@ -199,16 +199,15 @@ input[type="text"] {
 button {
   border: none;
   padding: 0.35em 1.5em;
-  --bg-clr: var(--clr-neutral-8);
-  background-color: var(--bg-clr);
+  background-color: var(--bg-clr, var(--clr-neutral-8));
   color: var(--clr-neutral-1);
   width: fit-content;
   border-radius: 100vmax;
 
   transition: background-color 0.1s ease, color 0.1s ease;
 
-  &:has(:hover:not(:disabled)),
-  &:has(:focus-visible:not(:disabled)) {
+  &:hover:has(:not(:disabled)),
+  &:focus-visible:has(:not(:disabled)) {
     --bg-clr: var(--clr-neutral-7);
   }
 }
@@ -217,8 +216,8 @@ button[data-btn*="primary"] {
   --bg-clr: var(--clr-primary-4);
   border: none;
 
-  &:has(:hover:not(:disabled)),
-  &:has(:focus-visible:not(:disabled)) {
+  &:hover:has(:not(:disabled)),
+  &:focus-visible:has(:not(:disabled)) {
     --bg-clr: var(--clr-primary-5);
   }
 }
@@ -227,8 +226,8 @@ button[data-btn*="ghost"] {
   border: 1px solid var(--clr-neutral-7);
   --bg-clr: transparent;
 
-  &:has(:hover:not(:disabled)),
-  &:has(:focus-visible:not(:disabled)) {
+  &:hover:has(:not(:disabled)),
+  &:focus-visible:has(:not(:disabled)) {
     --bg-clr: var(--clr-neutral-7);
   }
   &:focus {

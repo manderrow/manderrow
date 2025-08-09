@@ -65,7 +65,7 @@ export function CircularProgressIndicator(props: CircularProgressProps) {
     props.progress.total == 0 ? 0 : (props.progress.completed / props.progress.total) * 100;
 
   return (
-    <div data-progress-indicator>
+    <div class={styles.circularIndicator}>
       <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" class={styles.circularSvg}>
         <circle r="90" cx="100" cy="100" class={styles.progressBg}></circle>
         <circle
