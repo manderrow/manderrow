@@ -47,7 +47,7 @@ import { Progress, createProgressProxyStore, initProgress, registerTaskListener,
 import { Mod, ModListing, ModPackage, ModVersion } from "../../types";
 import { humanizeFileSize, numberFormatter, removeProperty, roundedNumberFormatter } from "../../utils";
 
-import { ActionContext, SimpleAsyncButton } from "../global/AsyncButton";
+import { ActionContext, ProgressStyle, SimpleAsyncButton } from "../global/AsyncButton";
 import ErrorBoundary, { ErrorContext } from "../global/ErrorBoundary.tsx";
 import TabRenderer, { Tab, TabContent } from "../global/TabRenderer";
 import ModMarkdown from "./ModMarkdown.tsx";
@@ -119,7 +119,7 @@ export default function ModList(props: {
       } catch {}
       return selectedModId() ?? {};
     },
-    (id) => "owner" in id ? untrack(() => queriedMods.latest.get(id as ModId)) : undefined,
+    (id) => ("owner" in id ? untrack(() => queriedMods.latest.get(id as ModId)) : undefined),
   );
 
   createEffect(() => {
@@ -480,7 +480,7 @@ function ModView(props: { mod: Mod | undefined; gameId: string; closeModView: ()
   const modVersionData = (mod: Mod) => {
     if ("versions" in mod) {
       const selected = selectedVersion();
-      return mod.versions.find(v => v.version_number === selected) ?? mod.versions[0];
+      return mod.versions.find((v) => v.version_number === selected) ?? mod.versions[0];
     } else {
       return mod.version;
     }
@@ -539,8 +539,10 @@ function ModView(props: { mod: Mod | undefined; gameId: string; closeModView: ()
               // If online, display the mod listing. Otherwise, in installed, display mod package initially, then
               // mod listing after it loads. Coincidentally, this undefined logic check works as the mod listing
               // loads after the initial mod package is always displayed by default first
-              return (selected === undefined ? undefined : versions?.find(v => v.version_number === selected))
-                ?? ("versions" in modConstant ? modConstant.versions[0] : modConstant.version);
+              return (
+                (selected === undefined ? undefined : versions?.find((v) => v.version_number === selected)) ??
+                ("versions" in modConstant ? modConstant.versions[0] : modConstant.version)
+              );
             };
 
             return (
@@ -684,7 +686,9 @@ function ModView(props: { mod: Mod | undefined; gameId: string; closeModView: ()
                                 mod={
                                   {
                                     ...removeProperty(listing(), "versions"),
-                                    version: listing().versions.find(v => v.version_number === selectedVersion()) ?? listing().versions[0],
+                                    version:
+                                      listing().versions.find((v) => v.version_number === selectedVersion()) ??
+                                      listing().versions[0],
                                   } as ModPackage
                                 }
                                 installContext={installContext!}
@@ -699,7 +703,7 @@ function ModView(props: { mod: Mod | undefined; gameId: string; closeModView: ()
                       <UninstallButton
                         mod={installed()!}
                         installContext={installContext!}
-                        class={styles.modView__uninstall}
+                        class={styles.modView__uninstallBtn}
                       >
                         {t("modlist.installed.uninstall_btn")}
                       </UninstallButton>
@@ -869,6 +873,7 @@ function ModListItem(props: {
                       mod={props.mod as ModListing}
                       installContext={installContext!}
                       class={styles.downloadBtn}
+                      progressStyle="circular"
                     >
                       <Fa icon={faDownLong} />
                     </InstallButton>
@@ -878,7 +883,12 @@ function ModListItem(props: {
                 <Match when={installed()}>
                   {(installed) => (
                     <ErrorBoundary>
-                      <UninstallButton mod={installed()} installContext={installContext!} class={styles.downloadBtn}>
+                      <UninstallButton
+                        mod={installed()}
+                        installContext={installContext!}
+                        class={styles.downloadBtn}
+                        progressStyle="circular"
+                      >
                         <Fa icon={faTrash} />
                       </UninstallButton>
                     </ErrorBoundary>
@@ -898,9 +908,11 @@ function InstallButton(props: {
   installContext: NonNullable<typeof ModInstallContext.defaultValue>;
   class: JSX.HTMLAttributes<Element>["class"];
   children: JSX.Element;
+  progressStyle?: ProgressStyle;
 }) {
   return (
     <SimpleAsyncButton
+      progressStyle={props.progressStyle}
       progress
       class={props.class}
       onClick={async (listener) => {
@@ -940,9 +952,11 @@ function UninstallButton(props: {
   installContext: NonNullable<typeof ModInstallContext.defaultValue>;
   class: JSX.HTMLAttributes<Element>["class"];
   children: JSX.Element;
+  progressStyle?: ProgressStyle;
 }) {
   return (
     <SimpleAsyncButton
+      progressStyle={props.progressStyle}
       progress
       class={props.class}
       onClick={async (_listener) => {

@@ -1,9 +1,13 @@
-import { Accessor, createEffect, createSignal, JSX, Show } from "solid-js";
+import { Accessor, createEffect, createSignal, JSX, Match, Show, Switch } from "solid-js";
 
 import { createProgressProxyStore, Listener, Progress } from "../../api/tasks";
 
 import { ErrorIndicator } from "./ErrorDialog";
-import { SimpleProgressIndicator } from "./Progress";
+import { CircularProgressIndicator, SimpleProgressIndicator } from "./Progress";
+
+import styles from "./AsyncButton.module.css";
+import { roundedNumberFormatter } from "../../utils";
+import { t } from "../../i18n/i18n";
 
 export function ActionContext(props: {
   children: (busy: Accessor<boolean>, wrapAction: (f: () => Promise<void> | void) => Promise<void>) => JSX.Element;
@@ -45,6 +49,8 @@ type ProgressProps<P extends true | Progress | undefined> = P extends true
       onClick: () => Promise<void> | void;
     };
 
+export type ProgressStyle = "circular" | "simple" | "in-place";
+
 export function SimpleAsyncButton<const P extends true | Progress | undefined>(
   props: {
     class?: string;
@@ -55,6 +61,9 @@ export function SimpleAsyncButton<const P extends true | Progress | undefined>(
     ref?: (element: HTMLButtonElement) => void;
     whenBusy?: (progress: Progress) => JSX.Element;
     children: JSX.Element;
+
+    // Defaults to in-place if unset
+    progressStyle?: ProgressStyle;
   } & ProgressProps<P>,
 ) {
   type ProgressSignal = P extends true ? ReturnType<typeof createProgressProxyStore> : [undefined, undefined];
@@ -65,11 +74,31 @@ export function SimpleAsyncButton<const P extends true | Progress | undefined>(
   createEffect(() => {
     if (props.ref) props.ref(ref);
   });
+
+  const progressPercent = () =>
+    progress == null
+      ? null
+      : progress.total == null
+      ? 0
+      : (progress.completed / (progress.total == 0 ? 1 : progress.total)) * 100;
+
   return (
     <ActionContext>
       {(busy, wrapOnClick) => (
         <button
-          class={props.class}
+          class={`${styles.buttonBase} ${props.class || ""} ${
+            (props.progressStyle == null || props.progressStyle === "in-place") &&
+            props.progress &&
+            (props.busy || busy())
+              ? styles.inPlaceBtn
+              : ""
+          }`}
+          style={{
+            "--percentage":
+              props.progressStyle == null || props.progressStyle === "in-place"
+                ? `${progressPercent() || 0}%`
+                : undefined,
+          }}
           disabled={props.busy || busy()}
           data-btn={props.style}
           type={props.type}
@@ -90,7 +119,28 @@ export function SimpleAsyncButton<const P extends true | Progress | undefined>(
           ref={ref}
         >
           <Show when={props.progress && (props.busy || busy())} fallback={props.children}>
-            <Show when={props.whenBusy} fallback={<SimpleProgressIndicator progress={progress!} />}>
+            <Show
+              when={props.whenBusy}
+              fallback={
+                <Switch>
+                  <Match when={props.progressStyle === "circular"}>
+                    <CircularProgressIndicator progress={progress!} />
+                  </Match>
+                  <Match when={props.progressStyle === "simple"}>
+                    <SimpleProgressIndicator progress={progress!} />
+                  </Match>
+                  <Match when={props.progressStyle === "in-place" || props.progressStyle == null}>
+                    <span class={styles.percentageText}>
+                      {progressPercent() !== null
+                        ? `${roundedNumberFormatter.format(progressPercent()!)}%`
+                        : t("global.phrases.loading")}
+                    </span>
+
+                    <div class={styles.widthRetainer}>{props.children}</div>
+                  </Match>
+                </Switch>
+              }
+            >
               {(whenBusy) => whenBusy()(progress!)}
             </Show>
           </Show>

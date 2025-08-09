@@ -14,14 +14,20 @@ export function SimpleProgressIndicator(props: {
   progress: Progress | undefined;
   class?: JSX.HTMLAttributes<HTMLDivElement>["class"];
 }) {
+  const isIndeterminate = () => props.progress === undefined || props.progress.total === 0;
+
   return (
     <div
       role="progressbar"
       class={`${styles.simpleIndicator} ${props.class || ""}`}
       classList={{
-        [styles.simpleIndicatorIndeterminate]: props.progress == null,
+        [styles.simpleIndicatorIndeterminate]: isIndeterminate(),
       }}
-      style={{ "--percentage": `${((props.progress?.completed ?? 0) / (props.progress?.total ?? 1)) * 100}%` }}
+      style={
+        isIndeterminate()
+          ? {}
+          : { "--percentage": `${((props.progress?.completed ?? 0) / (props.progress?.total ?? 1)) * 100}%` }
+      }
       aria-valuenow={(props.progress?.total ?? 0) === 0 ? undefined : props.progress!.completed}
       aria-valuemin={0}
       aria-valuemax={props.progress?.total}
@@ -81,7 +87,7 @@ export function CircularProgressIndicator(props: CircularProgressProps) {
             </Show>
             <Show when={!props.noProgressText && !props.pausable}>
               <span class={styles.progressText} data-inner>
-                {roundedNumberFormatter.format(progressPercentage())}%
+                {Math.round(progressPercentage())}%
               </span>
             </Show>
           </div>
@@ -89,7 +95,7 @@ export function CircularProgressIndicator(props: CircularProgressProps) {
       </svg>
       <Show when={!props.noProgressText && props.pausable}>
         <p class={styles.progressText} data-outer>
-          {roundedNumberFormatter.format(progressPercentage())}%
+          {Math.round(progressPercentage())}%
         </p>
       </Show>
     </div>

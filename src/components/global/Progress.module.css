@@ -8,6 +8,11 @@
   position: relative;
   background-color: var(--clr-primary-2);
   z-index: 0;
+  container-type: inline-size;
+
+  &.simpleIndicatorIndeterminate {
+    height: 0.9em;
+  }
 }
 
 .simpleIndicator::after {
@@ -22,6 +27,39 @@
   transform: scaleX(var(--percentage));
   transform-origin: left;
   transition: transform 0.2s ease;
+}
+
+.simpleIndicatorIndeterminate::after {
+  width: 50%;
+  transform-origin: center;
+  animation: indeterminateScroll 1.5s infinite linear, indeterminateResize 1.5s infinite ease-in-out;
+}
+
+@keyframes indeterminateScroll {
+  from {
+    left: 0%;
+    translate: -100%;
+  }
+
+  to {
+    left: 100%;
+    translate: 100%;
+  }
+}
+
+@keyframes indeterminateResize {
+  0% {
+    transform: scaleX(50%);
+  }
+  40% {
+    transform: scaleX(80%);
+  }
+  70% {
+    transform: scaleX(20%);
+  }
+  90% {
+    transform: scaleX(15%);
+  }
 }
 
 .simpleIndicator__text {

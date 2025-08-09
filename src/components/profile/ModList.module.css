@@ -403,7 +403,7 @@
   flex-grow: 1;
   padding: 0.5em 0.25em;
   font-size: 1.25rem;
-  background-color: var(--clr-primary-4);
+  --bg-clr: var(--clr-primary-4);
   border-radius: 0 100vmax 100vmax 0;
 }
 
@@ -436,14 +436,17 @@
   padding: 0.5em;
 }
 
-.modView__uninstall {
+.modView__uninstallBtn {
   grid-area: uninstall;
   border: 1px solid var(--clr-danger-4);
   background-color: transparent;
+
+  --progress-bg-from: var(--clr-danger-4);
+  --progress-bg-to: var(--clr-danger-6);
 }
 
-.modView__uninstall:hover,
-.modView__uninstall:focus {
+.modView__uninstallBtn:hover,
+.modView__uninstallBtn:focus {
   border-color: var(--clr-danger-5);
   background-color: var(--clr-danger-5);
 }

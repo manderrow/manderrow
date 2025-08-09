@@ -107,7 +107,8 @@
   --titlebar-height: 28px;
   --titlebar-logo-size: 16px;
   --titlebar-z-index: 100;
-  --dropdown-z-index: 99;
+  --dropdown-z-index: 90;
+  --dropdown-active-z-index: 99;
   --portal-z-index: 9;
 }
 
@@ -209,8 +210,8 @@ button[data-btn*="primary"] {
   --bg-clr: var(--clr-primary-4);
   border: none;
 
-  &:hover,
-  &:focus {
+  &:hover:not(:disabled),
+  &:focus:not(:disabled) {
     --bg-clr: var(--clr-primary-5);
   }
 }
@@ -219,20 +220,18 @@ button[data-btn*="ghost"] {
   border: 1px solid var(--clr-neutral-7);
   --bg-clr: transparent;
 
-  &:hover,
+  &:hover:not(:disabled),
+  &:focus:not(:disabled) {
+    --bg-clr: var(--clr-neutral-7);
+  }
   &:focus {
     --bg-clr: var(--clr-neutral-7);
   }
 }
 
 button:hover:not(:disabled),
-button:focus:not(:disabled) {
+button:focus-visible:not(:disabled) {
   cursor: pointer;
-  --bg-clr: var(--clr-neutral-7);
-
-  &[data-btn*="primary"] {
-    --bg-clr: var(--clr-primary-5);
-  }
 }
 
 button:disabled {
