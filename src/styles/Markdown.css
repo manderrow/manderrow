@@ -18,8 +18,8 @@
   pre,
   code {
     font-family: var(--font-monospace);
-    background-color: var(--clr-neutral-10);
-    color: var(--clr-neutral-1);
+    background-color: var(--clr-neutral-90);
+    color: var(--clr-neutral-05);
     font-size: 0.9rem;
   }
 
@@ -32,13 +32,14 @@
 
   a,
   a:visited {
-    color: var(--clr-primary-5);
+    color: var(--clr-primary-60);
   }
 
   a:hover,
   a:focus,
   a:active {
-    color: var(--clr-primary-6);
+    color: var(--clr-primary-65);
+    text-decoration: underline;
   }
 
   .no-decoration {
@@ -66,7 +67,7 @@
   h1 {
     margin-top: 0.5em;
     font-size: 2rem;
-    border-bottom: 1px solid var(--clr-neutral-8);
+    border-bottom: 1px solid var(--clr-neutral-80);
   }
 
   h1:first-child {
@@ -108,14 +109,14 @@
   }
 
   blockquote {
-    border-left: 4px solid var(--clr-neutral-4);
+    border-left: 4px solid var(--clr-neutral-40);
     padding: 0.5em 1em;
     margin-block: 0.5em;
   }
 
   blockquote p {
     margin: 0;
-    color: var(--clr-neutral-2);
+    color: var(--clr-neutral-20);
   }
 
   ul {
@@ -144,7 +145,7 @@
   table,
   th,
   td {
-    border: 1px solid var(--clr-neutral-5);
+    border: 1px solid var(--clr-neutral-50);
   }
 
   th,

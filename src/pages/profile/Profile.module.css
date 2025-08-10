@@ -21,20 +21,20 @@
 
   padding: var(--padding);
   width: var(--sidebar-width);
-  border-right: 1px solid var(--clr-neutral-8);
-  background-color: var(--clr-neutral-10);
+  border-right: 1px solid var(--clr-neutral-80);
+  background-color: var(--clr-neutral-90);
 }
 
 .sidebar__group {
   h3 {
     font-weight: 350;
-    color: var(--clr-neutral-2);
+    color: var(--clr-neutral-20);
     margin-bottom: 0.5em;
   }
 }
 
 .sidebar__group:not(:first-child) {
-  border-top: 1px solid var(--clr-neutral-8);
+  border-top: 1px solid var(--clr-neutral-80);
   padding-top: 0.75em;
   margin-top: 0.75em;
 }
@@ -53,7 +53,7 @@
   background-position: center;
   min-height: 10rem;
   position: relative;
-  border-bottom: 1px solid var(--clr-neutral-8);
+  border-bottom: 1px solid var(--clr-neutral-80);
 
   .sidebar__nav {
     display: flex;
@@ -90,12 +90,12 @@
     }
 
     button[data-modded] {
-      background-color: var(--clr-primary-4);
+      background-color: var(--clr-primary-40);
       background-image: linear-gradient(
         20deg,
-        var(--clr-primary-3) 10%,
-        var(--clr-primary-4) 80%,
-        var(--clr-primary-5) 100%
+        var(--clr-primary-30) 10%,
+        var(--clr-primary-40) 80%,
+        var(--clr-primary-50) 100%
       );
       border: 2px solid hsl(var(--clr-primary-hs), 70%, 20%);
       flex-grow: 1;
@@ -161,7 +161,7 @@
 
 .sidebar__profilesActionBtn:hover,
 .sidebar__profilesActionBtn:focus-visible {
-  color: var(--clr-primary-5);
+  color: var(--clr-primary-50);
 }
 
 .sidebar,
@@ -176,7 +176,7 @@
 
 .sidebar__settingsLink {
   font-size: 1.75rem;
-  color: var(--clr-neutral-2);
+  color: var(--clr-neutral-20);
   display: flex;
   align-items: center;
   align-self: flex-start;
@@ -184,12 +184,12 @@
 
   > span {
     font-size: 1.1rem;
-    color: var(--clr-neutral-3);
+    color: var(--clr-neutral-30);
   }
 }
 
 .sidebar__settingsLink:hover {
-  color: var(--clr-primary-5);
+  color: var(--clr-primary-50);
 
   > span {
     color: inherit;
@@ -205,8 +205,8 @@
 .tabs {
   margin: -1em -1em 0.75em -1em;
   padding: 0.3em;
-  border-bottom: 1px solid var(--clr-neutral-8);
-  background-color: var(--clr-neutral-10);
+  border-bottom: 1px solid var(--clr-neutral-80);
+  background-color: var(--clr-neutral-90);
 }
 
 .tabs__list {
@@ -219,8 +219,8 @@
 
   button {
     padding: 0.5em 1em;
-    border-right: 1px solid var(--clr-neutral-7);
-    color: var(--clr-neutral-4);
+    border-right: 1px solid var(--clr-neutral-70);
+    color: var(--clr-neutral-40);
     border-radius: 0;
     display: block;
     font-size: 1.1rem;
@@ -230,12 +230,12 @@
   }
 
   button:hover:not(:disabled) {
-    color: var(--clr-neutral-2);
+    color: var(--clr-neutral-20);
   }
 
   &.tab__active.tabs__tab button {
-    border-color: var(--clr-primary-4);
-    background-color: var(--clr-primary-4);
+    border-color: var(--clr-primary-40);
+    background-color: var(--clr-primary-40);
     color: white;
   }
 
@@ -279,7 +279,7 @@
     .expandBtn {
       display: block;
       font-size: 1.5rem;
-      color: var(--clr-neutral-2);
+      color: var(--clr-neutral-20);
       background-color: transparent;
       padding: 0.75em 0.35em;
     }
@@ -361,7 +361,7 @@
         top: 50%;
         transform: translate(100%, -50%);
         background-color: inherit;
-        border: 1px solid var(--clr-neutral-7);
+        border: 1px solid var(--clr-neutral-70);
         border-left: none;
         border-radius: 0 0.75em 0.75em 0;
         padding-block: 1em;

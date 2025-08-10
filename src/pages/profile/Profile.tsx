@@ -20,7 +20,6 @@ import {
   faPenToSquare,
   faPlus,
   faThumbTack,
-  faFileExport,
   faGear,
   faArrowUpWideShort,
   faArrowDownShortWide,
@@ -28,12 +27,12 @@ import {
   faXmark,
   faThumbTackSlash,
   faAnglesRight,
-  faEllipsis,
   faCopy,
-  faClone,
   faClipboard,
   faFolderOpen,
   faShare,
+  faEllipsisVertical,
+  IconDefinition,
 } from "@fortawesome/free-solid-svg-icons";
 import { OverlayScrollbarsComponent } from "overlayscrollbars-solid";
 import { Fa } from "solid-fa";
@@ -65,6 +64,7 @@ import StatusBar from "../../components/profile/StatusBar.tsx";
 import { setCurrentProfileName } from "../../components/global/TitleBar.tsx";
 import Tooltip from "../../components/global/Tooltip.tsx";
 import ContextMenu from "../../components/global/ContextMenu.tsx";
+import { CircularProgressIndicator, SimpleProgressIndicator } from "../../components/global/Progress.tsx";
 
 interface ProfileParams {
   profileId?: string;
@@ -421,6 +421,17 @@ function NoSelectedProfileContent(props: {
   );
 }
 
+function SidebarContextMenuItem(props: { icon: IconDefinition; label: string; iconClass?: string }) {
+  return (
+    <>
+      <div class={sidebarStyles.contextMenuItem}>
+        <Fa icon={props.icon} class={props.iconClass} />
+      </div>
+      {props.label}
+    </>
+  );
+}
+
 function SidebarProfileComponent(props: {
   gameId: string;
   profile: ProfileWithId;
@@ -525,9 +536,7 @@ function SidebarProfileComponent(props: {
                   items={[
                     {
                       label: (
-                        <>
-                          <Fa icon={faPenToSquare} /> {t("profile.sidebar.rename_profile_btn")}
-                        </>
+                        <SidebarContextMenuItem icon={faPenToSquare} label={t("profile.sidebar.rename_profile_btn")} />
                       ),
                       action() {
                         setRenaming(true);
@@ -535,9 +544,7 @@ function SidebarProfileComponent(props: {
                     },
                     {
                       label: (
-                        <>
-                          <Fa icon={faTrashCan} /> {t("profile.sidebar.delete_profile_btn")}
-                        </>
+                        <SidebarContextMenuItem icon={faTrashCan} label={t("profile.sidebar.delete_profile_btn")} />
                       ),
                       action() {
                         setConfirmingDeletion(true);
@@ -545,20 +552,14 @@ function SidebarProfileComponent(props: {
                     },
                     {
                       label: (
-                        <>
-                          <Fa icon={faCopy} /> {t("profile.sidebar.duplicate_profile_btn")}
-                        </>
+                        <SidebarContextMenuItem icon={faCopy} label={t("profile.sidebar.duplicate_profile_btn")} />
                       ),
                       action() {
                         // TODO: implement duplicate profile
                       },
                     },
                     {
-                      label: (
-                        <>
-                          <Fa icon={faShare} /> {t("profile.sidebar.share_profile_btn")}
-                        </>
-                      ),
+                      label: <SidebarContextMenuItem icon={faShare} label={t("profile.sidebar.share_profile_btn")} />,
                       action() {
                         // TODO: implement share profile
                       },
@@ -568,9 +569,7 @@ function SidebarProfileComponent(props: {
                     },
                     {
                       label: (
-                        <>
-                          <Fa icon={faClipboard} /> {t("profile.sidebar.copy_id_profile_btn")}
-                        </>
+                        <SidebarContextMenuItem icon={faClipboard} label={t("profile.sidebar.copy_id_profile_btn")} />
                       ),
                       action() {
                         // TODO: implement copy profile ID
@@ -578,9 +577,11 @@ function SidebarProfileComponent(props: {
                     },
                     {
                       label: (
-                        <>
-                          <Fa icon={faFolderOpen} /> {t("profile.sidebar.open_folder_profile_btn")}
-                        </>
+                        <SidebarContextMenuItem
+                          icon={faFolderOpen}
+                          label={t("profile.sidebar.open_folder_profile_btn")}
+                          iconClass={sidebarStyles.openFolderIcon}
+                        />
                       ),
                       action() {
                         // TODO: implement open folder
@@ -588,7 +589,7 @@ function SidebarProfileComponent(props: {
                     },
                   ]}
                 >
-                  <Fa icon={faEllipsis} />
+                  <Fa icon={faEllipsisVertical} />
                 </ContextMenu>
               </Tooltip>
             </div>

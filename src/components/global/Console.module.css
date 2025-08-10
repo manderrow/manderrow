@@ -2,7 +2,7 @@
   display: flex;
   gap: 0.5em;
   margin-right: 1.5em;
-  border-bottom: 1px solid var(--clr-neutral-7);
+  border-bottom: 1px solid var(--clr-neutral-70);
 }
 
 .header__options {
@@ -25,7 +25,7 @@
 }
 
 .header__subgroup:not(:last-child) {
-  border-right: 1px solid var(--clr-neutral-8);
+  border-right: 1px solid var(--clr-neutral-80);
   margin-right: 0.5em;
   padding-right: 0.5em;
 }
@@ -44,7 +44,7 @@
   font-size: 0.75rem;
   margin-bottom: 0.25em;
   text-align: center;
-  color: var(--clr-neutral-3);
+  color: var(--clr-neutral-30);
 }
 
 .statusIndicator {
@@ -91,7 +91,7 @@
   padding-bottom: 1em;
 
   font-family: var(--font-monospace);
-  color: var(--clr-neutral-2);
+  color: var(--clr-neutral-20);
   font-size: 0.9rem;
   word-wrap: break-word;
   word-break: break-word;
@@ -136,16 +136,16 @@
 }
 
 .scopeToggle {
-  border: 1px solid var(--clr-neutral-7);
+  border: 1px solid var(--clr-neutral-70);
   padding: 0.25em 0.5em;
   border-radius: 100vmax;
   font-size: 0.8rem;
-  color: var(--clr-neutral-2);
+  color: var(--clr-neutral-20);
   cursor: pointer;
   user-select: none;
 
   input:checked + & {
-    border: 1px solid var(--clr-primary-5);
-    color: var(--clr-neutral-1);
+    border: 1px solid var(--clr-primary-50);
+    color: var(--clr-neutral-10);
   }
 }

@@ -8,7 +8,7 @@
   text-align: center;
   text-shadow: 0 0 1.25rem rgba(0, 0, 0, 0.5);
   background-color: hsl(214, 28%, 15%);
-  background-image: radial-gradient(circle at top center, hsl(210, 30%, 24%) 0%, var(--clr-neutral-9) 100%);
+  background-image: radial-gradient(circle at top center, hsl(210, 30%, 24%) 0%, var(--clr-neutral-90) 100%);
   background-size: 100%;
   background-repeat: no-repeat;
   background-position: center;
@@ -44,7 +44,7 @@
   width: 100%;
   max-width: 16em;
   border: 1px solid hsl(210, 11%, 35%);
-  background-image: linear-gradient(90deg, var(--clr-primary-5), var(--clr-accent-5), var(--clr-primary-5));
+  background-image: linear-gradient(90deg, var(--clr-primary-50), var(--clr-accent-5), var(--clr-primary-50));
   background-repeat: repeat;
   background-size: 200%;
   animation: load 0.85s linear infinite;

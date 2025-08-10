@@ -1,7 +1,7 @@
 .tooltip {
-  background-color: var(--clr-neutral-8);
+  background-color: var(--clr-neutral-80);
   padding: 0.25em;
-  border: 1px solid var(--clr-neutral-7);
+  border: 1px solid var(--clr-neutral-70);
   border-radius: 4px;
   box-shadow: 0 0 0.5rem rgba(0, 0, 0, 0.3);
   z-index: var(--dropdown-z-index);
@@ -23,7 +23,7 @@
 
 .tooltipText {
   font-size: 0.9rem;
-  color: var(--clr-neutral-1);
+  color: var(--clr-neutral-10);
 }
 
 .arrow {

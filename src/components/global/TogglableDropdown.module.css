@@ -4,8 +4,8 @@
 
 .dropdownDefault {
   padding: 0.5em 0;
-  background-color: var(--clr-neutral-8);
-  border: 1px solid var(--clr-neutral-7);
+  background-color: var(--clr-neutral-80);
+  border: 1px solid var(--clr-neutral-70);
   border-radius: 4px;
 
   opacity: 0;
@@ -40,7 +40,7 @@
 }
 
 .toggleDefault {
-  background-color: var(--clr-neutral-8);
-  border: 1px solid var(--clr-neutral-7);
+  background-color: var(--clr-neutral-80);
+  border: 1px solid var(--clr-neutral-70);
   border-radius: 4px;
 }

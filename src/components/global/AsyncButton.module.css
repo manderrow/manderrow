@@ -7,7 +7,7 @@
   position: relative;
   z-index: 0;
   background-color: transparent;
-  border: 1px solid var(--progress-bg-to, var(--clr-primary-4));
+  border: 1px solid var(--progress-bg-to, var(--clr-primary-40));
 
   &:hover {
     background-color: transparent;
@@ -36,8 +36,8 @@
 
   background-image: linear-gradient(
     90deg,
-    var(--progress-bg-from, var(--clr-primary-4)) 0%,
-    var(--progress-bg-to, var(--clr-primary-7)) 100%
+    var(--progress-bg-from, var(--clr-primary-40)) 0%,
+    var(--progress-bg-to, var(--clr-primary-70)) 100%
   );
 
   /* Only alpha (opacity) value matters for colors, just using white */

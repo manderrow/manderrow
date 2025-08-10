@@ -30,7 +30,7 @@
 .header h1 {
   font-size: 4rem;
   font-weight: 650;
-  background-image: linear-gradient(180deg, hsl(var(--clr-primary-hs), 64%) 20%, var(--clr-primary-4));
+  background-image: linear-gradient(180deg, hsl(var(--clr-primary-hs), 64%) 20%, var(--clr-primary-40));
   color: transparent;
   background-clip: text;
   /* text-transform: uppercase; */
@@ -38,7 +38,7 @@
 }
 
 .header p {
-  color: var(--clr-neutral-2);
+  color: var(--clr-neutral-20);
   font-size: 1.25rem;
   font-weight: 300;
   text-shadow: 0 0 1.5rem rgba(0, 0, 0, 0.4);
@@ -55,12 +55,12 @@
   pointer-events: none;
 }
 .header h1::before {
-  background-image: linear-gradient(-90deg, var(--clr-neutral-5), transparent);
+  background-image: linear-gradient(-90deg, var(--clr-neutral-50), transparent);
   transform: translateX(-100%);
   left: -0.5em;
 }
 .header h1::after {
-  background-image: linear-gradient(90deg, var(--clr-neutral-5), transparent);
+  background-image: linear-gradient(90deg, var(--clr-neutral-50), transparent);
   transform: translateX(100%);
   right: -0.5em;
 }

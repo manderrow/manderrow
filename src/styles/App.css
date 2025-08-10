@@ -1,31 +1,3 @@
-@font-face {
-  font-family: "Inter";
-  src: url("/font/Inter-Variable.ttf") format("truetype");
-  font-display: swap;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: "Inter";
-  src: url("/font/Inter-Italic-Variable.ttf") format("truetype");
-  font-display: swap;
-  font-style: italic;
-}
-
-@font-face {
-  font-family: "SourceCodePro";
-  src: url("/font/SourceCodePro-Variable.ttf") format("truetype");
-  font-display: swap;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: "SourceCodePro";
-  src: url("/font/SourceCodePro-Italic-Variable.ttf") format("truetype");
-  font-display: swap;
-  font-style: italic;
-}
-
 :root {
   --font: "Inter", Avenir, Helvetica, Arial, sans-serif;
   --font-monospace: "SourceCodePro", monospace, "Courier New", Courier;
@@ -36,73 +8,6 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   -webkit-text-size-adjust: 100%;
-
-  --clr-neutral-0: hsl(214, 28%, 5%);
-  --clr-neutral-1: hsl(214, 28%, 15%);
-  --clr-neutral-2: hsl(218, 20%, 20%);
-  --clr-neutral-3: hsl(210, 15%, 28%);
-  --clr-neutral-4: hsl(210, 10%, 40%);
-  --clr-neutral-5: hsl(210, 12%, 50%);
-  --clr-neutral-6: hsl(212, 15%, 60%);
-  --clr-neutral-7: hsl(212, 18%, 70%);
-  --clr-neutral-8: hsl(211, 20%, 80%);
-  --clr-neutral-9: hsl(211, 30%, 90%);
-  --clr-neutral-10: hsl(100, 50%, 99%);
-
-  --clr-primary-hs: 209, 85%;
-  --clr-primary-1: hsl(var(--clr-primary-hs), 10%);
-  --clr-primary-2: hsl(var(--clr-primary-hs), 20%);
-  --clr-primary-3: hsl(var(--clr-primary-hs), 30%);
-  --clr-primary-4: hsl(var(--clr-primary-hs), 40%);
-  --clr-primary-5: hsl(var(--clr-primary-hs), 48%);
-  --clr-primary-6: hsl(var(--clr-primary-hs), 60%);
-  --clr-primary-7: hsl(var(--clr-primary-hs), 70%);
-  --clr-primary-8: hsl(var(--clr-primary-hs), 80%);
-  --clr-primary-9: hsl(var(--clr-primary-hs), 90%);
-
-  --clr-accent-hs: 309, 63%;
-  --clr-accent-1: hsl(var(--clr-accent-hs), 10%);
-  --clr-accent-2: hsl(var(--clr-accent-hs), 20%);
-  --clr-accent-3: hsl(var(--clr-accent-hs), 30%);
-  --clr-accent-4: hsl(var(--clr-accent-hs), 40%);
-  --clr-accent-5: hsl(var(--clr-accent-hs), 48%);
-  --clr-accent-6: hsl(var(--clr-accent-hs), 60%);
-  --clr-accent-7: hsl(var(--clr-accent-hs), 75%);
-  --clr-accent-8: hsl(var(--clr-accent-hs), 80%);
-  --clr-accent-9: hsl(var(--clr-accent-hs), 90%);
-
-  --clr-danger-hs: 1, 85%;
-  --clr-danger-1: hsl(var(--clr-danger-hs), 10%);
-  --clr-danger-2: hsl(var(--clr-danger-hs), 20%);
-  --clr-danger-3: hsl(var(--clr-danger-hs), 30%);
-  --clr-danger-4: hsl(var(--clr-danger-hs), 36%);
-  --clr-danger-5: hsl(var(--clr-danger-hs), 50%);
-  --clr-danger-6: hsl(var(--clr-danger-hs), 60%);
-  --clr-danger-7: hsl(var(--clr-danger-hs), 70%);
-  --clr-danger-8: hsl(var(--clr-danger-hs), 80%);
-  --clr-danger-9: hsl(var(--clr-danger-hs), 90%);
-
-  --clr-warn-hs: 34, 100%;
-  --clr-warn-1: hsl(var(--clr-warn-hs), 10%);
-  --clr-warn-2: hsl(var(--clr-warn-hs), 20%);
-  --clr-warn-3: hsl(var(--clr-warn-hs), 30%);
-  --clr-warn-4: hsl(var(--clr-warn-hs), 40%);
-  --clr-warn-5: hsl(var(--clr-warn-hs), 50%);
-  --clr-warn-6: hsl(var(--clr-warn-hs), 59%);
-  --clr-warn-7: hsl(var(--clr-warn-hs), 70%);
-  --clr-warn-8: hsl(var(--clr-warn-hs), 80%);
-  --clr-warn-9: hsl(var(--clr-warn-hs), 90%);
-
-  --clr-ok-hs: 146, 100%;
-  --clr-ok-1: hsl(var(--clr-ok-hs), 10%);
-  --clr-ok-2: hsl(var(--clr-ok-hs), 20%);
-  --clr-ok-3: hsl(var(--clr-ok-hs), 30%);
-  --clr-ok-4: hsl(var(--clr-ok-hs), 40%);
-  --clr-ok-5: hsl(var(--clr-ok-hs), 50%);
-  --clr-ok-6: hsl(var(--clr-ok-hs), 59%);
-  --clr-ok-7: hsl(var(--clr-ok-hs), 70%);
-  --clr-ok-8: hsl(var(--clr-ok-hs), 80%);
-  --clr-ok-9: hsl(var(--clr-ok-hs), 90%);
 
   --titlebar-height: 28px;
   --titlebar-logo-size: 16px;
@@ -130,8 +35,8 @@ html {
 }
 
 body {
-  background-color: var(--clr-neutral-9);
-  color: var(--clr-neutral-1);
+  background-color: var(--clr-neutral-85);
+  color: var(--clr-neutral-05);
   height: 100dvh;
   overflow: hidden;
   font-size: 1rem;
@@ -140,7 +45,7 @@ body {
 }
 
 * {
-  scrollbar-color: var(--clr-primary-4) transparent; /* thumb and track color */
+  scrollbar-color: var(--clr-neutral-40) transparent; /* thumb and track color */
 }
 
 main {
@@ -150,11 +55,11 @@ main {
 
 a {
   text-decoration: none;
-  color: var(--clr-primary-5);
+  color: var(--clr-primary-60);
 }
 
 a:hover {
-  color: var(--clr-primary-6);
+  color: var(--clr-primary-70);
 }
 
 a:disabled {
@@ -165,7 +70,7 @@ input,
 button,
 select {
   font-size: inherit;
-  color: var(--clr-neutral-1);
+  color: var(--clr-neutral-05);
   display: block;
   font-family: var(--font);
 }
@@ -182,8 +87,8 @@ select {
 }
 
 input {
-  background-color: var(--clr-neutral-8);
-  border: 1px solid var(--clr-neutral-7);
+  background-color: var(--clr-neutral-80);
+  border: 1px solid var(--clr-neutral-70);
   padding: 0.35em 0.5em;
 }
 
@@ -199,39 +104,36 @@ input[type="text"] {
 button {
   border: none;
   padding: 0.35em 1.5em;
-  background-color: var(--bg-clr, var(--clr-neutral-8));
-  color: var(--clr-neutral-1);
+  background-color: var(--bg-clr, var(--clr-neutral-80));
+  color: var(--clr-neutral-05);
   width: fit-content;
   border-radius: 100vmax;
 
   transition: background-color 0.1s ease, color 0.1s ease;
 
-  &:hover:has(:not(:disabled)),
-  &:focus-visible:has(:not(:disabled)) {
-    --bg-clr: var(--clr-neutral-7);
+  &:hover:not(:disabled),
+  &:focus-visible:not(:disabled) {
+    --bg-clr: var(--clr-neutral-70);
   }
 }
 
 button[data-btn*="primary"] {
-  --bg-clr: var(--clr-primary-4);
+  --bg-clr: var(--clr-primary-40);
   border: none;
 
-  &:hover:has(:not(:disabled)),
-  &:focus-visible:has(:not(:disabled)) {
-    --bg-clr: var(--clr-primary-5);
+  &:hover:not(:disabled),
+  &:focus-visible:not(:disabled) {
+    --bg-clr: var(--clr-primary-50);
   }
 }
 
 button[data-btn*="ghost"] {
-  border: 1px solid var(--clr-neutral-7);
+  border: 1px solid var(--clr-neutral-70);
   --bg-clr: transparent;
 
-  &:hover:has(:not(:disabled)),
-  &:focus-visible:has(:not(:disabled)) {
-    --bg-clr: var(--clr-neutral-7);
-  }
-  &:focus {
-    --bg-clr: var(--clr-neutral-7);
+  &:hover:not(:disabled),
+  &:focus-visible:not(:disabled) {
+    --bg-clr: var(--clr-neutral-70);
   }
 }
 
@@ -245,9 +147,9 @@ button:disabled {
 }
 
 select {
-  background-color: var(--clr-neutral-7);
-  color: var(--clr-neutral-1);
-  border-color: var(--clr-neutral-2);
+  background-color: var(--clr-neutral-70);
+  color: var(--clr-neutral-05);
+  border-color: var(--clr-neutral-20);
 }
 
 select:disabled {
@@ -260,7 +162,7 @@ ul {
 
 hr {
   border: none;
-  background-color: var(--clr-neutral-8);
+  background-color: var(--clr-neutral-80);
   height: 1px;
   margin: 1em 0;
 }
@@ -271,22 +173,6 @@ hr {
   position: absolute;
   opacity: 0;
   pointer-events: none;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --clr-neutral-10: hsl(214, 30%, 12%);
-    --clr-neutral-9: hsl(218, 25%, 15%);
-    --clr-neutral-8: hsl(210, 22%, 20%);
-    --clr-neutral-7: hsl(210, 15%, 28%);
-    --clr-neutral-6: hsl(210, 11%, 35%);
-    --clr-neutral-5: hsl(212, 20%, 50%);
-    --clr-neutral-4: hsl(212, 25%, 60%);
-    --clr-neutral-3: hsl(211, 30%, 70%);
-    --clr-neutral-2: hsl(211, 32%, 80%);
-    --clr-neutral-1: hsl(211, 50%, 95%);
-    --clr-neutral-0: hsl(100, 50%, 99%);
-  }
 }
 
 @media screen AND (max-width: 700px) {

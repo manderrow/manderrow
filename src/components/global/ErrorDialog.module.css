@@ -27,7 +27,7 @@
   overflow: auto;
   padding: 0.5em;
   max-height: 70dvh;
-  border: 1px solid var(--clr-neutral-7);
+  border: 1px solid var(--clr-neutral-70);
   border-radius: 0.5em;
 }
 

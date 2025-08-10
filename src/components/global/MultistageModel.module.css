@@ -1,5 +1,5 @@
 .model {
-  background-color: var(--clr-neutral-8);
+  background-color: var(--clr-neutral-80);
   height: var(--computed-height);
   transition: height 0.2s ease-in-out;
   overflow: hidden;
@@ -31,19 +31,19 @@
 
   .indicator {
     height: 0.5rem;
-    background-color: var(--clr-neutral-5);
+    background-color: var(--clr-neutral-50);
     border-radius: 0.25rem;
   }
 
   &[aria-selected="true"] {
     .indicator {
-      background-color: var(--clr-primary-5);
+      background-color: var(--clr-primary-50);
     }
   }
 
   .title {
     font-size: 0.9rem;
-    color: var(--clr-neutral-2);
+    color: var(--clr-neutral-20);
   }
 }
 

@@ -20,7 +20,7 @@
 
 .settings__navbar {
   padding: 1.25em 1em;
-  border: 1px solid var(--clr-neutral-8);
+  border: 1px solid var(--clr-neutral-80);
   border-radius: 6px;
   max-height: 100%;
   overflow-y: auto;
@@ -35,7 +35,7 @@
   justify-content: center;
   position: sticky;
   top: 0;
-  background-color: var(--clr-neutral-9);
+  background-color: var(--clr-neutral-90);
 
   button[data-back] {
     order: -1;
@@ -64,11 +64,11 @@
   }
 
   &:hover button {
-    background-color: var(--clr-neutral-8);
+    background-color: var(--clr-neutral-80);
   }
 
   &.settings__tabActive button {
-    background-color: var(--clr-primary-4);
+    background-color: var(--clr-primary-40);
   }
 }
 
@@ -100,7 +100,7 @@
 
   &:not(:last-child) {
     padding-bottom: 1em;
-    border-bottom: 1px solid var(--clr-neutral-8);
+    border-bottom: 1px solid var(--clr-neutral-80);
   }
 
   .option__input {

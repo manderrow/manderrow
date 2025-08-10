@@ -18,7 +18,7 @@
 }
 
 .dialog__container {
-  background-color: var(--clr-neutral-8);
+  background-color: var(--clr-neutral-80);
   padding: 1em;
   border-radius: 0.5em;
   max-width: 75ch;
@@ -34,7 +34,7 @@
 }
 
 .dialog__message {
-  color: var(--clr-neutral-2);
+  color: var(--clr-neutral-20);
 }
 
 .dialog__btns {
@@ -47,7 +47,7 @@
 .dialog__btnsBtn {
   padding: 0.5em 1em;
   border-radius: 4px;
-  background-color: var(--clr-neutral-7);
+  background-color: var(--clr-neutral-70);
 }
 
 .dialog__btnsBtnDanger {
@@ -60,5 +60,5 @@
   background-color: var(--clr-ok-4);
 }
 .dialog__btnsBtnInfo {
-  background-color: var(--clr-primary-4);
+  background-color: var(--clr-primary-40);
 }

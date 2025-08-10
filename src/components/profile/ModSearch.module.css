@@ -15,7 +15,7 @@
   gap: 0.25em;
   align-items: center;
   border-radius: 100vmax;
-  background-color: var(--clr-neutral-8);
+  background-color: var(--clr-neutral-80);
   padding-right: 1em;
 
   > input {
@@ -30,7 +30,7 @@
 
 .modSearch__dropdownBtn {
   background-color: transparent;
-  color: var(--clr-neutral-2);
+  color: var(--clr-neutral-20);
 }
 
 .searchOptions {

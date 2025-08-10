@@ -7,13 +7,13 @@
 
 .error_heading {
   font-size: 12rem;
-  color: var(--clr-neutral-2);
+  color: var(--clr-neutral-20);
   font-weight: 200;
   text-transform: uppercase;
 }
 
 .error_path {
-  color: var(--clr-neutral-3);
+  color: var(--clr-neutral-30);
 }
 
 .error_msg {

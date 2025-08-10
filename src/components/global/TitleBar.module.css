@@ -5,8 +5,8 @@
   right: 0;
 
   height: var(--titlebar-height);
-  background: var(--clr-neutral-9);
-  border-bottom: 1px solid var(--clr-neutral-8);
+  background: var(--clr-neutral-90);
+  border-bottom: 1px solid var(--clr-neutral-80);
   user-select: none;
   display: grid;
   grid-template-columns: auto max-content;
@@ -19,7 +19,7 @@
 
   .appTitleContainer {
     padding-left: 0.5em;
-    color: var(--clr-neutral-2);
+    color: var(--clr-neutral-20);
     display: flex;
     align-items: center;
     gap: 0.4em;
@@ -44,7 +44,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    color: var(--clr-neutral-3);
+    color: var(--clr-neutral-30);
   }
 
   .controls {
@@ -66,7 +66,7 @@
 
       &[data-minimize]:hover,
       &[data-maximize]:hover {
-        background-color: var(--clr-neutral-7);
+        background-color: var(--clr-neutral-70);
       }
 
       &[data-close]:hover {

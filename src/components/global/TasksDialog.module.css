@@ -4,14 +4,14 @@
   width: 100%;
   max-width: 70ch;
   height: 75dvh;
-  background-color: var(--clr-neutral-8);
+  background-color: var(--clr-neutral-80);
   padding: 1em;
   border-radius: 0.5em;
 }
 
 .tasks__header {
   text-align: center;
-  border-bottom: 1px solid var(--clr-neutral-7);
+  border-bottom: 1px solid var(--clr-neutral-70);
   padding-bottom: 0.5em;
   margin-bottom: 0.5em;
 }
@@ -38,7 +38,7 @@
 
 .tabs__tabActive button {
   box-shadow: 0 0 8px -2px rgba(0, 0, 0, 0.6);
-  background-color: var(--clr-primary-4);
+  background-color: var(--clr-primary-40);
 }
 
 .tabs__trailing {

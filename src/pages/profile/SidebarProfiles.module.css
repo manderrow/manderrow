@@ -17,8 +17,8 @@
 .sidebar__profilesSearch {
   border-radius: 4px;
   display: flex;
-  background-color: var(--clr-neutral-8);
-  border: 1px solid var(--clr-neutral-7);
+  background-color: var(--clr-neutral-80);
+  border: 1px solid var(--clr-neutral-70);
 }
 
 .sidebar__profilesSearch input {
@@ -31,12 +31,12 @@
 }
 
 .sidebar__profilesSearchSortBtn {
-  color: var(--clr-neutral-2);
+  color: var(--clr-neutral-20);
 }
 
 .sidebar__profilesSearchSortByBtn {
   padding-inline: 0.5em;
-  color: var(--clr-neutral-2);
+  color: var(--clr-neutral-20);
 }
 
 .profileList__item {
@@ -63,7 +63,7 @@
     padding: 0.2em 0.1em;
     margin: 0.2em 0;
     background-color: transparent;
-    background-color: var(--clr-neutral-8);
+    background-color: var(--clr-neutral-80);
   }
 }
 
@@ -75,7 +75,7 @@
 
 .profileList__itemName {
   display: block;
-  color: var(--clr-neutral-2);
+  color: var(--clr-neutral-20);
   padding: 0.35em 1em;
   text-overflow: ellipsis;
   overflow: hidden;
@@ -88,30 +88,41 @@ form.profileList__itemName {
   & > input {
     /* padding: calc(0.35em - 1px) calc(0.5em - 1px); */
     padding: calc(0.35em - 1px) calc(1em - 1px);
-    border: 1px solid var(--clr-primary-8);
+    border: 1px solid var(--clr-primary-80);
     width: 100%;
   }
 }
 
 .profileList__itemName:global(.active) {
   font-weight: 700;
-  color: var(--clr-primary-6);
-  background-color: var(--clr-neutral-8);
+  color: var(--clr-primary-60);
+  background-color: var(--clr-neutral-80);
 }
 
 .profileList__itemName:global(.active):hover {
   font-weight: 700;
-  color: var(--clr-primary-7);
+  color: var(--clr-primary-70);
 }
 
 .profileList__item:hover .profileList__itemName,
 .profileList__item:focus-within .profileList__itemName {
-  background-color: var(--clr-neutral-8);
-  color: var(--clr-neutral-1);
+  background-color: var(--clr-neutral-80);
+  color: var(--clr-neutral-10);
 }
 
 .profileList__item button:hover:not(:disabled) {
-  background-color: var(--clr-neutral-7);
+  background-color: var(--clr-neutral-70);
+}
+
+.contextMenuItem {
+  width: 17px;
+  text-align: center;
+  display: inline-block;
+  margin-right: 0.5em;
+
+  .openFolderIcon {
+    translate: 2px 0;
+  }
 }
 
 @media screen AND (max-width: 1200px) {
