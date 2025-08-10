@@ -5874,7 +5874,7 @@ checksum = "accd4ea62f7bb7a82fe23066fb0957d48ef677f6eeb8215f372f52e48bb32426"
 [[package]]
 name = "vdf"
 version = "0.1.0"
-source = "git+https://git.pfaff.dev/michael/vdf.rs#3b6bc812d94b024fd42c041babf3f281e6cfaa67"
+source = "git+https://git.pfaff.dev/michael/starling#f96b89125b4e426c56ae9caabf65df1a4b3b0de3"
 dependencies = [
  "miette",
  "thiserror 2.0.12",
