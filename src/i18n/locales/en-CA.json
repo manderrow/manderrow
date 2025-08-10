@@ -88,6 +88,11 @@
     }
   },
 
+  "config": {
+    "title": "Config Editor",
+    "sections_title": "Sections"
+  },
+
   "modlist": {
     "installed": {
       "no_mods_installed": "Looks like you haven't installed any mods yet.",

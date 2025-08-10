@@ -1,5 +1,4 @@
 use packed_semver::Version;
-use tauri::ipc::InvokeResponseBody;
 use tauri::{AppHandle, State};
 
 use crate::{tasks, CommandError, Reqwest};
@@ -15,7 +14,7 @@ pub async fn thunderstore_fetch_mod_markdown(
     version: Version,
     endpoint: ModMarkdown,
     task_id: tasks::Id,
-) -> Result<InvokeResponseBody, CommandError> {
+) -> Result<Option<String>, CommandError> {
     super::fetch_mod_markdown(
         Some(&app),
         &slog_scope::logger(),
@@ -28,5 +27,4 @@ pub async fn thunderstore_fetch_mod_markdown(
     )
     .await
     .map_err(Into::into)
-    .map(InvokeResponseBody::Json)
 }
