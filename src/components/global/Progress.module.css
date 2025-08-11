@@ -6,7 +6,7 @@
   border-radius: 4em;
   overflow: hidden;
   position: relative;
-  background-color: var(--clr-primary-20);
+  background-color: var(--clr-neutral-80);
   z-index: 0;
   container-type: inline-size;
 

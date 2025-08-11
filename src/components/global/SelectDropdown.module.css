@@ -17,7 +17,7 @@
 
 .option:hover {
   cursor: pointer;
-  background-color: var(--clr-neutral-60);
+  background-color: var(--clr-neutral-70);
 }
 
 .option__check {

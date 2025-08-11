@@ -449,7 +449,7 @@
   --bg-clr: var(--clr-primary-40);
   border-radius: 0 100vmax 100vmax 0;
 
-  &:hover {
+  &:hover:not(:disabled) {
     --bg-clr: var(--clr-primary-50);
   }
 }
