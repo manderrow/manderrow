@@ -107,10 +107,15 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
   const [profileSortOrder, setProfileSortOrder] = createSignal(false);
 
   const [profiles] = createResource(
-    globals.profiles,
-    (profiles) => {
+    () => {
+      // TODO: catch error and handle correctly
+      const profiles = globals.profiles();
+      if (profiles == null) return undefined;
+      return { profiles, gameId: params.gameId };
+    },
+    ({ profiles, gameId }) => {
       return Object.fromEntries(
-        profiles.filter((profile) => profile.game === params.gameId).map((profile) => [profile.id, profile]),
+        profiles.filter((profile) => profile.game === gameId).map((profile) => [profile.id, profile]),
       );
     },
     { initialValue: {} },
