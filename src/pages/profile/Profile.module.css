@@ -90,15 +90,85 @@
     }
 
     button[data-modded] {
-      background-color: var(--clr-primary-40);
-      background-image: linear-gradient(
-        20deg,
-        var(--clr-primary-30) 10%,
-        var(--clr-primary-40) 80%,
-        var(--clr-primary-50) 100%
-      );
-      border: 2px solid hsl(var(--clr-primary-hs), 70%, 20%);
+      --gradient-border-width: 2px;
+      --glint-color: rgba(255, 255, 255, 0.3);
+
+      --bg-clr: var(--clr-primary-40);
+      background-image: linear-gradient(20deg, var(--clr-primary-30), var(--clr-primary-50)),
+        radial-gradient(circle at center, var(--clr-primary-20), var(--clr-primary-60), var(--clr-primary-30));
+      background-clip: padding-box, border-box;
+      background-size: 100%, 100%;
+      display: flex;
+      justify-content: center;
+      gap: 0.35em;
+
+      transition: background-size 1s ease;
+
       flex-grow: 1;
+      position: relative;
+      overflow: hidden;
+      border: var(--gradient-border-width) solid transparent;
+
+      [data-arrow] {
+        max-width: 0;
+        overflow: hidden;
+        transition: max-width 0.3s ease;
+      }
+
+      &::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        width: calc(100% + var(--gradient-border-width) * 2);
+        aspect-ratio: 1 / 1;
+        pointer-events: none;
+        top: 50%;
+        left: 50%;
+        translate: -105% -50%;
+        transform: rotate(30deg);
+        transform-origin: center;
+
+        background-image: conic-gradient(
+          var(--glint-color) 0deg,
+          transparent 20deg 160deg,
+          var(--glint-color) 180deg,
+          transparent 200deg 340deg,
+          var(--glint-color) 360deg
+        );
+
+        opacity: 0;
+      }
+
+      &:hover,
+      &:focus-visible {
+        background-size: 100%, 200%;
+
+        [data-icon] {
+          justify-self: flex-start;
+        }
+
+        [data-arrow] {
+          max-width: 3ch;
+        }
+
+        &::before {
+          opacity: 1;
+          translate: 5% -50%;
+          transition: opacity 0.75s ease, translate 1.3s ease;
+        }
+      }
+
+      &:active {
+        --glint-color: rgba(255, 255, 255, 0.15);
+        background-image: linear-gradient(20deg, var(--clr-primary-25), var(--clr-primary-45)),
+          radial-gradient(circle at center, var(--clr-primary-20), var(--clr-primary-55), var(--clr-primary-25));
+
+        [data-icon] {
+          translate: -50%;
+
+          transition: translate 0.2s ease;
+        }
+      }
     }
 
     button[data-kill] {

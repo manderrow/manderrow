@@ -33,6 +33,7 @@ import {
   faShare,
   faEllipsisVertical,
   IconDefinition,
+  faArrowRightLong,
 } from "@fortawesome/free-solid-svg-icons";
 import { OverlayScrollbarsComponent } from "overlayscrollbars-solid";
 import { Fa } from "solid-fa";
@@ -203,7 +204,13 @@ export default function Profile() {
               // TODO: based on hasLiveConnection change the UI of these a bit
             }
             <button disabled={params.profileId === undefined} on:click={() => launch(true)} data-modded>
-              <Fa icon={faCirclePlay} /> <span>{t("profile.sidebar.launch_modded_btn")}</span>
+              <span data-icon>
+                <Fa icon={faCirclePlay} />
+              </span>
+              <span>{t("profile.sidebar.launch_modded_btn")}</span>
+              <span data-arrow>
+                <Fa icon={faArrowRightLong} />
+              </span>
             </button>
 
             <div class={styles.gameBtns}>
