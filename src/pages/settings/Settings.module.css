@@ -35,7 +35,7 @@
   justify-content: center;
   position: sticky;
   top: 0;
-  background-color: var(--clr-neutral-90);
+  background-color: var(--clr-neutral-85);
 
   button[data-back] {
     order: -1;
