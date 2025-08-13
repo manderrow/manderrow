@@ -32,15 +32,13 @@ export function SimpleProgressIndicator(props: {
       aria-valuemin={0}
       aria-valuemax={props.progress?.total}
     >
-      <Show when={props.progress}>
-        {(progress) => (
-          <p class={styles.simpleIndicator__text}>
-            {progress().total === 0
-              ? "0"
-              : roundedNumberFormatter.format((progress().completed / progress().total) * 100)}
-            %
-          </p>
-        )}
+      <Show when={!isIndeterminate()}>
+        <p class={styles.simpleIndicator__text}>
+          {props.progress!.total === 0
+            ? "0"
+            : roundedNumberFormatter.format((props.progress!.completed / props.progress!.total) * 100)}
+          %
+        </p>
       </Show>
     </div>
   );
