@@ -17,6 +17,7 @@ export const setCurrentProfileName = _setCurrentProfileName;
 
 export default function TitleBar() {
   const [isMaximizedCached, setIsMaximizedCached] = createSignal(false);
+  const [isFocusedCached, setIsFocusedCached] = createSignal(false);
 
   onMount(async () => {
     setIsMaximizedCached(await isMaximized());
@@ -24,10 +25,14 @@ export default function TitleBar() {
     appWindow.onResized(async () => {
       setIsMaximizedCached(await isMaximized());
     });
+
+    appWindow.onFocusChanged((event) => {
+      setIsFocusedCached(event.payload);
+    });
   });
 
   return (
-    <div class={styles.titlebar}>
+    <div class={styles.titlebar} data-focused={isFocusedCached()}>
       <div
         data-tauri-drag-region={platform() === "macos" ? undefined : true}
         class={styles.titlebar__content}

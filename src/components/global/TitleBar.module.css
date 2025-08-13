@@ -5,12 +5,16 @@
   right: 0;
 
   height: var(--titlebar-height);
-  background: var(--clr-neutral-90);
+  background-color: var(--clr-neutral-85);
   border-bottom: 1px solid var(--clr-neutral-80);
   user-select: none;
   display: grid;
   grid-template-columns: auto max-content;
   z-index: var(--titlebar-z-index);
+
+  &[data-focused="true"] {
+    background-color: var(--clr-neutral-90);
+  }
 
   .titlebar__content {
     display: flex;
