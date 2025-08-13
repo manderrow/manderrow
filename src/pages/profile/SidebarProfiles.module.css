@@ -57,13 +57,14 @@
   pointer-events: none;
   transition: opacity 0.1s ease;
 
+  /* Hover menu buttons */
   > button {
     aspect-ratio: 1 / 1;
     justify-content: center;
     padding: 0.2em 0.1em;
     margin: 0.2em 0;
     background-color: transparent;
-    background-color: var(--clr-neutral-80);
+    background-color: inherit;
   }
 }
 
@@ -94,20 +95,18 @@ form.profileList__itemName {
 }
 
 .profileList__itemName:global(.active) {
-  font-weight: 700;
+  font-weight: 620;
   color: var(--clr-primary-60);
   background-color: var(--clr-neutral-80);
 }
 
 .profileList__itemName:global(.active):hover {
-  font-weight: 700;
   color: var(--clr-primary-70);
 }
 
 .profileList__item:hover .profileList__itemName,
-.profileList__item:focus-within .profileList__itemName {
-  background-color: var(--clr-neutral-80);
-  color: var(--clr-neutral-10);
+.profileList__item:focus-within:has(:focus-visible) .profileList__itemName {
+  background-color: var(--clr-neutral-85);
 }
 
 .profileList__item button:hover:not(:disabled) {
