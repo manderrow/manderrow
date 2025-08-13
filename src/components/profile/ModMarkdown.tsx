@@ -21,7 +21,7 @@ export default function ModMarkdown(props: {
     if (m == undefined) return {};
     return {
       mod: m,
-      version: "version" in m ? m.version.version_number : props.selectedVersion ?? m.versions[0].version_number,
+      version: props.selectedVersion ?? ("version" in m ? m.version.version_number : m.versions[0].version_number),
     };
   };
 
