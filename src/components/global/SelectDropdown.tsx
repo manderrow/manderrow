@@ -1,4 +1,4 @@
-import { For, JSX } from "solid-js";
+import { createEffect, createSignal, For, JSX } from "solid-js";
 import { faCheck } from "@fortawesome/free-solid-svg-icons";
 import Fa from "solid-fa";
 import { t } from "../../i18n/i18n";
@@ -42,14 +42,31 @@ export default function SelectDropdown<T, CustomData = undefined>(options: Selec
         options.label.fallback ??
         t("global.select_dropdown.default_fallback");
 
+  let listRef!: HTMLUListElement;
+
+  const [dropdownRef, setDropdownRef] = createSignal<HTMLDivElement | undefined>(undefined);
+
+  createEffect(() => {
+    const dropdown = dropdownRef();
+    if (!dropdown) return;
+
+    if (listRef.scrollHeight > dropdown.clientHeight) {
+      listRef.querySelector("li[aria-checked=true]")?.scrollIntoView({
+        behavior: "instant",
+        block: "center",
+      });
+    }
+  });
+
   return (
     <TogglableDropdown
+      ref={setDropdownRef}
       dropdownClass={styles.dropdown}
       label={labelValue()}
       labelClass={options.labelClass}
       offset={options.offset}
     >
-      <ul class={styles.options} role={options.multiselect === false ? "radiogroup" : "listbox"}>
+      <ul class={styles.options} role={options.multiselect === false ? "radiogroup" : "listbox"} ref={listRef}>
         <For each={options.options}>
           {(option) => {
             let ref!: HTMLLIElement;

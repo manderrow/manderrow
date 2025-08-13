@@ -19,6 +19,7 @@ export interface TogglableDropdownOptions {
   anchorId?: string; // Explicit ID of element to anchor to (needed for multiple floating elements on the same anchor)
   dropdownOptions?: UseFloatingOptions<HTMLElement, HTMLElement>;
   offset?: OffsetOptions;
+  ref?: (element: HTMLElement) => void;
 }
 
 export default function TogglableDropdown(options: TogglableDropdownOptions) {
@@ -34,7 +35,10 @@ export default function TogglableDropdown(options: TogglableDropdownOptions) {
 
   return (
     <FloatingElement
-      ref={setDropdownElement}
+      ref={(element) => {
+        setDropdownElement(element);
+        if (options.ref) options.ref(element);
+      }}
       class={`${styles.dropdownBase} ${options.floatingContainerClass || ""}`}
       content={
         <div
