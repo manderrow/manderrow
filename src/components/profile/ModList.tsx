@@ -481,7 +481,6 @@ function ModView(props: { mod: Mod | undefined; gameId: string; closeModView: ()
     { initialValue: getInitialModListing(props.mod) },
   );
 
-  // [string: the version number string, number: the index of the version in the listing versions array]
   const [selectedVersion, setSelectedVersion] = createSignal<string>();
 
   const modVersionData = (mod: Mod) => {
