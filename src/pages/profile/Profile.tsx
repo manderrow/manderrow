@@ -62,12 +62,12 @@ import { t } from "../../i18n/i18n.ts";
 import { launchProfile } from "../../api/launching";
 import { ConsoleConnection, focusedConnection, setFocusedConnection } from "../../console";
 import { ActionContext } from "../../components/global/AsyncButton.tsx";
-import StatusBar from "../../components/profile/StatusBar.tsx";
 import { setCurrentProfileName } from "../../components/global/TitleBar.tsx";
-import GameSelect from "../game_select/GameSelect.tsx";
 import Tooltip from "../../components/global/Tooltip.tsx";
 import ContextMenu from "../../components/global/ContextMenu.tsx";
 import { CircularProgressIndicator, SimpleProgressIndicator } from "../../components/global/Progress.tsx";
+import GameSelect from "../../components/profile/game_select/GameSelect.tsx";
+import StatusBar from "../../components/profile/StatusBar.tsx";
 
 interface ProfileParams {
   profileId?: string;
