@@ -1,9 +1,6 @@
 .page {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background-color: hsl(214, 28%, 5%);
   overflow-y: auto;
   height: calc(100dvh - var(--titlebar-height));
