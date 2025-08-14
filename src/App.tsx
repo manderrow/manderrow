@@ -5,7 +5,7 @@ import "./styles/Markdown.css";
 
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { platform } from "@tauri-apps/plugin-os";
-import { Show, Suspense, createResource, lazy, onCleanup, onMount } from "solid-js";
+import { Show, createResource, lazy, onCleanup, onMount } from "solid-js";
 
 import { relaunch } from "./api/app";
 import { coreResources } from "./globals";

@@ -1,12 +1,13 @@
 import { faStar } from "@fortawesome/free-regular-svg-icons";
 import { faGlobe, faList, faTableCellsLarge } from "@fortawesome/free-solid-svg-icons";
-import { useLocation, useNavigate } from "@solidjs/router";
+import { useNavigate } from "@solidjs/router";
 import Fa from "solid-fa";
-import { createEffect, createResource, createSignal, For, onCleanup, onMount } from "solid-js";
+import { createResource, createSignal, For } from "solid-js";
 
-import { games, initialGame, initialSortedGames } from "../../globals";
+import { games, initialSortedGames } from "../../globals";
 import { Locale, localeNamesMap, setLocale, locale, t, RAW_LOCALES } from "../../i18n/i18n";
 import { Game } from "../../types";
+// @ts-ignore: TS is unaware of `use:` directives despite using them for type definitions
 import { autofocus } from "../../components/global/Directives";
 
 import blobStyles from "./GameBlobs.module.css";
@@ -15,18 +16,16 @@ import styles from "./GameSelect.module.css";
 import { GameSortColumn, searchGames } from "../../api";
 import { updateSettings } from "../../api/settings";
 import { SimpleAsyncButton } from "../../components/global/AsyncButton";
-import { replaceRouteState } from "../../utils/router";
 
 enum DisplayType {
   Card = -1,
   List = 1,
 }
 
-interface GameSelectState {
-  explicit?: true;
-}
-
-export default function GameSelect() {
+export default function GameSelect(props: {
+  replace: boolean;
+  dismiss?: () => void;
+}) {
   const [displayType, setDisplayType] = createSignal<DisplayType>(DisplayType.Card);
   const [search, setSearch] = createSignal("");
   const [sort, setSort] = createSignal<GameSortColumn>(GameSortColumn.ModDownloads);
@@ -42,21 +41,9 @@ export default function GameSelect() {
     { initialValue: initialSortedGames() },
   );
 
-  const navigate = useNavigate();
-  const location = useLocation<GameSelectState>();
-
-  createEffect(() => {
-    if (location.state?.explicit != null) return;
-    const game = initialGame.latestOrThrow;
-    if (game) {
-      // don't trigger again when the user manually navigates back
-      replaceRouteState((current) => ({ ...current, explicit: true }));
-      navigate(`/profile/${game}`);
-    }
-  });
-
   return (
     <div class={styles.page}>
+      <div class={styles.pageInner}>
       <div class={blobStyles.gradientBlobs} aria-hidden="true">
         <div class={blobStyles.gradientBlob} data-blob-1></div>
         <div class={blobStyles.gradientBlob} data-blob-2></div>
@@ -131,21 +118,27 @@ export default function GameSelect() {
               </li>
             }
           >
-            {(game) => <GameComponent game={games()[game]} />}
+            {(game) => <GameComponent game={games()[game]} replace={props.replace} dismiss={props.dismiss} />}
           </For>
         </ol>
       </main>
+      </div>
     </div>
   );
 }
 
-function GameComponent(props: { game: Game }) {
+function GameComponent(props: {
+  game: Game;
+  replace: boolean;
+  dismiss?: () => void;
+}) {
   const url = `/img/game_covers/${props.game.thunderstoreId}.webp`;
 
   const navigate = useNavigate();
 
   function navigateToGame() {
-    navigate(`/profile/${props.game.id}/`);
+    navigate(`/profile/${props.game.id}/`, { replace: props.replace });
+    props.dismiss?.();
   }
 
   return (

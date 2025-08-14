@@ -1,7 +1,15 @@
 .page {
+  position: absolute;
+  inset: 0;
   background-color: hsl(214, 28%, 5%);
   overflow-y: auto;
   height: calc(100dvh - var(--titlebar-height));
+  z-index: 2;
+  overscroll-behavior: none;
+}
+
+.pageInner {
+  position: relative;
 }
 
 .language {
@@ -54,11 +62,13 @@
   width: 20%;
   pointer-events: none;
 }
+
 .header h1::before {
   background-image: linear-gradient(-90deg, var(--clr-neutral-50), transparent);
   transform: translateX(-100%);
   left: -0.5em;
 }
+
 .header h1::after {
   background-image: linear-gradient(90deg, var(--clr-neutral-50), transparent);
   transform: translateX(100%);
