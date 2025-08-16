@@ -54,7 +54,7 @@ import {
 } from "../../utils";
 
 import { ActionContext, ProgressStyle, SimpleAsyncButton } from "../global/AsyncButton";
-import ErrorBoundary, { ErrorContext } from "../global/ErrorBoundary.tsx";
+import ErrorBoundary from "../global/ErrorBoundary.tsx";
 import TabRenderer, { Tab, TabContent } from "../global/TabRenderer";
 import ModMarkdown from "./ModMarkdown.tsx";
 import ModSearch from "./ModSearch.tsx";
@@ -301,12 +301,12 @@ export function InstalledModList(props: { game: string }) {
     { initialValue: [] },
   );
 
-  const [progress, setProgress] = createProgressProxyStore();
+  const [progress, _setProgress] = createProgressProxyStore();
 
   const getFetcher: () => Fetcher = () => {
     const data = context.installed.latest;
 
-    return async (game, query, sort) => {
+    return async (_game, _query, _sort) => {
       // TODO: implement filter and sort
 
       return {
@@ -363,8 +363,7 @@ export function InstalledModList(props: { game: string }) {
 }
 
 function ModUpdateDialogue(props: { onDismiss: () => void; updates: ModUpdate[] }) {
-  const [progress, setProgress] = createProgressProxyStore();
-  const reportErr = useContext(ErrorContext)!;
+  const [_progress, _setProgress] = createProgressProxyStore();
 
   const [selectedMods, setSelectedMods] = createSignal<Set<ModUpdate>>(new Set(props.updates), {
     equals: false,
@@ -455,7 +454,7 @@ function ModUpdateDialogue(props: { onDismiss: () => void; updates: ModUpdate[] 
 }
 
 function ModView(props: { mod: Mod; gameId: string; closeModView: () => void }) {
-  const [progress, setProgress] = createProgressProxyStore();
+  const [_progress, setProgress] = createProgressProxyStore();
 
   function getInitialModListing(mod: Mod) {
     if ("version" in mod) {

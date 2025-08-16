@@ -144,6 +144,7 @@ function TextInput(props: { idPrefix: string; setting: TextSetting }) {
       type="text"
       id={`${props.idPrefix}_${props.setting.key}`}
       value={get(props.setting)}
+      // @ts-ignore: typescript chokes on the type of `e.value`
       on:change={onChange(reportErr, props.setting, (e) => e.value)}
     />
   );
@@ -154,6 +155,7 @@ function GameSelectInput(props: { idPrefix: string; setting: GameSelectSetting }
   function onChanged(value: string, selected: boolean) {
     if (selected) {
       try {
+        // @ts-ignore: typescript chokes on the type of `value`
         overrideSetting(props.setting, value);
       } catch (e) {
         reportErr(e);

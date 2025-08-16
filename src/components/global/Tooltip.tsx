@@ -1,5 +1,5 @@
-import { JSX, onMount, Show } from "solid-js";
-import { arrow, offset } from "@floating-ui/dom";
+import { JSX, Show } from "solid-js";
+import { offset } from "@floating-ui/dom";
 
 import { FloatingElement } from "./FloatingElement";
 

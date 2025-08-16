@@ -1,4 +1,4 @@
-import { Accessor, createSignal, JSX, onCleanup, onMount, Show } from "solid-js";
+import { createSignal, JSX, onCleanup, onMount } from "solid-js";
 import { useFloating, UseFloatingOptions } from "solid-floating-ui";
 import { autoUpdate } from "@floating-ui/dom";
 

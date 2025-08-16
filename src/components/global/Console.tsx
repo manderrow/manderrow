@@ -15,6 +15,7 @@ import {
 import { createStore } from "solid-js/store";
 
 import { LOG_LEVELS, SafeOsString, sendS2CMessage } from "../../api/ipc";
+// @ts-ignore: typescript is unaware of solid's use: syntax
 import { bindValue } from "../global/Directives";
 import styles from "./Console.module.css";
 import Dialog, { dialogStyles } from "./Dialog";

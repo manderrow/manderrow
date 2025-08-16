@@ -149,7 +149,3 @@ function DownloadUrlLine(props: { url: string }) {
     </button>
   </div>;
 }
-
-function ModDownloadTask() {}
-
-function OtherTask() {}

@@ -17,6 +17,7 @@ function SortableListItem(props: { item: JSX.Element; id: Id }) {
   const [state] = useDragDropContext()!;
   return (
     <div
+      // @ts-ignore: typescript is unaware of solid's use: syntax
       use:sortable
       classList={{
         [styles.opacity25]: sortable.isActiveDraggable,

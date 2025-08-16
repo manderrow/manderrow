@@ -65,7 +65,6 @@ import { ActionContext } from "../../components/global/AsyncButton.tsx";
 import { setCurrentProfileName } from "../../components/global/TitleBar.tsx";
 import Tooltip from "../../components/global/Tooltip.tsx";
 import ContextMenu from "../../components/global/ContextMenu.tsx";
-import { CircularProgressIndicator, SimpleProgressIndicator } from "../../components/global/Progress.tsx";
 import GameSelect from "../../components/profile/game_select/GameSelect.tsx";
 import StatusBar from "../../components/profile/StatusBar.tsx";
 

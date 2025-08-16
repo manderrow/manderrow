@@ -7,7 +7,7 @@ import {
   ModSpec,
   previewImportModpackFromThunderstoreCode,
 } from "../../api";
-import { DefaultDialog, DismissCallback } from "../global/Dialog";
+// @ts-ignore: typescript is unaware of solid's use: syntax
 import { bindValue } from "../global/Directives";
 
 import { faChevronLeft } from "@fortawesome/free-solid-svg-icons";
