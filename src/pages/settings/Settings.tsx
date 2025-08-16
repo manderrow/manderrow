@@ -28,13 +28,13 @@ export default function SettingsPage() {
             </label>
             <div class={styles.option__input}>
               <Switch>
-                <Match when={setting.input.type === "toggle"}>
+                <Match when={setting.input === "toggle"}>
                   <ToggleInput idPrefix={idPrefix} setting={setting as ToggleSetting} />
                 </Match>
-                <Match when={setting.input.type === "text"}>
+                <Match when={setting.input === "text"}>
                   <TextInput idPrefix={idPrefix} setting={setting as TextSetting} />
                 </Match>
-                <Match when={setting.input.type === "game_select"}>
+                <Match when={setting.input === "game_select"}>
                   <GameSelectInput idPrefix={idPrefix} setting={setting as GameSelectSetting} />
                 </Match>
               </Switch>

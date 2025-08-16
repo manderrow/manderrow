@@ -179,7 +179,7 @@ pub fn settings(args: TokenStream, input: TokenStream) -> TokenStream {
                     .map(|field| {
                         json!({
                             "key": cruet::to_camel_case(&field.ident.to_string()),
-                            "input": { "type": field.input.to_string() },
+                            "input": field.input.to_string(),
                         })
                     })
                     .collect::<Vec<_>>(),
