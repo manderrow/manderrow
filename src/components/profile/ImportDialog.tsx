@@ -205,7 +205,7 @@ function ModEntry(props: { mod: ModSpec; modProgress: Record<string, TaskId> }) 
             <Show when={props.modProgress[props.mod.url]}>
               {(taskId) => (
                 <div class={styles.right}>
-                  <SimpleProgressIndicator progress={tasks.get(taskId())?.progress ?? initProgress()} />
+                  <SimpleProgressIndicator progress={tasks().get(taskId())?.progress ?? initProgress()} />
                 </div>
               )}
             </Show>
