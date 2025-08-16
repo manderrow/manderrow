@@ -99,7 +99,7 @@ fn forwardFromPipe(channel: ipc.StandardOutputChannel, pipe: std.fs.File) void {
             rdr.interface.seek += 1;
         }
 
-        var line = buf.getWritten();
+        var line = buf.written();
         if (line.len != 0 and line[line.len - 1] == '\r') {
             line = line[0 .. line.len - 1];
         }
