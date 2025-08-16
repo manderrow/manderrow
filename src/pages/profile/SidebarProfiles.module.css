@@ -39,6 +39,12 @@
   color: var(--clr-neutral-20);
 }
 
+.profileList__noProfilesMsg {
+  padding: 0.35em 1em;
+  text-align: center;
+  color: var(--clr-neutral-20);
+}
+
 .profileList__item {
   position: relative;
 

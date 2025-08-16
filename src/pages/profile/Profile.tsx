@@ -2,6 +2,7 @@ import {
   createEffect,
   createMemo,
   createResource,
+  createSelector,
   createSignal,
   createUniqueId,
   For,
@@ -79,6 +80,11 @@ interface ProfileSearchParams {
   "profile-tab"?: TabId;
 }
 
+enum ProfileSortType {
+  alphabetical = "alphabetical",
+  creation_date = "creation_date",
+}
+
 export default function Profile() {
   // @ts-expect-error params.profileId is an optional param, it can be undefined, and we don't expect any other params
   const params = useParams<ProfileParams>();
@@ -92,18 +98,18 @@ export default function Profile() {
     }
   });
 
-  return <Show when={params.gameId} fallback={<GameSelect replace={true} />}>
-    {(gameId) => <ProfileWithGame gameId={gameId()} profileId={params.profileId} />}
-  </Show>;
+  return (
+    <Show when={params.gameId} fallback={<GameSelect replace={true} />}>
+      {(gameId) => <ProfileWithGame gameId={gameId()} profileId={params.profileId} />}
+    </Show>
+  );
 }
 
 function ProfileWithGame(params: ProfileParams & { gameId: string }) {
   const [searchParams, setSearchParams] = useSearchParamsInPlace<ProfileSearchParams>();
 
- // TODO, handle undefined case
+  // TODO, handle undefined case
   const gameInfo = createMemo(() => globals.gamesById().get(params.gameId)!);
-
-  const [profileSortOrder, setProfileSortOrder] = createSignal(false);
 
   const [profiles] = createResource(
     () => {
@@ -196,6 +202,26 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
   const [sidebarOpen, setSidebarOpen] = createSignal(false);
 
   const [pickingGame, setPickingGame] = createSignal(false);
+  const [profileQuery, setProfileQuery] = createSignal("");
+  const [profileSortOrder, setProfileSortOrder] = createSignal(false); // true for ascending, false for descending
+  const [profileSortType, setProfileSortType] = createSignal<ProfileSortType>(ProfileSortType.creation_date);
+  const isProfileSortType = createSelector(profileSortType);
+
+  const queriedProfiles = () => {
+    const query = profileQuery().toLowerCase();
+    return Object.values(profiles())
+      .filter((profile) => profile.name.toLowerCase().includes(query))
+      .sort((a, b) => {
+        switch (profileSortType()) {
+          case ProfileSortType.alphabetical:
+          case ProfileSortType.creation_date:
+            return profileSortOrder() ? a.name.localeCompare(b.name) : b.name.localeCompare(a.name);
+          // TODO:
+          // case ProfileSortType.creation_date:
+          //   return profileSortOrder() ? a.createdAt - b.createdAt : b.createdAt - a.createdAt;
+        }
+      });
+  };
 
   return (
     <main class={styles.main}>
@@ -264,23 +290,30 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
           </h3>
 
           <form on:submit={(e) => e.preventDefault()} class={sidebarStyles.sidebar__profilesSearch}>
-            <input type="text" name="profile-search" id="profile-search" placeholder="Search" maxLength={100} />
-            <SelectDropdown<"alphabetical" | "creationDate">
+            <input
+              type="text"
+              name="profile-search"
+              id="profile-search"
+              placeholder={t("global.phrases.search")}
+              maxLength={100}
+              use:bindValue={[profileQuery, setProfileQuery]}
+            />
+            <SelectDropdown<ProfileSortType>
               multiselect={false}
               options={[
                 {
-                  value: "alphabetical",
+                  value: ProfileSortType.alphabetical,
                   text: "A-Z",
-                  selected: () => false,
+                  selected: () => isProfileSortType(ProfileSortType.alphabetical),
                 },
                 {
-                  value: "creationDate",
+                  value: ProfileSortType.creation_date,
                   text: "Creation Date",
-                  selected: () => false,
+                  selected: () => isProfileSortType(ProfileSortType.creation_date),
                 },
               ]}
               label={{ labelText: "preset", preset: "Sort" }}
-              onChanged={(key, selected) => console.log(key, selected)}
+              onChanged={(key) => setProfileSortType(key)}
             />
             <button
               class={sidebarStyles.sidebar__profilesSearchSortByBtn}
@@ -296,26 +329,29 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
             class={sidebarStyles.sidebar__profilesListContainer}
           >
             <ol class={sidebarStyles.sidebar__profilesList}>
-              <For each={Object.keys(profiles())}>
-                {(id) => (
-                  <Show when={profiles()[id].pinned}>
+              <Show when={queriedProfiles().length === 0}>
+                <li class={sidebarStyles.profileList__noProfilesMsg}>{t("profile.sidebar.no_profiles_search_msg")}</li>
+              </Show>
+              <For each={queriedProfiles()}>
+                {(profile) => (
+                  <Show when={profile.pinned}>
                     <SidebarProfileComponent
                       gameId={params.gameId}
-                      profile={profiles()[id]}
+                      profile={profile}
                       refetchProfiles={refetchProfiles}
-                      selected={id === params.profileId}
+                      selected={profile.id === params.profileId}
                     />
                   </Show>
                 )}
               </For>
-              <For each={Object.keys(profiles())}>
-                {(id) => (
-                  <Show when={!profiles()[id].pinned}>
+              <For each={queriedProfiles()}>
+                {(profile) => (
+                  <Show when={!profile.pinned}>
                     <SidebarProfileComponent
                       gameId={params.gameId}
-                      profile={profiles()[id]}
+                      profile={profile}
                       refetchProfiles={refetchProfiles}
-                      selected={id === params.profileId}
+                      selected={profile.id === params.profileId}
                     />
                   </Show>
                 )}

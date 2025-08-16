@@ -5,9 +5,9 @@
       "yes": "Yes",
       "no": "No",
       "cancel": "Cancel",
-      "loading": "Loading"
+      "loading": "Loading",
+      "search": "Search"
     },
-
     "game_sort_column": {
       "name": "Name",
       "mod_downloads": "Mod Downloads",
@@ -23,6 +23,10 @@
     "sort_order": {
       "ascending": "Ascending",
       "descending": "Descending"
+    },
+    "sort_type": {
+      "alphabetical": "Alphabetical",
+      "creation_date": "Creation Date"
     },
     "select_dropdown": {
       "default_fallback": "Select..."
@@ -75,6 +79,8 @@
       "profiles_title": "Profiles",
       "create_profile_tooltip": "Create new profile",
       "import_profile_tooltip": "Import profile",
+
+      "no_profiles_search_msg": "No profiles found.",
 
       "ellipsis_btn": "More",
       "pin_profile_btn": "Pin",
