@@ -55,7 +55,7 @@ jobs:
 
       - uses: mlugg/setup-zig@v2
         with:
-          version: 0.15.0-dev.1092+d772c0627
+          version: 0.15.0-dev.1552+b87b95868
 
       - name: Install frontend dependencies
         run: pnpm install
