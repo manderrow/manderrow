@@ -8,7 +8,6 @@ import {
   For,
   Match,
   onCleanup,
-  onMount,
   Show,
   Switch,
 } from "solid-js";
@@ -49,7 +48,7 @@ import { InstalledModList, ModInstallContext, OnlineModList } from "../../compon
 
 import { createProfile, deleteProfile, getProfileMods, overwriteProfileMetadata, ProfileWithId } from "../../api";
 import * as globals from "../../globals";
-import { initialGame, refetchProfiles } from "../../globals";
+import { initialGame, refetchProfiles, shifting, ctrling } from "../../globals";
 // @ts-ignore: TS is unaware of `use:` directives despite using them for type definitions
 import { autofocus, bindValue } from "../../components/global/Directives";
 
@@ -202,6 +201,7 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
   const [sidebarOpen, setSidebarOpen] = createSignal(false);
 
   const [pickingGame, setPickingGame] = createSignal(false);
+
   const [profileQuery, setProfileQuery] = createSignal("");
   const [profileSortOrder, setProfileSortOrder] = createSignal(false); // true for ascending, false for descending
   const [profileSortType, setProfileSortType] = createSignal<ProfileSortType>(ProfileSortType.creation_date);
@@ -222,6 +222,37 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
         }
       });
   };
+
+  // For selecting multiple profiles
+  const [pivotProfile, setPivotProfile] = createSignal<string | undefined>();
+  const effectivePivot = () => pivotProfile() || currentProfile()?.id;
+  const [selectedProfiles, setSelectedProfiles] = createSignal<string[]>([]);
+
+  function onCtrlClickProfile(profile: ProfileWithId) {
+    setSelectedProfiles((prev) => {
+      if (prev.includes(profile.id)) {
+        return prev.filter((id) => id !== profile.id);
+      } else {
+        return [...prev, profile.id];
+      }
+    });
+
+    setPivotProfile(profile.id);
+  }
+  function onShiftClickProfile(profile: ProfileWithId) {
+    setSelectedProfiles((prev) => {
+      const pivot = effectivePivot();
+
+      if (pivot == null || profile.id === pivot) return prev;
+
+      const profilesList = queriedProfiles();
+      const pivotIndex = profilesList.findIndex((p) => p.id === pivot);
+      const currentIndex = profilesList.findIndex((p) => p.id === profile.id);
+      const start = Math.min(pivotIndex, currentIndex);
+      const end = Math.max(pivotIndex, currentIndex);
+      return profilesList.slice(start, end + 1).map((p) => p.id);
+    });
+  }
 
   return (
     <main class={styles.main}>
@@ -328,7 +359,20 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
             options={{ scrollbars: { autoHide: "leave" } }}
             class={sidebarStyles.sidebar__profilesListContainer}
           >
-            <ol class={sidebarStyles.sidebar__profilesList}>
+            <ol
+              class={sidebarStyles.sidebar__profilesList}
+              id="profiles-list"
+              onFocusOut={(e) => {
+                if (
+                  e.relatedTarget &&
+                  e.relatedTarget instanceof HTMLElement &&
+                  e.relatedTarget.closest(`#profiles-list`)
+                )
+                  return;
+                setPivotProfile(undefined);
+                setSelectedProfiles([]);
+              }}
+            >
               <Show when={queriedProfiles().length === 0}>
                 <li class={sidebarStyles.profileList__noProfilesMsg}>{t("profile.sidebar.no_profiles_search_msg")}</li>
               </Show>
@@ -340,6 +384,10 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
                       profile={profile}
                       refetchProfiles={refetchProfiles}
                       selected={profile.id === params.profileId}
+                      highlighted={selectedProfiles().includes(profile.id)}
+                      ctrlClick={onCtrlClickProfile}
+                      shiftClick={onShiftClickProfile}
+                      isPivot={effectivePivot() === profile.id}
                     />
                   </Show>
                 )}
@@ -352,6 +400,10 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
                       profile={profile}
                       refetchProfiles={refetchProfiles}
                       selected={profile.id === params.profileId}
+                      highlighted={selectedProfiles().includes(profile.id)}
+                      ctrlClick={onCtrlClickProfile}
+                      shiftClick={onShiftClickProfile}
+                      isPivot={effectivePivot() === profile.id}
                     />
                   </Show>
                 )}
@@ -512,6 +564,11 @@ function SidebarProfileComponent(props: {
   profile: ProfileWithId;
   refetchProfiles: Refetcher<ProfileWithId[]>;
   selected: boolean;
+  highlighted: boolean;
+  isPivot: boolean;
+
+  ctrlClick: (profile: ProfileWithId) => void;
+  shiftClick: (profile: ProfileWithId) => void;
 }) {
   const [confirmingDeletion, setConfirmingDeletion] = createSignal(false);
   const [deleting, setDeleting] = createSignal(false);
@@ -519,25 +576,6 @@ function SidebarProfileComponent(props: {
   const navigate = useNavigate();
 
   const [renaming, setRenaming] = createSignal(false);
-
-  const [shifting, setShifting] = createSignal(false);
-
-  function onShiftDown(e: KeyboardEvent) {
-    if (e.key === "Shift") setShifting(true);
-  }
-  function onShiftUp(e: KeyboardEvent) {
-    if (e.key === "Shift") setShifting(false);
-  }
-
-  onMount(() => {
-    document.addEventListener("keydown", onShiftDown);
-    document.addEventListener("keyup", onShiftUp);
-  });
-
-  onCleanup(() => {
-    document.removeEventListener("keydown", onShiftDown);
-    document.removeEventListener("keyup", onShiftUp);
-  });
 
   const ellipsisAnchorId = createUniqueId();
 
@@ -549,8 +587,23 @@ function SidebarProfileComponent(props: {
           <>
             <A
               class={sidebarStyles.profileList__itemName}
+              data-highlighted={props.highlighted}
+              data-pivot={props.isPivot}
               href={`/profile/${props.gameId}/${props.profile.id}`}
-              onDblClick={() => setRenaming(true)}
+              onClick={(e) => {
+                if (shifting() || ctrling()) e.preventDefault();
+
+                // Shift clicks take priority over control clicks,
+                // use shift click even if both keys are down
+                if (shifting()) {
+                  props.shiftClick(props.profile);
+                } else if (ctrling()) {
+                  props.ctrlClick(props.profile);
+                }
+              }}
+              onDblClick={() => {
+                if (!ctrling() && !shifting()) setRenaming(true);
+              }}
             >
               {props.profile.name}
             </A>

@@ -10,10 +10,6 @@
   flex: 1 1 0;
 }
 
-.sidebar__profilesList {
-  list-style-type: none;
-}
-
 .sidebar__profilesSearch {
   border-radius: 4px;
   display: flex;
@@ -37,6 +33,10 @@
 .sidebar__profilesSearchSortByBtn {
   padding-inline: 0.5em;
   color: var(--clr-neutral-20);
+}
+
+.sidebar__profilesList {
+  list-style-type: none;
 }
 
 .profileList__noProfilesMsg {
@@ -75,7 +75,7 @@
 }
 
 .profileList__item:hover .profileItem__options,
-.profileList__item:focus-within .profileItem__options {
+.profileList__item .profileItem__options:focus-within {
   pointer-events: all;
   opacity: 1;
 }
@@ -117,6 +117,14 @@ form.profileList__itemName {
 
 .profileList__item button:hover:not(:disabled) {
   background-color: var(--clr-neutral-70);
+}
+
+.profileList__itemName[data-highlighted="true"] {
+  background-color: hsla(var(--clr-primary-hs), 50%, 50%) !important;
+}
+.sidebar__profilesList:focus-within .profileList__itemName[data-pivot="true"] {
+  /* Box shadow instead of border used to prevent layout shifts */
+  box-shadow: inset 0 0 0 1px var(--clr-primary-45);
 }
 
 .contextMenuItem {

@@ -139,8 +139,8 @@
         opacity: 0;
       }
 
-      &:hover,
-      &:focus-visible {
+      &:hover:not(:disabled),
+      &:focus-visible:not(:disabled) {
         background-size: 100%, 200%;
 
         [data-icon] {
@@ -158,7 +158,7 @@
         }
       }
 
-      &:active {
+      &:active:not(:disabled) {
         --glint-color: rgba(255, 255, 255, 0.15);
         background-image: linear-gradient(20deg, var(--clr-primary-25), var(--clr-primary-45)),
           radial-gradient(circle at center, var(--clr-primary-20), var(--clr-primary-55), var(--clr-primary-25));
