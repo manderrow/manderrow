@@ -34,34 +34,33 @@ export default function ModSearch(props: ModSearchProps) {
           <label for="mod-search" class="phantom">
             Mod search
           </label>
-          {/* TODO: change select dropdown to support names for values so i18n works good */}
           <SelectDropdown
             label={{ labelText: "preset", preset: "Sort By" }}
             multiselect={false}
             options={[
               {
                 value: ModSortColumn.Relevance,
-                text: t("global.mod_sort_column.relevance"),
+                label: t("global.mod_sort_column.relevance"),
                 selected: () => true,
               },
               {
                 value: ModSortColumn.Downloads,
-                text: t("global.mod_sort_column.downloads"),
+                label: t("global.mod_sort_column.downloads"),
                 selected: () => false,
               },
               {
                 value: ModSortColumn.Name,
-                text: t("global.mod_sort_column.name"),
+                label: t("global.mod_sort_column.name"),
                 selected: () => false,
               },
               {
                 value: ModSortColumn.Owner,
-                text: t("global.mod_sort_column.owner"),
+                label: t("global.mod_sort_column.owner"),
                 selected: () => false,
               },
               {
                 value: ModSortColumn.Size,
-                text: t("global.mod_sort_column.size"),
+                label: t("global.mod_sort_column.size"),
                 selected: () => false,
               },
             ]}

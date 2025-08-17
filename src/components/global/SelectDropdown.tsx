@@ -6,11 +6,12 @@ import { t } from "../../i18n/i18n";
 import styles from "./SelectDropdown.module.css";
 import TogglableDropdown, { TogglableDropdownOptions } from "./TogglableDropdown";
 
-type Option<T, CustomData = undefined> = {
-  text: string;
+type Option<T> = {
+  label: string;
   value: T;
   selected: () => boolean;
-} & (CustomData extends undefined ? {} : { customData: CustomData });
+  liContent?: JSX.Element,
+};
 
 type LabelTextValue = {
   labelText: "value";
@@ -22,23 +23,21 @@ type LabelTextPreset = {
 };
 type LabelText = LabelTextValue | LabelTextPreset;
 
-interface SelectDropdownOptions<T, CustomData = undefined>
-  extends Omit<TogglableDropdownOptions, "children" | "label" | "dropdownClass"> {
+interface SelectDropdownOptions<T> extends Omit<TogglableDropdownOptions, "children" | "label" | "dropdownClass"> {
   label: LabelText;
-  options: Option<T, CustomData>[];
+  options: Option<T>[];
   onChanged: (value: T, selected: boolean) => void;
-  liRenderer?: (option: Option<T, CustomData>) => JSX.Element;
   liClass?: string;
   multiselect?: boolean;
 }
 
-export default function SelectDropdown<T, CustomData = undefined>(options: SelectDropdownOptions<T, CustomData>) {
+export default function SelectDropdown<T>(options: SelectDropdownOptions<T>) {
   // TODO: use createEffect to support dynamically adding/removing options
   const labelValue = () =>
     options.label.labelText === "preset"
       ? options.label.preset
       : // FIXME: correct label for multiselect
-        options.options.find((value) => value.selected())?.text ??
+        options.options.find((value) => value.selected())?.label ??
         options.label.fallback ??
         t("global.select_dropdown.default_fallback");
 
@@ -71,6 +70,7 @@ export default function SelectDropdown<T, CustomData = undefined>(options: Selec
           {(option) => {
             let ref!: HTMLLIElement;
 
+            // TODO: we could use a single function that checks the event target instead of using a ref
             function onSelect() {
               // use the cached value here, so the action performed by the
               // UI is **never** out of sync with the displayed value.
@@ -92,7 +92,7 @@ export default function SelectDropdown<T, CustomData = undefined>(options: Selec
               >
                 <Fa icon={faCheck} class={styles.option__check} />
 
-                {options.liRenderer ? options.liRenderer(option) : option.text}
+                {option.liContent ? option.liContent : option.label}
               </li>
             );
           }}

@@ -607,28 +607,25 @@ function ModView(props: { mod: Mod; gameId: string; closeModView: () => void }) 
             when={installed()}
             fallback={
               <div class={styles.modView__onlineActions}>
-                <SelectDropdown<string, { dateCreated: string }>
+                <SelectDropdown<string>
                   options={
                     modListing.latest?.versions.map((version, i) => ({
-                      text: version.version_number,
+                      label: version.version_number,
                       value: version.version_number,
                       selected: () =>
                         selectedVersion() == null && i === 0 ? true : isSelectedVersion(version.version_number),
-                      customData: {
-                        dateCreated: dateFormatterMed.format(new Date(version.date_created)),
-                      },
+                      liContent: (
+                        <div>
+                          <p data-version>{version.version_number}</p>
+                          <p data-date>{dateFormatterMed.format(new Date(version.date_created))}</p>
+                        </div>
+                      ),
                     })) ?? []
                   }
                   label={{ labelText: "value" }}
                   labelClass={styles.modView__versions}
                   onChanged={(value) => setSelectedVersion(value)}
                   liClass={styles.modView__versionsItem}
-                  liRenderer={(option) => (
-                    <div>
-                      <p data-version>{option.text}</p>
-                      <p data-date>{option.customData.dateCreated}</p>
-                    </div>
-                  )}
                 />
                 <InstallButton
                   mod={props.mod as ModListing}
@@ -664,7 +661,7 @@ function ModView(props: { mod: Mod; gameId: string; closeModView: () => void }) 
                         label={{ labelText: "value" }}
                         onChanged={setSelectedVersion}
                         options={(listing().versions ?? []).map((version) => ({
-                          text: version.version_number,
+                          label: version.version_number,
                           value: version.version_number,
                           selected: () => isSelectedVersion(version.version_number),
                         }))}

@@ -167,8 +167,8 @@ function GameSelectInput(props: { idPrefix: string; setting: GameSelectSetting }
     <SelectDropdown
       label={{ labelText: "value" }}
       options={games()
-        .map((game) => ({ text: game.name, value: game.id, selected: () => isSelectedGame(game.id) }))
-        .sort((a, b) => a.text.localeCompare(b.text))}
+        .map((game) => ({ label: game.name, value: game.id, selected: () => isSelectedGame(game.id) }))
+        .sort((a, b) => a.label.localeCompare(b.label))}
       onChanged={onChanged}
     />
   );

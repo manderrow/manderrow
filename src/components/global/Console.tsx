@@ -62,7 +62,7 @@ export default function Console() {
     // track updates
     connectionsUpdate();
     return Array.from(connections.keys()).map((id) => ({
-      text: id.toString(),
+      label: id.toString(),
       value: id,
       selected: () => isFocusedConnection(id),
     }));
@@ -117,7 +117,7 @@ export default function Console() {
           <div class={styles.header__group}>
             <div class={styles.header__subgroup}>
               <p>View log:</p>
-              <SelectDropdown
+              <SelectDropdown<number>
                 label={{ labelText: "value" }}
                 options={getSelectConnectionOptions()}
                 onChanged={(id, selected) => {

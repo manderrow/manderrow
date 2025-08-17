@@ -303,12 +303,12 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
               options={[
                 {
                   value: ProfileSortType.alphabetical,
-                  text: "A-Z",
+                  label: "A-Z",
                   selected: () => isProfileSortType(ProfileSortType.alphabetical),
                 },
                 {
                   value: ProfileSortType.creation_date,
-                  text: "Creation Date",
+                  label: "Creation Date",
                   selected: () => isProfileSortType(ProfileSortType.creation_date),
                 },
               ]}
