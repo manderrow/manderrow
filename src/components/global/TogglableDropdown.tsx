@@ -78,7 +78,7 @@ export default function TogglableDropdown(options: TogglableDropdownOptions) {
         data-label-btn={id}
         aria-checked={open()}
         on:click={() => setOpen((checked) => !checked)}
-        tabindex={options.labelBtnFocusable ? "0" : "-1"}
+        tabindex={options.labelBtnFocusable === false ? "-1" : "0"}
       >
         <Show when={!options.hideCaret}>
           <Fa icon={faCaretDown} class={styles.toggle__icon} />
