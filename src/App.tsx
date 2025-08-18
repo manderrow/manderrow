@@ -13,6 +13,7 @@ import { coreResources } from "./globals";
 import ErrorDialog from "./components/global/ErrorDialog";
 import TitleBar from "./components/global/TitleBar.tsx";
 import Splashscreen from "./pages/splashscreen/Splashscreen.tsx";
+import { invoke } from "@tauri-apps/api/core";
 
 export default function App() {
   const [fontLoaded] = createResource(async () => {
@@ -49,6 +50,8 @@ export default function App() {
   const AppLoaded = lazy(() => import("./AppLoaded"));
 
   onMount(() => {
+    invoke("bench_exit_splash");
+
     // Preload the AppLoaded component while waiting for globals and performing other
     // initialization. This simply loads the component's code so it is ready for
     // rendering when globals are ready.
