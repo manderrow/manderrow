@@ -47,6 +47,12 @@ use tauri::Manager;
 #[derive(Clone)]
 struct Reqwest(reqwest::Client);
 
+impl Reqwest {
+    fn new() -> Result<Self, reqwest::Error> {
+        Ok(Self(reqwest::Client::builder().build()?))
+    }
+}
+
 impl Deref for Reqwest {
     type Target = reqwest::Client;
 
@@ -89,7 +95,7 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
             Ok(())
         })
         .manage(settings::try_read())
-        .manage(Reqwest(reqwest::Client::builder().build()?))
+        .manage(Reqwest::new()?)
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_os::init())
@@ -164,6 +170,7 @@ pub fn main() -> anyhow::Result<()> {
             Value(cmd) if cmd == "wrap-with-injection" => {
                 return wrap::run(args, wrap::WrapperMode::Injection)
             }
+            Value(cmd) if cmd == "dump-mod-index" => return mod_index::dump::run(args),
             Value(cmd) => bail!("Unrecognized command {cmd:?}"),
             Long("relaunch") => relaunch = Some(args.value()?.parse()?),
             arg => return Err(arg.unexpected().into()),

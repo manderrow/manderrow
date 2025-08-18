@@ -47,7 +47,8 @@ pub async fn query_mod_index(
 ) -> Result<tauri::ipc::Response, CommandError> {
     let mod_index = read_mod_index(game).await?;
 
-    let out_buf = super::query_mod_index_to_json(&mod_index, query, &sort, skip, limit)?;
+    let out_buf =
+        super::query_mod_index_to_json(&mod_index, query, &sort, skip.unwrap_or(0), limit)?;
     Ok(tauri::ipc::Response::new(out_buf))
 }
 

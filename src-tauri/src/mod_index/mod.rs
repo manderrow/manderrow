@@ -1,4 +1,5 @@
 pub mod commands;
+pub mod dump;
 mod memory;
 pub mod thunderstore;
 
@@ -502,7 +503,6 @@ pub fn get_one_from_mod_index<'a>(
     Ok(m)
 }
 
-
 fn map_to_json<T: serde::Serialize>(buf: &mut Vec<u8>, it: impl Iterator<Item = T>) {
     let mut it = it.peekable();
     while let Some(m) = it.next() {
@@ -517,7 +517,7 @@ pub fn query_mod_index_to_json(
     mod_index: &ModIndexReadGuard,
     query: &str,
     sort: &[SortOption<SortColumn>],
-    skip: Option<usize>,
+    skip: usize,
     limit: Option<NonZeroUsize>,
 ) -> Result<String> {
     let buf = query_mod_index(mod_index, query, sort)?;
@@ -528,7 +528,7 @@ pub fn query_mod_index_to_json(
     simd_json::serde::to_writer(&mut out_buf, &count).unwrap();
     out_buf.extend(br#","mods":["#);
     let mods = buf.into_iter().map(|(m, _)| m);
-    match (skip.unwrap_or(0), limit) {
+    match (skip, limit) {
         (0, Some(limit)) => map_to_json(&mut out_buf, mods.take(limit.get())),
         (0, None) => map_to_json(&mut out_buf, mods),
         (skip, Some(limit)) => map_to_json(&mut out_buf, mods.skip(skip).take(limit.get())),
@@ -536,9 +536,7 @@ pub fn query_mod_index_to_json(
     };
     out_buf.extend(b"]}");
     // SAFETY: simd_json only writes valid UTF-8
-    Ok(unsafe {
-        String::from_utf8_unchecked(out_buf)
-    })
+    Ok(unsafe { String::from_utf8_unchecked(out_buf) })
 }
 
 pub fn get_from_mod_index_to_json(
@@ -551,9 +549,7 @@ pub fn get_from_mod_index_to_json(
     map_to_json(&mut out_buf, buf.into_iter());
     out_buf.extend(b"]");
     // SAFETY: simd_json only writes valid UTF-8
-    Ok(unsafe {
-        String::from_utf8_unchecked(out_buf)
-    })
+    Ok(unsafe { String::from_utf8_unchecked(out_buf) })
 }
 
 #[cfg(test)]
