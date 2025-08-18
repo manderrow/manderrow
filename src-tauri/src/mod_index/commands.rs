@@ -20,6 +20,13 @@ pub async fn fetch_mod_index(
     Ok(())
 }
 
+#[tauri::command]
+pub async fn count_mod_index(game: &str, query: &str) -> Result<usize, CommandError> {
+    let mod_index = read_mod_index(game).await?;
+
+    Ok(super::count_mod_index(&mod_index, query)?)
+}
+
 fn map_to_json<T: serde::Serialize>(buf: &mut Vec<u8>, it: impl Iterator<Item = T>) {
     let mut it = it.peekable();
     while let Some(m) = it.next() {
@@ -28,13 +35,6 @@ fn map_to_json<T: serde::Serialize>(buf: &mut Vec<u8>, it: impl Iterator<Item = 
             buf.push(b',');
         }
     }
-}
-
-#[tauri::command]
-pub async fn count_mod_index(game: &str, query: &str) -> Result<usize, CommandError> {
-    let mod_index = read_mod_index(game).await?;
-
-    Ok(super::count_mod_index(&mod_index, query)?)
 }
 
 #[tauri::command]
@@ -47,25 +47,8 @@ pub async fn query_mod_index(
 ) -> Result<tauri::ipc::Response, CommandError> {
     let mod_index = read_mod_index(game).await?;
 
-    let buf = super::query_mod_index(&mod_index, query, &sort)?;
-
-    let count = buf.len();
-
-    let mut out_buf = br#"{"count":"#.as_slice().to_owned();
-    simd_json::serde::to_writer(&mut out_buf, &count).unwrap();
-    out_buf.extend(br#","mods":["#);
-    let mods = buf.into_iter().map(|(m, _)| m);
-    match (skip.unwrap_or(0), limit) {
-        (0, Some(limit)) => map_to_json(&mut out_buf, mods.take(limit.get())),
-        (0, None) => map_to_json(&mut out_buf, mods),
-        (skip, Some(limit)) => map_to_json(&mut out_buf, mods.skip(skip).take(limit.get())),
-        (skip, None) => map_to_json(&mut out_buf, mods.skip(skip)),
-    };
-    out_buf.extend(b"]}");
-    // SAFETY: simd_json only writes valid UTF-8
-    Ok(tauri::ipc::Response::new(unsafe {
-        String::from_utf8_unchecked(out_buf)
-    }))
+    let out_buf = super::query_mod_index_to_json(&mod_index, query, &sort, skip, limit)?;
+    Ok(tauri::ipc::Response::new(out_buf))
 }
 
 #[tauri::command]
@@ -75,13 +58,6 @@ pub async fn get_from_mod_index(
 ) -> Result<tauri::ipc::Response, CommandError> {
     let mod_index = read_mod_index(game).await?;
 
-    let buf = super::get_from_mod_index(&mod_index, &mod_ids).await?;
-
-    let mut out_buf = br#"["#.as_slice().to_owned();
-    map_to_json(&mut out_buf, buf.into_iter());
-    out_buf.extend(b"]");
-    // SAFETY: simd_json only writes valid UTF-8
-    Ok(tauri::ipc::Response::new(unsafe {
-        String::from_utf8_unchecked(out_buf)
-    }))
+    let out_buf = super::get_from_mod_index_to_json(&mod_index, &mod_ids)?;
+    Ok(tauri::ipc::Response::new(out_buf))
 }

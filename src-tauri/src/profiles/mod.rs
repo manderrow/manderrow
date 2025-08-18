@@ -308,8 +308,7 @@ async fn install_profile_mod_inner<'a, 'b>(
                 owner: mod_owner.into(),
                 name: mod_name.into(),
             },
-        )
-        .await?
+        )?
         else {
             return Err(anyhow!("Missing dependency {}", mod_id));
         };

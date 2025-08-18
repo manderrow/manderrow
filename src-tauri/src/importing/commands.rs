@@ -215,8 +215,7 @@ async fn import_onto_profile(
                         owner: m.full_name.namespace().into(),
                         name: m.full_name.name().into(),
                     },
-                )
-                .await?
+                )?
                 else {
                     return Err(anyhow!("Missing mod {}", m.full_name).into());
                 };
