@@ -377,7 +377,7 @@ pub fn query_mod_index<'a>(
                 .filter(|&(_, score)| search::should_include(score)),
         );
         if i == 0 {
-            buf.reserve(buf.len() * (mod_index.len() - 1));
+            buf.reserve(buf.len() * (mod_index.chunks.len() - 1));
         }
     }
 

@@ -4736,7 +4736,7 @@ version = "0.7.0"
 source = "git+https://github.com/manderrow/sublime_fuzzy?branch=master#18ad2ad77f672d20031fdc458aad63565e6ebdbf"
 dependencies = [
  "bumpalo",
- "hashbrown 0.15.4",
+ "hashbrown 0.15.5",
 ]
 
 [[package]]
@@ -4745,7 +4745,7 @@ version = "0.7.0"
 source = "git+https://github.com/manderrow/sublime_fuzzy?branch=simplified#776326eaaeec8aee5efbd5af7f41b7b4829d1947"
 dependencies = [
  "bumpalo",
- "hashbrown 0.15.4",
+ "hashbrown 0.15.5",
 ]
 
 [[package]]
