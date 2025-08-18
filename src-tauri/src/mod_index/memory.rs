@@ -5,12 +5,17 @@ use rkyv::vec::ArchivedVec;
 
 use manderrow_types::mods::ArchivedModRef;
 
+#[derive(Default)]
 pub struct MemoryModIndex {
+    pub chunks: Vec<MemoryModIndexChunk>,
+}
+
+pub struct MemoryModIndexChunk {
     data: NonNull<[u8]>,
     mods: &'static ArchivedVec<ArchivedModRef<'static>>,
 }
 
-impl MemoryModIndex {
+impl MemoryModIndexChunk {
     pub fn new<F, E>(mut data: AlignedVec<16>, mods_constructor: F) -> Result<Self, E>
     where
         F: for<'a> FnOnce(&'a [u8]) -> Result<&'a ArchivedVec<ArchivedModRef<'a>>, E>,
@@ -25,17 +30,17 @@ impl MemoryModIndex {
     }
 }
 
-impl MemoryModIndex {
+impl MemoryModIndexChunk {
     pub fn mods(&self) -> &ArchivedVec<ArchivedModRef<'_>> {
         // SAFETY: i have a hunch the lifetime issue is a non-issue
         unsafe { NonNull::from(self.mods).cast().as_ref() }
     }
 }
 
-unsafe impl Send for MemoryModIndex {}
-unsafe impl Sync for MemoryModIndex {}
+unsafe impl Send for MemoryModIndexChunk {}
+unsafe impl Sync for MemoryModIndexChunk {}
 
-impl Drop for MemoryModIndex {
+impl Drop for MemoryModIndexChunk {
     fn drop(&mut self) {
         unsafe {
             let ptr = self.data.as_mut().as_mut_ptr();
