@@ -5,6 +5,7 @@
   justify-content: center;
   align-items: center;
   padding: 0.5em;
+  padding-bottom: calc(0.5em + var(--titlebar-height));
   text-align: center;
   text-shadow: 0 0 1.25rem rgba(0, 0, 0, 0.5);
   background-color: hsl(214, 28%, 15%);
@@ -59,14 +60,15 @@
   }
 }
 
-.splashscreen__logo-image {
+.splashscreen__logo {
   position: absolute;
   z-index: -1;
-  filter: blur(2px);
-  height: 125%;
-  transform: translate(30%, 5%);
-  mask-image: linear-gradient(100deg, transparent 0%, rgba(0, 0, 0, 0.03) 45%, rgba(0, 0, 0, 0.1));
+  filter: blur(4px);
+  height: 75%;
+  transform: translate(-5%, 5%);
+  mask-image: linear-gradient(45deg, transparent 0%, rgba(0, 0, 0, 0.02) 45%, rgba(0, 0, 0, 0.3));
   aspect-ratio: 1 / 1;
   right: 0;
+  top: 0;
   pointer-events: none;
 }
