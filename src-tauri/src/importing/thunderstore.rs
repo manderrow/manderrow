@@ -216,7 +216,11 @@ pub async fn lookup_profile(
 
         let mut manifest: ProfileManifest = serde_yaml::from_reader(manifest_file)?;
 
-        while let Some(i) = manifest.mods.iter().position(|m| m.full_name.value == "BepInEx-BepInExPack") {
+        while let Some(i) = manifest
+            .mods
+            .iter()
+            .position(|m| m.full_name.value == "BepInEx-BepInExPack")
+        {
             manifest.mods.remove(i);
         }
 
