@@ -22,93 +22,97 @@ interface ModSearchProps {
 }
 export default function ModSearch(props: ModSearchProps) {
   return (
-    <div class={styles.modSearch}>
-      <form on:submit={(e) => e.preventDefault()} class={styles.modSearch__form}>
-        <div class={styles.modSearch__searchBar}>
-          <input
-            type="mod-search"
-            placeholder="Search for mods"
-            value={props.query}
-            on:input={(e) => props.setQuery(e.target.value)}
-          />
-          <label for="mod-search" class="phantom">
-            Mod search
-          </label>
-          <SelectDropdown
-            label={{ labelText: "preset", preset: "Sort By" }}
-            multiselect={false}
-            options={[
-              {
-                value: ModSortColumn.Relevance,
-                label: t("global.mod_sort_column.relevance"),
-                selected: () => true,
-              },
-              {
-                value: ModSortColumn.Downloads,
-                label: t("global.mod_sort_column.downloads"),
-                selected: () => false,
-              },
-              {
-                value: ModSortColumn.Name,
-                label: t("global.mod_sort_column.name"),
-                selected: () => false,
-              },
-              {
-                value: ModSortColumn.Owner,
-                label: t("global.mod_sort_column.owner"),
-                selected: () => false,
-              },
-              {
-                value: ModSortColumn.Size,
-                label: t("global.mod_sort_column.size"),
-                selected: () => false,
-              },
-            ]}
-            onChanged={() => {}}
-            offset={{ mainAxis: 4 }}
-          />
-          <button
-            type="button"
-            // class={sidebarStyles.sidebar__profilesSearchSortByBtn}
-            on:click={() => props.setProfileSortOrder((order) => !order)}
-          >
-            {props.profileSortOrder ? <Fa icon={faArrowUpWideShort} /> : <Fa icon={faArrowDownShortWide} />}
-          </button>
-          <TogglableDropdown label="Advanced" labelClass={styles.modSearch__dropdownBtn} offset={{ mainAxis: 4 }}>
-            <div class={styles.searchOptions}>
-              <div class={styles.sortOptions}>
-                <div class={styles.inner}>
-                  <SortableList items={[() => props.sort, props.setSort]} id={(option) => option.column}>
-                    {(option, i) => {
-                      const id = `sort-descending-${option.column}`;
-                      return (
-                        <div class={styles.sortOption}>
-                          {option.column}
-                          <div class={styles.descendingToggle}>
-                            <input
-                              type="checkbox"
-                              id={id}
-                              checked={option.descending}
-                              on:change={(e) =>
-                                props.setSort([
-                                  ...props.sort.slice(0, i),
-                                  { column: option.column, descending: e.target.checked },
-                                  ...props.sort.slice(i + 1),
-                                ])
-                              }
-                            />
-                            <label for={id}>{option.descending ? "Descending" : "Ascending"}</label>
-                          </div>
+    <form on:submit={(e) => e.preventDefault()} class={styles.modSearch}>
+      <input
+        type="mod-search"
+        placeholder="Search for mods"
+        value={props.query}
+        on:input={(e) => props.setQuery(e.target.value)}
+      />
+      <label for="mod-search" class="phantom">
+        Mod search
+      </label>
+      <div class={`${styles.modSearch__group} ${styles.groupSort}`}>
+        <SelectDropdown
+          label={{ labelText: "preset", preset: "Sort By" }}
+          labelClass={styles.modSearch__dropdownBtn}
+          multiselect={false}
+          options={[
+            {
+              value: ModSortColumn.Relevance,
+              label: t("global.mod_sort_column.relevance"),
+              selected: () => true,
+            },
+            {
+              value: ModSortColumn.Downloads,
+              label: t("global.mod_sort_column.downloads"),
+              selected: () => false,
+            },
+            {
+              value: ModSortColumn.Name,
+              label: t("global.mod_sort_column.name"),
+              selected: () => false,
+            },
+            {
+              value: ModSortColumn.Owner,
+              label: t("global.mod_sort_column.owner"),
+              selected: () => false,
+            },
+            {
+              value: ModSortColumn.Size,
+              label: t("global.mod_sort_column.size"),
+              selected: () => false,
+            },
+          ]}
+          onChanged={() => {}}
+          offset={{ mainAxis: 4 }}
+        />
+        <button
+          type="button"
+          // class={sidebarStyles.sidebar__profilesSearchSortByBtn}
+          on:click={() => props.setProfileSortOrder((order) => !order)}
+          class={styles.modSearch__dropdownBtn}
+        >
+          {props.profileSortOrder ? <Fa icon={faArrowUpWideShort} /> : <Fa icon={faArrowDownShortWide} />}
+        </button>
+      </div>
+      <div class={styles.modSearch__group}>
+        <TogglableDropdown label="Advanced" labelClass={styles.modSearch__dropdownBtn} offset={{ mainAxis: 4 }}>
+          <div class={styles.searchOptions}>
+            <div class={styles.sortOptions}>
+              <div class={styles.inner}>
+                <SortableList items={[() => props.sort, props.setSort]} id={(option) => option.column}>
+                  {(option, i) => {
+                    const id = `sort-descending-${option.column}`;
+                    return (
+                      <div class={styles.sortOption}>
+                        {t(`global.mod_sort_column.${option.column}`)}
+                        <div class={styles.descendingToggle}>
+                          <input
+                            type="checkbox"
+                            id={id}
+                            checked={option.descending}
+                            on:change={(e) =>
+                              props.setSort([
+                                ...props.sort.slice(0, i),
+                                { column: option.column, descending: e.target.checked },
+                                ...props.sort.slice(i + 1),
+                              ])
+                            }
+                          />
+                          <label for={id}>
+                            {option.descending ? t("global.sort_order.descending") : t("global.sort_order.ascending")}
+                          </label>
                         </div>
-                      );
-                    }}
-                  </SortableList>
-                </div>
+                      </div>
+                    );
+                  }}
+                </SortableList>
               </div>
             </div>
-          </TogglableDropdown>
-        </div>
-      </form>
-    </div>
+          </div>
+        </TogglableDropdown>
+      </div>
+    </form>
   );
 }

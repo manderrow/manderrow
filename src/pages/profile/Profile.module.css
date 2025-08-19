@@ -293,10 +293,12 @@
     color: var(--clr-neutral-40);
     border-radius: 0;
     display: block;
-    font-size: 1.1rem;
+    font-size: 1rem;
+    font-weight: 500;
     user-select: none;
     -webkit-user-select: none;
     background-color: transparent;
+    min-width: 8ch;
   }
 
   button:hover:not(:disabled) {
