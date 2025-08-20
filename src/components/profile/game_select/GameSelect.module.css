@@ -15,12 +15,8 @@
 .language {
   padding: 0.5em;
   display: flex;
-  justify-content: flex-end;
-}
-
-.language form {
-  display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 0.25em;
 }
 

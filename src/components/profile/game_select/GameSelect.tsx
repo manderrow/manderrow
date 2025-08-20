@@ -16,6 +16,7 @@ import styles from "./GameSelect.module.css";
 import { GameSortColumn, searchGames } from "../../../api";
 import { updateSettings } from "../../../api/settings";
 import { SimpleAsyncButton } from "../../../components/global/AsyncButton";
+import SelectDropdown from "../../global/SelectDropdown";
 
 enum DisplayType {
   Card = -1,
@@ -48,20 +49,16 @@ export default function GameSelect(props: { replace: boolean; dismiss?: () => vo
           <div class={blobStyles.gradientBlob} data-blob-4></div>
         </div>
         <div class={styles.language}>
-          <form on:submit={(e) => e.preventDefault()}>
-            <label for="language" aria-label="Change language">
-              <Fa icon={faGlobe} />
-            </label>
-            <select name="language" id="language" on:change={(e) => setLocale(e.target.value as Locale)}>
-              <For each={RAW_LOCALES}>
-                {(loc) => (
-                  <option value={loc} selected={locale() === loc}>
-                    {localeNamesMap[loc]}
-                  </option>
-                )}
-              </For>
-            </select>
-          </form>
+          <Fa icon={faGlobe} />
+          <SelectDropdown
+            label={{ labelText: "value" }}
+            options={RAW_LOCALES.map((loc) => ({
+              value: loc,
+              label: localeNamesMap[loc],
+              selected: () => locale() === loc,
+            }))}
+            onChanged={(value) => setLocale(value as Locale)}
+          />
         </div>
         <header class={styles.header}>
           <h1>{t("game_select.title")}</h1>
