@@ -1,6 +1,7 @@
 import { faHardDrive, faHeart, faThumbsUp } from "@fortawesome/free-regular-svg-icons";
 import {
   faArrowRightLong,
+  faCheck,
   faCircleUp,
   faDownLong,
   faDownload,
@@ -27,6 +28,7 @@ import {
   createResource,
   createSelector,
   createSignal,
+  createUniqueId,
   untrack,
   useContext,
 } from "solid-js";
@@ -95,8 +97,9 @@ export default function ModList(props: {
   isLoading: boolean;
   progress: Progress;
   trailingControls?: JSX.Element;
+  multiselect: boolean,
 }) {
-  const [selectedModId, setSelectedModId] = createSignal<ModId>();
+  const [focusedModId, setFocusedModId] = createSignal<ModId>();
 
   const [profileSortOrder, setProfileSortOrder] = createSignal(false);
   const [query, setQuery] = createSignal("");
@@ -120,18 +123,18 @@ export default function ModList(props: {
     { initialValue: { mods: async (_: number) => [], count: 0, get: (_: ModId) => undefined } },
   );
 
-  const [selectedMod] = createResource(
+  const [focusedMod] = createResource(
     () => {
       try {
         queriedMods.latest;
       } catch {}
-      return selectedModId() ?? {};
+      return focusedModId() ?? {};
     },
     (id) => ("owner" in id ? untrack(() => queriedMods.latest.get(id as ModId)) : undefined),
   );
 
   createEffect(() => {
-    const mod = selectedModId();
+    const mod = focusedModId();
 
     if (mod) {
       let mods;
@@ -146,14 +149,20 @@ export default function ModList(props: {
           }
         }
 
-        setSelectedModId(undefined);
+        setFocusedModId(undefined);
       })();
     }
   });
 
+  const [selectedMods, setSelectedMods] = createSignal<Set<ModId>>(new Set(), {
+    equals: false,
+  });
+
+  const isSelectedMod = createSelector<Set<ModId>, ModId>(selectedMods, (id, selected) => selected.has(id));
+
   return (
     <div class={styles.modListAndView}>
-      <div class={`${styles.scrollOuter} ${styles.modListContainer}`}>
+      <div class={styles.modListContainer}>
         <ModSearch
           game={props.game}
           query={query()}
@@ -191,22 +200,45 @@ export default function ModList(props: {
         </div>
 
         <Show when={queriedMods.error === undefined && queriedMods()} keyed>
-          {(mods) => <ModListMods mods={mods.mods} selectedMod={[selectedModId, setSelectedModId]} />}
+          {(mods) => <ModListMods
+            mods={mods.mods}
+            focusedMod={[focusedModId, setFocusedModId]}
+            isSelected={props.multiselect ? isSelectedMod : undefined}
+            setSelected={props.multiselect ? (mod, selected) => {
+              setSelectedMods((set) => {
+                if (selected) {
+                  set.add(mod);
+                } else {
+                  set.delete(mod);
+                }
+                return set;
+              })
+            } : undefined}
+          />}
         </Show>
       </div>
 
-      <Show
-        when={selectedMod.error === undefined && selectedMod()}
-        keyed
-        fallback={
-          <div class={styles.nothingMsg}>
-            <h2>No mod selected</h2>
-            <p>Select a mod to it view here.</p>
-          </div>
-        }
-      >
-        {(mod) => <ModView mod={mod} gameId={props.game} closeModView={() => setSelectedModId(undefined)} />}
-      </Show>
+      <div class={styles.modViewContainer}>
+        <div class={styles.modView}>
+          <Switch fallback={
+            <div class={styles.nothingMsg}>
+              <h2>No mod selected</h2>
+              <p>Select a mod to it view here.</p>
+            </div>
+          }>
+            <Match when={focusedMod.error === undefined && focusedMod()} keyed>
+              {(mod) => <ModView mod={mod} gameId={props.game} closeModView={() => setFocusedModId(undefined)} />}
+            </Match>
+            <Match when={props.multiselect && selectedMods().size !== 0}>
+              <ul>
+                <For each={[...selectedMods()]}>
+                  {(mod) => <li>{mod.owner}-{mod.name}</li>}
+                </For>
+              </ul>
+            </Match>
+          </Switch>
+        </div>
+      </div>
     </div>
   );
 }
@@ -256,6 +288,7 @@ export function OnlineModList(props: { game: string }) {
         await refetchModIndex();
       }}
       mods={getFetcher()}
+      multiselect={false}
     />
   );
 }
@@ -346,6 +379,7 @@ export function InstalledModList(props: { game: string }) {
         progress={progress}
         refresh={context.refetchInstalled}
         mods={getFetcher()}
+        multiselect={true}
         trailingControls={
           <Show
             when={updates().length > 0}
@@ -546,8 +580,7 @@ function ModView(props: { mod: Mod; gameId: string; closeModView: () => void }) 
   const installed = useInstalled(installContext, () => props.mod);
 
   return (
-    <div class={styles.scrollOuter}>
-      <div class={`${styles.scrollInner} ${styles.modView}`}>
+    <>
         <div class={styles.modSticky}>
           <div class={styles.modMeta}>
             {/* TODO: For local mod with no package URL, remove link */}
@@ -708,8 +741,7 @@ function ModView(props: { mod: Mod; gameId: string; closeModView: () => void }) 
             </div>
           </Show>
         </form>
-      </div>
-    </div>
+    </>
   );
 }
 
@@ -728,7 +760,13 @@ function ModViewDependencies(props: { dependencies: string[] }) {
   );
 }
 
-function ModListMods(props: { mods: PageFetcher; selectedMod: Signal<ModId | undefined> }) {
+type SelectableModListProps = {
+  /// Whether the mod is selected in the ModList (for bulk actions)
+  isSelected: (mod: ModId) => boolean;
+  setSelected: (mod: ModId, selected: boolean) => void;
+};
+
+function ModListMods(props: { mods: PageFetcher; focusedMod: Signal<ModId | undefined> } & (SelectableModListProps | {})) {
   const infiniteScroll = createMemo(() => {
     // this should take readonly, which would make the cast unnecessary
     return createInfiniteScroll(props.mods as (page: number) => Promise<Mod[]>);
@@ -739,15 +777,36 @@ function ModListMods(props: { mods: PageFetcher; selectedMod: Signal<ModId | und
   const infiniteScrollLoader = (el: Element) => infiniteScroll()[1](el);
   const end = () => infiniteScroll()[2].end();
 
-  const isSelectedMod = createSelector<ModId | undefined, ModId>(
-    props.selectedMod[0],
+  const isFocusedMod = createSelector<ModId | undefined, ModId>(
+    props.focusedMod[0],
     (a, b) => b !== undefined && modIdEquals(a, b),
   );
 
+  const [modSelectorTutorialState, setModSelectorTutorialState] = createSignal(ModSelectorTutorialState.INIT);
+
+  function onMouseEnter() {
+    if (modSelectorTutorialState() == ModSelectorTutorialState.INIT) {
+      setModSelectorTutorialState(ModSelectorTutorialState.HOVERED);
+    }
+  }
+
+  function onMouseLeave() {
+    if (modSelectorTutorialState() == ModSelectorTutorialState.HOVERED) {
+      setModSelectorTutorialState(ModSelectorTutorialState.LEFT);
+    }
+  }
+
   return (
-    <ol class={`${styles.modList} ${styles.scrollInner}`}>
+    <ol class={styles.modList} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
       <For each={paginatedMods()}>
-        {(mod) => <ModListItem mod={mod} isSelectedMod={isSelectedMod} setSelectedMod={props.selectedMod[1]} />}
+        {(mod) => <ModListItem
+          mod={mod}
+          isFocused={isFocusedMod}
+          setFocused={props.focusedMod[1]}
+          isSelected={(props as any).isSelected}
+          setSelected={(props as any).setSelected}
+          modSelectorTutorialState={modSelectorTutorialState()}
+        />}
       </For>
       <Show when={!end()}>
         <li use:infiniteScrollLoader>Loading...</li>
@@ -774,11 +833,20 @@ function useInstalled(
   });
 }
 
+const enum ModSelectorTutorialState {
+  INIT,
+  HOVERED,
+  LEFT,
+}
+
 function ModListItem(props: {
   mod: Mod;
-  isSelectedMod: (mod: ModId) => boolean;
-  setSelectedMod: (mod: ModId | undefined) => void;
-}) {
+  /// Whether the mod is focused in the ModView
+  isFocused: (mod: ModId) => boolean;
+  setFocused: (mod: ModId | undefined) => void;
+  modSelectorTutorialState: ModSelectorTutorialState,
+  // setModSelectorTutorialState: (hovered: boolean) => void,
+} & (SelectableModListProps | {})) {
   const displayVersion = createMemo(() => {
     if ("version" in props.mod) return props.mod.version;
     return props.mod.versions[0];
@@ -787,11 +855,11 @@ function ModListItem(props: {
   const installContext = useContext(ModInstallContext);
   const installed = useInstalled(installContext, () => props.mod);
 
-  function onSelect() {
-    const isSelected = props.isSelectedMod(props.mod);
+  function onFocus() {
+    const isFocused = props.isFocused(props.mod);
 
-    props.setSelectedMod(
-      isSelected
+    props.setFocused(
+      isFocused
         ? undefined
         : {
             owner: props.mod.owner,
@@ -800,101 +868,120 @@ function ModListItem(props: {
     );
   }
 
+  const checkboxId = createUniqueId();
+
   return (
     <li
       classList={{
         [styles.mod]: true,
-        [styles.selected]: props.isSelectedMod(props.mod),
+        [styles.selected]: props.isFocused(props.mod),
       }}
     >
       <div
-        on:click={onSelect}
+        on:click={onFocus}
         onKeyDown={(key) => {
-          if (key.key === "Enter") onSelect();
+          if (key.key === "Enter") onFocus();
         }}
         class={styles.mod__btn}
         role="button"
-        aria-pressed={props.isSelectedMod(props.mod)}
+        aria-pressed={props.isFocused(props.mod)}
         tabIndex={0}
       >
-        <img
-          class={styles.icon}
-          width={64}
-          alt="mod icon"
-          src={getIconUrl(props.mod.owner, props.mod.name, displayVersion().version_number)}
-        />
-        <div class={styles.mod__content}>
-          <div class={styles.left}>
-            <p class={styles.info}>
-              <span class={styles.name}>{props.mod.name}</span>
-              <span class={styles.separator} aria-hidden>
-                &bull;
-              </span>
-              <span class={styles.medHierarchy}>{props.mod.owner}</span>
-              <Show when={"version" in props.mod}>
-                <span class={styles.separator} aria-hidden>
-                  &bull;
-                </span>
-                <span class={styles.version}>{(props.mod as ModPackage).version.version_number}</span>
-              </Show>
-            </p>
-            <p class={styles.info}>
-              <span class={styles.lowHierarchy}>
-                <Fa icon={faThumbsUp} /> {roundedNumberFormatter.format(props.mod.rating_score)}
-              </span>
-
-              <Show when={"versions" in props.mod}>
-                <span class={styles.separator} aria-hidden>
-                  &bull;
-                </span>
-
-                <span class={styles.lowHierarchy}>
-                  <Fa icon={faDownload} />{" "}
-                  {roundedNumberFormatter.format(
-                    (props.mod as ModListing).versions.map((v) => v.downloads).reduce((acc, x) => acc + x),
-                  )}
-                </span>
-              </Show>
-            </p>
-            <p class={styles.description}>{displayVersion().description}</p>
+        <Show when={(props as any).isSelected !== undefined}>
+          <div classList={{[styles.mod__selector]: true, [styles.alwaysShow]: props.modSelectorTutorialState < 2}}>
+            <input
+              type="checkbox"
+              id={checkboxId}
+              checked={(props as SelectableModListProps).isSelected(props.mod)}
+              onChange={(e) => (props as SelectableModListProps).setSelected(props.mod, e.target.checked)}
+            />
+            <label class={styles.mod__selectorClickRegion} for={checkboxId}>
+              <div class={styles.mod__selectorIndicator}>
+                <Fa icon={faCheck} translateY={-0.3} />
+              </div>
+            </label>
           </div>
-          <Show when={installContext !== undefined}>
-            <Switch
-              fallback={
-                <ErrorBoundary>
-                  <Tooltip content={t("modlist.online.install_btn")}>
-                    <InstallButton
-                      mod={props.mod as ModListing}
-                      installContext={installContext!}
-                      class={styles.downloadBtn}
-                      busyClass={styles.downloadBtnBusy}
-                      progressStyle="circular"
-                    >
-                      <Fa icon={faDownLong} />
-                    </InstallButton>
-                  </Tooltip>
-                </ErrorBoundary>
-              }
-            >
-              <Match when={installed()}>
-                {(installed) => (
+        </Show>
+        <div class={styles.mod__btnContent}>
+          <img
+            class={styles.icon}
+            width={64}
+            alt="mod icon"
+            src={getIconUrl(props.mod.owner, props.mod.name, displayVersion().version_number)}
+          />
+          <div class={styles.mod__content}>
+            <div class={styles.left}>
+              <p class={styles.info}>
+                <span class={styles.name}>{props.mod.name}</span>
+                <span class={styles.separator} aria-hidden>
+                  &bull;
+                </span>
+                <span class={styles.medHierarchy}>{props.mod.owner}</span>
+                <Show when={"version" in props.mod}>
+                  <span class={styles.separator} aria-hidden>
+                    &bull;
+                  </span>
+                  <span class={styles.version}>{(props.mod as ModPackage).version.version_number}</span>
+                </Show>
+              </p>
+              <p class={styles.info}>
+                <span class={styles.lowHierarchy}>
+                  <Fa icon={faThumbsUp} /> {roundedNumberFormatter.format(props.mod.rating_score)}
+                </span>
+
+                <Show when={"versions" in props.mod}>
+                  <span class={styles.separator} aria-hidden>
+                    &bull;
+                  </span>
+
+                  <span class={styles.lowHierarchy}>
+                    <Fa icon={faDownload} />{" "}
+                    {roundedNumberFormatter.format(
+                      (props.mod as ModListing).versions.map((v) => v.downloads).reduce((acc, x) => acc + x),
+                    )}
+                  </span>
+                </Show>
+              </p>
+              <p class={styles.description}>{displayVersion().description}</p>
+            </div>
+            <Show when={installContext !== undefined}>
+              <Switch
+                fallback={
                   <ErrorBoundary>
-                    <Tooltip content={t("modlist.installed.uninstall_btn")}>
-                      <UninstallButton
-                        mod={installed()}
+                    <Tooltip content={t("modlist.online.install_btn")}>
+                      <InstallButton
+                        mod={props.mod as ModListing}
                         installContext={installContext!}
                         class={styles.downloadBtn}
                         busyClass={styles.downloadBtnBusy}
                         progressStyle="circular"
                       >
-                        <Fa icon={faTrash} />
-                      </UninstallButton>
+                        <Fa icon={faDownLong} />
+                      </InstallButton>
                     </Tooltip>
                   </ErrorBoundary>
-                )}
-              </Match>
-            </Switch>
-          </Show>
+                }
+              >
+                <Match when={installed()}>
+                  {(installed) => (
+                    <ErrorBoundary>
+                      <Tooltip content={t("modlist.installed.uninstall_btn")}>
+                        <UninstallButton
+                          mod={installed()}
+                          installContext={installContext!}
+                          class={styles.downloadBtn}
+                          busyClass={styles.downloadBtnBusy}
+                          progressStyle="circular"
+                        >
+                          <Fa icon={faTrash} />
+                        </UninstallButton>
+                      </Tooltip>
+                    </ErrorBoundary>
+                  )}
+                </Match>
+              </Switch>
+            </Show>
+          </div>
         </div>
       </div>
     </li>

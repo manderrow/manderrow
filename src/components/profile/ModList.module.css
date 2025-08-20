@@ -4,19 +4,21 @@
   grid-template-columns: minmax(0, 5fr) minmax(0, 3fr);
 }
 
-.scrollOuter {
+.modListContainer,
+.modViewContainer {
   display: flex;
   flex-direction: column;
 }
 
-.scrollInner {
+.modListContainer {
+  gap: 0.5em;
+}
+
+.modList,
+.modView {
   overflow: auto;
   flex: 1 1 0;
   padding-right: 0.5em;
-}
-
-.modListContainer {
-  gap: 0.5em;
 }
 
 .noModsMessage {
@@ -92,18 +94,108 @@
   .mod {
     display: flex;
 
+    .mod__selector {
+      /* why is this necessary??? */
+      flex-shrink: 0;
+      display: none;
+      flex-direction: column;
+
+      width: 1.5em;
+      margin-right: -1em;
+
+      /* margin-right: -3px; */
+
+      transition: margin 0.1s ease-in-out;
+
+      /* height: 64px; */
+
+      >input {
+        display: none;
+      }
+
+      .mod__selectorClickRegion {
+        flex-grow: 1;
+
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+
+        z-index: 1;
+      }
+
+      .mod__selectorIndicator {
+        height: 30px;
+        width: 0;
+        border: 1.5px solid white;
+        border-radius: 2px;
+
+        transition: height 0.1s ease-in-out, width 0.1s ease-in-out, border 0.1s ease-in-out, transform 0.1s ease-in-out, margin 0.1s ease-in-out;
+        transform: translateX(-1.5px);
+
+        >svg {
+          transition: transform 0.1s ease-in-out;
+          transform: scale(0);
+        }
+      }
+
+      &:hover,
+      &:has(>input:checked),
+      &.alwaysShow {
+        /* margin-right: 0; */
+        width: calc((0.5em * 2) + 18px + 1em);
+
+        .mod__selectorIndicator {
+          border: 2px solid white;
+          width: 18px;
+          height: 18px;
+          appearance: none;
+
+          transition: height 0.1s ease-in-out, width 0.1s ease-in-out;
+          transform: none;
+
+          margin: 0 0.5em;
+        }
+
+        >input:checked+label svg {
+          transition: transform 0.1s ease-in-out;
+          transform: scale(1.5);
+        }
+      }
+    }
+
     .mod__btn {
       display: flex;
       margin: 0;
       border: 1px solid transparent;
       max-width: 100%;
       border-top-color: var(--clr-neutral-80);
-      padding: 0.5em;
-      gap: 0.75em;
-      text-align: left;
       flex-grow: 1;
       background-color: transparent;
       transition: background-color 0.1s ease-in-out, border-color 0.1s ease-in-out, border-radius 0.3s ease-out;
+
+      .mod__btnContent {
+        display: flex;
+        margin: 0;
+        padding: 0.5em;
+        gap: 0.75em;
+        text-align: left;
+        flex-grow: 1;
+        overflow: hidden;
+      }
+
+      &:has(.mod__selector) {
+
+        &:hover,
+        &:has(.mod__selector>input:checked, .mod__selector.alwaysShow) {
+          .mod__btnContent {
+            padding-left: 0;
+          }
+
+          .mod__selector {
+            display: flex;
+          }
+        }
+      }
 
       &:hover {
         background-color: var(--clr-neutral-80);
@@ -141,6 +233,8 @@
     aspect-ratio: 1;
     align-self: flex-start;
     border-radius: 6px;
+    user-select: none;
+    -webkit-user-select: none;
   }
 
   .mod__content {
@@ -339,6 +433,7 @@
   color: var(--clr-neutral-20);
   margin-top: 0.5em;
 }
+
 .metadata__field {
   white-space: nowrap;
 }
