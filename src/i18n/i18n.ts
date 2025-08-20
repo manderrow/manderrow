@@ -15,9 +15,12 @@ export type RawDictionary = typeof en_ca;
 export type Dictionary = i18n.Flatten<RawDictionary>;
 export const localeNamesMap: { [key in Locale]: string } = Object.freeze(localeNames);
 export type TranslationKey = keyof RawDictionary;
+type FlattenedKnownDictionary = Flatten<Exclude<RawDictionary, undefined>>;
+
+const DEFAULT_FLATTENED_LANG = i18n.flatten(en_ca) as FlattenedKnownDictionary;
 
 function flattenDict(dict: RawDictionary) {
-  return i18n.flatten(dict) as Flatten<Exclude<RawDictionary, undefined>>;
+  return { ...DEFAULT_FLATTENED_LANG, ...(i18n.flatten(dict) as FlattenedKnownDictionary) };
 }
 
 export async function fetchDictionary(locale: Locale) {
@@ -27,7 +30,7 @@ export async function fetchDictionary(locale: Locale) {
 }
 
 export const [locale, setLocale] = createSignal<Locale>(DEFAULT_LOCALE);
-export const [dict] = createResource(locale, fetchDictionary, { initialValue: flattenDict(en_ca) });
+export const [dict] = createResource(locale, fetchDictionary, { initialValue: DEFAULT_FLATTENED_LANG });
 export const t = i18n.translator(dict, i18n.resolveTemplate);
 
 (async () => {
