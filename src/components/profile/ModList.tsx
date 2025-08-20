@@ -67,6 +67,7 @@ import { SimpleProgressIndicator } from "../global/Progress.tsx";
 import SelectDropdown from "../global/SelectDropdown.tsx";
 import TogglableDropdown from "../global/TogglableDropdown.tsx";
 import Tooltip from "../global/Tooltip.tsx";
+import { useSearchParamsInPlace } from "../../utils/router.ts";
 
 type PageFetcher = (page: number) => Promise<readonly Mod[]>;
 export type Fetcher = (
@@ -267,6 +268,8 @@ interface ModUpdate {
 const CHECK_UPDATES_REFETCH: unique symbol = Symbol();
 
 export function InstalledModList(props: { game: string }) {
+  const [_, setSearchParams] = useSearchParamsInPlace();
+
   const context = useContext(ModInstallContext)!;
   const [updaterShown, setUpdaterShown] = createSignal(false);
 
@@ -322,7 +325,21 @@ export function InstalledModList(props: { game: string }) {
   }
 
   return (
-    <Show when={context.installed.latest.length !== 0} fallback={<p>{t("modlist.installed.no_mods_installed")}</p>}>
+    <Show
+      when={context.installed.latest.length !== 0}
+      fallback={
+        <div class={styles.noModsMessage}>
+          <h2>{t("modlist.installed.no_mods_title")}</h2>
+          <p>{t("modlist.installed.no_mods_msg")}</p>
+
+          <div class={styles.noModsMessage__btns}>
+            <button data-btn="primary" onClick={() => setSearchParams({ "profile-tab": "mod-search" })}>
+              {t("modlist.installed.browse_btn")}
+            </button>
+          </div>
+        </div>
+      }
+    >
       <ModList
         game={props.game}
         isLoading={false}

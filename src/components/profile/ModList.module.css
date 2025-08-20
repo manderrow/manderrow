@@ -19,6 +19,26 @@
   gap: 0.5em;
 }
 
+.noModsMessage {
+  flex-grow: 1;
+  padding: 1em;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5em;
+
+  p {
+    color: var(--clr-neutral-20);
+  }
+}
+
+.noModsMessage__btns {
+  margin-top: 1em;
+  display: flex;
+  gap: 0.5em;
+}
+
 .discoveredLine {
   display: flex;
   align-items: center;

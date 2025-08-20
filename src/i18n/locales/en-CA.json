@@ -96,7 +96,9 @@
 
   "modlist": {
     "installed": {
-      "no_mods_installed": "Looks like you haven't installed any mods yet.",
+      "no_mods_title": "No mods installed",
+      "no_mods_msg": "No mods are installed for the current profile yet.",
+      "browse_btn": "Browse Mods",
       "check_updates_btn": "Check for Updates",
       "updates_available_btn": "Updates Available",
 
