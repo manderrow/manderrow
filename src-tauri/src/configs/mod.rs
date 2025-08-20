@@ -408,8 +408,8 @@ fn read_config_from_bepinex_cfg(
                 pre_value_whitespace,
                 value,
             } => {
-                if let Some(section) = section {
-                    let section_annos = *section_annos.as_mut().unwrap();
+                if let Some(section) = &mut section {
+                    let section_annos = section_annos.as_mut().unwrap();
                     section.insert(key.into(), parse_bepinex_value(value));
                     section_annos.insert(key.into(), std::mem::take(&mut entry_anno));
                 }
