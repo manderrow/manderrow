@@ -888,7 +888,7 @@ function ModListItem(props: {
         tabIndex={0}
       >
         <Show when={(props as any).isSelected !== undefined}>
-          <div classList={{[styles.mod__selector]: true, [styles.alwaysShow]: props.modSelectorTutorialState < 2}}>
+          <div class={styles.mod__selector} data-always-show={props.modSelectorTutorialState < 2 ? "" : undefined}>
             <input
               type="checkbox"
               id={checkboxId}
