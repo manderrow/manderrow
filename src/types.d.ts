@@ -47,9 +47,6 @@ export interface ModMetadata {
   owner: string;
   donation_link?: string;
   date_created: string;
-  date_updated: string;
-  rating_score: number;
-  is_pinned: boolean;
   is_deprecated: boolean;
   has_nsfw_content: boolean;
   categories: string[];

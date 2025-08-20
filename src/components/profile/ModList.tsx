@@ -1,4 +1,4 @@
-import { faHardDrive, faHeart, faThumbsUp } from "@fortawesome/free-regular-svg-icons";
+import { faHardDrive, faHeart } from "@fortawesome/free-regular-svg-icons";
 import {
   faArrowRightLong,
   faCheck,
@@ -925,22 +925,21 @@ function ModListItem(props: {
                 </Show>
               </p>
               <p class={styles.info}>
-                <span class={styles.lowHierarchy}>
-                  <Fa icon={faThumbsUp} /> {roundedNumberFormatter.format(props.mod.rating_score)}
-                </span>
-
-                <Show when={"versions" in props.mod}>
-                  <span class={styles.separator} aria-hidden>
-                    &bull;
-                  </span>
-
-                  <span class={styles.lowHierarchy}>
-                    <Fa icon={faDownload} />{" "}
-                    {roundedNumberFormatter.format(
-                      (props.mod as ModListing).versions.map((v) => v.downloads).reduce((acc, x) => acc + x),
-                    )}
-                  </span>
-                </Show>
+                <Switch>
+                  <Match when={"version" in props.mod}>
+                    <span class={styles.lowHierarchy}>
+                      <Fa icon={faHardDrive} /> {humanizeFileSize((props.mod as ModPackage).version.file_size)}
+                    </span>
+                  </Match>
+                  <Match when={"versions" in props.mod}>
+                    <span class={styles.lowHierarchy}>
+                      <Fa icon={faDownload} />{" "}
+                      {roundedNumberFormatter.format(
+                        (props.mod as ModListing).versions.map((v) => v.downloads).reduce((acc, x) => acc + x),
+                      )}
+                    </span>
+                  </Match>
+                </Switch>
               </p>
               <p class={styles.description}>{displayVersion().description}</p>
             </div>
