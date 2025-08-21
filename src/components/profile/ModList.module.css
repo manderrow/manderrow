@@ -92,6 +92,7 @@
   }
 
   --animation-time: 0.1s;
+  --animation-curve: ease-in-out;
 
   .mod {
     display: flex;
@@ -105,8 +106,8 @@
       margin-right: -1em;
 
       transition:
-        width var(--animation-time) ease-in-out,
-        margin var(--animation-time) ease-in-out;
+        width var(--animation-time) var(--animation-curve),
+        margin var(--animation-time) var(--animation-curve);
 
       > input {
         display: none;
@@ -129,15 +130,15 @@
         border-radius: 2px;
 
         transition:
-          height var(--animation-time) ease-in-out var(--animation-time),
-          width var(--animation-time) ease-in-out,
-          border-width var(--animation-time) ease-in-out,
-          transform var(--animation-time) ease-in-out var(--animation-time),
-          margin var(--animation-time) ease-in-out;
+          height var(--animation-time) var(--animation-curve) var(--animation-time),
+          width var(--animation-time) var(--animation-curve),
+          border-width var(--animation-time) var(--animation-curve),
+          transform var(--animation-time) var(--animation-curve) var(--animation-time),
+          margin var(--animation-time) var(--animation-curve);
         transform: translateX(-1.5px);
 
         > svg {
-          transition: transform var(--animation-time) ease-in-out;
+          transition: transform var(--animation-time) var(--animation-curve);
           transform: scale(0);
         }
       }
@@ -154,18 +155,18 @@
           appearance: none;
 
           transition:
-            height var(--animation-time) ease-in-out var(--animation-time),
-            width var(--animation-time) ease-in-out var(--animation-time),
-            border-width var(--animation-time) ease-in-out,
-            transform var(--animation-time) ease-in-out var(--animation-time),
-            margin var(--animation-time) ease-in-out var(--animation-time);
+            height var(--animation-time) var(--animation-curve),
+            width var(--animation-time) var(--animation-curve),
+            border-width var(--animation-time) var(--animation-curve),
+            transform var(--animation-time) var(--animation-curve),
+            margin var(--animation-time) var(--animation-curve);
           transform: none;
 
           margin: 0 0.5em;
         }
 
         > input:checked + label svg {
-          transition: transform var(--animation-time) ease-in-out;
+          transition: transform var(--animation-time) var(--animation-curve);
           transform: scale(1.5);
         }
       }
@@ -205,11 +206,11 @@
             border-width: 0;
 
             transition:
-              height var(--animation-time) ease-in-out,
-              width var(--animation-time) ease-in-out,
-              border-width var(--animation-time) ease-in-out var(--animation-time),
-              transform var(--animation-time) ease-in-out,
-              margin var(--animation-time) ease-in-out;
+              height var(--animation-time) var(--animation-curve),
+              width var(--animation-time) var(--animation-curve),
+              border-width var(--animation-time) var(--animation-curve) var(--animation-time),
+              transform var(--animation-time) var(--animation-curve),
+              margin var(--animation-time) var(--animation-curve);
           }
         }
       }
