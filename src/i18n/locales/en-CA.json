@@ -102,6 +102,9 @@
       "check_updates_btn": "Check for Updates",
       "updates_available_btn": "Updates Available",
 
+      "multiselect_title": "Bulk Actions",
+      "selected_count": "{{ count }} selected",
+
       "updater_title": "Select mods to update",
       "update_selected_btn": "Update Selected",
       "update_all_btn": "Update All",

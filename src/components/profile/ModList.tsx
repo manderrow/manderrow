@@ -70,6 +70,7 @@ import SelectDropdown from "../global/SelectDropdown.tsx";
 import TogglableDropdown from "../global/TogglableDropdown.tsx";
 import Tooltip from "../global/Tooltip.tsx";
 import { useSearchParamsInPlace } from "../../utils/router.ts";
+import Checkbox from "../global/Checkbox.tsx";
 
 type PageFetcher = (page: number) => Promise<readonly Mod[]>;
 export type Fetcher = (
@@ -97,7 +98,7 @@ export default function ModList(props: {
   isLoading: boolean;
   progress: Progress;
   trailingControls?: JSX.Element;
-  multiselect: boolean,
+  multiselect: boolean;
 }) {
   const [focusedModId, setFocusedModId] = createSignal<ModId>();
 
@@ -200,41 +201,45 @@ export default function ModList(props: {
         </div>
 
         <Show when={queriedMods.error === undefined && queriedMods()} keyed>
-          {(mods) => <ModListMods
-            mods={mods.mods}
-            focusedMod={[focusedModId, setFocusedModId]}
-            isSelected={props.multiselect ? isSelectedMod : undefined}
-            setSelected={props.multiselect ? (mod, selected) => {
-              setSelectedMods((set) => {
-                if (selected) {
-                  set.add(mod);
-                } else {
-                  set.delete(mod);
-                }
-                return set;
-              })
-            } : undefined}
-          />}
+          {(mods) => (
+            <ModListMods
+              mods={mods.mods}
+              focusedMod={[focusedModId, setFocusedModId]}
+              isSelected={props.multiselect ? isSelectedMod : undefined}
+              setSelected={
+                props.multiselect
+                  ? (mod, selected) => {
+                      setSelectedMods((set) => {
+                        if (selected) {
+                          set.add(mod);
+                        } else {
+                          set.delete(mod);
+                        }
+                        return set;
+                      });
+                    }
+                  : undefined
+              }
+            />
+          )}
         </Show>
       </div>
 
       <div class={styles.modViewContainer}>
         <div class={styles.modView}>
-          <Switch fallback={
-            <div class={styles.nothingMsg}>
-              <h2>No mod selected</h2>
-              <p>Select a mod to it view here.</p>
-            </div>
-          }>
+          <Switch
+            fallback={
+              <div class={styles.nothingMsg}>
+                <h2>No mod selected</h2>
+                <p>Select a mod to it view here.</p>
+              </div>
+            }
+          >
             <Match when={focusedMod.error === undefined && focusedMod()} keyed>
               {(mod) => <ModView mod={mod} gameId={props.game} closeModView={() => setFocusedModId(undefined)} />}
             </Match>
             <Match when={props.multiselect && selectedMods().size !== 0}>
-              <ul>
-                <For each={[...selectedMods()]}>
-                  {(mod) => <li>{mod.owner}-{mod.name}</li>}
-                </For>
-              </ul>
+              <SelectedModsList mods={selectedMods} />
             </Match>
           </Switch>
         </div>
@@ -504,6 +509,17 @@ function ModUpdateDialogue(props: { onDismiss: () => void; updates: ModUpdate[] 
   );
 }
 
+function SelectedModsList(props: { mods: Accessor<Set<ModId>> }) {
+  return (
+    <>
+      <h2>{t("modlist.installed.multiselect_title")}</h2>
+      <ul>
+        <li>{t("modlist.installed.selected_count", { count: props.mods().size })}</li>
+      </ul>
+    </>
+  );
+}
+
 function ModView(props: { mod: Mod; gameId: string; closeModView: () => void }) {
   const [_progress, setProgress] = createProgressProxyStore();
 
@@ -581,166 +597,161 @@ function ModView(props: { mod: Mod; gameId: string; closeModView: () => void }) 
 
   return (
     <>
-        <div class={styles.modSticky}>
-          <div class={styles.modMeta}>
-            {/* TODO: For local mod with no package URL, remove link */}
-            <div style={{ "grid-area": "name" }}>
-              <a
-                href={`https://thunderstore.io/c/${props.gameId}/p/${props.mod.owner}/${props.mod.name}/`}
-                target="_blank"
-                rel="noopener noreferrer"
-                class={styles.modMetaLink}
-              >
-                <h2 class={styles.name}>{props.mod.name}</h2>
-                <Fa icon={faExternalLink} />
-              </a>
-            </div>
-            <div style={{ "grid-area": "owner" }}>
-              <a
-                href={`https://thunderstore.io/c/${props.gameId}/p/${props.mod.owner}/`}
-                target="_blank"
-                rel="noopener noreferrer"
-                class={styles.modMetaLink}
-              >
-                {props.mod.owner}
-                <Fa icon={faExternalLink} />
-              </a>
-            </div>
-            <ul class={styles.modMetadata}>
-              <li class={styles.metadata__field}>v{modVersionData().version_number}</li>
-              <li class={styles.metadata__field}>
-                <Fa icon={faDownload} /> {roundedNumberFormatter.format(modVersionData().downloads)}
-              </li>
-              <li class={styles.metadata__field}>
-                <Fa icon={faHardDrive} /> {humanizeFileSize(modVersionData().file_size)}
-              </li>
-            </ul>
-
-            <Show when={props.mod.donation_link != null}>
-              <a
-                class={styles.modMeta__donate}
-                href={props.mod.donation_link}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Fa icon={faHeart} class={styles.donate__icon} />
-                <br /> Donate
-              </a>
-            </Show>
-
-            <button style={{ "grid-area": "close" }} class={styles.modMeta__closeBtn} onClick={props.closeModView}>
-              <Fa icon={faXmark} />
-            </button>
+      <div class={styles.modSticky}>
+        <div class={styles.modMeta}>
+          {/* TODO: For local mod with no package URL, remove link */}
+          <div style={{ "grid-area": "name" }}>
+            <a
+              href={`https://thunderstore.io/c/${props.gameId}/p/${props.mod.owner}/${props.mod.name}/`}
+              target="_blank"
+              rel="noopener noreferrer"
+              class={styles.modMetaLink}
+            >
+              <h2 class={styles.name}>{props.mod.name}</h2>
+              <Fa icon={faExternalLink} />
+            </a>
           </div>
+          <div style={{ "grid-area": "owner" }}>
+            <a
+              href={`https://thunderstore.io/c/${props.gameId}/p/${props.mod.owner}/`}
+              target="_blank"
+              rel="noopener noreferrer"
+              class={styles.modMetaLink}
+            >
+              {props.mod.owner}
+              <Fa icon={faExternalLink} />
+            </a>
+          </div>
+          <ul class={styles.modMetadata}>
+            <li class={styles.metadata__field}>v{modVersionData().version_number}</li>
+            <li class={styles.metadata__field}>
+              <Fa icon={faDownload} /> {roundedNumberFormatter.format(modVersionData().downloads)}
+            </li>
+            <li class={styles.metadata__field}>
+              <Fa icon={faHardDrive} /> {humanizeFileSize(modVersionData().file_size)}
+            </li>
+          </ul>
 
-          <TabRenderer
-            id="mod-view"
-            tabs={tabs}
-            styles={{
-              tabs: {
-                container: styles.tabs,
-                list: styles.tabs__list,
-                list__item: styles.tabs__tab,
-                list__itemActive: styles.tab__active,
-              },
-            }}
-            setter={(tab) => setCurrentTab(tab.id)}
-          />
-        </div>
-
-        <div class={styles.modView__content}>
-          <TabContent isCurrentTab={isCurrentTab} tabs={tabs} />
-        </div>
-
-        <form class={styles.modView__form} action="#">
-          <Show
-            when={installed()}
-            fallback={
-              <div class={styles.modView__onlineActions}>
-                <SelectDropdown<string>
-                  options={
-                    modListing.latest?.versions.map((version, i) => ({
-                      label: version.version_number,
-                      value: version.version_number,
-                      selected: () =>
-                        selectedVersion() == null && i === 0 ? true : isSelectedVersion(version.version_number),
-                      liContent: (
-                        <div>
-                          <p data-version>{version.version_number}</p>
-                          <p data-date>{dateFormatterMed.format(new Date(version.date_created))}</p>
-                        </div>
-                      ),
-                    })) ?? []
-                  }
-                  label={{ labelText: "value" }}
-                  labelClass={styles.modView__versions}
-                  onChanged={(value) => setSelectedVersion(value)}
-                  liClass={styles.modView__versionsItem}
-                />
-                <InstallButton
-                  mod={props.mod as ModListing}
-                  installContext={installContext!}
-                  class={styles.modView__downloadBtn}
-                >
-                  Download
-                </InstallButton>
-              </div>
-            }
-          >
-            <div class={styles.modView__installedActions}>
-              <TogglableDropdown
-                label={t("modlist.installed.change_version_btn")}
-                labelClass={styles.modView__versionLabel}
-                floatingContainerClass={styles.modView__versionsDropdown}
-                dropdownClass={styles.modView__versionsDropdownContent}
-              >
-                <input
-                  type="text"
-                  name="version-search"
-                  id="version-search"
-                  placeholder={t("modlist.installed.search_version_placeholder")}
-                />
-                <label for="version-search" class="phantom">
-                  {t("modlist.installed.search_version_placeholder")}
-                </label>
-
-                <Show when={modListing.latest}>
-                  {(listing) => (
-                    <>
-                      <SelectDropdown
-                        label={{ labelText: "value" }}
-                        onChanged={setSelectedVersion}
-                        options={(listing().versions ?? []).map((version) => ({
-                          label: version.version_number,
-                          value: version.version_number,
-                          selected: () => isSelectedVersion(version.version_number),
-                        }))}
-                      />
-
-                      <InstallButton
-                        mod={
-                          {
-                            ...removeProperty(listing(), "versions"),
-                            version:
-                              listing().versions.find((v) => v.version_number === selectedVersion()) ??
-                              listing().versions[0],
-                          } as ModPackage
-                        }
-                        installContext={installContext!}
-                        class={styles.downloadBtn}
-                      >
-                        Apply
-                      </InstallButton>
-                    </>
-                  )}
-                </Show>
-              </TogglableDropdown>
-              <UninstallButton mod={installed()!} installContext={installContext!} class={styles.modView__uninstallBtn}>
-                {t("modlist.installed.uninstall_btn")}
-              </UninstallButton>
-            </div>
+          <Show when={props.mod.donation_link != null}>
+            <a class={styles.modMeta__donate} href={props.mod.donation_link} target="_blank" rel="noopener noreferrer">
+              <Fa icon={faHeart} class={styles.donate__icon} />
+              <br /> Donate
+            </a>
           </Show>
-        </form>
+
+          <button style={{ "grid-area": "close" }} class={styles.modMeta__closeBtn} onClick={props.closeModView}>
+            <Fa icon={faXmark} />
+          </button>
+        </div>
+
+        <TabRenderer
+          id="mod-view"
+          tabs={tabs}
+          styles={{
+            tabs: {
+              container: styles.tabs,
+              list: styles.tabs__list,
+              list__item: styles.tabs__tab,
+              list__itemActive: styles.tab__active,
+            },
+          }}
+          setter={(tab) => setCurrentTab(tab.id)}
+        />
+      </div>
+
+      <div class={styles.modView__content}>
+        <TabContent isCurrentTab={isCurrentTab} tabs={tabs} />
+      </div>
+
+      <form class={styles.modView__form} action="#">
+        <Show
+          when={installed()}
+          fallback={
+            <div class={styles.modView__onlineActions}>
+              <SelectDropdown<string>
+                options={
+                  modListing.latest?.versions.map((version, i) => ({
+                    label: version.version_number,
+                    value: version.version_number,
+                    selected: () =>
+                      selectedVersion() == null && i === 0 ? true : isSelectedVersion(version.version_number),
+                    liContent: (
+                      <div>
+                        <p data-version>{version.version_number}</p>
+                        <p data-date>{dateFormatterMed.format(new Date(version.date_created))}</p>
+                      </div>
+                    ),
+                  })) ?? []
+                }
+                label={{ labelText: "value" }}
+                labelClass={styles.modView__versions}
+                onChanged={(value) => setSelectedVersion(value)}
+                liClass={styles.modView__versionsItem}
+              />
+              <InstallButton
+                mod={props.mod as ModListing}
+                installContext={installContext!}
+                class={styles.modView__downloadBtn}
+              >
+                Download
+              </InstallButton>
+            </div>
+          }
+        >
+          <div class={styles.modView__installedActions}>
+            <TogglableDropdown
+              label={t("modlist.installed.change_version_btn")}
+              labelClass={styles.modView__versionLabel}
+              floatingContainerClass={styles.modView__versionsDropdown}
+              dropdownClass={styles.modView__versionsDropdownContent}
+            >
+              <input
+                type="text"
+                name="version-search"
+                id="version-search"
+                placeholder={t("modlist.installed.search_version_placeholder")}
+              />
+              <label for="version-search" class="phantom">
+                {t("modlist.installed.search_version_placeholder")}
+              </label>
+
+              <Show when={modListing.latest}>
+                {(listing) => (
+                  <>
+                    <SelectDropdown
+                      label={{ labelText: "value" }}
+                      onChanged={setSelectedVersion}
+                      options={(listing().versions ?? []).map((version) => ({
+                        label: version.version_number,
+                        value: version.version_number,
+                        selected: () => isSelectedVersion(version.version_number),
+                      }))}
+                    />
+
+                    <InstallButton
+                      mod={
+                        {
+                          ...removeProperty(listing(), "versions"),
+                          version:
+                            listing().versions.find((v) => v.version_number === selectedVersion()) ??
+                            listing().versions[0],
+                        } as ModPackage
+                      }
+                      installContext={installContext!}
+                      class={styles.downloadBtn}
+                    >
+                      Apply
+                    </InstallButton>
+                  </>
+                )}
+              </Show>
+            </TogglableDropdown>
+            <UninstallButton mod={installed()!} installContext={installContext!} class={styles.modView__uninstallBtn}>
+              {t("modlist.installed.uninstall_btn")}
+            </UninstallButton>
+          </div>
+        </Show>
+      </form>
     </>
   );
 }
@@ -766,7 +777,9 @@ type SelectableModListProps = {
   setSelected: (mod: ModId, selected: boolean) => void;
 };
 
-function ModListMods(props: { mods: PageFetcher; focusedMod: Signal<ModId | undefined> } & (SelectableModListProps | {})) {
+function ModListMods(
+  props: { mods: PageFetcher; focusedMod: Signal<ModId | undefined> } & (SelectableModListProps | {}),
+) {
   const infiniteScroll = createMemo(() => {
     // this should take readonly, which would make the cast unnecessary
     return createInfiniteScroll(props.mods as (page: number) => Promise<Mod[]>);
@@ -799,14 +812,16 @@ function ModListMods(props: { mods: PageFetcher; focusedMod: Signal<ModId | unde
   return (
     <ol class={styles.modList} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
       <For each={paginatedMods()}>
-        {(mod) => <ModListItem
-          mod={mod}
-          isFocused={isFocusedMod}
-          setFocused={props.focusedMod[1]}
-          isSelected={(props as any).isSelected}
-          setSelected={(props as any).setSelected}
-          modSelectorTutorialState={modSelectorTutorialState()}
-        />}
+        {(mod) => (
+          <ModListItem
+            mod={mod}
+            isFocused={isFocusedMod}
+            setFocused={props.focusedMod[1]}
+            isSelected={(props as any).isSelected}
+            setSelected={(props as any).setSelected}
+            modSelectorTutorialState={modSelectorTutorialState()}
+          />
+        )}
       </For>
       <Show when={!end()}>
         <li use:infiniteScrollLoader>Loading...</li>
@@ -839,14 +854,16 @@ const enum ModSelectorTutorialState {
   LEFT,
 }
 
-function ModListItem(props: {
-  mod: Mod;
-  /// Whether the mod is focused in the ModView
-  isFocused: (mod: ModId) => boolean;
-  setFocused: (mod: ModId | undefined) => void;
-  modSelectorTutorialState: ModSelectorTutorialState,
-  // setModSelectorTutorialState: (hovered: boolean) => void,
-} & (SelectableModListProps | {})) {
+function ModListItem(
+  props: {
+    mod: Mod;
+    /// Whether the mod is focused in the ModView
+    isFocused: (mod: ModId) => boolean;
+    setFocused: (mod: ModId | undefined) => void;
+    modSelectorTutorialState: ModSelectorTutorialState;
+    // setModSelectorTutorialState: (hovered: boolean) => void,
+  } & (SelectableModListProps | {}),
+) {
   const displayVersion = createMemo(() => {
     if ("version" in props.mod) return props.mod.version;
     return props.mod.versions[0];
@@ -868,8 +885,6 @@ function ModListItem(props: {
     );
   }
 
-  const checkboxId = createUniqueId();
-
   return (
     <li
       classList={{
@@ -889,17 +904,12 @@ function ModListItem(props: {
       >
         <Show when={(props as any).isSelected !== undefined}>
           <div class={styles.mod__selector} data-always-show={props.modSelectorTutorialState < 2 ? "" : undefined}>
-            <input
-              type="checkbox"
-              id={checkboxId}
+            <Checkbox
               checked={(props as SelectableModListProps).isSelected(props.mod)}
-              onChange={(e) => (props as SelectableModListProps).setSelected(props.mod, e.target.checked)}
+              onChange={(checked) => (props as SelectableModListProps).setSelected(props.mod, checked)}
+              labelClass={styles.mod__selectorClickRegion}
+              iconContainerClass={styles.mod__selectorIndicator}
             />
-            <label class={styles.mod__selectorClickRegion} for={checkboxId}>
-              <div class={styles.mod__selectorIndicator}>
-                <Fa icon={faCheck} translateY={-0.3} />
-              </div>
-            </label>
           </div>
         </Show>
         <div class={styles.mod__btnContent}>

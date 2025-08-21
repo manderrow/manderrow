@@ -1,0 +1,27 @@
+.switch {
+  .iconContainer {
+    display: flex;
+    align-items: center;
+  }
+
+  .iconContainer svg {
+    clip-path: inset(0% 100% 0% 0%);
+
+    transition: clip-path 0.2s;
+  }
+
+  input:checked + .iconContainer svg {
+    clip-path: inset(0% 0% 0% 0%);
+  }
+}
+
+.switchDefault {
+  border: 1px solid var(--clr-neutral-60);
+  border-radius: 2px;
+
+  width: 0.5rem;
+
+  &:has(> input:checked) {
+    background-color: var(--clr-primary-40);
+  }
+}
