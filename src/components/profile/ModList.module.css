@@ -104,7 +104,9 @@
       width: 1.5em;
       margin-right: -1em;
 
-      transition: width var(--animation-time) ease, margin var(--animation-time) ease;
+      transition:
+        width var(--animation-time) ease-in-out,
+        margin var(--animation-time) ease-in-out;
 
       > input {
         display: none;
@@ -121,12 +123,17 @@
       }
 
       .mod__selectorIndicator {
-        height: 2rem;
+        height: 30px;
         width: 0;
-        border: 1px solid white;
+        border: 1.5px solid white;
         border-radius: 2px;
 
-        transition-duration: var(--animation-time);
+        transition:
+          height var(--animation-time) ease-in-out var(--animation-time),
+          width var(--animation-time) ease-in-out,
+          border-width var(--animation-time) ease-in-out,
+          transform var(--animation-time) ease-in-out var(--animation-time),
+          margin var(--animation-time) ease-in-out;
         transform: translateX(-1.5px);
 
         > svg {
@@ -146,14 +153,19 @@
           height: 18px;
           appearance: none;
 
-          transition-duration: var(--animation-time);
+          transition:
+            height var(--animation-time) ease-in-out var(--animation-time),
+            width var(--animation-time) ease-in-out var(--animation-time),
+            border-width var(--animation-time) ease-in-out,
+            transform var(--animation-time) ease-in-out var(--animation-time),
+            margin var(--animation-time) ease-in-out var(--animation-time);
           transform: none;
 
           margin: 0 0.5em;
         }
 
         > input:checked + label svg {
-          transition: transform var(--animation-time) ease;
+          transition: transform var(--animation-time) ease-in-out;
           transform: scale(1.5);
         }
       }
@@ -167,7 +179,10 @@
       border-top-color: var(--clr-neutral-80);
       flex-grow: 1;
       background-color: transparent;
-      transition: background-color 0.1s ease, border-color 0.1s ease, border-radius 0.3s ease-out;
+      transition:
+        background-color 0.1s ease-in-out,
+        border-color 0.1s ease-in-out,
+        border-radius 0.3s ease-out;
 
       .mod__btnContent {
         display: flex;
@@ -189,7 +204,12 @@
             height: 0;
             border-width: 0;
 
-            transition-duration: var(--animation-time);
+            transition:
+              height var(--animation-time) ease-in-out,
+              width var(--animation-time) ease-in-out,
+              border-width var(--animation-time) ease-in-out var(--animation-time),
+              transform var(--animation-time) ease-in-out,
+              margin var(--animation-time) ease-in-out;
           }
         }
       }
