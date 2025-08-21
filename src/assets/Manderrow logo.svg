@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1000 1000">
+<svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1024 1024">
   <!-- Generator: Adobe Illustrator 29.7.1, SVG Export Plug-In . SVG Version: 2.1.1 Build 8)  -->
   <defs>
-    <linearGradient id="linear-gradient" x1="-14.781" y1="305.854" x2="483.878" y2="804.514" gradientUnits="userSpaceOnUse">
+    <linearGradient id="linear-gradient" x1="28.431" y1="329.625" x2="496.856" y2="798.051" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#3fb6ff"/>
       <stop offset="1" stop-color="#0058a0"/>
     </linearGradient>
-    <linearGradient id="linear-gradient1" x1="500" y1="106.19" x2="500" y2="1000.227" gradientUnits="userSpaceOnUse">
+    <linearGradient id="linear-gradient1" x1="512" y1="142.068" x2="512" y2="981.898" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#183e71"/>
       <stop offset=".116" stop-color="#0d447e"/>
       <stop offset=".22" stop-color="#004d8e"/>
@@ -16,18 +16,20 @@
       <stop offset="1" stop-color="#3fb6ff"/>
       <stop offset="1" stop-color="#3baff8"/>
     </linearGradient>
-    <linearGradient id="linear-gradient2" x1="499.968" y1="0" x2="499.968" y2="312.999" gradientUnits="userSpaceOnUse">
+    <linearGradient id="linear-gradient2" x1="511.97" y1="42.315" x2="511.97" y2="336.337" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#ffac2a"/>
       <stop offset="1" stop-color="#ff703f"/>
     </linearGradient>
-    <linearGradient id="linear-gradient3" x1="453.722" y1="353.432" x2="50.217" y2="756.936" gradientTransform="translate(1017.421) rotate(-180) scale(1 -1)" gradientUnits="userSpaceOnUse">
+    <linearGradient id="linear-gradient3" x1="445.584" y1="374.318" x2="66.544" y2="753.358" gradientTransform="translate(1017.421) rotate(-180) scale(1 -1)" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#3fb6ff"/>
       <stop offset="1" stop-color="#0058a0"/>
     </linearGradient>
   </defs>
-  <path d="M499.999,312.998l308.811-204.677-308.811,204.677Z" style="fill: none;"/>
-  <polygon points="126.933 851.073 0 291.073 191.19 108.32 345.595 513.209 288.392 1000 126.933 851.073" style="fill: url(#linear-gradient);"/>
-  <polyline points="500 312.999 191.19 108.32 345.595 513.209 336.779 588.233 500 830.542 663.272 588.666 654.405 513.209 808.81 108.321" style="fill: url(#linear-gradient1);"/>
-  <polygon points="654.341 210.659 500 0 345.595 210.659 500 312.999 654.341 210.659" style="fill: url(#linear-gradient2);"/>
-  <polygon points="711.607 1000 654.405 513.209 808.81 108.32 1000 291.073 873.067 851.073 711.607 1000" style="fill: url(#linear-gradient3);"/>
+  <path d="M511.999,324.998l308.811-204.677-308.811,204.677Z" style="fill: none;"/>
+  <g>
+    <polygon points="161.552 841.787 42.316 315.74 221.913 144.068 366.957 524.409 313.222 981.685 161.552 841.787" style="fill: url(#linear-gradient);"/>
+    <polyline points="512 336.337 221.913 144.068 366.957 524.409 358.675 594.883 512 822.501 665.373 595.29 657.044 524.409 802.087 144.068" style="fill: url(#linear-gradient1);"/>
+    <polygon points="656.984 240.202 512 42.315 366.957 240.202 512 336.337 656.984 240.202" style="fill: url(#linear-gradient2);"/>
+    <polygon points="710.778 981.685 657.043 524.409 802.087 144.068 981.684 315.74 862.448 841.787 710.778 981.685" style="fill: url(#linear-gradient3);"/>
+  </g>
 </svg>
