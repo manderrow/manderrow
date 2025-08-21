@@ -1,5 +1,5 @@
 [tools]
 just = "latest"
 pnpm = "latest"
-rust = "nightly-2025-08-02"
+rust = "nightly-2025-08-20"
 zig = "master"
