@@ -279,43 +279,6 @@
   background-color: var(--clr-neutral-90);
 }
 
-.tabs__list {
-  display: flex;
-}
-
-.tabs__tab {
-  border-radius: 6px;
-  overflow: hidden;
-
-  button {
-    padding: 0.5em 1em;
-    border-right: 1px solid var(--clr-neutral-70);
-    color: var(--clr-neutral-40);
-    border-radius: 0;
-    display: block;
-    font-size: 1rem;
-    font-weight: 500;
-    user-select: none;
-    -webkit-user-select: none;
-    background-color: transparent;
-    min-width: 8ch;
-  }
-
-  button:hover:not(:disabled) {
-    color: var(--clr-neutral-20);
-  }
-
-  &.tab__active.tabs__tab button {
-    border-color: var(--clr-primary-40);
-    background-color: var(--clr-primary-40);
-    color: white;
-  }
-
-  &:has(+ .tab__active) button {
-    border-right-color: transparent;
-  }
-}
-
 .content {
   grid-column: content-start / content-end;
   grid-row: content-row-start / statusbar-start;

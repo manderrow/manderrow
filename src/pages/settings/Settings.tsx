@@ -75,10 +75,10 @@ export default function SettingsPage() {
             tabs={tabs}
             setter={(tab) => setCurrentTab(tab.id)}
             styles={{
-              tabs: {
+              preset: "none",
+              classes: {
                 list: styles.settings__tabs,
-                list__item: styles.settings__tab,
-                list__itemActive: styles.settings__tabActive,
+                tab: styles.settings__tab,
               },
             }}
           />

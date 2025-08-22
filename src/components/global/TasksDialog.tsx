@@ -7,7 +7,6 @@ import { DownloadMetadata, Kind, ProgressUnit, tasksArray } from "../../api/task
 import { t } from "../../i18n/i18n.ts";
 import { humanizeFileSize, roundedNumberFormatter } from "../../utils";
 
-
 import { SimpleAsyncButton } from "./AsyncButton";
 import Dialog, { DismissCallback } from "./Dialog";
 import { SimpleProgressIndicator } from "./Progress";
@@ -46,11 +45,11 @@ export default function TasksDialog(props: { onDismiss: DismissCallback }) {
             id="tasks"
             tabs={tabs}
             styles={{
-              tabs: {
+              preset: "moving-bg",
+              classes: {
                 container: styles.tabs,
                 list: styles.tabs__list,
-                list__item: styles.tabs__tab,
-                list__itemActive: styles.tabs__tabActive,
+                tab: styles.tabs__tab,
               },
             }}
             setter={(tab) => setTab(tab.id)}
@@ -140,12 +139,18 @@ function TaskList(props: { active?: boolean }) {
 }
 
 function DownloadUrlLine(props: { url: string }) {
-  return <div class={styles.downloadUrl}>
-    <a href={props.url} title={props.url}>Source</a>
-    <button onClick={() => {
-      navigator.clipboard.writeText(props.url);
-    }}>
-      <Fa icon={faCopy} />
-    </button>
-  </div>;
+  return (
+    <div class={styles.downloadUrl}>
+      <a href={props.url} title={props.url}>
+        Source
+      </a>
+      <button
+        onClick={() => {
+          navigator.clipboard.writeText(props.url);
+        }}
+      >
+        <Fa icon={faCopy} />
+      </button>
+    </div>
+  );
 }

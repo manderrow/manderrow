@@ -1,7 +1,6 @@
 import { faHardDrive, faHeart } from "@fortawesome/free-regular-svg-icons";
 import {
   faArrowRightLong,
-  faCheck,
   faCircleUp,
   faDownLong,
   faDownload,
@@ -28,7 +27,6 @@ import {
   createResource,
   createSelector,
   createSignal,
-  createUniqueId,
   untrack,
   useContext,
 } from "solid-js";
@@ -648,11 +646,10 @@ function ModView(props: { mod: Mod; gameId: string; closeModView: () => void }) 
           id="mod-view"
           tabs={tabs}
           styles={{
-            tabs: {
+            preset: "base",
+            classes: {
               container: styles.tabs,
-              list: styles.tabs__list,
-              list__item: styles.tabs__tab,
-              list__itemActive: styles.tab__active,
+              tab: styles.tabs__tab,
             },
           }}
           setter={(tab) => setCurrentTab(tab.id)}

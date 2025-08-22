@@ -67,7 +67,7 @@
     background-color: var(--clr-neutral-80);
   }
 
-  &.settings__tabActive button {
+  &[data-active="true"] button {
     background-color: var(--clr-primary-40);
   }
 }

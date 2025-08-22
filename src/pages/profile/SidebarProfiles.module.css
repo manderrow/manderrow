@@ -8,7 +8,7 @@
   margin: 0 var(--neg-margin);
   margin-top: 0.5em;
   flex: 1 1 0;
-  z-index: var(--dropdown-z-index);
+  z-index: 2;
 }
 
 .sidebar__profilesSearch {

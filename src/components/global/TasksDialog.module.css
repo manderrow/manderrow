@@ -27,18 +27,8 @@
   border-radius: 8px;
 }
 
-.tabs__tab {
-  border-radius: inherit;
-}
-
-.tabs__tab button {
-  border-radius: inherit;
-  background-color: transparent;
-}
-
-.tabs__tabActive button {
-  box-shadow: 0 0 8px -2px rgba(0, 0, 0, 0.6);
-  background-color: var(--clr-primary-40);
+.tabs__tab.tabs__tab button {
+  border-right: none;
 }
 
 .tabs__trailing {

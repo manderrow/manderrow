@@ -505,11 +505,11 @@
   color: var(--clr-neutral-20);
 }
 
-.tab__active.tabs__tab {
+.tabs__tab[data-active="true"] {
   border-color: var(--clr-neutral-20);
 }
 
-.tab__active.tabs__tab button {
+.tabs__tab[data-active="true"] button {
   color: white;
 }
 

@@ -448,14 +448,7 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
               <ModInstallContext.Provider value={{ profileId, installed, refetchInstalled }}>
                 <TabRenderer
                   id="profile"
-                  styles={{
-                    tabs: {
-                      container: styles.tabs,
-                      list: styles.tabs__list,
-                      list__item: styles.tabs__tab,
-                      list__itemActive: styles.tab__active,
-                    },
-                  }}
+                  styles={{ preset: "moving-bg", classes: { container: styles.tabs } }}
                   tabs={[
                     {
                       id: "mod-list",
