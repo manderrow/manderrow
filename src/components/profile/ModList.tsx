@@ -507,13 +507,61 @@ function ModUpdateDialogue(props: { onDismiss: () => void; updates: ModUpdate[] 
   );
 }
 
+const MAX_SELECTED_CARDS = 5;
 function SelectedModsList(props: { mods: Accessor<Set<ModId>> }) {
+  const selectedCount = () => props.mods().size;
+
   return (
     <>
-      <h2>{t("modlist.installed.multiselect_title")}</h2>
+      <div class={styles.selected__cards} aria-hidden>
+        <ul
+          class={styles.cards__list}
+          style={{ 
+            "--card-divisions": Math.min(MAX_SELECTED_CARDS, selectedCount() + 1),
+            "--total-cards": Math.min(MAX_SELECTED_CARDS, selectedCount())
+          }}
+        >
+          <For each={Array.from(props.mods()).slice(0, MAX_SELECTED_CARDS)}>
+            {(modId, i) => (
+              <li
+                class={styles.selected__card}
+                style={{
+                  "--card-index": i(),
+                  "--total-cards": Math.min(MAX_SELECTED_CARDS, selectedCount()),
+                  // TODO: make getIconUrl take the version properly
+                  // "--bg-image": `url("${getIconUrl(modId.owner, modId.name, "1.0.0")}")`,
+                }}
+              >
+                {i() == MAX_SELECTED_CARDS - 1 ? `+${selectedCount() - MAX_SELECTED_CARDS + 1}` : undefined}
+              </li>
+            )}
+          </For>
+        </ul>
+      </div>
+
+      <h2 class={styles.selected__title}>{t("modlist.installed.multiselect_title")}</h2>
+
       <ul>
-        <li>{t("modlist.installed.selected_count", { count: props.mods().size })}</li>
+        <li>
+          {t(
+            selectedCount() > 1 ? "modlist.installed.selected_count_plural" : "modlist.installed.selected_count_single",
+            { count: selectedCount() },
+          )}
+        </li>
+        <li>
+          <Fa icon={faHardDrive} />{" "}
+          {humanizeFileSize(
+            Array.from(props.mods()).reduce((total, modId) => total /*+ getModById(modId).file_size*/, 0),
+          )}
+        </li>
       </ul>
+
+      <div class={styles.selected__actions}>
+        <button>{t("modlist.installed.enable_selected")}</button>
+        <button>{t("modlist.installed.disable_selected")}</button>
+        <button>{t("modlist.installed.delete_selected")}</button>
+        <button>{t("modlist.installed.update_selected")}</button>
+      </div>
     </>
   );
 }

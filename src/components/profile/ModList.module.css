@@ -380,6 +380,8 @@
   }
 }
 
+/* Mod View */
+
 .modView {
   display: flex;
   flex-direction: column;
@@ -619,6 +621,75 @@
 .modView__uninstallBtn:focus {
   border-color: var(--clr-danger-5);
   background-color: var(--clr-danger-5);
+}
+
+/* Selected mods list */
+
+.selected__cards {
+  height: 20%;
+  overflow: hidden;
+  position: relative;
+}
+
+.cards__list {
+}
+
+.selected__card {
+  position: absolute;
+  aspect-ratio: 5 / 7;
+  width: 10%;
+  border: 1px solid var(--clr-neutral-70);
+  background-color: var(--clr-neutral-80);
+  border-radius: 8px;
+
+  background-image: var(--bg-image);
+  background-size: cover;
+  background-position: center;
+
+  offset-path: circle(20% at center 80%);
+}
+
+.selected__card:nth-child(1) {
+  offset-distance: -25%;
+}
+.selected__card:nth-child(2) {
+  offset-distance: -15%;
+}
+.selected__card:nth-child(3) {
+  offset-distance: -35%;
+}
+.selected__card:nth-child(4) {
+  offset-distance: -5%;
+}
+.selected__card:nth-child(5) {
+  offset-distance: -45%;
+}
+
+.selected__card:last-child {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.selected__title {
+  text-align: center;
+  padding-top: 0.25em;
+  border-top: 1px solid var(--clr-neutral-70);
+  margin-top: 0.25em;
+}
+
+.selected__actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(3rem, 7rem));
+  gap: 0.5em;
+  justify-content: center;
+  margin-top: auto;
+  padding: 0.5em;
+
+  button {
+    width: 100%;
+    border-radius: 6px;
+  }
 }
 
 /* Mod update dialog */

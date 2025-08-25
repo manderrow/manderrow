@@ -103,7 +103,12 @@
       "updates_available_btn": "Updates Available",
 
       "multiselect_title": "Bulk Actions",
-      "selected_count": "{{ count }} selected",
+      "selected_count_single": "{{ count }} mod selected",
+      "selected_count_plural": "{{ count }} mods selected",
+      "enable_selected": "Enable",
+      "disable_selected": "Disable",
+      "update_selected": "Update",
+      "delete_selected": "Delete",
 
       "updater_title": "Select mods to update",
       "update_selected_btn": "Update Selected",
