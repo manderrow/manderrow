@@ -647,22 +647,7 @@
   background-position: center;
 
   offset-path: circle(20% at center 80%);
-}
-
-.selected__card:nth-child(1) {
-  offset-distance: -25%;
-}
-.selected__card:nth-child(2) {
-  offset-distance: -15%;
-}
-.selected__card:nth-child(3) {
-  offset-distance: -35%;
-}
-.selected__card:nth-child(4) {
-  offset-distance: -5%;
-}
-.selected__card:nth-child(5) {
-  offset-distance: -45%;
+  offset-distance: var(--offsetDistance);
 }
 
 .selected__card:last-child {

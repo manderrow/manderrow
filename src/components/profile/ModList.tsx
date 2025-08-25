@@ -508,33 +508,48 @@ function ModUpdateDialogue(props: { onDismiss: () => void; updates: ModUpdate[] 
 }
 
 const MAX_SELECTED_CARDS = 5;
+const CARD_WINDOW_DEG = 120;
+const DEG_TO_PERCENT = 100 / 360;
 function SelectedModsList(props: { mods: Accessor<Set<ModId>> }) {
   const selectedCount = () => props.mods().size;
+
+  // the spacing between each card
+  const spacing = 180 / (selectedCount() + 1);
+  // the degrees of padding to fit the window
+  const padding = (180 - CARD_WINDOW_DEG) / 2;
+  // the base offset of each card
+  // You may need to add a multiple of 90. Idk where the origin is by default.
+  const offset = padding + spacing / 2;
 
   return (
     <>
       <div class={styles.selected__cards} aria-hidden>
         <ul
           class={styles.cards__list}
-          style={{ 
+          style={{
             "--card-divisions": Math.min(MAX_SELECTED_CARDS, selectedCount() + 1),
-            "--total-cards": Math.min(MAX_SELECTED_CARDS, selectedCount())
+            "--total-cards": Math.min(MAX_SELECTED_CARDS, selectedCount()),
           }}
         >
           <For each={Array.from(props.mods()).slice(0, MAX_SELECTED_CARDS)}>
-            {(modId, i) => (
-              <li
-                class={styles.selected__card}
-                style={{
-                  "--card-index": i(),
-                  "--total-cards": Math.min(MAX_SELECTED_CARDS, selectedCount()),
-                  // TODO: make getIconUrl take the version properly
-                  // "--bg-image": `url("${getIconUrl(modId.owner, modId.name, "1.0.0")}")`,
-                }}
-              >
-                {i() == MAX_SELECTED_CARDS - 1 ? `+${selectedCount() - MAX_SELECTED_CARDS + 1}` : undefined}
-              </li>
-            )}
+            {(modId, i) => {
+              // the degree offset of each card from the origin on the circle
+              const angle = offset + spacing * i();
+              const offsetDistance = angle * DEG_TO_PERCENT - 50;
+
+              return (
+                <li
+                  class={styles.selected__card}
+                  style={{
+                    "--offsetDistance": `${offsetDistance}%`,
+                    // TODO: make getIconUrl take the version properly
+                    // "--bg-image": `url("${getIconUrl(modId.owner, modId.name, "1.0.0")}")`,
+                  }}
+                >
+                  {i() == MAX_SELECTED_CARDS - 1 ? `+${selectedCount() - MAX_SELECTED_CARDS + 1}` : undefined}
+                </li>
+              );
+            }}
           </For>
         </ul>
       </div>
