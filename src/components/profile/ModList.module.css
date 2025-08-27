@@ -105,7 +105,8 @@
       width: 1.5em;
       margin-right: -1em;
 
-      transition: width var(--animation-time) var(--animation-curve),
+      transition:
+        width var(--animation-time) var(--animation-curve),
         margin var(--animation-time) var(--animation-curve);
 
       > input {
@@ -129,8 +130,10 @@
         border: 1.5px solid var(--clr-neutral-15);
         border-radius: 2px;
 
-        transition: height var(--animation-time) var(--animation-curve) var(--animation-time),
-          width var(--animation-time) var(--animation-curve), border-width var(--animation-time) var(--animation-curve),
+        transition:
+          height var(--animation-time) var(--animation-curve) var(--animation-time),
+          width var(--animation-time) var(--animation-curve),
+          border-width var(--animation-time) var(--animation-curve),
           transform var(--animation-time) var(--animation-curve) var(--animation-time),
           margin var(--animation-time) var(--animation-curve);
         transform: translateX(-1.5px);
@@ -151,10 +154,12 @@
           height: 18px;
           appearance: none;
 
-          transition: height var(--animation-time) var(--animation-curve),
+          transition:
+            height var(--animation-time) var(--animation-curve),
             width var(--animation-time) var(--animation-curve),
             border-width var(--animation-time) var(--animation-curve),
-            transform var(--animation-time) var(--animation-curve), margin var(--animation-time) var(--animation-curve);
+            transform var(--animation-time) var(--animation-curve),
+            margin var(--animation-time) var(--animation-curve);
           transform: none;
 
           margin: 0 0.5em;
@@ -174,7 +179,10 @@
       border-top-color: var(--clr-neutral-80);
       flex-grow: 1;
       background-color: transparent;
-      transition: background-color 0.1s ease-in-out, border-color 0.1s ease-in-out, border-radius 0.3s ease-out;
+      transition:
+        background-color 0.1s ease-in-out,
+        border-color 0.1s ease-in-out,
+        border-radius 0.3s ease-out;
 
       .mod__btnContent {
         display: flex;
@@ -196,7 +204,8 @@
             height: 0;
             border-width: 0;
 
-            transition: height var(--animation-time) var(--animation-curve),
+            transition:
+              height var(--animation-time) var(--animation-curve),
               width var(--animation-time) var(--animation-curve),
               border-width var(--animation-time) var(--animation-curve) var(--animation-time),
               transform var(--animation-time) var(--animation-curve),
