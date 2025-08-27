@@ -131,10 +131,10 @@
         border-radius: 2px;
 
         transition:
-          height var(--animation-time) var(--animation-curve) var(--animation-time),
+          height var(--animation-time) var(--animation-curve) 0.05s,
           width var(--animation-time) var(--animation-curve),
           border-width var(--animation-time) var(--animation-curve),
-          transform var(--animation-time) var(--animation-curve) var(--animation-time),
+          transform var(--animation-time) var(--animation-curve) 0.05s,
           margin var(--animation-time) var(--animation-curve);
         transform: translateX(-1.5px);
 
