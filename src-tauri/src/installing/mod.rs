@@ -360,8 +360,9 @@ pub enum AtomicReplaceError {
     InvalidTargetPath(&'static str),
     #[error("Failed pre-modification: {0}")]
     PreModification(#[source] std::io::Error),
-    #[error("Failed to stage the original for deletion at {deletion_path:?}: {cause}")]
+    #[error("{}", AtomicReplaceStageForDeletionDisplay { target, deletion_path, cause })]
     StageForDeletion {
+        target: PathBuf,
         deletion_path: PathBuf,
         #[source]
         cause: std::io::Error,
@@ -380,6 +381,24 @@ pub enum AtomicReplaceError {
         #[source]
         cause: std::io::Error,
     },
+}
+
+struct AtomicReplaceStageForDeletionDisplay<'a> {
+    target: &'a PathBuf,
+    deletion_path: &'a PathBuf,
+    cause: &'a std::io::Error,
+}
+
+impl<'a> std::fmt::Display for AtomicReplaceStageForDeletionDisplay<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "Failed to stage the original for deletion at {:?}: {}.
+  The target is {:?}.",
+            self.deletion_path, self.cause, self.target
+        )?;
+        write!(f, "\n  The original may be found at {:?}.", self.deletion_path)
+    }
 }
 
 struct AtomicReplaceMoveReplacementDisplay<'a> {
@@ -491,6 +510,7 @@ async fn replace(target: &Path, source: &Path) -> Result<ReplaceTransaction, Ato
             // Move the original to a hidden file just in case replacing it fails.
             if let Err(cause) = tokio::fs::rename(target, &deletion_path).await {
                 return Err(AtomicReplaceError::StageForDeletion {
+                    target: target.to_owned(),
                     deletion_path,
                     cause,
                 });
