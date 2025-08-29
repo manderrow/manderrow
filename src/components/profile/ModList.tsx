@@ -153,11 +153,11 @@ export default function ModList(props: {
     }
   });
 
-  const [selectedMods, setSelectedMods] = createSignal<Set<ModId>>(new Set(), {
+  const [selectedMods, setSelectedMods] = createSignal<Map<ModId, string>>(new Map(), {
     equals: false,
   });
 
-  const isSelectedMod = createSelector<Set<ModId>, ModId>(selectedMods, (id, selected) => selected.has(id));
+  const isSelectedMod = createSelector<Map<ModId, string>, ModId>(selectedMods, (id, selected) => selected.has(id));
 
   return (
     <div class={styles.modListAndView}>
@@ -206,10 +206,10 @@ export default function ModList(props: {
               isSelected={props.multiselect ? isSelectedMod : undefined}
               setSelected={
                 props.multiselect
-                  ? (mod, selected) => {
+                  ? (mod, version, selected) => {
                       setSelectedMods((set) => {
                         if (selected) {
-                          set.add(mod);
+                          set.set(mod, version);
                         } else {
                           set.delete(mod);
                         }
@@ -510,7 +510,7 @@ function ModUpdateDialogue(props: { onDismiss: () => void; updates: ModUpdate[] 
 const MAX_SELECTED_CARDS = 5;
 const CARD_WINDOW_DEG = 120;
 const DEG_TO_PERCENT = 100 / 360;
-function SelectedModsList(props: { mods: Accessor<Set<ModId>> }) {
+function SelectedModsList(props: { mods: Accessor<Map<ModId, string>> }) {
   const selectedCount = () => props.mods().size;
 
   // the spacing between each card
@@ -532,7 +532,7 @@ function SelectedModsList(props: { mods: Accessor<Set<ModId>> }) {
           }}
         >
           <For each={Array.from(props.mods()).slice(0, MAX_SELECTED_CARDS)}>
-            {(modId, i) => {
+            {([modId, version], i) => {
               // the degree offset of each card from the origin on the circle
               const angle = offset + spacing * i();
               const offsetDistance = angle * DEG_TO_PERCENT - 50;
@@ -542,8 +542,7 @@ function SelectedModsList(props: { mods: Accessor<Set<ModId>> }) {
                   class={styles.selected__card}
                   style={{
                     "--offsetDistance": `${offsetDistance}%`,
-                    // TODO: make getIconUrl take the version properly
-                    // "--bg-image": `url("${getIconUrl(modId.owner, modId.name, "1.0.0")}")`,
+                    "--bg-image": `url("${getIconUrl(modId.owner, modId.name, version)}")`,
                   }}
                 >
                   {i() == MAX_SELECTED_CARDS - 1 ? `+${selectedCount() - MAX_SELECTED_CARDS + 1}` : undefined}
@@ -566,7 +565,7 @@ function SelectedModsList(props: { mods: Accessor<Set<ModId>> }) {
         <li>
           <Fa icon={faHardDrive} />{" "}
           {humanizeFileSize(
-            Array.from(props.mods()).reduce((total, modId) => total /*+ getModById(modId).file_size*/, 0),
+            Array.from(props.mods()).reduce((total, [_modId, _version]) => total /*+ getModById(modId).file_size*/, 0),
           )}
         </li>
       </ul>
@@ -834,7 +833,7 @@ function ModViewDependencies(props: { dependencies: string[] }) {
 type SelectableModListProps = {
   /// Whether the mod is selected in the ModList (for bulk actions)
   isSelected: (mod: ModId) => boolean;
-  setSelected: (mod: ModId, selected: boolean) => void;
+  setSelected: (mod: ModId, version: string, selected: boolean) => void;
 };
 
 function ModListMods(
@@ -966,7 +965,7 @@ function ModListItem(
           <div class={styles.mod__selector} data-always-show={props.modSelectorTutorialState < 2 ? "" : undefined}>
             <Checkbox
               checked={(props as SelectableModListProps).isSelected(props.mod)}
-              onChange={(checked) => (props as SelectableModListProps).setSelected(props.mod, checked)}
+              onChange={(checked) => (props as SelectableModListProps).setSelected(props.mod, displayVersion().version_number, checked)}
               labelClass={styles.mod__selectorClickRegion}
               iconContainerClass={styles.mod__selectorIndicator}
             />
