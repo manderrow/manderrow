@@ -51,34 +51,36 @@
   }
 }
 
-.moving-bg {
-  .list {
-    isolation: isolate;
-  }
-
-  .tab {
-    &[data-active="true"] {
-      anchor-name: --active-tab;
+@supports (anchor-name: --foo) {
+  .moving-bg {
+    .list {
+      isolation: isolate;
     }
 
-    &[data-active="true"] button {
-      background-color: transparent;
-      border: transparent;
+    .tab {
+      &[data-active="true"] {
+        anchor-name: --active-tab;
+      }
+
+      &[data-active="true"] button {
+        background-color: transparent;
+        border: transparent;
+      }
     }
-  }
 
-  .list::after {
-    content: "";
-    position: absolute;
-    z-index: -1;
-    background-color: var(--clr-primary-40);
-    border-radius: var(--btn-border-radius);
+    .list::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      background-color: var(--clr-primary-40);
+      border-radius: var(--btn-border-radius);
 
-    position-anchor: --active-tab;
-    top: anchor(top);
-    left: anchor(left);
-    right: anchor(right);
-    bottom: anchor(bottom);
-    transition: left 0.2s, right 0.2s;
+      position-anchor: --active-tab;
+      top: anchor(top);
+      left: anchor(left);
+      right: anchor(right);
+      bottom: anchor(bottom);
+      transition: left 0.2s, right 0.2s;
+    }
   }
 }
