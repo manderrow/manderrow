@@ -14,14 +14,14 @@ interface TooltipProps {
   anchorId?: string; // Explicit ID of element to anchor to (needed for multiple floating elements on the same anchor)
 }
 
-export default function Tooltip({ content, children, showDelay, hideDelay, anchorId }: TooltipProps) {
+export default function Tooltip(props: TooltipProps) {
   return (
     <FloatingElement
-      anchorId={anchorId}
+      anchorId={props.anchorId}
       class={styles.tooltip}
       style={{
-        "--tooltip-delay-start": showDelay ?? "0.1s",
-        "--tooltip-delay-end": hideDelay ?? "0s",
+        "--tooltip-delay-start": props.showDelay ?? "0.1s",
+        "--tooltip-delay-end": props.hideDelay ?? "0s",
       }}
       content={
         <>
@@ -29,16 +29,16 @@ export default function Tooltip({ content, children, showDelay, hideDelay, ancho
             {/* <Show when={showArrow || showArrow === undefined}>
             <div class={styles.showArrow} aria-hidden="true"></div>
           </Show> */}
-            {content}
+            {props.content}
           </p>
 
-          <Show when={anchorId}>
+          <Show when={props.anchorId}>
             {/* Kinda chopped solution here to handle multiple/nested floating elements,
             hopefully can revise in the future. Styles copied from Tooltip.module.css:17 */}
             <style>
               {`
-                #${anchorId}:hover ~ .${styles.tooltip}[data-anchor-id="${anchorId}"],
-                #${anchorId}:focus-visible ~ .${styles.tooltip}[data-anchor-id="${anchorId}"]
+                #${props.anchorId}:hover ~ .${styles.tooltip}[data-anchor-id="${props.anchorId}"],
+                #${props.anchorId}:focus-visible ~ .${styles.tooltip}[data-anchor-id="${props.anchorId}"]
                 {
                   visibility: visible;
                   opacity: 1;
@@ -54,7 +54,7 @@ export default function Tooltip({ content, children, showDelay, hideDelay, ancho
         strategy: "fixed",
       }}
     >
-      {children}
+      {props.children}
     </FloatingElement>
   );
 }
