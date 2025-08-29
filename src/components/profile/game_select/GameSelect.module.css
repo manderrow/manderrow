@@ -2,7 +2,7 @@
   position: absolute;
   inset: 0;
   background-color: hsl(214, 28%, 5%);
-  overflow-y: auto;
+  overflow-y: scroll;
   height: calc(100dvh - var(--titlebar-height));
   z-index: 2;
   overscroll-behavior: none;
@@ -78,9 +78,9 @@
 }
 
 .gameSearch {
-  padding: 0.5em 0;
+  padding: 1em 0;
+  border-radius: 0.5em;
   margin-bottom: 0.5em;
-  margin-inline: -1em;
   display: flex;
   justify-content: center;
   position: sticky;
@@ -89,26 +89,38 @@
   z-index: 2;
 }
 
+.gameSearch__content {
+  flex-grow: 1;
+  max-width: 75ch;
+  display: flex;
+  border-radius: inherit;
+  background-color: hsla(var(--clr-neutral-hs), 20%, 0.5);
+  border: 1px solid hsla(var(--clr-neutral-hs), 40%, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
 .gameSearch input,
 .gameSearch select,
 .gameSearch button {
-  background-color: rgba(69, 69, 69, 0.3);
-  border-color: rgba(225, 225, 225, 0.2);
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
+  background-color: transparent;
+  border-radius: inherit;
 }
 
-.gameSearch select {
-  background-color: rgba(69, 69, 69, 0.5);
-  padding: 0.5em;
+.gameSearch select,
+.gameSearch button {
+  &:hover,
+  &:focus-visible {
+    background-color: hsla(var(--clr-neutral-hs), 90%, 0.1);
+  }
 }
 
 .gameSearch input {
   border-radius: 4px;
   padding: 0.5em 0.75em;
-  width: 100%;
-  max-width: 30rem;
+  flex-grow: 1;
   font-size: 1.1rem;
+  border: none;
 }
 
 .gameSearch input::placeholder {

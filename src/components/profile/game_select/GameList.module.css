@@ -51,7 +51,7 @@
 }
 
 .gameList__gameCard .gameList__game:hover::before,
-.gameList__gameCard .gameList__game:focus-within::before {
+.gameList__gameCard .gameList__game:focus-within:has(:focus-visible)::before {
   filter: blur(4px) brightness(2);
   opacity: 0.9;
   transition: filter 0.2s ease;
@@ -90,7 +90,7 @@
 }
 
 .gameList__gameCard .gameList__game:hover .game__content,
-.gameList__gameCard .gameList__game:focus-within .game__content {
+.gameList__gameCard .gameList__game:focus-within:has(:focus-visible) .game__content {
   :global([data-webview]:not([data-webview="safari"])) & {
     opacity: 1;
   }
@@ -100,7 +100,7 @@
 }
 
 .gameList__gameCard .gameList__game:hover .game__content > *,
-.gameList__gameCard .gameList__game:focus-within .game__content > * {
+.gameList__gameCard .gameList__game:focus-within:has(:focus-visible) .game__content > * {
   :global([data-webview="safari"]) & {
     opacity: 1;
   }
@@ -109,21 +109,13 @@
 .game__title {
   font-size: 1.15rem;
   line-height: 1.1;
-}
-
-.gameList__gameCard .game__title {
-  width: 100%;
-  padding-right: 1.75rem;
   margin-bottom: 1em;
   font-weight: 850;
 }
 
 .game__favoriteBtn {
-  position: absolute;
-  top: var(--padding);
-  right: var(--padding);
-  margin-top: 0.25em;
-  margin-right: 0.25em;
+  float: right;
+  margin-left: 0.25em;
   padding: 0;
   font-size: 1.5rem;
   border-radius: 50%;
@@ -182,6 +174,14 @@
 
 .gameList__gameItem .game__title {
   font-weight: 650;
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+}
+
+.gameList__gameItem .game__favoriteBtn {
+  float: unset;
+  margin-right: 0.5em;
 }
 
 .gameList__gameItem img {
@@ -221,11 +221,4 @@
 
 .gameList__gameItem .gameList__game:hover + .gameList__game {
   border-top-color: transparent;
-}
-
-.gameList__gameItem .game__favoriteBtn {
-  position: static;
-  order: -1;
-  font-size: 1.25rem;
-  margin: 0;
 }

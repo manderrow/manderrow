@@ -29,7 +29,8 @@
       "creation_date": "Creation Date"
     },
     "select_dropdown": {
-      "default_fallback": "Select..."
+      "default_fallback": "Select...",
+      "sort_by": "Sort By"
     },
     "task_manager": {
       "title": "Tasks",

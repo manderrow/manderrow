@@ -2,7 +2,7 @@ import { faStar } from "@fortawesome/free-regular-svg-icons";
 import { faGlobe, faList, faTableCellsLarge } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "@solidjs/router";
 import Fa from "solid-fa";
-import { createResource, createSignal, For } from "solid-js";
+import { createResource, createSelector, createSignal, For } from "solid-js";
 
 import { games, initialSortedGames } from "../../../globals";
 import { Locale, localeNamesMap, setLocale, locale, t, RAW_LOCALES } from "../../../i18n/i18n";
@@ -17,6 +17,7 @@ import { GameSortColumn, searchGames } from "../../../api";
 import { updateSettings } from "../../../api/settings";
 import { SimpleAsyncButton } from "../../../components/global/AsyncButton";
 import SelectDropdown from "../../global/SelectDropdown";
+import Tooltip from "../../global/Tooltip";
 
 enum DisplayType {
   Card = -1,
@@ -38,6 +39,8 @@ export default function GameSelect(props: { replace: boolean; dismiss?: () => vo
     },
     { initialValue: initialSortedGames() },
   );
+
+  const sortMethodSelected = createSelector(sort);
 
   return (
     <div class={styles.page}>
@@ -65,37 +68,53 @@ export default function GameSelect(props: { replace: boolean; dismiss?: () => vo
           <p>{t("game_select.subtitle")}</p>
         </header>
         <main class={styles.main}>
-          <form on:submit={(e) => e.preventDefault()} class={styles.gameSearch}>
-            <input
-              type="search"
-              name="search-game"
-              id="search-game"
-              placeholder={t("game_select.search.input_placeholder")}
-              value={search()}
-              maxlength="100"
-              use:autofocus
-              on:input={(e) => setSearch(e.target.value)}
-            />
-            <select name="sort-type" id="sort-type" on:input={(e) => setSort(e.target.value as GameSortColumn)}>
-              <option value={GameSortColumn.ModDownloads} selected>
-                {t("global.game_sort_column.mod_downloads")}
-              </option>
-              <option value={GameSortColumn.Popularity}>{t("global.game_sort_column.popularity")}</option>
-              <option value={GameSortColumn.Name}>{t("global.game_sort_column.name")}</option>
-            </select>
-            <button
-              type="button"
-              on:click={() => setDisplayType((prev) => (prev * -1) as DisplayType)}
-              title={t("game_select.search.display_type_btn", {
-                type:
-                  displayType() === DisplayType.Card
-                    ? t("game_select.search.card_display_type")
-                    : t("game_select.search.list_display_type"),
-              })}
-            >
-              {displayType() === DisplayType.Card ? <Fa icon={faList} /> : <Fa icon={faTableCellsLarge} />}
-            </button>
-          </form>
+          <div class={styles.gameSearch}>
+            <form on:submit={(e) => e.preventDefault()} class={styles.gameSearch__content}>
+              <input
+                type="search"
+                name="search-game"
+                id="search-game"
+                placeholder={t("game_select.search.input_placeholder")}
+                value={search()}
+                maxlength="100"
+                use:autofocus
+                on:input={(e) => setSearch(e.target.value)}
+              />
+              <SelectDropdown<GameSortColumn>
+                label={{ labelText: "preset", preset: t("global.select_dropdown.sort_by") }}
+                options={[
+                  {
+                    value: GameSortColumn.ModDownloads,
+                    label: t("global.game_sort_column.mod_downloads"),
+                    selected: () => sortMethodSelected(GameSortColumn.ModDownloads),
+                  },
+                  {
+                    value: GameSortColumn.Popularity,
+                    label: t("global.game_sort_column.popularity"),
+                    selected: () => sortMethodSelected(GameSortColumn.Popularity),
+                  },
+                  {
+                    value: GameSortColumn.Name,
+                    label: t("global.game_sort_column.name"),
+                    selected: () => sortMethodSelected(GameSortColumn.Name),
+                  },
+                ]}
+                onChanged={setSort}
+              />
+              <Tooltip
+                content={t("game_select.search.display_type_btn", {
+                  type:
+                    displayType() === DisplayType.Card
+                      ? t("game_select.search.card_display_type")
+                      : t("game_select.search.list_display_type"),
+                })}
+              >
+                <button type="button" on:click={() => setDisplayType((prev) => (prev * -1) as DisplayType)}>
+                  {displayType() === DisplayType.Card ? <Fa icon={faList} /> : <Fa icon={faTableCellsLarge} />}
+                </button>
+              </Tooltip>
+            </form>
+          </div>
           <ol
             classList={{
               [gameListStyles.gameList]: true,
@@ -135,7 +154,13 @@ function GameComponent(props: { game: Game; replace: boolean; dismiss?: () => vo
     <li class={gameListStyles.gameList__game} style={`--img-src: url("${url}");`}>
       <img src={url} alt={t("game_select.bg_img_alt", { gameName: props.game.name })} />
       <div class={gameListStyles.game__content}>
-        <p class={gameListStyles.game__title}>{props.game.name}</p>
+        <p class={gameListStyles.game__title}>
+          <button class={gameListStyles.game__favoriteBtn} title={t("game_select.fav_btn")}>
+            <Fa icon={faStar} />
+          </button>
+
+          {props.game.name}
+        </p>
         <div class={gameListStyles.game__actions}>
           <button data-select on:click={navigateToGame}>
             {t("game_select.select_btn")}
@@ -150,9 +175,6 @@ function GameComponent(props: { game: Game; replace: boolean; dismiss?: () => vo
             {t("game_select.set_default_btn")}
           </SimpleAsyncButton>
         </div>
-        <button class={gameListStyles.game__favoriteBtn} title={t("game_select.fav_btn")}>
-          <Fa icon={faStar} />
-        </button>
       </div>
     </li>
   );
