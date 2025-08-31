@@ -641,9 +641,9 @@
 }
 
 .cards__list {
-  --card-spacing: 36deg;
+  --card-spacing: 36;
   /* the base offset of each card */
-  --cards-offset: calc((180deg / 2) - ((var(--card-spacing)) / 2) * ((var(--total-cards)) - 1));
+  --cards-offset: calc((180 / 2) - ((var(--card-spacing)) / 2) * ((var(--total-cards)) - 1));
 }
 
 .selected__card {
@@ -662,13 +662,25 @@
 
   /* the degree offset of each card from the origin on the circle */
   --card-angle: calc((var(--cards-offset)) + (var(--card-spacing)) * (var(--card-index)));
-  offset-distance: calc((var(--card-angle)) * 100% / 360deg - 50%);
+  offset-distance: calc((var(--card-angle)) * 100% / 360 - 50%);
 }
 
-.selected__card:last-child {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.selected__card[data-overflow] {
+  isolation: isolate;
+
+  &::after {
+    position: absolute;
+    border-radius: inherit;
+    content: attr(data-overflow);
+    text-shadow: 0 0 4px rgba(0, 0, 0, 0.7);
+    inset: 0;
+    z-index: -1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(6px);
+  }
 }
 
 .selected__title {

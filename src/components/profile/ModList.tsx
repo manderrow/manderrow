@@ -529,9 +529,10 @@ function SelectedModsList(props: { mods: Accessor<Map<ModId, string>> }) {
                     "--card-index": i(),
                     "--bg-image": `url("${getIconUrl(modId.owner, modId.name, version)}")`,
                   }}
-                >
-                  {i() == MAX_SELECTED_CARDS - 1 ? `+${selectedCount() - MAX_SELECTED_CARDS + 1}` : undefined}
-                </li>
+                  data-overflow={
+                    i() === MAX_SELECTED_CARDS - 1 ? `+${selectedCount() - MAX_SELECTED_CARDS + 1}` : undefined
+                  }
+                ></li>
               );
             }}
           </For>
@@ -950,7 +951,9 @@ function ModListItem(
           <div class={styles.mod__selector} data-always-show={props.modSelectorTutorialState < 2 ? "" : undefined}>
             <Checkbox
               checked={(props as SelectableModListProps).isSelected(props.mod)}
-              onChange={(checked) => (props as SelectableModListProps).setSelected(props.mod, displayVersion().version_number, checked)}
+              onChange={(checked) =>
+                (props as SelectableModListProps).setSelected(props.mod, displayVersion().version_number, checked)
+              }
               labelClass={styles.mod__selectorClickRegion}
               iconContainerClass={styles.mod__selectorIndicator}
             />
