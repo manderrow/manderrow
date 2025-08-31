@@ -141,12 +141,9 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
 
   // Update title bar with current profile name
   createEffect(() => {
+    const gameId = params.gameId;
     const profile = currentProfile();
-    setCurrentProfileName(profile?.name ?? "");
-  });
-
-  onCleanup(() => {
-    setCurrentProfileName("");
+    setCurrentProfileName(profile == null || gameId !== profile.game ? "" : profile.name);
   });
 
   // track launch errors here instead of reporting to the error boundary to avoid rebuilding the UI
@@ -202,6 +199,10 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
 
   const [pickingGame, setPickingGame] = createSignal(false);
 
+  // For creating new profiles
+  const [creatingProfile, setCreatingProfile] = createSignal(false);
+
+  // For searching profiles
   const [profileQuery, setProfileQuery] = createSignal("");
   const [profileSortOrder, setProfileSortOrder] = createSignal(false); // true for ascending, false for descending
   const [profileSortType, setProfileSortType] = createSignal<ProfileSortType>(ProfileSortType.creation_date);
@@ -308,9 +309,9 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
             {t("profile.sidebar.profiles_title")}
             <div class={styles.sidebar__profilesActions}>
               <Tooltip content={t("profile.sidebar.create_profile_tooltip")}>
-                <A class={styles.sidebar__profilesActionBtn} href={`/profile/${params.gameId}`}>
+                <button class={styles.sidebar__profilesActionBtn} onClick={() => setCreatingProfile(true)}>
                   <Fa icon={faPlus} />
-                </A>
+                </button>
               </Tooltip>
               <Tooltip content={t("profile.sidebar.import_profile_tooltip")}>
                 <button class={styles.sidebar__profilesActionBtn} on:click={() => setImportDialogOpen(true)}>
@@ -373,7 +374,19 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
                 setSelectedProfiles([]);
               }}
             >
-              <Show when={queriedProfiles().length === 0}>
+              <Show when={creatingProfile()}>
+                <li class={sidebarStyles.profileList__item}>
+                  <SidebarProfileNameEditor
+                    initialValue={t("profile.default_profile_name")}
+                    onSubmit={async (value) => {
+                      await createProfile(params.gameId, value);
+                      await refetchProfiles();
+                    }}
+                    onCancel={() => setCreatingProfile(false)}
+                  />
+                </li>
+              </Show>
+              <Show when={queriedProfiles().length === 0 && !creatingProfile()}>
                 <li class={sidebarStyles.profileList__noProfilesMsg}>{t("profile.sidebar.no_profiles_search_msg")}</li>
               </Show>
               <For each={queriedProfiles()}>
@@ -430,7 +443,16 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
         <Show
           when={params.profileId}
           fallback={
-            <NoSelectedProfileContent gameId={params.gameId} profiles={profiles} refetchProfiles={refetchProfiles} />
+            <div class={styles.noProfilesMsg}>
+              <h2>{t("profile.blank.no_profiles_title")}</h2>
+              <p>{t("profile.blank.no_profiles_subtitle")}</p>
+
+              <div class={styles.noProfilesMsg__btns}>
+                <button data-btn="primary" onClick={() => setCreatingProfile(true)}>
+                  {t("profile.blank.create_profile_btn")}
+                </button>
+              </div>
+            </div>
           }
         >
           {(profileId) => {
@@ -505,41 +527,6 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
 }
 
 type Refetcher<T> = () => T | undefined | null | Promise<T | undefined | null>;
-
-function NoSelectedProfileContent(props: {
-  gameId: string;
-  profiles: () => { [id: string]: ProfileWithId };
-  refetchProfiles: Refetcher<ProfileWithId[]>;
-}) {
-  const [name, setName] = createSignal("");
-
-  const navigate = useNavigate();
-
-  async function submit(e: SubmitEvent) {
-    e.preventDefault();
-
-    const id = await createProfile(props.gameId, name());
-    await props.refetchProfiles();
-    navigate(`/profile/${props.gameId}/${id}`, { replace: true });
-  }
-
-  const nameId = createUniqueId();
-
-  return (
-    <>
-      <p>
-        {Object.keys(props.profiles()).length !== 0
-          ? "Select a profile from the sidebar or create a new one"
-          : "Create a new profile"}
-      </p>
-      <form on:submit={submit}>
-        <label for={nameId}>Name</label>
-        <input id={nameId} value={name()} on:input={(e) => setName(e.target.value)} use:autofocus />
-        <button type="submit">Create</button>
-      </form>
-    </>
-  );
-}
 
 function SidebarContextMenuItem(props: { icon: IconDefinition; label: string; iconClass?: string }) {
   return (
@@ -751,45 +738,61 @@ function SidebarProfileComponent(props: {
           </>
         }
       >
-        <ActionContext>
-          {(busy, wrapAction) => (
-            <form
-              class={sidebarStyles.profileList__itemName}
-              on:submit={async (e) => {
-                e.preventDefault();
-                await wrapAction(async () => {
-                  try {
-                    const obj: ProfileWithId = { ...props.profile };
-                    const id = obj.id;
-                    // @ts-ignore I want to remove the property
-                    delete obj.id;
-                    obj.name = (e.target.firstChild as HTMLInputElement).value;
-                    await overwriteProfileMetadata(id, obj);
-                  } finally {
-                    await props.refetchProfiles();
-                  }
-                });
-              }}
-            >
-              <input
-                value={props.profile.name}
-                disabled={busy()}
-                use:autofocus
-                on:focus={(e) => {
-                  const target = e.target as HTMLInputElement;
-                  target.setSelectionRange(0, target.value.length);
-                }}
-                on:focusout={() => setRenaming(false)}
-                on:keydown={(e) => {
-                  if (e.key === "Escape") {
-                    setRenaming(false);
-                  }
-                }}
-              />
-            </form>
-          )}
-        </ActionContext>
+        <SidebarProfileNameEditor
+          initialValue={props.profile.name}
+          onSubmit={async (value) => {
+            try {
+              const obj: ProfileWithId = { ...props.profile };
+              const id = obj.id;
+              // @ts-ignore I want to remove the property
+              delete obj.id;
+              obj.name = value;
+              await overwriteProfileMetadata(id, obj);
+            } finally {
+              await props.refetchProfiles();
+            }
+          }}
+          onCancel={() => setRenaming(false)}
+        />
       </Show>
     </li>
+  );
+}
+
+function SidebarProfileNameEditor(props: {
+  initialValue: string;
+  onSubmit: (value: string) => Promise<void>;
+  onCancel: () => void;
+}) {
+  return (
+    <ActionContext>
+      {(busy, wrapAction) => (
+        <form
+          class={sidebarStyles.profileList__itemName}
+          on:submit={async (e) => {
+            e.preventDefault();
+            await wrapAction(async () => {
+              await props.onSubmit((e.target.firstChild as HTMLInputElement).value);
+            });
+          }}
+        >
+          <input
+            value={props.initialValue}
+            disabled={busy()}
+            use:autofocus
+            on:focus={(e) => {
+              const target = e.target as HTMLInputElement;
+              target.setSelectionRange(0, target.value.length);
+            }}
+            on:focusout={() => props.onCancel()}
+            on:keydown={(e) => {
+              if (e.key === "Escape") {
+                props.onCancel();
+              }
+            }}
+          />
+        </form>
+      )}
+    </ActionContext>
   );
 }

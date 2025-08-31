@@ -65,6 +65,12 @@
   },
 
   "profile": {
+    "blank": {
+      "no_profiles_title": "No profiles found",
+      "no_profiles_subtitle": "Create a profile to get started",
+      "create_profile_btn": "Create Profile"
+    },
+
     "import_model": {
       "import_title": "Import Modlist",
       "preview_title": "Preview Mods"
@@ -92,7 +98,9 @@
       "copy_id_profile_btn": "Copy UUID",
       "open_folder_profile_btn": "Open Folder",
       "share_profile_btn": "Share"
-    }
+    },
+
+    "default_profile_name": "Default"
   },
 
   "modlist": {

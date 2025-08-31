@@ -298,6 +298,28 @@
   overflow: hidden;
 }
 
+.noProfilesMsg {
+  flex-grow: 1;
+  padding: 1em;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 0.5em;
+
+  p {
+    color: var(--clr-neutral-20);
+  }
+}
+
+.noProfilesMsg__btns {
+  margin-top: 1em;
+  display: flex;
+  gap: 0.5em;
+}
+
+/* Small screen code */
+
 @media screen and (max-width: 1200px) {
   .main {
     --sidebar-mini-width: 3.3rem;
