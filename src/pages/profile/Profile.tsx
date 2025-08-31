@@ -377,7 +377,7 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
               <Show when={creatingProfile()}>
                 <li class={sidebarStyles.profileList__item}>
                   <SidebarProfileNameEditor
-                    initialValue={t("profile.default_profile_name")}
+                    initialValue=""
                     onSubmit={async (value) => {
                       await createProfile(params.gameId, value);
                       await refetchProfiles();
@@ -633,7 +633,16 @@ function SidebarProfileComponent(props: {
                   </button>
                 </Tooltip>
                 <Tooltip content={t("profile.sidebar.delete_profile_btn")}>
-                  <button data-delete>
+                  <button
+                    data-delete
+                    onClick={async () => {
+                      try {
+                        await deleteProfile(props.profile.id);
+                      } finally {
+                        await props.refetchProfiles();
+                      }
+                    }}
+                  >
                     <Fa icon={faTrashCan} />
                   </button>
                 </Tooltip>
@@ -766,33 +775,44 @@ function SidebarProfileNameEditor(props: {
 }) {
   return (
     <ActionContext>
-      {(busy, wrapAction) => (
-        <form
-          class={sidebarStyles.profileList__itemName}
-          on:submit={async (e) => {
-            e.preventDefault();
-            await wrapAction(async () => {
-              await props.onSubmit((e.target.firstChild as HTMLInputElement).value);
-            });
-          }}
-        >
-          <input
-            value={props.initialValue}
-            disabled={busy()}
-            use:autofocus
-            on:focus={(e) => {
-              const target = e.target as HTMLInputElement;
-              target.setSelectionRange(0, target.value.length);
+      {(busy, wrapAction) => {
+        async function submit(name: string) {
+          await wrapAction(async () => {
+            await props.onSubmit(name);
+          });
+
+          props.onCancel(); // close editor after submitting
+        }
+
+        return (
+          <form
+            class={sidebarStyles.profileList__itemName}
+            on:submit={async (e) => {
+              e.preventDefault();
+              await submit((e.target.firstChild as HTMLInputElement).value);
             }}
-            on:focusout={() => props.onCancel()}
-            on:keydown={(e) => {
-              if (e.key === "Escape") {
+          >
+            <input
+              value={props.initialValue}
+              disabled={busy()}
+              use:autofocus
+              onFocus={(e) => {
+                const target = e.target as HTMLInputElement;
+                target.setSelectionRange(0, target.value.length);
+              }}
+              onFocusOut={async (e) => {
+                if (e.target.value !== "") await submit(e.target.value);
                 props.onCancel();
-              }
-            }}
-          />
-        </form>
-      )}
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") {
+                  props.onCancel();
+                }
+              }}
+            />
+          </form>
+        );
+      }}
     </ActionContext>
   );
 }
