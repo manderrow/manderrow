@@ -7,7 +7,6 @@ import {
   createUniqueId,
   For,
   Match,
-  onCleanup,
   Show,
   Switch,
 } from "solid-js";
@@ -493,7 +492,7 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
                     {
                       id: "config",
                       name: "Config",
-                      component: () => <ConfigEditor profile={params.profileId!} />,
+                      component: () => <ConfigEditor game={params.gameId} profile={params.profileId!} />,
                     },
                   ]}
                 />

@@ -361,7 +361,7 @@ version = "0.1.0"
 source = "git+https://git.pfaff.dev/michael/starling#f96b89125b4e426c56ae9caabf65df1a4b3b0de3"
 dependencies = [
  "miette",
- "thiserror 2.0.12",
+ "thiserror 2.0.16",
 ]
 
 [[package]]
@@ -2845,7 +2845,7 @@ checksum = "ac84fd3f360fcc43dc5f5d186f02a94192761a080e8bc58621ad4d12296a58cf"
 dependencies = [
  "proc-macro2",
  "quote",
- "syn 2.0.104",
+ "syn 2.0.106",
 ]
 
 [[package]]
@@ -3908,7 +3908,7 @@ version = "0.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1e8bbe1a966bd2f362681a44f6edce3c2310ac21e4d5067a6e7ec396297a6ea0"
 dependencies = [
- "bitflags 2.9.1",
+ "bitflags 2.9.2",
  "getopts",
  "memchr",
  "pulldown-cmark-escape",

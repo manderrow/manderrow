@@ -3,23 +3,30 @@ import { faAdd, faRemove } from "@fortawesome/free-solid-svg-icons";
 import Fa from "solid-fa";
 import { createEffect, createResource, For, JSX, Match, onCleanup, Show, Switch } from "solid-js";
 
-import { Config, Document, DocumentSection, PathComponent, readModConfig, scanModConfigs, Value } from "../../api/configs";
+import { ArrayValue, Config, ConfigFormat, Document, DocumentSection, ObjectValue, PathComponent, readModConfig, scanModConfigs, Value } from "../../api/configs";
 import { t } from "../../i18n/i18n";
 import { useSearchParam } from "../../utils/router";
 
 import styles from "./ConfigEditor.module.css";
+import { gamesById } from "../../globals";
 
 function sectionId(path: readonly PathComponent[]): string {
   return path.map((c) => (typeof c === "string" ? `s-${c}` : c)).join(".");
 }
 
-export default function ConfigEditor(props: { profile: string }) {
+export default function ConfigEditor(props: { game: string; profile: string }) {
   const [currentFile, setCurrentFile] = useSearchParam("mod-config-path");
 
   const [configs, { refetch: _refreshConfigs }] = createResource(() => scanModConfigs(props.profile));
 
-  const [currentConfig, { refetch: _refreshConfig }] = createResource(currentFile, (currentFile) =>
-    readModConfig(props.profile, currentFile),
+  const [currentConfig, { refetch: _refreshConfig }] = createResource(() => {
+    const currentFileV = currentFile();
+    if (currentFileV == null) return undefined;
+    return { game: props.game, profile: props.profile, currentFile: currentFileV };
+  }, ({ game, profile, currentFile }) =>
+    readModConfig(profile, currentFile, {
+      specialFormat: gamesById().get(game)!.packageLoader === "BepInEx" ? ConfigFormat.BepInEx : undefined,
+    }),
   );
 
   createEffect(() => {
@@ -152,10 +159,10 @@ function DocumentSectionsList(props: { sections: DocumentSection[] }) {
 function ValueEditor(props: { value: Value }) {
   return (
     <Switch>
-      <Match when={Array.isArray(props.value)}>
+      <Match when={props.value.hasOwnProperty("Array")}>
         <div class={styles.valueEditor} data-type="array">
           <ol>
-            <For each={props.value as Value[]}>
+            <For each={(props.value as ArrayValue).Array}>
               {(value, i) => <EntryEditor key={i()} value={value} onClick={() => {}} />}
             </For>
           </ol>
@@ -164,12 +171,12 @@ function ValueEditor(props: { value: Value }) {
           </div>
         </div>
       </Match>
-      <Match when={props.value instanceof Object}>
+      <Match when={props.value.hasOwnProperty("Object")}>
         <div class={styles.valueEditor} data-type="object">
           <ul>
-            <For each={Object.keys(props.value as Record<string, Value>)}>
+            <For each={Object.keys((props.value as ObjectValue).Object)}>
               {(key) => (
-                <EntryEditor key={key} value={(props.value as Record<string, Value>)[key]!} onClick={() => {}} />
+                <EntryEditor key={key} value={(props.value as ObjectValue).Object[key]!} onClick={() => {}} />
               )}
             </For>
           </ul>
@@ -179,7 +186,7 @@ function ValueEditor(props: { value: Value }) {
         </div>
       </Match>
       <Match when={true}>
-        <div class={styles.valueEditor}>{props.value?.toString()}</div>
+        <div class={styles.valueEditor}>{JSON.stringify(props.value)}</div>
       </Match>
     </Switch>
   );

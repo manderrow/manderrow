@@ -47,16 +47,16 @@
   > h2 {
     position: sticky;
     top: 0;
-    background-color: var(--clr-neutral-9);
+    background-color: var(--clr-neutral-85);
     padding-bottom: 0.35em;
-    border-bottom: 1px solid var(--clr-neutral-8);
+    border-bottom: 1px solid var(--clr-neutral-80);
   }
 }
 
 .sectionsOverview {
   .sectionActive {
     color: var(--clr-primary-6);
-    border-left: 2px solid var(--clr-primary-5);
+    border-left: 2px solid var(--clr-primary-50);
     padding-left: 0.25em;
   }
 }
@@ -73,7 +73,7 @@
 
     padding: 0.5em;
 
-    border: 1px solid var(--clr-neutral-8);
+    border: 1px solid var(--clr-neutral-80);
     border-radius: 0.5em 0 0 0.5em;
 
     text-align: unset;
@@ -109,10 +109,6 @@
     background-color: var(--clr-neutral-8);
   }
 
-  &:not(:hover) > .editorIconBtn {
-    opacity: 0;
-  }
-
   & > .entry__key {
     grid-area: key;
   }
@@ -124,6 +120,13 @@
   & > .entry__actions {
     grid-area: actions;
     text-align: right;
+
+    opacity: 0;
+  }
+
+  &:has(> :is(.entry__key, .entry__actions, .valueEditor:not([data-type="array"]):not([data-type="object"])):hover)
+    > .entry__actions {
+    opacity: 1;
   }
 }
 

@@ -152,7 +152,6 @@ impl FromStr for Int {
 }
 
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
-#[serde(tag = "type")]
 pub enum Value {
     Null,
     Bool(bool),
@@ -171,20 +170,20 @@ pub fn build_config_path(profile: Uuid, path: &Path) -> PathBuf {
 }
 
 #[derive(Debug, Clone, Copy, Default, serde::Deserialize, serde::Serialize)]
-pub struct ReadConfigOptions {
-    cfg_format: Option<CfgFormat>,
+pub struct ConfigOptions {
+    special_format: Option<ConfigFormat>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
-pub enum CfgFormat {
+pub enum ConfigFormat {
     BepInEx,
 }
 
-pub async fn read_config(profile: Uuid, path: &Path, options: ReadConfigOptions) -> Result<File> {
+pub async fn read_config(profile: Uuid, path: &Path, options: ConfigOptions) -> Result<File> {
     read_config_at(&build_config_path(profile, path), options).await
 }
 
-async fn read_config_at(path: &Path, options: ReadConfigOptions) -> Result<File> {
+async fn read_config_at(path: &Path, options: ConfigOptions) -> Result<File> {
     match path.extension().and_then(|ext| ext.to_str()) {
         Some(s) if s.eq_ignore_ascii_case("txt") => {
             let content = tokio::fs::read_to_string(&path).await?;
@@ -236,7 +235,7 @@ async fn read_config_at(path: &Path, options: ReadConfigOptions) -> Result<File>
             })
         }
         Some(s)
-            if options.cfg_format == Some(CfgFormat::BepInEx) && s.eq_ignore_ascii_case("cfg") =>
+            if options.special_format == Some(ConfigFormat::BepInEx) && s.eq_ignore_ascii_case("cfg") =>
         {
             tokio::task::block_in_place(|| {
                 read_config_from_bepinex_cfg(std::fs::File::open(&path)?)
@@ -453,7 +452,7 @@ fn parse_bepinex_value(value: &str) -> Value {
 pub async fn update_config(
     profile: Uuid,
     path: &Path,
-    options: ReadConfigOptions,
+    options: ConfigOptions,
     patches: &[Patch],
 ) -> Result<File> {
     let path = build_config_path(profile, path);
