@@ -544,7 +544,7 @@ mod tests {
             });
     }
 
-    async fn assert_top_result(
+    fn assert_top_result(
         mod_index: &ModIndexReadGuard,
         query: &str,
         top_expected: &[(&str, &str)],

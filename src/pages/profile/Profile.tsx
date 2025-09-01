@@ -7,7 +7,6 @@ import {
   createUniqueId,
   For,
   Match,
-  onCleanup,
   Show,
   Switch,
 } from "solid-js";
@@ -56,7 +55,7 @@ import styles from "./Profile.module.css";
 import sidebarStyles from "./SidebarProfiles.module.css";
 import ImportDialog from "../../components/profile/ImportDialog";
 import { settings } from "../../api/settings";
-import { useSearchParamsInPlace } from "../../utils/router";
+import { useSearchParam } from "../../utils/router";
 import { killIpcClient } from "../../api/ipc";
 import { t } from "../../i18n/i18n.ts";
 import { launchProfile } from "../../api/launching";
@@ -65,6 +64,7 @@ import { ActionContext } from "../../components/global/AsyncButton.tsx";
 import { setCurrentProfileName } from "../../components/global/TitleBar.tsx";
 import Tooltip from "../../components/global/Tooltip.tsx";
 import ContextMenu from "../../components/global/ContextMenu.tsx";
+import ConfigEditor from "../../components/profile/ConfigEditor.tsx";
 import GameSelect from "../../components/profile/game_select/GameSelect.tsx";
 import StatusBar from "../../components/profile/StatusBar.tsx";
 
@@ -75,10 +75,6 @@ interface ProfileParams {
 
 type TabId = "mod-list" | "mod-search" | "logs" | "config";
 
-interface ProfileSearchParams {
-  "profile-tab"?: TabId;
-}
-
 enum ProfileSortType {
   alphabetical = "alphabetical",
   creation_date = "creation_date",
@@ -87,7 +83,6 @@ enum ProfileSortType {
 export default function Profile() {
   // @ts-expect-error params.profileId is an optional param, it can be undefined, and we don't expect any other params
   const params = useParams<ProfileParams>();
-
   const navigate = useNavigate();
 
   createEffect(() => {
@@ -105,7 +100,7 @@ export default function Profile() {
 }
 
 function ProfileWithGame(params: ProfileParams & { gameId: string }) {
-  const [searchParams, setSearchParams] = useSearchParamsInPlace<ProfileSearchParams>();
+  const [currentTab, setCurrentTab] = useSearchParam<TabId>("profile-tab");
 
   // TODO, handle undefined case
   const gameInfo = createMemo(() => globals.gamesById().get(params.gameId)!);
@@ -155,8 +150,8 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
       try {
         setFocusedConnection(conn);
         console.log(focusedConnection());
-        if (settings().openConsoleOnLaunch.value && searchParams["profile-tab"] !== "logs") {
-          setSearchParams({ "profile-tab": "logs" });
+        if (settings().openConsoleOnLaunch.value && currentTab() !== "logs") {
+          setCurrentTab("logs");
         }
         await launchProfile(
           conn.id,
@@ -468,7 +463,7 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
 
             return (
               <ModInstallContext.Provider value={{ profileId, installed, refetchInstalled }}>
-                <TabRenderer
+                <TabRenderer<TabId>
                   id="profile"
                   styles={{ preset: "moving-bg", classes: { container: styles.tabs } }}
                   tabs={[
@@ -497,7 +492,7 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
                     {
                       id: "config",
                       name: "Config",
-                      component: () => <div></div>,
+                      component: () => <ConfigEditor game={params.gameId} profile={params.profileId!} />,
                     },
                   ]}
                 />

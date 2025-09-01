@@ -103,6 +103,11 @@
     "default_profile_name": "Default"
   },
 
+  "config": {
+    "title": "Config Editor",
+    "sections_title": "Sections"
+  },
+
   "modlist": {
     "installed": {
       "no_mods_title": "No mods installed",

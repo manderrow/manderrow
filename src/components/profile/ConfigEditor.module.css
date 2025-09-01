@@ -1,0 +1,169 @@
+.container {
+  flex-grow: 1;
+  flex-basis: 0;
+  overflow: auto;
+
+  display: grid;
+  grid-template-columns: auto 1fr max-content;
+  gap: 1em;
+  padding: 1em 2em;
+  padding-top: 0;
+  margin-top: 1em;
+}
+
+.configs {
+  button {
+    background-color: transparent;
+    padding: 0.25em 0;
+    color: var(--clr-neutral-2);
+  }
+
+  li.configActive button {
+    color: var(--clr-neutral-1);
+    border-left: 2px solid var(--clr-primary-4);
+    padding-left: 0.5em;
+    font-weight: 600;
+  }
+}
+
+.configs,
+.sectionsOverview {
+  border: 1px solid var(--clr-neutral-8);
+  border-radius: 0.5em;
+  padding: 0.5em;
+  position: sticky;
+  top: 0;
+  right: 0;
+  left: 0;
+  max-height: 75dvh;
+  overflow: auto;
+}
+
+.editor {
+  max-width: 900px;
+  width: 100%;
+  margin: 0 auto;
+
+  > h2 {
+    position: sticky;
+    top: 0;
+    background-color: var(--clr-neutral-85);
+    padding-bottom: 0.35em;
+    border-bottom: 1px solid var(--clr-neutral-80);
+  }
+}
+
+.sectionsOverview {
+  .sectionActive {
+    color: var(--clr-primary-6);
+    border-left: 2px solid var(--clr-primary-50);
+    padding-left: 0.25em;
+  }
+}
+
+.valueEditor {
+  display: inline-block;
+
+  text-align: right;
+
+  &[data-type="array"],
+  &[data-type="object"] {
+    display: block;
+    width: 100%;
+
+    padding: 0.5em;
+
+    border: 1px solid var(--clr-neutral-80);
+    border-radius: 0.5em 0 0 0.5em;
+
+    text-align: unset;
+
+    padding-right: 0;
+    border-right: none;
+    /*border-left: none;*/
+  }
+}
+
+.editor > .entry > .valueEditor {
+  margin-bottom: 0.75em;
+}
+
+.entry {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-rows: auto;
+  grid-template-areas: "key value actions";
+  padding-block: 0.25em;
+  color: var(--clr-neutral-2);
+
+  &:has(> .valueEditor:is([data-type="array"], [data-type="object"])) {
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "key actions"
+      "value value";
+  }
+
+  .entry:hover,
+  .entry:focus-within:has(:focus-visible) {
+    background-color: var(--clr-neutral-8);
+  }
+
+  & > .entry__key {
+    grid-area: key;
+  }
+
+  & > .valueEditor {
+    grid-area: value;
+  }
+
+  & > .entry__actions {
+    grid-area: actions;
+    text-align: right;
+
+    opacity: 0;
+  }
+
+  &:has(> :is(.entry__key, .entry__actions, .valueEditor:not([data-type="array"]):not([data-type="object"])):hover)
+    > .entry__actions {
+    opacity: 1;
+  }
+}
+
+.editor > .entry > .entry__key {
+  font-size: 1.25rem;
+  color: var(--clr-neutral-1);
+  margin-bottom: 0.25em;
+}
+
+.editorIconBtn {
+  display: inline-block;
+  width: 1.25em;
+  height: 1.25em;
+  padding: 0;
+  border-radius: 50%;
+  aspect-ratio: 1;
+
+  background: none;
+
+  &[data-action="delete"] {
+    color: var(--clr-danger-6);
+  }
+
+  &[data-action="add"] {
+    color: var(--clr-ok-6);
+  }
+}
+
+.addBtn {
+  display: inline-block;
+  background: none;
+  border: 1px dashed grey;
+  padding: 0.25em;
+  color: grey;
+  font-size: 0.8em;
+
+  > svg {
+    margin-right: 0.25em;
+  }
+}

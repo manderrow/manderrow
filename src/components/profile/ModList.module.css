@@ -2,6 +2,7 @@
   flex-grow: 1;
   display: grid;
   grid-template-columns: minmax(0, 5fr) minmax(0, 3fr);
+  padding: 1em 0 0 1em;
 }
 
 .modListContainer,
@@ -394,9 +395,7 @@
 .modView {
   display: flex;
   flex-direction: column;
-  padding-left: 0.75em;
-  padding-right: 0;
-  margin-right: -1em;
+  padding: 1em 0 0 0.75em;
 
   .versions {
     list-style: none;
