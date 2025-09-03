@@ -10,6 +10,7 @@
 
 .pageInner {
   position: relative;
+  min-height: 100%;
 }
 
 .language {
