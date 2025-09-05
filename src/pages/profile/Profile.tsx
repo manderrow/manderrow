@@ -7,7 +7,6 @@ import {
   createUniqueId,
   For,
   Match,
-  onCleanup,
   Show,
   Switch,
 } from "solid-js";
