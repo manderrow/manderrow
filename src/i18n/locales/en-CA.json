@@ -181,6 +181,16 @@
     }
   },
 
+  "console": {
+    "search_input_placeholder": "Search log...",
+    "launching_log_placeholder": "Launching game, please wait...",
+    "log_created_at": "Created at",
+    "game_not_running": "Game not running.",
+    "live_log": "Live log",
+    "live_log_connected": "Connected",
+    "live_log_disconnected": "Disconnected"
+  },
+
   "error": {
     "title": "Oops! An error occurred...",
     "deescalation_msg": "But don't worry, we caught it for you. We're still in beta, so bugs that can cause errors are expected. Details are below:",

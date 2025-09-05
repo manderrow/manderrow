@@ -172,11 +172,13 @@ export default function Console() {
         <div class={styles.header__group}>
           <div>
             <p class={styles.header__liveLogText}>
-              {focusedConnection()?.status() !== "disconnected" ? "Live log" : "Created at"}
+              {focusedConnection()?.status() !== "disconnected" ? t("console.live_log") : t("console.log_created_at")}
             </p>
             {focusedConnection()?.status() !== "disconnected" ? (
               <span class={styles.statusIndicator} data-connected={focusedConnection()?.status() === "connected"}>
-                {focusedConnection()?.status() === "connected" ? "Connected" : "Disconnected"}
+                {focusedConnection()?.status() === "connected"
+                  ? t("console.live_log_connected")
+                  : t("console.live_log_disconnected")}
               </span>
             ) : (
               focusedConnection()!.createdTime.toLocaleString()
@@ -185,7 +187,10 @@ export default function Console() {
         </div>
       </header>
       <div class={styles.console} ref={consoleContainer}>
-        <For each={focusedConnection()?.events()} fallback={<p>Game not running.</p>}>
+        <Show when={focusedConnection()?.events() != null && focusedConnection()?.events().length === 0}>
+          <p>{t("console.launching_log_placeholder")}</p>
+        </Show>
+        <For each={focusedConnection()?.events()} fallback={<p>{t("console.game_not_running")}</p>}>
           {(event) => ConsoleEvent(event, visibleLevels, searchInput)}
         </For>
       </div>
