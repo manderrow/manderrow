@@ -228,8 +228,8 @@ export default function ModList(props: {
           <Switch
             fallback={
               <div class={styles.nothingMsg}>
-                <h2>No mod selected</h2>
-                <p>Select a mod to it view here.</p>
+                <h2>{t("modlist.modview.no_mod_selected_title")}</h2>
+                <p>{t("modlist.modview.no_mod_selected_subtitle")}</p>
               </div>
             }
           >
@@ -474,7 +474,13 @@ function ModUpdateDialogue(props: { onDismiss: () => void; updates: ModUpdate[] 
                   width={48}
                   height={48}
                   alt="mod icon"
-                  src={getIconUrl(update.newMod.owner, update.newMod.name, update.newMod.versions[0].version_number)}
+                  src={getIconUrl(
+                    getQualifiedModName(
+                      update.newMod.owner,
+                      update.newMod.name,
+                      update.newMod.versions[0].version_number,
+                    ),
+                  )}
                 />
                 <div class={styles.updateMetadata}>
                   <p data-name>{update.newMod.name}</p>
@@ -527,7 +533,7 @@ function SelectedModsList(props: { mods: Accessor<Map<ModId, string>> }) {
                   class={styles.selected__card}
                   style={{
                     "--card-index": i(),
-                    "--bg-image": `url("${getIconUrl(modId.owner, modId.name, version)}")`,
+                    "--bg-image": `url("${getIconUrl(getQualifiedModName(modId.owner, modId.name, version))}")`,
                   }}
                   data-overflow={
                     i() === MAX_SELECTED_CARDS - 1 ? `+${selectedCount() - MAX_SELECTED_CARDS + 1}` : undefined
@@ -623,7 +629,7 @@ function ModView(props: { mod: Mod; gameId: string; closeModView: () => void }) 
     {
       id: "dependencies",
       name: "Dependencies",
-      component: () => <ModViewDependencies dependencies={modVersionData().dependencies} />,
+      component: () => <ModViewDependencies dependencies={modVersionData().dependencies} gameId={props.gameId} />,
     },
     {
       id: "changelog",
@@ -648,7 +654,7 @@ function ModView(props: { mod: Mod; gameId: string; closeModView: () => void }) 
           {/* TODO: For local mod with no package URL, remove link */}
           <div style={{ "grid-area": "name" }}>
             <a
-              href={`https://thunderstore.io/c/${props.gameId}/p/${props.mod.owner}/${props.mod.name}/`}
+              href={getModUrl(props.gameId, props.mod.owner, props.mod.name)}
               target="_blank"
               rel="noopener noreferrer"
               class={styles.modMetaLink}
@@ -659,7 +665,7 @@ function ModView(props: { mod: Mod; gameId: string; closeModView: () => void }) 
           </div>
           <div style={{ "grid-area": "owner" }}>
             <a
-              href={`https://thunderstore.io/c/${props.gameId}/p/${props.mod.owner}/`}
+              href={getModAuthorUrl(props.gameId, props.mod.owner)}
               target="_blank"
               rel="noopener noreferrer"
               class={styles.modMetaLink}
@@ -801,18 +807,35 @@ function ModView(props: { mod: Mod; gameId: string; closeModView: () => void }) 
   );
 }
 
-function ModViewDependencies(props: { dependencies: string[] }) {
+function ModViewDependencies(props: { gameId: string; dependencies: string[] }) {
   return (
-    <ul class={styles.modDeps}>
-      <For each={props.dependencies}>
-        {(dependency) => (
-          <li class={styles.dependency}>
-            <img src="" alt="" class={styles.dependencyIcon} />
-            {dependency}
-          </li>
-        )}
-      </For>
-    </ul>
+    <Show when={props.dependencies.length > 0} fallback={<p>This mod has no dependencies.</p>}>
+      <ul class={styles.modDeps}>
+        <For each={props.dependencies}>
+          {(dependency) => {
+            const [author, name, version] = dependency.split("-");
+
+            return (
+              <li>
+                <a
+                  class={styles.dependency}
+                  href={getModVersionUrl(props.gameId, author, name, version)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <img src={getIconUrl(dependency)} width="48px" alt={name} class={styles.modIcon} />
+                  <div>
+                    <p data-name>{name}</p>
+                    <p data-owner>{author}</p>
+                  </div>
+                  <p data-version>{version}</p>
+                </a>
+              </li>
+            );
+          }}
+        </For>
+      </ul>
+    </Show>
   );
 }
 
@@ -875,8 +898,20 @@ function ModListMods(
   );
 }
 
-function getIconUrl(owner: string, name: string, version: string) {
-  return `https://gcdn.thunderstore.io/live/repository/icons/${owner}-${name}-${version}.png`;
+function getIconUrl(qualifiedModName: string) {
+  return `https://gcdn.thunderstore.io/live/repository/icons/${qualifiedModName}.png`;
+}
+function getQualifiedModName(owner: string, name: string, version: string) {
+  return `${owner}-${name}-${version}`;
+}
+function getModVersionUrl(gameId: string, owner: string, name: string, version: string) {
+  return getModAuthorUrl(gameId, owner) + `${name}/versions#:~:text=${version}`;
+}
+function getModUrl(gameId: string, owner: string, name: string) {
+  return getModAuthorUrl(gameId, owner) + `${name}/`;
+}
+function getModAuthorUrl(gameId: string, owner: string) {
+  return `https://thunderstore.io/c/${gameId}/p/${owner}/`;
 }
 
 function useInstalled(
@@ -961,10 +996,10 @@ function ModListItem(
         </Show>
         <div class={styles.mod__btnContent}>
           <img
-            class={styles.icon}
+            class={styles.modIcon}
             width={64}
             alt="mod icon"
-            src={getIconUrl(props.mod.owner, props.mod.name, displayVersion().version_number)}
+            src={getIconUrl(getQualifiedModName(props.mod.owner, props.mod.name, displayVersion().version_number))}
           />
           <div class={styles.mod__content}>
             <div class={styles.left}>

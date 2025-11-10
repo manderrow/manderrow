@@ -81,6 +81,14 @@
   }
 }
 
+.modIcon {
+  aspect-ratio: 1;
+  align-self: flex-start;
+  border-radius: 6px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 .modList {
   display: flex;
   flex-direction: column;
@@ -244,14 +252,6 @@
     &.selected .mod__btn:active {
       border-color: var(--clr-neutral-50);
     }
-  }
-
-  .icon {
-    aspect-ratio: 1;
-    align-self: flex-start;
-    border-radius: 6px;
-    user-select: none;
-    -webkit-user-select: none;
   }
 
   .mod__content {
@@ -479,12 +479,34 @@
   padding-right: 1em;
 
   .dependency {
+    display: flex;
+    align-items: center;
+    gap: 0.75em;
     padding: 0.5em;
-    border: 1px solid var(--clr-neutral-70);
+    border: 1px solid var(--clr-neutral-75);
     border-radius: 4px;
 
-    .dependencyIcon {
-      margin-right: 0.5em;
+    transition: background-color 0.1s ease;
+
+    [data-name] {
+      color: var(--clr-neutral-15);
+    }
+
+    [data-owner] {
+      color: var(--clr-neutral-30);
+      font-size: 0.9rem;
+    }
+
+    [data-version] {
+      color: var(--clr-neutral-20);
+    }
+
+    :last-child {
+      margin-left: auto;
+    }
+
+    &:hover {
+      background-color: var(--clr-neutral-75);
     }
   }
 }

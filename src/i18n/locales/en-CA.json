@@ -132,6 +132,16 @@
       "install_btn": "Install"
     },
 
+    "modview": {
+      "no_mod_selected_title": "No mod selected",
+      "no_mod_selected_subtitle": "Select a mod to view it here.",
+
+      "dependencies_title": "Dependencies",
+      "versions_label": "Versions",
+      "changelog_title": "Changelog",
+      "no_dependencies_msg": "This mod has no dependencies."
+    },
+
     "search": {
       "input_placeholder": "Search for a mod"
     }
