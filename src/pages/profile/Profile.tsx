@@ -559,15 +559,13 @@ function SidebarProfileComponent(props: {
   const ellipsisAnchorId = createUniqueId();
 
   return (
-    <li class={sidebarStyles.profileList__item}>
+    <li class={sidebarStyles.profileList__item} data-highlighted={props.highlighted} data-pivot={props.isPivot}>
       <Show
         when={renaming()}
         fallback={
           <>
             <A
               class={sidebarStyles.profileList__itemName}
-              data-highlighted={props.highlighted}
-              data-pivot={props.isPivot}
               href={`/profile/${props.gameId}/${props.profile.id}`}
               onClick={(e) => {
                 if (shifting() || ctrling()) e.preventDefault();
