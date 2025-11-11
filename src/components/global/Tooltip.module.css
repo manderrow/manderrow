@@ -24,6 +24,7 @@
 .tooltipText {
   font-size: 0.9rem;
   color: var(--clr-neutral-10);
+  font-weight: 320;
 }
 
 .arrow {
