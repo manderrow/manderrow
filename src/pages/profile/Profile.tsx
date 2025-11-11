@@ -140,9 +140,8 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
 
   // Update title bar with current profile name
   createEffect(() => {
-    const gameId = params.gameId;
     const profile = currentProfile();
-    setCurrentProfileName(profile == null || gameId !== profile.game ? "" : profile.name);
+    setCurrentProfileName(profile == null || pickingGame() ? "" : profile.name);
   });
 
   // track launch errors here instead of reporting to the error boundary to avoid rebuilding the UI
