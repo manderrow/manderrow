@@ -66,6 +66,7 @@
 
   h1 {
     width: 100%;
+    font-size: 1.75rem;
     font-weight: 300;
     color: rgb(240, 240, 240);
     text-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
@@ -81,7 +82,7 @@
   .sidebar__mainActionBtns {
     margin-top: auto;
     display: flex;
-    gap: 1em;
+    gap: 0.5em;
     z-index: 1;
 
     button {
