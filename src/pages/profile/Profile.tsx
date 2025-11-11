@@ -34,6 +34,7 @@ import {
   faChevronDown,
   IconDefinition,
   faArrowRightLong,
+  faPlayCircle,
 } from "@fortawesome/free-solid-svg-icons";
 import { OverlayScrollbarsComponent } from "overlayscrollbars-solid";
 import { Fa } from "solid-fa";
@@ -59,7 +60,13 @@ import { useSearchParamsInPlace } from "../../utils/router";
 import { killIpcClient } from "../../api/ipc";
 import { t } from "../../i18n/i18n.ts";
 import { launchProfile } from "../../api/launching";
-import { ConsoleConnection, focusedConnection, setFocusedConnection } from "../../console";
+import {
+  connections,
+  connectionsUpdate,
+  ConsoleConnection,
+  focusedConnection,
+  setFocusedConnection,
+} from "../../console";
 import { ActionContext } from "../../components/global/AsyncButton.tsx";
 import { setCurrentProfileName } from "../../components/global/TitleBar.tsx";
 import Tooltip from "../../components/global/Tooltip.tsx";
@@ -149,10 +156,9 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
 
   async function launch(modded: boolean) {
     try {
-      const conn = await ConsoleConnection.allocate();
+      const conn = await ConsoleConnection.allocate(params.profileId);
       try {
         setFocusedConnection(conn);
-        console.log(focusedConnection());
         if (settings().openConsoleOnLaunch.value && searchParams["profile-tab"] !== "logs") {
           setSearchParams({ "profile-tab": "logs" });
         }
@@ -557,6 +563,8 @@ function SidebarProfileComponent(props: {
 
   const ellipsisAnchorId = createUniqueId();
 
+  const activeConnection = () => connections.get(connectionsUpdate());
+
   return (
     <li class={sidebarStyles.profileList__item} data-highlighted={props.highlighted} data-pivot={props.isPivot}>
       <Show
@@ -581,6 +589,15 @@ function SidebarProfileComponent(props: {
                 if (!ctrling() && !shifting()) setRenaming(true);
               }}
             >
+              <Show
+                when={
+                  activeConnection()?.status() !== "disconnected" && activeConnection()?.profileId === props.profile.id
+                }
+              >
+                <Tooltip content={t("profile.sidebar.profile_running_icon")}>
+                  <Fa icon={faPlayCircle} class={sidebarStyles.profileItem__playingIcon} />
+                </Tooltip>
+              </Show>
               {props.profile.name}
             </A>
             <div class={sidebarStyles.profileItem__options}>

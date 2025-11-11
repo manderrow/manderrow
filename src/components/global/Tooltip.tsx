@@ -1,5 +1,5 @@
 import { JSX, Show } from "solid-js";
-import { offset } from "@floating-ui/dom";
+import { offset, shift } from "@floating-ui/dom";
 
 import { FloatingElement } from "./FloatingElement";
 
@@ -50,7 +50,7 @@ export default function Tooltip(props: TooltipProps) {
         </>
       }
       options={{
-        middleware: [offset(6)],
+        middleware: [offset(6), shift({ padding: 4 })],
         strategy: "fixed",
       }}
     >

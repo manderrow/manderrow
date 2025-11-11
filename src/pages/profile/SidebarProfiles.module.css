@@ -95,12 +95,22 @@
   opacity: 1;
 }
 
+.profileItem__playingIcon {
+  position: absolute;
+  top: 50%;
+  translate: 0 -50%;
+  left: 0.2rem;
+  color: var(--clr-primary-60);
+  font-size: 0.6rem;
+}
+
 .profileList__itemName {
   display: block;
   color: var(--clr-neutral-20);
   padding: 0.35em 1em;
   text-overflow: ellipsis;
   overflow: hidden;
+  white-space: nowrap;
 }
 
 form.profileList__itemName {

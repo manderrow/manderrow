@@ -5,6 +5,9 @@ import { listen } from "@tauri-apps/api/event";
 
 export type ConnectionStatus = "connecting" | "connected" | "disconnected";
 
+/**
+ * Watch connectionsUpdate for reactivity
+ */
 export const connections = new Map<number, ConsoleConnection>();
 export const [connectionsUpdate, setConnectionsUpdate] = createSignal(0);
 
@@ -13,7 +16,7 @@ function getOrInitConnection(connId: number): ConsoleConnection {
   if (conn === undefined) {
     conn = new ConsoleConnection(connId);
     connections.set(connId, conn);
-    setConnectionsUpdate(connectionsUpdate() + 1);
+    setConnectionsUpdate((connections) => connections + 1);
   }
   return conn;
 }
@@ -46,6 +49,7 @@ export const [doctorReports, setDoctorReports] = createSignal<IdentifiedDoctorRe
 
 export class ConsoleConnection {
   readonly id: number;
+  readonly profileId?: string;
   readonly status: Accessor<ConnectionStatus>;
   readonly setStatus: (value: ConnectionStatus) => void;
   // TODO: don't use a signal for these
@@ -53,8 +57,9 @@ export class ConsoleConnection {
   readonly setEvents: Setter<Event[]>;
   readonly createdTime: Date;
 
-  constructor(id: number) {
+  constructor(id: number, profileId?: string) {
     this.id = id;
+    this.profileId = profileId;
     const [status, setStatus] = createSignal<ConnectionStatus>("connecting");
     this.status = status;
     this.setStatus = setStatus;
@@ -64,12 +69,12 @@ export class ConsoleConnection {
     this.createdTime = new Date();
   }
 
-  static async allocate(): Promise<ConsoleConnection> {
+  static async allocate(profileId?: string): Promise<ConsoleConnection> {
     const connId = await allocateIpcConnection();
     if (connections.has(connId)) throw new Error("Illegal state");
-    const conn = new ConsoleConnection(connId);
+    const conn = new ConsoleConnection(connId, profileId);
     connections.set(connId, conn);
-    setConnectionsUpdate(connectionsUpdate() + 1);
+    setConnectionsUpdate((connections) => connections + 1);
     return conn;
   }
 
