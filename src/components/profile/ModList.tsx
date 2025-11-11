@@ -825,7 +825,9 @@ function ModViewDependencies(props: { gameId: string; dependencies: string[] }) 
                 >
                   <img src={getIconUrl(dependency)} width="48px" alt={name} class={styles.modIcon} />
                   <div>
-                    <p data-name>{name}</p>
+                    <p data-name>
+                      {name} <Fa icon={faExternalLink} />
+                    </p>
                     <p data-owner>{author}</p>
                   </div>
                   <p data-version>{version}</p>
