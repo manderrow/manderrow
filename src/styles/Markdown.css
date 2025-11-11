@@ -108,6 +108,11 @@
     max-width: 100%;
   }
 
+  img[src*="img.shields.io"] {
+    /* Known height of badges, reduces cumulative layout shifts */
+    min-height: 28px;
+  }
+
   blockquote {
     border-left: 4px solid var(--clr-neutral-40);
     padding: 0.5em 1em;
