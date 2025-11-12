@@ -68,7 +68,7 @@ import SelectDropdown from "../global/SelectDropdown.tsx";
 import TogglableDropdown from "../global/TogglableDropdown.tsx";
 import Tooltip from "../global/Tooltip.tsx";
 import { useSearchParamsInPlace } from "../../utils/router.ts";
-import Checkbox from "../global/Checkbox.tsx";
+import Checkbox, { CheckboxBox, CheckboxWrapper } from "../global/Checkbox.tsx";
 
 type PageFetcher = (page: number) => Promise<readonly Mod[]>;
 export type Fetcher = (
@@ -409,6 +409,7 @@ export function InstalledModList(props: { game: string }) {
           onDismiss={() => {
             setUpdaterShown(false);
           }}
+          installContext={context}
           updates={updates()}
         />
       </Show>
@@ -416,11 +417,15 @@ export function InstalledModList(props: { game: string }) {
   );
 }
 
-function ModUpdateDialogue(props: { onDismiss: () => void; updates: ModUpdate[] }) {
+function ModUpdateDialogue(props: {
+  onDismiss: () => void;
+  installContext: NonNullable<typeof ModInstallContext.defaultValue>;
+  updates: ModUpdate[];
+}) {
   const [_progress, _setProgress] = createProgressProxyStore();
 
   const [selectedMods, setSelectedMods] = createSignal<Set<ModUpdate>>(new Set(props.updates), {
-    equals: false,
+    equals: () => false,
   });
 
   return (
@@ -430,12 +435,11 @@ function ModUpdateDialogue(props: { onDismiss: () => void; updates: ModUpdate[] 
       <div class={styles.listContainer}>
         <form action="#">
           <fieldset>
-            <input
-              type="checkbox"
+            <Checkbox
               id="update-select-all-mods"
               checked={selectedMods().size === props.updates.length}
-              onInput={(e) => {
-                if (e.target.checked) {
+              onChange={(checked) => {
+                if (checked) {
                   setSelectedMods(new Set(props.updates));
                 } else {
                   setSelectedMods(new Set<ModUpdate>());
@@ -452,58 +456,87 @@ function ModUpdateDialogue(props: { onDismiss: () => void; updates: ModUpdate[] 
           </fieldset>
         </form>
         <ul>
-          {props.updates.map((update) => (
-            <li>
-              <label for={update.newMod.name}>
-                <input
-                  id={update.newMod.name}
-                  type="checkbox"
-                  checked={selectedMods().has(update)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedMods((selectedMods) => selectedMods.add(update));
-                    } else {
-                      setSelectedMods((selectedMods) => {
-                        selectedMods.delete(update);
-                        return selectedMods;
-                      });
-                    }
-                  }}
-                />
-                <img
-                  width={48}
-                  height={48}
-                  alt="mod icon"
-                  src={getIconUrl(
-                    getQualifiedModName(
-                      update.newMod.owner,
-                      update.newMod.name,
-                      update.newMod.versions[0].version_number,
-                    ),
-                  )}
-                />
-                <div class={styles.updateMetadata}>
-                  <p data-name>{update.newMod.name}</p>
-                  <p data-owner>{update.newMod.owner}</p>
-                  <p data-version>
-                    <span data-old-version>{update.oldVersionNumber}</span>
-                    <span data-arrow>
-                      <Fa icon={faArrowRightLong} />
-                    </span>
-                    <span data-new-version>{update.newMod.versions[0].version_number}</span>
-                  </p>
-                </div>
-              </label>
-            </li>
-          ))}
+          {props.updates.map((update) => {
+            const domId = `${update.newMod.name}-${update.oldVersionNumber}`;
+            return (
+              <li>
+                <CheckboxWrapper id={domId} containerClass={styles.updateRow}>
+                  <CheckboxBox
+                    id={domId}
+                    checked={selectedMods().has(update)}
+                    onChange={(checked) => {
+                      if (checked) {
+                        setSelectedMods((selectedMods) => selectedMods.add(update));
+                      } else {
+                        setSelectedMods((selectedMods) => {
+                          selectedMods.delete(update);
+                          return selectedMods;
+                        });
+                      }
+                    }}
+                  />
+                  <img
+                    width={48}
+                    height={48}
+                    alt="mod icon"
+                    src={getIconUrl(
+                      getQualifiedModName(
+                        update.newMod.owner,
+                        update.newMod.name,
+                        update.newMod.versions[0].version_number,
+                      ),
+                    )}
+                  />
+                  <div class={styles.updateMetadata}>
+                    <p data-name>{update.newMod.name}</p>
+                    <p data-owner>{update.newMod.owner}</p>
+                    <p data-version>
+                      <span data-old-version>{update.oldVersionNumber}</span>
+                      <span data-arrow>
+                        <Fa icon={faArrowRightLong} />
+                      </span>
+                      <span data-new-version>{update.newMod.versions[0].version_number}</span>
+                    </p>
+                  </div>
+                </CheckboxWrapper>
+              </li>
+            );
+          })}
         </ul>
       </div>
 
       <div class={styles.updateBtns}>
-        <button data-btn="primary">
+        <button
+          disabled={selectedMods().size === 0}
+          data-btn="primary"
+          onClick={() => {
+            Promise.allSettled(
+              Array.from(selectedMods().values()).map((update) => {
+                return new Promise<void>((resolve, reject) => {
+                  installProfileMod(
+                    props.installContext.profileId(),
+                    removeProperty(update.newMod, "versions"),
+                    update.newMod.versions[0],
+                    (event) => {
+                      if (event.event === "dropped") {
+                        if (event.status.status === "Success") {
+                          resolve();
+                        } else {
+                          reject();
+                        }
+                      }
+                    },
+                  );
+                });
+              }),
+            ).finally(props.installContext.refetchInstalled);
+
+            props.onDismiss();
+          }}
+        >
           {selectedMods().size === props.updates.length
             ? t("modlist.installed.update_all_btn")
-            : t("modlist.installed.update_selected_btn")}
+            : `${t("modlist.installed.update_selected_btn")} (${selectedMods().size})`}
         </button>
         <button onClick={props.onDismiss} style={{ order: -1 }} data-btn="ghost">
           {t("global.phrases.cancel")}
@@ -991,8 +1024,8 @@ function ModListItem(
               onChange={(checked) =>
                 (props as SelectableModListProps).setSelected(props.mod, displayVersion().version_number, checked)
               }
-              labelClass={styles.mod__selectorClickRegion}
-              iconContainerClass={styles.mod__selectorIndicator}
+              containerClass={styles.mod__selectorClickRegion}
+              boxClass={styles.mod__selectorIndicator}
             />
           </div>
         </Show>

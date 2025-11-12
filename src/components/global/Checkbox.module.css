@@ -1,10 +1,12 @@
 .switch {
   .iconContainer {
     display: flex;
+    justify-content: center;
     align-items: center;
   }
 
   .iconContainer svg {
+    width: 100%;
     clip-path: inset(0% 100% 0% 0%);
 
     transition: clip-path 0.2s;
@@ -15,11 +17,11 @@
   }
 }
 
-.switchDefault {
-  border: 1px solid var(--clr-neutral-60);
+.boxDefault {
+  border: 1px solid var(--clr-neutral-65);
   border-radius: 2px;
-
-  width: 0.5rem;
+  flex-shrink: 0;
+  width: 1rem;
 
   &:has(> input:checked) {
     background-color: var(--clr-primary-40);
