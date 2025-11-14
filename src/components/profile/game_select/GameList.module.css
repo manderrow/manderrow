@@ -72,7 +72,7 @@
   border-radius: inherit;
   display: flex;
   flex-direction: column;
-  text-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+  text-shadow: 0 0 8px rgb(0 0 0 / 0.4);
 
   :global([data-webview="safari"]) & {
     transition: backdrop-filter 0.2s ease, background-color 0.3s ease;
@@ -94,7 +94,7 @@
   :global([data-webview]:not([data-webview="safari"])) & {
     opacity: 1;
   }
-  background-color: rgba(0, 0, 0, 0.25);
+  background-color: rgb(0 0 0 / 0.25);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
 }
@@ -134,28 +134,28 @@
 .game__actions button {
   margin: 0 auto;
   border-radius: 100vmax;
-  text-shadow: 0 0 8px rgba(0, 0, 0, 0.4);
+  text-shadow: 0 0 8px rgb(0 0 0 / 0.4);
 }
 
 .game__actions button[data-select] {
-  background-color: rgb(245, 245, 245);
+  background-color: rgb(245 245 245);
   color: black;
   font-weight: 600;
   text-shadow: none;
 
   &:hover {
-    background-color: rgb(215, 215, 215);
+    background-color: rgb(215 215 215);
   }
 }
 
 .game__actions button[data-default] {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 2px solid rgba(225, 225, 225, 0.3);
-  background-color: rgba(225, 225, 225, 0.2);
+  border: 2px solid rgb(225 225 225 / 0.3);
+  background-color: rgb(225 225 225 / 0.2);
 
   &:hover {
-    background-color: rgba(225, 225, 225, 0.3);
+    background-color: rgb(225 225 225 / 0.3);
   }
 }
 
@@ -204,7 +204,7 @@
 }
 
 .gameList__gameItem .gameList__game {
-  border: 1px solid rgba(215, 215, 215, 0.2);
+  border: 1px solid rgb(215 215 215 / 0.2);
   border-bottom-color: transparent;
   border-right-color: transparent;
   border-left-color: transparent;
@@ -213,8 +213,8 @@
 }
 
 .gameList__gameItem .gameList__game:hover {
-  border-color: rgba(215, 215, 215, 0.2);
-  background-color: rgba(225, 225, 225, 0.1);
+  border-color: rgb(215 215 215 / 0.2);
+  background-color: rgb(225 225 225 / 0.1);
   border-radius: 5px;
   transition: border-color 0.2s ease, border-radius 0.3s ease-out;
 }

@@ -1,7 +1,7 @@
 .page {
   position: absolute;
   inset: 0;
-  background-color: hsl(214, 28%, 5%);
+  background-color: hsl(214 28% 5%);
   overflow-y: scroll;
   height: calc(100dvh - var(--titlebar-height));
   z-index: 2;
@@ -35,7 +35,7 @@
 .header h1 {
   font-size: 4rem;
   font-weight: 650;
-  background-image: linear-gradient(180deg, hsl(var(--clr-primary-hs), 64%) 20%, var(--clr-primary-40));
+  background-image: linear-gradient(180deg, var(--clr-primary-60) 20%, var(--clr-primary-40));
   color: transparent;
   background-clip: text;
   /* text-transform: uppercase; */
@@ -46,7 +46,7 @@
   color: var(--clr-neutral-20);
   font-size: 1.25rem;
   font-weight: 300;
-  text-shadow: 0 0 1.5rem rgba(0, 0, 0, 0.4);
+  text-shadow: 0 0 1.5rem rgb(0 0 0 / 0.4);
 }
 
 .header h1::before,
@@ -95,8 +95,8 @@
   max-width: 75ch;
   display: flex;
   border-radius: inherit;
-  background-color: hsla(var(--clr-neutral-hs), 20%, 0.5);
-  border: 1px solid hsla(var(--clr-neutral-hs), 40%, 0.5);
+  background-color: hsl(from var(--clr-neutral-80) h s l / 0.5);
+  border: 1px solid hsl(from var(--clr-neutral-60) h s l / 0.5);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
@@ -112,7 +112,7 @@
 .gameSearch button {
   &:hover,
   &:focus-visible {
-    background-color: hsla(var(--clr-neutral-hs), 90%, 0.1);
+    background-color: hsl(from var(--clr-neutral-10) h s l / 0.1);
   }
 }
 
@@ -125,5 +125,5 @@
 }
 
 .gameSearch input::placeholder {
-  color: rgb(196, 196, 196);
+  color: rgb(196 196 196);
 }
