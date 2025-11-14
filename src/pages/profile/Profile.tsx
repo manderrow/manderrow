@@ -289,10 +289,8 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
             {
               // TODO: based on hasLiveConnection change the UI of these a bit
             }
-            <button disabled={params.profileId === undefined} on:click={() => launch(true)} data-modded>
-              <span data-icon>
-                <Fa icon={faCirclePlay} />
-              </span>
+            <button disabled={params.profileId === undefined} on:click={() => launch(true)} data-launch>
+              <Fa icon={faCirclePlay} data-icon />
               <span>{t("profile.sidebar.launch_modded_btn")}</span>
               <span data-arrow>
                 <Fa icon={faArrowRightLong} />
