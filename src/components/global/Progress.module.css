@@ -65,7 +65,7 @@
 .simpleIndicator__text {
   text-align: center;
   font-size: 0.9rem;
-  text-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 0 4px rgb(0 0 0 / 0.5);
 }
 
 /* Circular progress bar */

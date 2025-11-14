@@ -68,8 +68,8 @@
     width: 100%;
     font-size: 1.75rem;
     font-weight: 300;
-    color: rgb(240, 240, 240);
-    text-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+    color: rgb(240 240 240);
+    text-shadow: 0 0 8px rgb(0 0 0 / 0.5);
   }
 
   .backBtn {
@@ -92,7 +92,7 @@
 
     button[data-modded] {
       --gradient-border-width: 2px;
-      --glint-color: rgba(255, 255, 255, 0.3);
+      --glint-color: rgb(255 255 255 / 0.3);
 
       --bg-clr: var(--clr-primary-40);
       background-image: linear-gradient(20deg, var(--clr-primary-30), var(--clr-primary-50)),
@@ -160,7 +160,7 @@
       }
 
       &:active:not(:disabled) {
-        --glint-color: rgba(255, 255, 255, 0.15);
+        --glint-color: rgb(255 255 255 / 0.15);
         background-image: linear-gradient(20deg, var(--clr-primary-25), var(--clr-primary-45)),
           radial-gradient(circle at center, var(--clr-primary-20), var(--clr-primary-55), var(--clr-primary-25));
 
@@ -180,13 +180,13 @@
         var(--clr-danger-4) 80%,
         var(--clr-danger-5) 100%
       );
-      border: 2px solid hsl(var(--clr-danger-hs), 70%, 20%);
+      border: 2px solid var(--clr-danger-7);
     }
 
     button[data-cancel] {
       background-color: var(--clr-warn-4);
       background-image: linear-gradient(20deg, var(--clr-warn-3) 10%, var(--clr-warn-4) 80%, var(--clr-warn-5) 100%);
-      border: 2px solid hsl(var(--clr-warn-hs), 70%, 20%);
+      border: 2px solid var(--clr-warn-7);
     }
 
     .gameBtns {
@@ -205,8 +205,8 @@
     content: "";
     position: absolute;
     inset: 0;
-    background-image: linear-gradient(0deg, rgba(0, 0, 0, 0.5) 0%, transparent 30%),
-      linear-gradient(180deg, rgba(0, 0, 0, 0.7) 0%, transparent 50%), linear-gradient(rgba(0, 0, 0, 0.1) 0% 100%);
+    background-image: linear-gradient(0deg, rgb(0 0 0 / 0.5) 0%, transparent 30%),
+      linear-gradient(180deg, rgb(0 0 0 / 0.7) 0%, transparent 50%), linear-gradient(rgb(0 0 0 / 0.1) 0% 100%);
     pointer-events: none;
   }
 }
@@ -411,7 +411,7 @@
       bottom: 0;
       z-index: 1;
       /* transform: translateX(0); */
-      box-shadow: 0 0 1.5rem 0rem rgba(0, 0, 0, 0.5);
+      box-shadow: 0 0 1.5rem 0rem rgb(0 0 0 / 0.5);
 
       .expandBtn {
         position: absolute;
