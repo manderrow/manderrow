@@ -128,8 +128,6 @@
         flex-direction: column;
         justify-content: center;
         cursor: pointer;
-
-        z-index: 1;
       }
 
       .mod__selectorIndicator {
