@@ -171,12 +171,37 @@ pub fn build_config_path(profile: Uuid, path: &Path) -> PathBuf {
 
 #[derive(Debug, Clone, Copy, Default, serde::Deserialize, serde::Serialize)]
 pub struct ConfigOptions {
-    special_format: Option<ConfigFormat>,
+    pub special_format: Option<SpecialConfigFormat>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
-pub enum ConfigFormat {
+pub enum SpecialConfigFormat {
     BepInEx,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum Format {
+    Text,
+    Markdown,
+    Json,
+    BepInEx,
+    // TODO: decide if we really want to attempt to support these generically, seeing as the format\
+    //       is not standardized.
+    Ini,
+}
+
+impl Format {
+    pub fn guess(path: &Path, options: ConfigOptions) -> Result<Format> {
+        match path.extension().and_then(|ext| ext.to_str()) {
+            Some(s) if s.eq_ignore_ascii_case("txt") => Ok(Format::Text),
+            Some(s) if s.eq_ignore_ascii_case("md") => Ok(Format::Markdown),
+            Some(s) if s.eq_ignore_ascii_case("json") => Ok(Format::Json),
+            Some(s)
+                if options.special_format == Some(SpecialConfigFormat::BepInEx) && s.eq_ignore_ascii_case("cfg") => Ok(Format::BepInEx),
+            Some(s) if s.eq_ignore_ascii_case("cfg") || s.eq_ignore_ascii_case("ini") => Ok(Format::Ini),
+            format => bail!("Unsupported config format {:?}", format),
+        }
+    }
 }
 
 pub async fn read_config(profile: Uuid, path: &Path, options: ConfigOptions) -> Result<File> {
@@ -184,15 +209,15 @@ pub async fn read_config(profile: Uuid, path: &Path, options: ConfigOptions) -> 
 }
 
 async fn read_config_at(path: &Path, options: ConfigOptions) -> Result<File> {
-    match path.extension().and_then(|ext| ext.to_str()) {
-        Some(s) if s.eq_ignore_ascii_case("txt") => {
+    match Format::guess(path, options)? {
+        Format::Text => {
             let content = tokio::fs::read_to_string(&path).await?;
             Ok(File::Document {
                 html: ammonia::clean_text(&content),
                 sections: Vec::new(),
             })
         }
-        Some(s) if s.eq_ignore_ascii_case("md") => {
+        Format::Markdown => {
             let content = tokio::fs::read_to_string(&path).await?;
             // let mut stack = Vec::new();
             // let mut current_sections = Vec::new();
@@ -213,7 +238,7 @@ async fn read_config_at(path: &Path, options: ConfigOptions) -> Result<File> {
                 sections: Vec::new(),
             })
         }
-        Some(s) if s.eq_ignore_ascii_case("json") => {
+        Format::Json => {
             // TODO: lossless parser
             // FIXME: parse numbers
             let content = tokio::fs::read_to_string(&path).await?;
@@ -234,14 +259,13 @@ async fn read_config_at(path: &Path, options: ConfigOptions) -> Result<File> {
                     .collect(),
             })
         }
-        Some(s)
-            if options.special_format == Some(ConfigFormat::BepInEx) && s.eq_ignore_ascii_case("cfg") =>
+        Format::BepInEx =>
         {
             tokio::task::block_in_place(|| {
                 read_config_from_bepinex_cfg(std::fs::File::open(&path)?)
             })
         }
-        Some(s) if s.eq_ignore_ascii_case("cfg") || s.eq_ignore_ascii_case("ini") => {
+        Format::Ini => {
             let content = tokio::fs::read_to_string(&path).await?;
             let content = ini::Ini::load_from_str(&content)?;
             Ok(File::Config {
@@ -262,7 +286,6 @@ async fn read_config_at(path: &Path, options: ConfigOptions) -> Result<File> {
                     .collect(),
             })
         }
-        format => bail!("Unsupported config format {:?}", format),
     }
 }
 
@@ -456,7 +479,35 @@ pub async fn update_config(
     patches: &[Patch],
 ) -> Result<File> {
     let path = build_config_path(profile, path);
-    match path.extension() {
+    match Format::guess(&path, options)? {
+        Format::BepInEx => {
+            use bepinex_cfg::Event;
+            let mut rdr = bepinex_cfg::Reader::new(std::fs::File::open(&path)?);
+            let mut section = None::<SmolStr>;
+            let (mut tmp_file, tmp_path) = tempfile::NamedTempFile::new_in(
+                path.parent().context("path must have a parent")?,
+            )?;
+            while let Some(event) = rdr.next()? {
+                match event {
+                    Event::SectionStart { name, .. } => {
+                        bepinex_cfg::ser::write_io(event, &mut tmp_file)?;
+                        section = Some(name.into());
+                    }
+                    Event::Entry {
+                        pre_whitespace,
+                        key,
+                        post_key_whitespace,
+                        pre_value_whitespace,
+                        value,
+                    } => {
+                        // TODO: check if section matches one of the patches... will need to scan over the file ahead of time to find last occurrance of each entry (also, confirm that BepInEx pays attention to last and not first)
+                    }
+                    _ => {
+                        bepinex_cfg::ser::write_io(event, &mut tmp_file)?;
+                    }
+                }
+            }
+        },
         _ => bail!("Unsupported config format"),
     }
     read_config_at(&path, options).await
