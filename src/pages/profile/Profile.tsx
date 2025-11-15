@@ -229,11 +229,17 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
       });
   };
 
-  // For selecting multiple profiles
+  // Profiles are stored in the key values of the `selected` Map
   const { onCtrlClickItem, onShiftClickItem, clearSelection, isPivot, selected } = createMatrixMainframe<
     ProfileWithId,
-    string
-  >(queriedProfiles, (profile) => profile.id, currentProfile);
+    string,
+    null
+  >(
+    queriedProfiles,
+    (profile) => profile.id,
+    (_) => null,
+    currentProfile,
+  );
 
   return (
     <main class={styles.main}>
@@ -374,7 +380,7 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
                       profile={profile}
                       refetchProfiles={refetchProfiles}
                       selected={profile.id === params.profileId}
-                      highlighted={selected().includes(profile.id)}
+                      highlighted={selected().has(profile.id)}
                       ctrlClick={() => onCtrlClickItem(profile, i())}
                       shiftClick={() => onShiftClickItem(profile, i())}
                       isPivot={isPivot(profile)}
@@ -390,7 +396,7 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
                       profile={profile}
                       refetchProfiles={refetchProfiles}
                       selected={profile.id === params.profileId}
-                      highlighted={selected().includes(profile.id)}
+                      highlighted={selected().has(profile.id)}
                       ctrlClick={() => onCtrlClickItem(profile, i())}
                       shiftClick={() => onShiftClickItem(profile, i())}
                       isPivot={isPivot(profile)}

@@ -133,30 +133,36 @@ export function createSignalResource<T>(initialValue: () => Promise<T>) {
 /**
  * Utility to create a manager that handles selection of multiple items in a matrix-like fashion
  * @param dataSource The array of data
- * @param dataTransformer A function that transforms the items of the dataSource into the underlying data that is stored
+ * @param keyTransformer A function that transforms the items of the dataSource into the underlying keys of data that is stored
+ * @param dataTransformer A function that transforms the items of the dataSource into the underlying values of data that is stored
  * @param selected The current selected item from the array
  * @returns All the utility methods required
  */
-export function createMatrixMainframe<T, D>(
+export function createMatrixMainframe<T, K, D>(
   dataSource: Accessor<T[]>,
+  keyTransformer: (source: T) => K,
   dataTransformer: (source: T) => D,
   selected: Accessor<T | undefined>,
 ) {
   const [pivotIndex, setPivotIndex] = createSignal<number | undefined>();
   const effectivePivot = () => (pivotIndex() !== undefined ? dataSource()[pivotIndex()!] : selected());
-  const [selectedItems, setSelectedItems] = createSignal<D[]>([]);
+  const [selectedItems, setSelectedItems] = createSignal<Map<K, D>>(new Map(), {
+    equals: false,
+  });
 
   const isPivot = createSelector(effectivePivot, (a, b) => a === b);
 
   function onCtrlClickItem(item: T, index: number) {
     setSelectedItems((prev) => {
-      const identifier = dataTransformer(item);
+      const identifier = keyTransformer(item);
 
-      if (prev.includes(identifier)) {
-        return prev.filter((id) => id !== identifier);
+      if (prev.has(identifier)) {
+        prev.delete(identifier);
       } else {
-        return [...prev, identifier];
+        prev.set(identifier, dataTransformer(item));
       }
+
+      return prev;
     });
 
     setPivotIndex(index);
@@ -172,11 +178,14 @@ export function createMatrixMainframe<T, D>(
       const start = Math.min(pivotIndex, index);
       const end = Math.max(pivotIndex, index);
 
-      return itemsList.slice(start, end + 1).map(dataTransformer);
+      return new Map(itemsList.slice(start, end + 1).map((item) => [keyTransformer(item), dataTransformer(item)]));
     });
   }
   function clearSelection() {
-    setSelectedItems([]);
+    setSelectedItems((prev) => {
+      prev.clear();
+      return prev;
+    });
     setPivotIndex(undefined);
   }
 
