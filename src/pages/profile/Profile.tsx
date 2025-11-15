@@ -73,6 +73,7 @@ import Tooltip from "../../components/global/Tooltip.tsx";
 import ContextMenu from "../../components/global/ContextMenu.tsx";
 import GameSelect from "../../components/profile/game_select/GameSelect.tsx";
 import StatusBar from "../../components/profile/StatusBar.tsx";
+import { createMatrixMainframe } from "../../utils.ts";
 
 interface ProfileParams {
   profileId?: string;
@@ -229,35 +230,10 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
   };
 
   // For selecting multiple profiles
-  const [pivotProfile, setPivotProfile] = createSignal<string | undefined>();
-  const effectivePivot = () => pivotProfile() || currentProfile()?.id;
-  const [selectedProfiles, setSelectedProfiles] = createSignal<string[]>([]);
-
-  function onCtrlClickProfile(profile: ProfileWithId) {
-    setSelectedProfiles((prev) => {
-      if (prev.includes(profile.id)) {
-        return prev.filter((id) => id !== profile.id);
-      } else {
-        return [...prev, profile.id];
-      }
-    });
-
-    setPivotProfile(profile.id);
-  }
-  function onShiftClickProfile(profile: ProfileWithId) {
-    setSelectedProfiles((prev) => {
-      const pivot = effectivePivot();
-
-      if (pivot == null || profile.id === pivot) return prev;
-
-      const profilesList = queriedProfiles();
-      const pivotIndex = profilesList.findIndex((p) => p.id === pivot);
-      const currentIndex = profilesList.findIndex((p) => p.id === profile.id);
-      const start = Math.min(pivotIndex, currentIndex);
-      const end = Math.max(pivotIndex, currentIndex);
-      return profilesList.slice(start, end + 1).map((p) => p.id);
-    });
-  }
+  const { onCtrlClickItem, onShiftClickItem, clearSelection, isPivot, selected } = createMatrixMainframe<
+    ProfileWithId,
+    string
+  >(queriedProfiles, (profile) => profile.id, currentProfile);
 
   return (
     <main class={styles.main}>
@@ -372,8 +348,7 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
                   e.relatedTarget.closest(`#profiles-list`)
                 )
                   return;
-                setPivotProfile(undefined);
-                setSelectedProfiles([]);
+                clearSelection();
               }}
             >
               <Show when={creatingProfile()}>
@@ -392,33 +367,33 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
                 <li class={sidebarStyles.profileList__noProfilesMsg}>{t("profile.sidebar.no_profiles_search_msg")}</li>
               </Show>
               <For each={queriedProfiles()}>
-                {(profile) => (
+                {(profile, i) => (
                   <Show when={profile.pinned}>
                     <SidebarProfileComponent
                       gameId={params.gameId}
                       profile={profile}
                       refetchProfiles={refetchProfiles}
                       selected={profile.id === params.profileId}
-                      highlighted={selectedProfiles().includes(profile.id)}
-                      ctrlClick={onCtrlClickProfile}
-                      shiftClick={onShiftClickProfile}
-                      isPivot={effectivePivot() === profile.id}
+                      highlighted={selected().includes(profile.id)}
+                      ctrlClick={() => onCtrlClickItem(profile, i())}
+                      shiftClick={() => onShiftClickItem(profile, i())}
+                      isPivot={isPivot(profile)}
                     />
                   </Show>
                 )}
               </For>
               <For each={queriedProfiles()}>
-                {(profile) => (
+                {(profile, i) => (
                   <Show when={!profile.pinned}>
                     <SidebarProfileComponent
                       gameId={params.gameId}
                       profile={profile}
                       refetchProfiles={refetchProfiles}
                       selected={profile.id === params.profileId}
-                      highlighted={selectedProfiles().includes(profile.id)}
-                      ctrlClick={onCtrlClickProfile}
-                      shiftClick={onShiftClickProfile}
-                      isPivot={effectivePivot() === profile.id}
+                      highlighted={selected().includes(profile.id)}
+                      ctrlClick={() => onCtrlClickItem(profile, i())}
+                      shiftClick={() => onShiftClickItem(profile, i())}
+                      isPivot={isPivot(profile)}
                     />
                   </Show>
                 )}
@@ -549,8 +524,8 @@ function SidebarProfileComponent(props: {
   highlighted: boolean;
   isPivot: boolean;
 
-  ctrlClick: (profile: ProfileWithId) => void;
-  shiftClick: (profile: ProfileWithId) => void;
+  ctrlClick: () => void;
+  shiftClick: () => void;
 }) {
   const [confirmingDeletion, setConfirmingDeletion] = createSignal(false);
   const [deleting, setDeleting] = createSignal(false);
@@ -578,9 +553,9 @@ function SidebarProfileComponent(props: {
                 // Shift clicks take priority over control clicks,
                 // use shift click even if both keys are down
                 if (shifting()) {
-                  props.shiftClick(props.profile);
+                  props.shiftClick();
                 } else if (ctrling()) {
-                  props.ctrlClick(props.profile);
+                  props.ctrlClick();
                 }
               }}
               onDblClick={() => {

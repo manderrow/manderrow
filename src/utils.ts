@@ -1,4 +1,4 @@
-import { batch, createSignal } from "solid-js";
+import { Accessor, batch, createSelector, createSignal } from "solid-js";
 
 export const numberFormatter = new Intl.NumberFormat();
 export const roundedNumberFormatter = new Intl.NumberFormat(undefined, {
@@ -127,5 +127,64 @@ export function createSignalResource<T>(initialValue: () => Promise<T>) {
         setError(undefined);
       });
     },
+  };
+}
+
+/**
+ * Utility to create a manager that handles selection of multiple items in a matrix-like fashion
+ * @param dataSource The array of data
+ * @param dataTransformer A function that transforms the items of the dataSource into the underlying data that is stored
+ * @param selected The current selected item from the array
+ * @returns All the utility methods required
+ */
+export function createMatrixMainframe<T, D>(
+  dataSource: Accessor<T[]>,
+  dataTransformer: (source: T) => D,
+  selected: Accessor<T | undefined>,
+) {
+  const [pivotIndex, setPivotIndex] = createSignal<number | undefined>();
+  const effectivePivot = () => (pivotIndex() !== undefined ? dataSource()[pivotIndex()!] : selected());
+  const [selectedItems, setSelectedItems] = createSignal<D[]>([]);
+
+  const isPivot = createSelector(effectivePivot, (a, b) => a === b);
+
+  function onCtrlClickItem(item: T, index: number) {
+    setSelectedItems((prev) => {
+      const identifier = dataTransformer(item);
+
+      if (prev.includes(identifier)) {
+        return prev.filter((id) => id !== identifier);
+      } else {
+        return [...prev, identifier];
+      }
+    });
+
+    setPivotIndex(index);
+  }
+  function onShiftClickItem(item: T, index: number) {
+    setSelectedItems((prev) => {
+      const pivot = effectivePivot();
+
+      if (pivot == null || item === pivot) return prev;
+
+      const itemsList = dataSource();
+      const pivotIndex = itemsList.findIndex((p) => p === pivot);
+      const start = Math.min(pivotIndex, index);
+      const end = Math.max(pivotIndex, index);
+
+      return itemsList.slice(start, end + 1).map(dataTransformer);
+    });
+  }
+  function clearSelection() {
+    setSelectedItems([]);
+    setPivotIndex(undefined);
+  }
+
+  return {
+    selected: selectedItems,
+    onCtrlClickItem,
+    onShiftClickItem,
+    clearSelection,
+    isPivot,
   };
 }
