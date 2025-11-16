@@ -4,8 +4,40 @@
   background-color: hsl(214 28% 5%);
   overflow-y: scroll;
   height: calc(100dvh - var(--titlebar-height));
-  z-index: 2;
+  z-index: var(--portal-z-index);
   overscroll-behavior: none;
+
+  animation: zoom-out var(--duration) ease forwards;
+}
+
+.zoomIn {
+  animation-name: zoom-in;
+}
+
+@keyframes zoom-out {
+  from {
+    opacity: 0;
+    scale: 110%;
+  }
+
+  to {
+    opacity: 1;
+    scale: 100%;
+  }
+}
+
+@keyframes zoom-in {
+  from {
+    opacity: 1;
+    scale: 100%;
+    pointer-events: none;
+  }
+
+  to {
+    opacity: 0;
+    scale: 110%;
+    pointer-events: none;
+  }
 }
 
 .pageInner {

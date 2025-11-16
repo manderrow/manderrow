@@ -10,7 +10,7 @@ import {
   Show,
   Switch,
 } from "solid-js";
-import { Portal } from "solid-js/web";
+import { createStore, SetStoreFunction } from "solid-js/store";
 import { A, useNavigate, useParams } from "@solidjs/router";
 import { faTrashCan } from "@fortawesome/free-regular-svg-icons";
 import {
@@ -91,11 +91,20 @@ enum ProfileSortType {
   creation_date = "creation_date",
 }
 
+interface ShowGameSelectState {
+  shouldShow: boolean;
+  showing: boolean;
+}
+
 export default function Profile() {
   // @ts-expect-error params.profileId is an optional param, it can be undefined, and we don't expect any other params
   const params = useParams<ProfileParams>();
-
   const navigate = useNavigate();
+
+  const [gameSelect, setGameSelect] = createStore<ShowGameSelectState>({
+    shouldShow: params.gameId == null,
+    showing: params.gameId == null,
+  });
 
   createEffect(() => {
     const game = initialGame.latestOrThrow;
@@ -105,13 +114,30 @@ export default function Profile() {
   });
 
   return (
-    <Show when={params.gameId} fallback={<GameSelect replace={true} />}>
-      {(gameId) => <ProfileWithGame gameId={gameId()} profileId={params.profileId} />}
-    </Show>
+    <>
+      <Show when={gameSelect.showing}>
+        <GameSelect
+          replace={true}
+          shouldShow={gameSelect.shouldShow}
+          beginDismiss={() => setGameSelect("shouldShow", false)}
+          finishDismiss={() => setGameSelect("showing", false)}
+        />
+      </Show>
+      <Show when={params.gameId}>
+        {(gameId) => (
+          <ProfileWithGame gameId={gameId()} profileId={params.profileId} gameSelect={[gameSelect, setGameSelect]} />
+        )}
+      </Show>
+    </>
   );
 }
 
-function ProfileWithGame(params: ProfileParams & { gameId: string }) {
+function ProfileWithGame(
+  params: ProfileParams & {
+    gameId: string;
+    gameSelect: [ShowGameSelectState, SetStoreFunction<ShowGameSelectState>];
+  },
+) {
   const [searchParams, setSearchParams] = useSearchParamsInPlace<ProfileSearchParams>();
 
   // TODO, handle undefined case
@@ -149,7 +175,7 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
   // Update title bar with current profile name
   createEffect(() => {
     const profile = currentProfile();
-    setCurrentProfileName(profile == null || pickingGame() ? "" : profile.name);
+    setCurrentProfileName(profile == null || params.gameSelect[0].showing ? "" : profile.name);
   });
 
   // track launch errors here instead of reporting to the error boundary to avoid rebuilding the UI
@@ -202,8 +228,6 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
   // For mini sidebar on small app width only
   const [sidebarOpen, setSidebarOpen] = createSignal(false);
 
-  const [pickingGame, setPickingGame] = createSignal(false);
-
   // For creating new profiles
   const [creatingProfile, setCreatingProfile] = createSignal(false);
 
@@ -249,7 +273,7 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
           style={{ "--game-hero--url": `url("/img/game_heros/${gameInfo().id}.webp")` }}
         >
           <nav class={styles.sidebar__nav}>
-            <button class={styles.backBtn} on:click={() => setPickingGame(true)}>
+            <button class={styles.backBtn} on:click={() => params.gameSelect[1]({ shouldShow: true, showing: true })}>
               <Fa icon={faChevronDown} />
             </button>
 
@@ -499,12 +523,6 @@ function ProfileWithGame(params: ProfileParams & { gameId: string }) {
       <DoctorReports />
 
       <Show when={err()}>{(err) => <ErrorDialog err={err()} reset={() => setErr(undefined)} />}</Show>
-
-      <Show when={pickingGame()}>
-        <Portal>
-          <GameSelect replace={false} dismiss={() => setPickingGame(false)} />
-        </Portal>
-      </Show>
     </main>
   );
 }

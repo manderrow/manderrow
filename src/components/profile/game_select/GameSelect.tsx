@@ -2,7 +2,7 @@ import { faStar } from "@fortawesome/free-regular-svg-icons";
 import { faGlobe, faList, faTableCellsLarge } from "@fortawesome/free-solid-svg-icons";
 import { useNavigate } from "@solidjs/router";
 import Fa from "solid-fa";
-import { createResource, createSelector, createSignal, For } from "solid-js";
+import { createEffect, createResource, createSelector, createSignal, For, onMount } from "solid-js";
 
 import { games, initialSortedGames } from "../../../globals";
 import { Locale, localeNamesMap, setLocale, locale, t, RAW_LOCALES } from "../../../i18n/i18n";
@@ -24,7 +24,14 @@ enum DisplayType {
   List = 1,
 }
 
-export default function GameSelect(props: { replace: boolean; dismiss?: () => void }) {
+const ZOOM_ANIMATION_TIME_MS = 250;
+
+export default function GameSelect(props: {
+  replace: boolean;
+  shouldShow: boolean;
+  beginDismiss: () => void;
+  finishDismiss: () => void;
+}) {
   const [displayType, setDisplayType] = createSignal<DisplayType>(DisplayType.Card);
   const [search, setSearch] = createSignal("");
   const [sort, setSort] = createSignal<GameSortColumn>(GameSortColumn.ModDownloads);
@@ -42,8 +49,29 @@ export default function GameSelect(props: { replace: boolean; dismiss?: () => vo
 
   const sortMethodSelected = createSelector(sort);
 
+  onMount(() => {
+    if (!props.shouldShow) {
+      // Close immediately, likely opened app into a game profile
+      props.finishDismiss();
+    }
+  });
+
+  createEffect(() => {
+    if (!props.shouldShow) {
+      // Dismiss after animation
+      setTimeout(() => {
+        props.finishDismiss();
+      }, ZOOM_ANIMATION_TIME_MS);
+    }
+  });
+
   return (
-    <div class={styles.page}>
+    <div
+      class={styles.page}
+      classList={{ [styles.zoomOut]: props.shouldShow, [styles.zoomIn]: !props.shouldShow }}
+      data-showing={props.shouldShow}
+      style={{ "--duration": `${ZOOM_ANIMATION_TIME_MS}ms` }}
+    >
       <div class={styles.pageInner}>
         <div class={blobStyles.gradientBlobs} aria-hidden="true">
           <div class={blobStyles.gradientBlob} data-blob-1></div>
@@ -131,7 +159,7 @@ export default function GameSelect(props: { replace: boolean; dismiss?: () => vo
                 </li>
               }
             >
-              {(game) => <GameComponent game={games()[game]} replace={props.replace} dismiss={props.dismiss} />}
+              {(game) => <GameComponent game={games()[game]} replace={props.replace} dismiss={props.beginDismiss} />}
             </For>
           </ol>
         </main>
@@ -140,14 +168,14 @@ export default function GameSelect(props: { replace: boolean; dismiss?: () => vo
   );
 }
 
-function GameComponent(props: { game: Game; replace: boolean; dismiss?: () => void }) {
+function GameComponent(props: { game: Game; replace: boolean; dismiss: () => void }) {
   const url = `/img/game_covers/${props.game.thunderstoreId}.webp`;
 
   const navigate = useNavigate();
 
   function navigateToGame() {
     navigate(`/profile/${props.game.id}/`, { replace: props.replace });
-    props.dismiss?.();
+    props.dismiss();
   }
 
   return (
