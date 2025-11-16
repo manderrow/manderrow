@@ -74,7 +74,7 @@ pub fn init(host_dlfcn_lib_path: [:0]const u16, host_lib_path: [:0]const u8) voi
 
     // TODO: get error string
     const host_lib = dlfcns.dlopen(host_lib_path, .{ .LAZY = true }) orelse {
-        std.debug.panic("Failed to load host library from {s}", .{host_lib_path});
+        std.debug.panic("Failed to load host library from {s}: {?s}", .{ host_lib_path, std.mem.span(dlfcns.dlerror()) });
     };
 
     logger.debug("Loaded host library", .{});
