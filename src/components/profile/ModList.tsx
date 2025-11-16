@@ -218,6 +218,7 @@ export default function ModList(props: {
                     }
                   : undefined
               }
+              forceSelectorVisibility={props.multiselect ? selectedMods().size !== 0 : undefined}
             />
           )}
         </Show>
@@ -845,10 +846,15 @@ type SelectableModListProps = {
   /// Whether the mod is selected in the ModList (for bulk actions)
   isSelected: (mod: ModId) => boolean;
   setSelected: (mod: ModId, version: string, selected: boolean) => void;
+  forceSelectorVisibility: boolean;
+};
+
+type MaybeSelectableModListProps = {
+  [key in keyof SelectableModListProps]: SelectableModListProps[key] | undefined;
 };
 
 function ModListMods(
-  props: { mods: PageFetcher; focusedMod: Signal<ModId | undefined> } & (SelectableModListProps | {}),
+  props: { mods: PageFetcher; focusedMod: Signal<ModId | undefined> } & MaybeSelectableModListProps,
 ) {
   const infiniteScroll = createMemo(() => {
     // this should take readonly, which would make the cast unnecessary
@@ -887,9 +893,9 @@ function ModListMods(
             mod={mod}
             isFocused={isFocusedMod}
             setFocused={props.focusedMod[1]}
-            isSelected={(props as any).isSelected}
-            setSelected={(props as any).setSelected}
-            modSelectorTutorialState={modSelectorTutorialState()}
+            isSelected={props.isSelected}
+            setSelected={props.setSelected}
+            forceSelectorVisibility={props.forceSelectorVisibility || modSelectorTutorialState() < 2}
           />
         )}
       </For>
@@ -942,7 +948,7 @@ function ModListItem(
     /// Whether the mod is focused in the ModView
     isFocused: (mod: ModId) => boolean;
     setFocused: (mod: ModId | undefined) => void;
-    modSelectorTutorialState: ModSelectorTutorialState;
+    forceSelectorVisibility: boolean;
     // setModSelectorTutorialState: (hovered: boolean) => void,
   } & (SelectableModListProps | {}),
 ) {
@@ -985,7 +991,7 @@ function ModListItem(
         tabIndex={0}
       >
         <Show when={(props as any).isSelected !== undefined}>
-          <div class={styles.mod__selector} data-always-show={props.modSelectorTutorialState < 2 ? "" : undefined}>
+          <div class={styles.mod__selector} data-always-show={props.forceSelectorVisibility ? "" : undefined}>
             <Checkbox
               checked={(props as SelectableModListProps).isSelected(props.mod)}
               onChange={(checked) =>
