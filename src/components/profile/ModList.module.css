@@ -113,8 +113,16 @@
       width: 1.5em;
       margin-right: -1em;
 
-      transition:
-        width var(--animation-time) var(--animation-curve),
+      /* Setting this to higher than 0 causes
+        check boxes to display on top of the
+        sidebar when it is in its small screen
+        overlay state for some reason. This is
+        needed at all to make the hover region
+        overlap the mod image
+      */
+      z-index: 0;
+
+      transition: width var(--animation-time) var(--animation-curve),
         margin var(--animation-time) var(--animation-curve);
 
       > input {
