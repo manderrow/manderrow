@@ -498,7 +498,8 @@
       color: var(--clr-neutral-15);
     }
 
-    [data-owner] {
+    [data-owner],
+    .externalIcon {
       color: var(--clr-neutral-30);
       font-size: 0.9rem;
     }
