@@ -6,7 +6,7 @@
   border-radius: 4em;
   overflow: hidden;
   position: relative;
-  background-color: var(--clr-neutral-80);
+  background-color: hsl(from var(--clr-neutral-80) h s calc(l - 3));
   z-index: 0;
   container-type: inline-size;
 
@@ -94,7 +94,7 @@
 
   .progressBg {
     stroke-width: var(--stroke-width);
-    stroke: var(--clr-neutral-80);
+    stroke: hsl(from var(--clr-neutral-80) h s calc(l - 3));
   }
 
   .progressBar {
