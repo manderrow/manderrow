@@ -348,11 +348,11 @@ function ProfileWithGame(
                 },
                 {
                   value: ProfileSortType.creation_date,
-                  label: "Creation Date",
+                  label: t("global.sort_type.creation_date"),
                   selected: () => isProfileSortType(ProfileSortType.creation_date),
                 },
               ]}
-              label={{ labelText: "preset", preset: "Sort" }}
+              label={{ labelText: "preset", preset: t("global.sort_title") }}
               onChanged={(key) => setProfileSortType(key)}
             />
             <button
@@ -384,7 +384,7 @@ function ProfileWithGame(
               <Show when={creatingProfile()}>
                 <li class={sidebarStyles.profileList__item}>
                   <SidebarProfileNameEditor
-                    initialValue=""
+                    initialValue={t("profile.default_profile_name")}
                     onSubmit={async (value) => {
                       await createProfile(params.gameId, value);
                       await refetchProfiles();
@@ -481,13 +481,13 @@ function ProfileWithGame(
                   tabs={[
                     {
                       id: "mod-list",
-                      name: "Installed Mods",
+                      name: t("profile.tabs.installed"),
                       component: () => <InstalledModList game={params.gameId} />,
                     },
 
                     {
                       id: "mod-search",
-                      name: "Online Mods",
+                      name: t("profile.tabs.online"),
                       component: () => <OnlineModList game={params.gameId} />,
                     },
 
@@ -503,7 +503,7 @@ function ProfileWithGame(
 
                     {
                       id: "config",
-                      name: "Config",
+                      name: t("profile.tabs.config"),
                       component: () => <div></div>,
                     },
                   ]}
@@ -642,7 +642,7 @@ function SidebarProfileComponent(props: {
                     <Fa icon={faClipboard} />
                   </button>
                 </Tooltip>
-                <Tooltip content={t("profile.sidebar.delete_profile_btn")}>
+                <Tooltip content={t("global.phrases.delete")}>
                   <button
                     data-delete
                     onClick={async () => {
@@ -670,9 +670,7 @@ function SidebarProfileComponent(props: {
                       },
                     },
                     {
-                      label: (
-                        <SidebarContextMenuItem icon={faTrashCan} label={t("profile.sidebar.delete_profile_btn")} />
-                      ),
+                      label: <SidebarContextMenuItem icon={faTrashCan} label={t("global.phrases.delete")} />,
                       action() {
                         setConfirmingDeletion(true);
                       },
@@ -724,12 +722,12 @@ function SidebarProfileComponent(props: {
             <Show when={confirmingDeletion()}>
               <PromptDialog
                 options={{
-                  title: "Confirm",
-                  question: `You are about to delete ${props.profile.name}`,
+                  title: t("global.phrases.confirm"),
+                  question: t("profile.delete_msg", { profileName: props.profile.name }),
                   btns: {
                     ok: {
                       type: "danger",
-                      text: "Delete",
+                      text: t("global.phrases.delete"),
                       async callback() {
                         if (props.selected) {
                           navigate(`/profile/${props.gameId}`, { replace: true });

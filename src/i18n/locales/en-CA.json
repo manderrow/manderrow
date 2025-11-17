@@ -4,9 +4,20 @@
       "ok": "OK",
       "yes": "Yes",
       "no": "No",
+      "delete": "Delete",
+      "confirm": "Confirm",
       "cancel": "Cancel",
       "loading": "Loading",
-      "search": "Search"
+      "search": "Search",
+      "select": "Select",
+      "apply": "Apply",
+      "deselect": "Deselect",
+      "select_all": "Select All",
+      "deselect_all": "Deselect All",
+      "back": "Back",
+      "next": "Next",
+      "previous": "Previous",
+      "close": "Close"
     },
     "game_sort_column": {
       "name": "Name",
@@ -20,6 +31,7 @@
       "owner": "Owner",
       "size": "Size"
     },
+    "sort_title": "Sort",
     "sort_order": {
       "ascending": "Ascending",
       "descending": "Descending"
@@ -31,19 +43,36 @@
     "select_dropdown": {
       "default_fallback": "Select...",
       "sort_by": "Sort By"
-    },
-    "task_manager": {
-      "title": "Tasks",
-      "active_tab_name": "Active",
-      "completed_tab_name": "Completed"
     }
+  },
+
+  "splashscreen": {
+    "launching_msg": "Launching..."
   },
 
   "titlebar": {
     "minimize_btn": "Minimize",
     "maximize_btn": "Maximize",
-    "restore_btn": "Restore",
-    "close_btn": "Close"
+    "restore_btn": "Restore"
+  },
+
+  "task_manager": {
+    "title": "Tasks",
+    "active_tab_name": "Active",
+    "completed_tab_name": "Completed",
+
+    "source_label": "Source",
+    "no_tasks_yet_msg": "No tasks yet."
+  },
+
+  "status_bar": {
+    "downloads_tracker": "{{ count }} downloads",
+    "other_tasks_tracker": "{{ count }} other tasks"
+  },
+
+  "404_page": {
+    "subtitle": "There is nothing on this page. You somehow got here...",
+    "home_btn": "Go back home"
   },
 
   "game_select": {
@@ -73,7 +102,8 @@
 
     "import_model": {
       "import_title": "Import Modlist",
-      "preview_title": "Preview Mods"
+      "preview_title": "Preview Mods",
+      "thunderstore_code_label": "Thunderstore Code"
     },
 
     "sidebar": {
@@ -94,17 +124,32 @@
       "pin_profile_btn": "Pin",
       "unpin_profile_btn": "Unpin",
       "rename_profile_btn": "Rename",
-      "delete_profile_btn": "Delete",
       "duplicate_profile_btn": "Duplicate",
       "copy_id_profile_btn": "Copy UUID",
       "open_folder_profile_btn": "Open Folder",
       "share_profile_btn": "Share"
     },
 
-    "default_profile_name": "Default"
+    "delete_msg": "Are you sure you want to delete the profile {{ profileName }}? This action cannot be undone.",
+
+    "tabs": {
+      "installed": "Installed Mods",
+      "online": "Online Mods",
+      "config": "Config"
+    },
+
+    "default_profile_name": "New profile",
+
+    "mod_markdown": {
+      "no_readme_provided": "No README provided.",
+      "no_changelog_provided": "No changelog provided."
+    }
   },
 
   "modlist": {
+    "fetching_msg": "Fetching mods...",
+    "discovered_msg": "Discovered {{ count }} mods",
+
     "installed": {
       "no_mods_title": "No mods installed",
       "no_mods_msg": "No mods are installed for the current profile yet.",
@@ -118,7 +163,6 @@
       "enable_selected": "Enable",
       "disable_selected": "Disable",
       "update_selected": "Update",
-      "delete_selected": "Delete",
 
       "updater_title": "Select mods to update",
       "update_selected_btn": "Update Selected",
@@ -140,6 +184,7 @@
       "dependencies_title": "Dependencies",
       "versions_label": "Versions",
       "changelog_title": "Changelog",
+      "donate_btn": "Donate",
       "no_dependencies_msg": "This mod has no dependencies."
     },
 
@@ -181,6 +226,7 @@
   "settings": {
     "title": "Settings",
     "link_title": "App Settings",
+    "search_input_placeholder": "Search settings...",
 
     "section": {
       "general": "General",

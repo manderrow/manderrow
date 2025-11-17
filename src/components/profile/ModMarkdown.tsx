@@ -1,19 +1,15 @@
 import { Show, createResource } from "solid-js";
-import { fetchModMarkdown } from "../../api/mod_index/thunderstore";
+import { Endpoint, fetchModMarkdown } from "../../api/mod_index/thunderstore";
 import { Mod } from "../../types";
 import Markdown from "../global/Markdown";
 import { createProgressProxyStore } from "../../api/tasks";
 import { SimpleProgressIndicator } from "../global/Progress";
-
-const LABELS = Object.freeze({
-  readme: "README",
-  changelog: "changelog",
-});
+import { t } from "../../i18n/i18n";
 
 export default function ModMarkdown(props: {
   mod: Mod | undefined;
   selectedVersion: string | undefined;
-  endpoint: "readme" | "changelog";
+  endpoint: Endpoint;
 }) {
   const modData: () => { mod?: never; version?: never } | { mod: Mod; version: string } = () => {
     const m = props.mod;
@@ -50,7 +46,7 @@ export default function ModMarkdown(props: {
       }
     >
       {(resource) => (
-        <Show when={resource().markdown} fallback={<p>No {LABELS[props.endpoint]} provided.</p>}>
+        <Show when={resource().markdown} fallback={<p>{t(`profile.mod_markdown.no_${props.endpoint}_provided`)}</p>}>
           {(markdown) => <Markdown source={markdown()} div={{ class: "markdown" }} />}
         </Show>
       )}

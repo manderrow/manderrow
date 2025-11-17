@@ -23,12 +23,12 @@ export default function TasksDialog(props: { onDismiss: DismissCallback }) {
   const tabs: readonly Tab<TabId>[] = [
     {
       id: "active",
-      name: t("global.task_manager.active_tab_name"),
+      name: t("task_manager.active_tab_name"),
       component: () => <TaskList active />,
     },
     {
       id: "completed",
-      name: t("global.task_manager.completed_tab_name"),
+      name: t("task_manager.completed_tab_name"),
       component: () => <TaskList />,
     },
   ];
@@ -37,7 +37,7 @@ export default function TasksDialog(props: { onDismiss: DismissCallback }) {
     <Dialog onDismiss={props.onDismiss}>
       <div class={styles.tasks}>
         <div class={styles.tasks__header}>
-          <h2>{t("global.task_manager.title")}</h2>
+          <h2>{t("task_manager.title")}</h2>
         </div>
 
         <div>
@@ -84,7 +84,7 @@ function TaskList(props: { active?: boolean }) {
     <ul class={styles.list}>
       <For
         each={tasksArray().filter((task) => task.isComplete != !!props.active && task.status.status !== "Unstarted")}
-        fallback={<li>No tasks yet.</li>}
+        fallback={<li>{t("task_manager.no_tasks_yet_msg")}</li>}
       >
         {(task) => (
           <li>
@@ -142,7 +142,7 @@ function DownloadUrlLine(props: { url: string }) {
   return (
     <div class={styles.downloadUrl}>
       <a href={props.url} title={props.url}>
-        Source
+        {t("task_manager.source_label")}
       </a>
       <button
         onClick={() => {

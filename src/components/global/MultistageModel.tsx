@@ -4,6 +4,7 @@ import { createStore } from "solid-js/store";
 import Dialog, { DismissCallback } from "./Dialog.tsx";
 
 import styles from "./MultistageModel.module.css";
+import { t } from "../../i18n/i18n.ts";
 
 interface Stage {
   title: string;
@@ -99,11 +100,13 @@ export default function MultistageModel(props: Props) {
             {(buttons) => (
               <div class={styles.navBtns}>
                 <Show when={stack.length > 1}>
-                  <button onClick={buttons().previous.callback}>{buttons().previous.text || "Previous"}</button>
+                  <button onClick={buttons().previous.callback}>
+                    {buttons().previous.text || t("global.phrases.previous")}
+                  </button>
                 </Show>
 
-                <button onClick={buttons().dismiss}>Cancel</button>
-                <button onClick={buttons().next.callback}>{buttons().next.text || "Next"}</button>
+                <button onClick={buttons().dismiss}>{t("global.phrases.cancel")}</button>
+                <button onClick={buttons().next.callback}>{buttons().next.text || t("global.phrases.next")}</button>
               </div>
             )}
           </Show>

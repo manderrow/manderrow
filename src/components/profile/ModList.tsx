@@ -175,14 +175,14 @@ export default function ModList(props: {
         <div class={styles.discoveredLine}>
           <Switch>
             <Match when={props.isLoading || queriedMods.loading}>
-              <span>Fetching mods</span>
+              <span>{t("modlist.fetching_msg")}</span>
               <SimpleProgressIndicator progress={props.progress} />
             </Match>
             <Match when={queriedMods.error}>
               {(err) => <ErrorIndicator icon={true} message="Query failed" err={err()} reset={props.refresh} />}
             </Match>
             <Match when={queriedMods.latest}>
-              <span>Discovered {numberFormatter.format(queriedMods()!.count)} mods</span>
+              <span>{t("modlist.discovered_msg", { count: numberFormatter.format(queriedMods()!.count) })}</span>
               <ActionContext>
                 {(busy, wrapOnClick) => (
                   <button class={styles.refreshButton} disabled={busy()} on:click={() => wrapOnClick(props.refresh)}>
@@ -443,13 +443,13 @@ function ModUpdateDialogue(props: { onDismiss: () => void; updates: ModUpdate[] 
                 }
               }}
             />
-            <label for="update-select-all-mods">Select All</label>
+            <label for="update-select-all-mods">{t("global.phrases.select_all")}</label>
           </fieldset>
           <fieldset>
             <label for="update-search" class="phantom">
-              Search
+              {t("global.phrases.search")}
             </label>
-            <input type="text" id="update-search" placeholder="Search mod..." />
+            <input type="text" id="update-search" placeholder={t("global.phrases.search")} />
           </fieldset>
         </form>
         <ul>
@@ -566,7 +566,7 @@ function SelectedModsList(props: { mods: Accessor<Map<ModId, string>> }) {
       <div class={styles.selected__actions}>
         <button>{t("modlist.installed.enable_selected")}</button>
         <button>{t("modlist.installed.disable_selected")}</button>
-        <button>{t("modlist.installed.delete_selected")}</button>
+        <button>{t("global.phrases.delete")}</button>
         <button>{t("modlist.installed.update_selected")}</button>
       </div>
     </>
@@ -688,7 +688,7 @@ function ModView(props: { mod: Mod; gameId: string; closeModView: () => void }) 
           <Show when={props.mod.donation_link != null}>
             <a class={styles.modMeta__donate} href={props.mod.donation_link} target="_blank" rel="noopener noreferrer">
               <Fa icon={faHeart} class={styles.donate__icon} />
-              <br /> Donate
+              <br /> {t("modlist.modview.donate_btn")}
             </a>
           </Show>
 
@@ -745,7 +745,7 @@ function ModView(props: { mod: Mod; gameId: string; closeModView: () => void }) 
                 installContext={installContext!}
                 class={styles.modView__downloadBtn}
               >
-                Download
+                {t("modlist.online.install_btn")}
               </InstallButton>
             </div>
           }
@@ -792,7 +792,7 @@ function ModView(props: { mod: Mod; gameId: string; closeModView: () => void }) 
                       installContext={installContext!}
                       class={styles.downloadBtn}
                     >
-                      Apply
+                      {t("global.phrases.apply")}
                     </InstallButton>
                   </>
                 )}
@@ -810,7 +810,7 @@ function ModView(props: { mod: Mod; gameId: string; closeModView: () => void }) 
 
 function ModViewDependencies(props: { gameId: string; dependencies: string[] }) {
   return (
-    <Show when={props.dependencies.length > 0} fallback={<p>This mod has no dependencies.</p>}>
+    <Show when={props.dependencies.length > 0} fallback={<p>{t("modlist.modview.no_dependencies_msg")}</p>}>
       <ul class={styles.modDeps}>
         <For each={props.dependencies}>
           {(dependency) => {
@@ -900,7 +900,7 @@ function ModListMods(
         )}
       </For>
       <Show when={!end()}>
-        <li use:infiniteScrollLoader>Loading...</li>
+        <li use:infiniteScrollLoader>{t("global.phrases.loading")}...</li>
       </Show>
     </ol>
   );

@@ -62,13 +62,13 @@ export default function SettingsPage() {
         <div class={styles.settings__navbar}>
           <div class={styles.navbar__header}>
             <div class={styles.navbar__title}>
-              <h1>Settings</h1>
+              <h1>{t("settings.title")}</h1>
               <button type="button" on:click={() => navigate(-1)} data-back>
                 <Fa icon={faChevronLeft} />
               </button>
             </div>
 
-            <input type="text" placeholder="Search for settings..." />
+            <input type="text" placeholder={t("settings.search_input_placeholder")} />
           </div>
           <TabRenderer
             id="settings"

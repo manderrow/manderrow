@@ -72,14 +72,14 @@ function ChoosePage(props: ChoosePageProps & InitialStageProps) {
   return (
     <form on:submit={(e) => e.preventDefault()}>
       <div class={styles.importInputGroup}>
-        <label for={thunderstoreCodeFieldId}>Thunderstore Code</label>
+        <label for={thunderstoreCodeFieldId}>{t("profile.import_model.thunderstore_code_label")}</label>
         <input id={thunderstoreCodeFieldId} use:bindValue={[thunderstoreCode, setThunderstoreCode]} required></input>
       </div>
 
       <div class={styles.buttonRow}>
-        <button on:click={props.actions.dismiss}>Cancel</button>
+        <button on:click={props.actions.dismiss}>{t("global.phrases.cancel")}</button>
         <SimpleAsyncButton progress type="submit" onClick={onSubmitThunderstoreCode}>
-          Next
+          {t("global.phrases.next")}
         </SimpleAsyncButton>
       </div>
     </form>

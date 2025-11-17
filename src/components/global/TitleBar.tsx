@@ -78,7 +78,7 @@ export default function TitleBar() {
             </svg>
           </Show>
         </button>
-        <button title={t("titlebar.close_btn")} on:click={() => close()} data-close>
+        <button title={t("global.phrases.close")} on:click={() => close()} data-close>
           {/* <!-- https://api.iconify.design/mdi:close.svg --> */}
           <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
             <path

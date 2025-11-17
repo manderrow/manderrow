@@ -1,6 +1,7 @@
 import { Show, createMemo, createSignal } from "solid-js";
 
 import { tasksArray } from "../../api/tasks";
+import { t } from "../../i18n/i18n";
 
 import TasksDialog from "../global/TasksDialog";
 
@@ -32,8 +33,10 @@ export default function StatusBar() {
       {/* <div aria-hidden="true" class={styles.statusBarBorderCover}></div> */}
       <div class={styles.statusBar__content}>
         <button class={styles.taskManagerBtn} on:click={() => setTasksDialogOpen(true)}>
-          <span class={styles.statusBar__chunk}>{counts().downloads} downloads</span>
-          <span class={styles.statusBar__chunk}>{counts().other} other tasks</span>
+          <span class={styles.statusBar__chunk}>
+            {t("status_bar.downloads_tracker", { count: counts().downloads })}
+          </span>
+          <span class={styles.statusBar__chunk}>{t("status_bar.other_tasks_tracker", { count: counts().other })}</span>
         </button>
 
         <Show when={tasksDialogOpen()}>
