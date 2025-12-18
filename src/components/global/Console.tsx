@@ -406,7 +406,7 @@ function DoctorDialog(props: { report: IdentifiedDoctorReport; onDismiss: () => 
   const reportErr = useContext(ErrorContext)!;
 
   return (
-    <Dialog>
+    <Dialog initialOpen>
       <div class={dialogStyles.dialog__container}>
         <h2 class={dialogStyles.dialog__title}>Uh oh!</h2>
         <p class={styles.dialog__message}>

@@ -11,6 +11,7 @@
   display: grid;
   grid-template-columns: auto max-content;
   z-index: var(--titlebar-z-index);
+  pointer-events: auto;
 
   &[data-focused="true"] {
     background-color: var(--clr-neutral-90);

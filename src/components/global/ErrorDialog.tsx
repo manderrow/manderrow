@@ -10,9 +10,12 @@ import styles from "./ErrorDialog.module.css";
 import Fa from "solid-fa";
 import { faCircleExclamation } from "@fortawesome/free-solid-svg-icons";
 
-export default function ErrorDialog(props: { err: Exclude<unknown, undefined | null>; reset: () => Promise<void> | void }) {
+export default function ErrorDialog(props: {
+  err: Exclude<unknown, undefined | null>;
+  reset: () => Promise<void> | void;
+}) {
   return (
-    <DefaultDialog class={styles.errorDialog}>
+    <DefaultDialog class={styles.errorDialog} initialOpen hideCloseBtn>
       <div class={styles.error}>
         <h2>{t("error.title")}</h2>
         <p>{t("error.deescalation_msg")}</p>
@@ -81,21 +84,28 @@ export function ErrorIndicator(props: {
 }) {
   const [dialogOpen, setDialogOpen] = createSignal(false);
 
-  return <ActionContext>
-    {(busy, wrapOnClick) => (<>
-      <button class={styles.errorIndicator} type="button" disabled={busy()} onClick={() => setDialogOpen(true)}>
-        <Show when={props.icon}>
-          <Fa icon={faCircleExclamation} />
-        </Show>
-        {props.message}
-      </button>
+  return (
+    <ActionContext>
+      {(busy, wrapOnClick) => (
+        <>
+          <button class={styles.errorIndicator} type="button" disabled={busy()} onClick={() => setDialogOpen(true)}>
+            <Show when={props.icon}>
+              <Fa icon={faCircleExclamation} />
+            </Show>
+            {props.message}
+          </button>
 
-      <Show when={dialogOpen()}>
-        <ErrorDialog err={props.err} reset={() => {
-          setDialogOpen(false);
-          wrapOnClick(props.reset);
-        }} />
-      </Show>
-    </>)}
-  </ActionContext>;
+          <Show when={dialogOpen()}>
+            <ErrorDialog
+              err={props.err}
+              reset={() => {
+                setDialogOpen(false);
+                wrapOnClick(props.reset);
+              }}
+            />
+          </Show>
+        </>
+      )}
+    </ActionContext>
+  );
 }

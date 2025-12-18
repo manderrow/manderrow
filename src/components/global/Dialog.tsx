@@ -1,7 +1,10 @@
-import { JSX, Show } from "solid-js";
-import { Portal } from "solid-js/web";
+import { JSX, Show, splitProps } from "solid-js";
+import CorvuDialog from "corvu/dialog";
+import type { RootProps } from "corvu/dialog";
 
 import styles from "./Dialog.module.css";
+import Fa from "solid-fa";
+import { faXmark } from "@fortawesome/free-solid-svg-icons";
 
 export const dialogStyles = styles;
 
@@ -37,41 +40,44 @@ function getBtnTypeClass(type?: BtnType) {
 
 export type DismissCallback = () => void;
 
+type DialogProps = Omit<RootProps, "contextId"> &
+  JSX.IntrinsicElements["div"] & {
+    onDismiss?: DismissCallback;
+    anchorId?: string;
+    hideCloseBtn?: boolean;
+    trigger?: JSX.Element;
+  };
+export type DialogExternalProps = Omit<DialogProps, "children">;
+
 export function PromptDialog({ options }: { options: PromptDialogOptions }) {
   return (
-    <Dialog>
-      <div class={styles.dialog__container}>
-        <Show when={options.title !== undefined}>
-          <h2 class={styles.dialog__title}>{options.title ?? "Confirm Decision"}</h2>
-        </Show>
-        <p class={styles.dialog__message}>{options.question}</p>
-        <div class={styles.dialog__btns}>
-          <button
-            on:click={options?.btns?.ok?.callback}
-            classList={{ [styles.dialog__btnsBtn]: true, [getBtnTypeClass(options?.btns?.ok?.type)]: true }}
-          >
-            {options?.btns?.ok?.text ?? "Confirm"}
-          </button>
-          <button
-            on:click={options?.btns?.cancel?.callback}
-            classList={{ [styles.dialog__btnsBtn]: true, [getBtnTypeClass(options?.btns?.cancel?.type)]: true }}
-          >
-            {options.btns?.cancel?.text ?? "Cancel"}
-          </button>
-        </div>
+    <Dialog class={styles.dialogDefault}>
+      <Show when={options.title !== undefined}>
+        <h2 class={styles.dialog__title}>{options.title ?? "Confirm Decision"}</h2>
+      </Show>
+      <p class={styles.dialog__message}>{options.question}</p>
+      <div class={styles.dialog__btns}>
+        <button
+          on:click={options?.btns?.ok?.callback}
+          classList={{ [styles.dialog__btnsBtn]: true, [getBtnTypeClass(options?.btns?.ok?.type)]: true }}
+        >
+          {options?.btns?.ok?.text ?? "Confirm"}
+        </button>
+        <button
+          on:click={options?.btns?.cancel?.callback}
+          classList={{ [styles.dialog__btnsBtn]: true, [getBtnTypeClass(options?.btns?.cancel?.type)]: true }}
+        >
+          {options.btns?.cancel?.text ?? "Cancel"}
+        </button>
       </div>
     </Dialog>
   );
 }
 
-export function DefaultDialog(props: {
-  onDismiss?: DismissCallback;
-  class?: JSX.HTMLAttributes<HTMLDivElement>["class"];
-  children?: JSX.Element;
-}) {
+export function DefaultDialog(props: DialogProps) {
   return (
-    <Dialog onDismiss={props.onDismiss}>
-      <div class={`${styles.dialog__container} ${props.class ?? ""}`}>{props.children}</div>
+    <Dialog {...props} class={`${styles.dialogDefault} ${props.class ?? ""}`}>
+      {props.children}
     </Dialog>
   );
 }
@@ -90,18 +96,40 @@ export function InfoDialog({ title, message }: { title: string | null; message: 
   );
 }
 
-export default function Dialog(props: { onDismiss?: DismissCallback; children: JSX.Element }) {
-  function onClick(e: MouseEvent) {
-    if (e.eventPhase !== Event.BUBBLING_PHASE) {
-      props.onDismiss!();
-    }
-  }
+export default function Dialog(props: DialogProps) {
+  const [rootProps, contentProps] = splitProps(props, ["anchorId", "onDismiss", "trigger", "hideCloseBtn", "class"]);
 
   return (
-    <Portal>
-      <div class={styles.dialog} on:click={props.onDismiss && onClick}>
-        {props.children}
-      </div>
-    </Portal>
+    <CorvuDialog
+      {...props}
+      contextId={rootProps.anchorId}
+      onOpenChange={(open) => {
+        if (!open) {
+          rootProps.onDismiss?.();
+        }
+      }}
+    >
+      {rootProps.trigger}
+
+      <CorvuDialog.Portal contextId={rootProps.anchorId}>
+        <CorvuDialog.Overlay class={styles.overlay} contextId={rootProps.anchorId} />
+        <CorvuDialog.Content
+          class={`${styles.dialog} ${rootProps.class ?? ""}`}
+          contextId={rootProps.anchorId}
+          {...contentProps}
+        >
+          <Show when={!rootProps.hideCloseBtn}>
+            <CorvuDialog.Close class={styles.dialog__closeBtn}>
+              <Fa icon={faXmark} />
+            </CorvuDialog.Close>
+          </Show>
+
+          {contentProps.children}
+        </CorvuDialog.Content>
+      </CorvuDialog.Portal>
+    </CorvuDialog>
   );
 }
+
+export const DialogTrigger = CorvuDialog.Trigger;
+export const DialogClose = CorvuDialog.Close;

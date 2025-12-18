@@ -1,4 +1,9 @@
-import { createMemo, createSignal, createUniqueId, For, JSX, Show } from "solid-js";
+import { createMemo, createSignal, createUniqueId, For, JSX, Show, splitProps } from "solid-js";
+import { createStore } from "solid-js/store";
+import { faChevronLeft } from "@fortawesome/free-solid-svg-icons";
+import { Fa } from "solid-fa";
+import { OverlayScrollbarsComponent } from "overlayscrollbars-solid";
+import { Channel } from "@tauri-apps/api/core";
 
 import {
   importModpackFromThunderstoreCode,
@@ -7,43 +12,42 @@ import {
   ModSpec,
   previewImportModpackFromThunderstoreCode,
 } from "../../api";
+import { t } from "../../i18n/i18n.ts";
 // @ts-ignore: typescript is unaware of solid's use: syntax
 import { bindValue } from "../global/Directives";
-
-import { faChevronLeft } from "@fortawesome/free-solid-svg-icons";
-import { OverlayScrollbarsComponent } from "overlayscrollbars-solid";
-import { Fa } from "solid-fa";
-import { createStore } from "solid-js/store";
 import { refetchProfiles } from "../../globals";
+import { initProgress, Listener, Id as TaskId, tasks } from "../../api/tasks";
+
 import ErrorBoundary from "../global/ErrorBoundary";
 import { SimpleAsyncButton } from "../global/AsyncButton";
-import { initProgress, Listener, Id as TaskId, tasks } from "../../api/tasks";
-import { Channel } from "@tauri-apps/api/core";
 import { SimpleProgressIndicator } from "../global/Progress";
+import MultistageModel, { BaseStageProps } from "../global/MultistageModel";
+import { type DialogExternalProps, DialogClose } from "../global/Dialog";
 
 import styles from "./ImportDialog.module.css";
-import MultistageModel, { Actions, InitialSetupProps, InitialStageProps } from "../global/MultistageModel.tsx";
-import { t } from "../../i18n/i18n.ts";
 
 interface ChoosePageProps {
   gameId: string;
   profile?: string;
 }
 
-export default function ImportDialog(props: ChoosePageProps & InitialSetupProps) {
+export default function ImportDialog(props: ChoosePageProps & DialogExternalProps) {
+  const [local, rest] = splitProps(props, ["gameId", "profile"]);
+
   return (
     <MultistageModel
       initialStage={(actions) => ({
         title: t("profile.import_model.import_title"),
-        element: <ChoosePage gameId={props.gameId} profile={props.profile} actions={actions} />,
+        element: () => <ChoosePage gameId={local.gameId} profile={local.profile} actions={actions} />,
       })}
-      onDismiss={props.dismiss}
+      onDismiss={rest.onDismiss}
       estimatedStages={2}
+      {...rest}
     />
   );
 }
 
-function ChoosePage(props: ChoosePageProps & InitialStageProps) {
+function ChoosePage(props: ChoosePageProps & BaseStageProps) {
   const thunderstoreCodeFieldId = createUniqueId();
 
   const [thunderstoreCode, setThunderstoreCode] = createSignal("");
@@ -57,15 +61,14 @@ function ChoosePage(props: ChoosePageProps & InitialStageProps) {
     );
     props.actions.pushStage({
       title: t("profile.import_model.preview_title"),
-      element: (
-        <PreviewPage
-          thunderstoreCode={thunderstoreCode()}
-          gameId={props.gameId}
-          profile={props.profile}
-          modpack={modpack}
-          actions={props.actions}
-        />
-      ),
+      element: PreviewPage,
+      args: {
+        thunderstoreCode: thunderstoreCode(),
+        gameId: props.gameId,
+        profile: props.profile,
+        modpack: modpack,
+        actions: props.actions,
+      },
     });
   }
 
@@ -77,7 +80,7 @@ function ChoosePage(props: ChoosePageProps & InitialStageProps) {
       </div>
 
       <div class={styles.buttonRow}>
-        <button on:click={props.actions.dismiss}>{t("global.phrases.cancel")}</button>
+        <DialogClose onClick={props.actions.dismiss}>{t("global.phrases.cancel")}</DialogClose>
         <SimpleAsyncButton progress type="submit" onClick={onSubmitThunderstoreCode}>
           {t("global.phrases.next")}
         </SimpleAsyncButton>
@@ -86,23 +89,18 @@ function ChoosePage(props: ChoosePageProps & InitialStageProps) {
   );
 }
 
-function PreviewPage(props: {
+interface PreviewPageProps extends BaseStageProps {
   thunderstoreCode: string;
   gameId: string;
   profile?: string;
   modpack: Modpack;
-  actions: Actions;
-}) {
+}
+
+function PreviewPage(props: PreviewPageProps) {
   return <ErrorBoundary>{PreviewPageInner(props)}</ErrorBoundary>;
 }
 
-function PreviewPageInner(props: {
-  thunderstoreCode: string;
-  gameId: string;
-  profile?: string;
-  modpack: Modpack;
-  actions: Actions;
-}) {
+function PreviewPageInner(props: PreviewPageProps) {
   let [modProgress, setModProgress] = createStore<Record<string, TaskId>>({});
 
   async function onImport(listener: Listener) {
@@ -118,7 +116,7 @@ function PreviewPageInner(props: {
       listener,
     );
     console.log(`Imported to profile ${id}`);
-    props.actions.dismiss();
+    props.actions.dismiss?.();
     await refetchProfiles();
   }
 
@@ -151,7 +149,7 @@ function PreviewPageInner(props: {
           </OverlayScrollbarsComponent>
         </div>
         <div class={styles.buttonRow}>
-          <button on:click={props.actions.dismiss}>Cancel</button>
+          <DialogClose onClick={props.actions.dismiss}>{t("global.phrases.cancel")}</DialogClose>
           <SimpleAsyncButton progress onClick={onImport}>
             Import
           </SimpleAsyncButton>
