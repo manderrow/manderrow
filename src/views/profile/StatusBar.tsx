@@ -3,8 +3,8 @@ import { createMemo } from "solid-js";
 import { tasksArray } from "../../api/tasks";
 import { t } from "../../i18n/i18n";
 
-import TasksDialog from "../global/TasksDialog";
-import { DialogTrigger } from "../global/Dialog";
+import TasksDialog from "../../components/TasksDialog";
+import { DialogTrigger } from "../../widgets/Dialog";
 
 import styles from "./StatusBar.module.css";
 

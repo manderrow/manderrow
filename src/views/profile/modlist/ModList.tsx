@@ -45,9 +45,9 @@ import {
   modIdEquals,
   queryModIndex,
   uninstallProfileMod,
-} from "../../api";
-import { Progress, createProgressProxyStore, initProgress, registerTaskListener, tasks } from "../../api/tasks";
-import { Mod, ModListing, ModPackage, ModVersion } from "../../types";
+} from "../../../api/api";
+import { Progress, createProgressProxyStore, initProgress, registerTaskListener, tasks } from "../../../api/tasks";
+import { Mod, ModListing, ModPackage, ModVersion } from "../../../types";
 import {
   createMultiselectableList,
   dateFormatterMed,
@@ -55,24 +55,24 @@ import {
   numberFormatter,
   removeProperty,
   roundedNumberFormatter,
-} from "../../utils";
+} from "../../../utils/utils";
 
-import { ActionContext, ProgressStyle, SimpleAsyncButton } from "../global/AsyncButton";
-import ErrorBoundary from "../global/ErrorBoundary.tsx";
-import TabRenderer, { Tab, TabContent } from "../global/TabRenderer";
+import { ActionContext, ProgressStyle, SimpleAsyncButton } from "../../../widgets/AsyncButton";
+import ErrorBoundary from "../../../components/ErrorBoundary.tsx";
+import TabRenderer, { Tab, TabContent } from "../../../widgets/TabRenderer";
 import ModMarkdown from "./ModMarkdown.tsx";
 import ModSearch from "./ModSearch.tsx";
 
 import styles from "./ModList.module.css";
-import { t } from "../../i18n/i18n.ts";
-import { DefaultDialog, DialogClose, DialogTrigger } from "../global/Dialog.tsx";
-import { ErrorIndicator } from "../global/ErrorDialog.tsx";
-import { SimpleProgressIndicator } from "../global/Progress.tsx";
-import SelectDropdown from "../global/SelectDropdown.tsx";
-import TogglableDropdown from "../global/TogglableDropdown.tsx";
-import Tooltip, { TooltipTrigger } from "../global/Tooltip.tsx";
-import { useSearchParamsInPlace } from "../../utils/router.ts";
-import Checkbox from "../global/Checkbox.tsx";
+import { t } from "../../../i18n/i18n.ts";
+import { DefaultDialog, DialogClose, DialogTrigger } from "../../../widgets/Dialog.tsx";
+import { ErrorIndicator } from "../../../components/ErrorDialog.tsx";
+import { SimpleProgressIndicator } from "../../../widgets/Progress.tsx";
+import SelectDropdown from "../../../widgets/SelectDropdown.tsx";
+import TogglableDropdown from "../../../widgets/TogglableDropdown.tsx";
+import Tooltip, { TooltipTrigger } from "../../../widgets/Tooltip.tsx";
+import { useSearchParamsInPlace } from "../../../utils/router.ts";
+import Checkbox from "../../../widgets/Checkbox.tsx";
 
 type PageFetcher = (page: number) => Promise<readonly Mod[]>;
 type ModFetcherResult = {

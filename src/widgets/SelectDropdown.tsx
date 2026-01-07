@@ -1,7 +1,7 @@
 import { For, JSX } from "solid-js";
 import { faCheck } from "@fortawesome/free-solid-svg-icons";
 import Fa from "solid-fa";
-import { t } from "../../i18n/i18n";
+import { t } from "../i18n/i18n";
 
 import styles from "./SelectDropdown.module.css";
 import TogglableDropdown, { TogglableDropdownOptions } from "./TogglableDropdown";

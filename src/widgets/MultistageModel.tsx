@@ -4,7 +4,7 @@ import { createStore } from "solid-js/store";
 import Dialog, { DismissCallback, DialogClose, DialogExternalProps } from "./Dialog.tsx";
 
 import styles from "./MultistageModel.module.css";
-import { t } from "../../i18n/i18n.ts";
+import { t } from "../i18n/i18n.ts";
 
 interface Stage<TArgs = void> {
   title: string;

@@ -1,16 +1,16 @@
 import { useNavigate } from "@solidjs/router";
 import styles from "./Settings.module.css";
-import TabRenderer, { Tab, TabContent } from "../../components/global/TabRenderer";
+import TabRenderer, { Tab, TabContent } from "../../widgets/TabRenderer.tsx";
 import { createUniqueId, For, Match, Switch, useContext, createSignal, createSelector } from "solid-js";
 
-import { Settings, SettingsPatch, updateSettings, settings, settingsUI } from "../../api/settings";
+import { Settings, SettingsPatch, updateSettings, settings, settingsUI } from "../../api/settings.ts";
 import { Fa } from "solid-fa";
 import { faChevronLeft, faClockRotateLeft } from "@fortawesome/free-solid-svg-icons";
-import { t } from "../../i18n/i18n";
-import { GameSelectSetting, Setting, TextSetting, ToggleSetting } from "../../api/settings/ui";
-import SelectDropdown from "../../components/global/SelectDropdown";
-import { games } from "../../globals";
-import { ErrorContext, ReportErrFn } from "../../components/global/ErrorBoundary.tsx";
+import { t } from "../../i18n/i18n.ts";
+import { GameSelectSetting, Setting, TextSetting, ToggleSetting } from "../../api/settings/ui.ts";
+import SelectDropdown from "../../widgets/SelectDropdown.tsx";
+import { games } from "../../globals.ts";
+import { ErrorContext, ReportErrFn } from "../../components/ErrorBoundary.tsx";
 
 export default function SettingsPage() {
   const idPrefix = createUniqueId();

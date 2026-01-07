@@ -1,10 +1,10 @@
 import { Show, createResource } from "solid-js";
-import { Endpoint, fetchModMarkdown } from "../../api/mod_index/thunderstore";
-import { Mod } from "../../types";
-import Markdown from "../global/Markdown";
-import { createProgressProxyStore } from "../../api/tasks";
-import { SimpleProgressIndicator } from "../global/Progress";
-import { t } from "../../i18n/i18n";
+import { Endpoint, fetchModMarkdown } from "../../../api/mod_index/thunderstore";
+import { Mod } from "../../../types";
+import Markdown from "../../../widgets/Markdown";
+import { createProgressProxyStore } from "../../../api/tasks";
+import { SimpleProgressIndicator } from "../../../widgets/Progress";
+import { t } from "../../../i18n/i18n";
 
 export default function ModMarkdown(props: {
   mod: Mod | undefined;

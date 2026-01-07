@@ -2,9 +2,9 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { createResource } from "solid-js";
 
-import { wrapInvoke } from "../api.ts";
+import { wrapInvoke } from "./api.ts";
 import * as ui from "./settings/ui.ts";
-import { createSignalResource } from "../utils.ts";
+import { createSignalResource } from "../utils/utils.ts";
 
 export interface Setting<T> {
   value: T;

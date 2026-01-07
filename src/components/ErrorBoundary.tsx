@@ -1,6 +1,6 @@
 import { catchError, createContext, createSignal, JSX, Show } from "solid-js";
 
-import { AbortedError } from "../../api";
+import { AbortedError } from "../api/api";
 
 import ErrorDialog from "./ErrorDialog";
 

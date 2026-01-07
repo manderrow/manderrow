@@ -1,5 +1,5 @@
 import { createEffect, createSelector, For, JSX, Match, Switch, untrack } from "solid-js";
-import { useSearchParamsInPlace } from "../../utils/router";
+import { useSearchParamsInPlace } from "../utils/router";
 
 import styles from "./TabRenderer.module.css";
 

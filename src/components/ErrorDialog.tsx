@@ -1,10 +1,10 @@
 import { createSignal, For, Match, Show, Switch } from "solid-js";
 
-import { NativeError } from "../../api";
-import { t } from "../../i18n/i18n";
+import { NativeError } from "../api/api";
+import { t } from "../i18n/i18n";
 
-import { ActionContext } from "./AsyncButton";
-import { DefaultDialog } from "./Dialog";
+import { ActionContext } from "../widgets/AsyncButton";
+import { DefaultDialog } from "../widgets/Dialog";
 
 import styles from "./ErrorDialog.module.css";
 import Fa from "solid-fa";

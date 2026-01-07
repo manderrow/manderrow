@@ -1,7 +1,8 @@
 import { createUniqueId } from "solid-js";
-import styles from "./Checkbox.module.css";
 import Fa from "solid-fa";
 import { faCheck } from "@fortawesome/free-solid-svg-icons";
+
+import styles from "./Checkbox.module.css";
 
 export default function Checkbox(props: {
   checked: boolean;

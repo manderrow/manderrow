@@ -39,41 +39,41 @@ import {
 import { OverlayScrollbarsComponent } from "overlayscrollbars-solid";
 import { Fa } from "solid-fa";
 
-import Console, { DoctorReports } from "../../components/global/Console";
-import { DialogTrigger, PromptDialog } from "../../components/global/Dialog";
-import ErrorDialog from "../../components/global/ErrorDialog.tsx";
-import SelectDropdown from "../../components/global/SelectDropdown";
-import TabRenderer from "../../components/global/TabRenderer";
-import { InstalledModList, ModInstallContext, OnlineModList } from "../../components/profile/ModList";
+import Console, { DoctorReports } from "../../components/Console.tsx";
+import { DialogTrigger, PromptDialog } from "../../widgets/Dialog.tsx";
+import ErrorDialog from "../../components/ErrorDialog.tsx";
+import SelectDropdown from "../../widgets/SelectDropdown.tsx";
+import TabRenderer from "../../widgets/TabRenderer";
+import { InstalledModList, ModInstallContext, OnlineModList } from "./modlist/ModList.tsx";
 
-import { createProfile, deleteProfile, getProfileMods, overwriteProfileMetadata, ProfileWithId } from "../../api";
-import * as globals from "../../globals";
-import { initialGame, refetchProfiles, shifting, ctrling } from "../../globals";
+import { createProfile, deleteProfile, getProfileMods, overwriteProfileMetadata, ProfileWithId } from "../../api/api";
+import * as globals from "../../globals.ts";
+import { initialGame, refetchProfiles, shifting, ctrling } from "../../globals.ts";
 // @ts-ignore: TS is unaware of `use:` directives despite using them for type definitions
-import { autofocus, bindValue } from "../../components/global/Directives";
+import { autofocus, bindValue } from "../../components/Directives";
 
 import styles from "./Profile.module.css";
 import sidebarStyles from "./SidebarProfiles.module.css";
-import ImportDialog from "../../components/profile/ImportDialog";
-import { settings } from "../../api/settings";
-import { useSearchParamsInPlace } from "../../utils/router";
-import { killIpcClient } from "../../api/ipc";
+import ImportDialog from "./ImportDialog.tsx";
+import { settings } from "../../api/settings.ts";
+import { useSearchParamsInPlace } from "../../utils/router.ts";
+import { killIpcClient } from "../../api/ipc.ts";
 import { t } from "../../i18n/i18n.ts";
-import { launchProfile } from "../../api/launching";
+import { launchProfile } from "../../api/launching.ts";
 import {
   connections,
   connectionsUpdate,
   ConsoleConnection,
   focusedConnection,
   setFocusedConnection,
-} from "../../console";
-import { ActionContext } from "../../components/global/AsyncButton.tsx";
-import { setCurrentProfileName } from "../../components/global/TitleBar.tsx";
-import Tooltip, { TooltipAnchor, TooltipTrigger } from "../../components/global/Tooltip.tsx";
-import ContextMenu from "../../components/global/ContextMenu.tsx";
-import GameSelect from "../../components/profile/game_select/GameSelect.tsx";
-import StatusBar from "../../components/profile/StatusBar.tsx";
-import { createMultiselectableList } from "../../utils.ts";
+} from "../../api/console";
+import { ActionContext } from "../../widgets/AsyncButton.tsx";
+import { setCurrentProfileName } from "../../components/TitleBar.tsx";
+import Tooltip, { TooltipAnchor, TooltipTrigger } from "../../widgets/Tooltip.tsx";
+import ContextMenu from "../../widgets/ContextMenu.tsx";
+import GameSelect from "../game_select/GameSelect.tsx";
+import StatusBar from "../profile/StatusBar.tsx";
+import { createMultiselectableList } from "../../utils/utils.ts";
 
 interface ProfileParams {
   profileId?: string;

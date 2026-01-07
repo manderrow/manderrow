@@ -1,7 +1,7 @@
 import { Channel, invoke } from "@tauri-apps/api/core";
-import { Game, ModListing, ModMetadata, ModPackage, ModVersion } from "./types";
-import { invokeWithListener, Listener, TaskEvent, Id as TaskId } from "./api/tasks";
-import { promiseWithErrorStack } from "./utils";
+import { Game, ModListing, ModMetadata, ModPackage, ModVersion } from "../types";
+import { invokeWithListener, Listener, TaskEvent, Id as TaskId } from "./tasks";
+import { promiseWithErrorStack } from "../utils/utils";
 
 /**
  * An error thrown from native code.

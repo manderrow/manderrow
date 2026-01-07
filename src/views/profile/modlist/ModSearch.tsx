@@ -2,14 +2,14 @@ import { faArrowDownShortWide, faArrowUpWideShort } from "@fortawesome/free-soli
 import { Fa } from "solid-fa";
 import { Setter } from "solid-js";
 
-import { ModSortColumn, SortOption } from "../../api";
+import { ModSortColumn, SortOption } from "../../../api/api";
 
-import SelectDropdown from "../global/SelectDropdown";
-import { SortableList } from "../global/SortableList";
-import TogglableDropdown from "../global/TogglableDropdown";
+import SelectDropdown from "../../../widgets/SelectDropdown";
+import { SortableList } from "../../../widgets/SortableList";
+import TogglableDropdown from "../../../widgets/TogglableDropdown";
 
 import styles from "./ModSearch.module.css";
-import { t } from "../../i18n/i18n";
+import { t } from "../../../i18n/i18n";
 
 interface ModSearchProps {
   game: string;

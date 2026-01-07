@@ -2,15 +2,15 @@ import { faCopy, faDownload, faListCheck } from "@fortawesome/free-solid-svg-ico
 import Fa from "solid-fa";
 import { For, Show, createSelector, createSignal } from "solid-js";
 
-import { clearCache } from "../../api/installing";
-import { DownloadMetadata, Kind, ProgressUnit, tasksArray } from "../../api/tasks";
-import { t } from "../../i18n/i18n.ts";
-import { humanizeFileSize, roundedNumberFormatter } from "../../utils";
+import { clearCache } from "../api/installing";
+import { DownloadMetadata, Kind, ProgressUnit, tasksArray } from "../api/tasks";
+import { t } from "../i18n/i18n.ts";
+import { humanizeFileSize, roundedNumberFormatter } from "../utils/utils";
 
-import { SimpleAsyncButton } from "./AsyncButton";
-import Dialog, { DialogExternalProps } from "./Dialog";
-import { SimpleProgressIndicator } from "./Progress";
-import TabRenderer, { Tab, TabContent } from "./TabRenderer.tsx";
+import { SimpleAsyncButton } from "../widgets/AsyncButton";
+import Dialog, { DialogExternalProps } from "../widgets/Dialog";
+import { SimpleProgressIndicator } from "../widgets/Progress";
+import TabRenderer, { Tab, TabContent } from "../widgets/TabRenderer.tsx";
 
 import styles from "./TasksDialog.module.css";
 

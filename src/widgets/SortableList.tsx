@@ -10,6 +10,7 @@ import {
   useDragDropContext,
 } from "@thisbeyond/solid-dnd";
 import { createSignal, For, JSX, Signal } from "solid-js";
+
 import styles from "./SortableList.module.css";
 
 function SortableListItem(props: { item: JSX.Element; id: Id }) {

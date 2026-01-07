@@ -11,18 +11,18 @@ import {
   ModProgressRegistration,
   ModSpec,
   previewImportModpackFromThunderstoreCode,
-} from "../../api";
+} from "../../api/api";
 import { t } from "../../i18n/i18n.ts";
 // @ts-ignore: typescript is unaware of solid's use: syntax
-import { bindValue } from "../global/Directives";
+import { bindValue } from "../../components/Directives";
 import { refetchProfiles } from "../../globals";
 import { initProgress, Listener, Id as TaskId, tasks } from "../../api/tasks";
 
-import ErrorBoundary from "../global/ErrorBoundary";
-import { SimpleAsyncButton } from "../global/AsyncButton";
-import { SimpleProgressIndicator } from "../global/Progress";
-import MultistageModel, { BaseStageProps } from "../global/MultistageModel";
-import { type DialogExternalProps, DialogClose } from "../global/Dialog";
+import ErrorBoundary from "../../components/ErrorBoundary";
+import { SimpleAsyncButton } from "../../widgets/AsyncButton";
+import { SimpleProgressIndicator } from "../../widgets/Progress";
+import MultistageModel, { BaseStageProps } from "../../widgets/MultistageModel";
+import { type DialogExternalProps, DialogClose } from "../../widgets/Dialog";
 
 import styles from "./ImportDialog.module.css";
 

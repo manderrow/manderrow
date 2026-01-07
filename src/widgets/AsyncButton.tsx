@@ -1,13 +1,13 @@
 import { Accessor, ComponentProps, createSignal, JSX, Match, Show, splitProps, Switch } from "solid-js";
 
-import { createProgressProxyStore, Listener, Progress } from "../../api/tasks";
+import { createProgressProxyStore, Listener, Progress } from "../api/tasks";
 
-import { ErrorIndicator } from "./ErrorDialog";
+import { ErrorIndicator } from "../components/ErrorDialog";
 import { CircularProgressIndicator, SimpleProgressIndicator } from "./Progress";
 
 import styles from "./AsyncButton.module.css";
-import { roundedNumberFormatter } from "../../utils";
-import { t } from "../../i18n/i18n";
+import { roundedNumberFormatter } from "../utils/utils";
+import { t } from "../i18n/i18n";
 
 export function ActionContext(props: {
   children: (busy: Accessor<boolean>, wrapAction: (f: () => Promise<void> | void) => Promise<void>) => JSX.Element;

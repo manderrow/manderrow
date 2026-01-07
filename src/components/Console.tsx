@@ -14,14 +14,14 @@ import {
 } from "solid-js";
 import { createStore } from "solid-js/store";
 
-import { LOG_LEVELS, SafeOsString, sendS2CMessage } from "../../api/ipc";
+import { LOG_LEVELS, SafeOsString, sendS2CMessage } from "../api/ipc";
 // @ts-ignore: typescript is unaware of solid's use: syntax
-import { bindValue } from "../global/Directives";
+import { bindValue } from "./Directives";
 import styles from "./Console.module.css";
-import Dialog, { dialogStyles } from "./Dialog";
-import { t } from "../../i18n/i18n";
+import Dialog, { dialogStyles } from "../widgets/Dialog";
+import { t } from "../i18n/i18n";
 import { ErrorContext } from "./ErrorBoundary";
-import SelectDropdown from "./SelectDropdown";
+import SelectDropdown from "../widgets/SelectDropdown";
 import {
   connections,
   connectionsUpdate,
@@ -31,7 +31,7 @@ import {
   setDoctorReports,
   setFocusedConnection,
   type Event,
-} from "../../console";
+} from "../api/console";
 
 const translateUnchecked = t as (key: string, args: Object | undefined) => string;
 

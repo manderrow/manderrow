@@ -1,9 +1,9 @@
 import { createResource, createSignal } from "solid-js";
 
-import { GameSortColumn, getGameModDownloads, getGames, getGamesPopularity, getProfiles, searchGames } from "./api";
+import { GameSortColumn, getGameModDownloads, getGames, getGamesPopularity, getProfiles, searchGames } from "./api/api";
 import { Game } from "./types";
 import { settingsResource, settingsUIResource } from "./api/settings";
-import { createSignalResource } from "./utils";
+import { createSignalResource } from "./utils/utils";
 
 export const [gamesResource] = createResource<[readonly Game[], Map<string, Game>], never>(async () => {
   const games = Object.freeze(await getGames());

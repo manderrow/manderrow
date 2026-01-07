@@ -1,5 +1,4 @@
-import { JSX } from "solid-js";
-
+import { JSX } from "solid-js/jsx-runtime";
 import TogglableDropdown from "./TogglableDropdown";
 
 import styles from "./ContextMenu.module.css";

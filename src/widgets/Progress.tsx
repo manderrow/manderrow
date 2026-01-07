@@ -1,10 +1,11 @@
+import { JSX, Show } from "solid-js";
 import { Fa } from "solid-fa";
-import { Progress } from "../../api/tasks";
-import { faPause } from "@fortawesome/free-solid-svg-icons/index.js";
+import { faPause } from "@fortawesome/free-solid-svg-icons";
+
+import { Progress } from "../api/tasks";
+import { roundedNumberFormatter } from "../utils/utils";
 
 import styles from "./Progress.module.css";
-import { JSX, Show } from "solid-js";
-import { roundedNumberFormatter } from "../../utils";
 
 // Display a simple linear progress bar
 export function SimpleProgressIndicator(props: {

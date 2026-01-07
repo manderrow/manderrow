@@ -4,20 +4,20 @@ import { useNavigate } from "@solidjs/router";
 import Fa from "solid-fa";
 import { createEffect, createResource, createSelector, createSignal, For, onMount } from "solid-js";
 
-import { games, initialSortedGames } from "../../../globals";
-import { Locale, localeNamesMap, setLocale, locale, t, RAW_LOCALES } from "../../../i18n/i18n";
-import { Game } from "../../../types";
+import { games, initialSortedGames } from "../../globals";
+import { Locale, localeNamesMap, setLocale, locale, t, RAW_LOCALES } from "../../i18n/i18n";
+import { Game } from "../../types";
 // @ts-ignore: TS is unaware of `use:` directives despite using them for type definitions
-import { autofocus } from "../../global/Directives";
+import { autofocus } from "../../components/Directives";
 
 import blobStyles from "./GameBlobs.module.css";
 import gameListStyles from "./GameList.module.css";
 import styles from "./GameSelect.module.css";
-import { GameSortColumn, searchGames } from "../../../api";
-import { updateSettings } from "../../../api/settings";
-import { SimpleAsyncButton } from "../../../components/global/AsyncButton";
-import SelectDropdown from "../../global/SelectDropdown";
-import Tooltip, { TooltipTrigger } from "../../global/Tooltip";
+import { GameSortColumn, searchGames } from "../../api/api";
+import { updateSettings } from "../../api/settings";
+import { SimpleAsyncButton } from "../../widgets/AsyncButton";
+import SelectDropdown from "../../widgets/SelectDropdown";
+import Tooltip, { TooltipTrigger } from "../../widgets/Tooltip";
 
 enum DisplayType {
   Card = -1,

@@ -5,7 +5,7 @@ import { createResource, createSignal } from "solid-js";
 import en_ca from "./locales/en-CA.json"; // en_ca has the base keys
 import localeNames from "./locales/localeNames.json";
 
-import { getPreferredLocales } from "../api";
+import { getPreferredLocales } from "../api/api";
 
 export const RAW_LOCALES = ["en-CA", "en-US", "es", "fr-FR"] as const; // fully translated locales
 const DEFAULT_LOCALE = RAW_LOCALES[0];

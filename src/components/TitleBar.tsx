@@ -2,10 +2,10 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { platform } from "@tauri-apps/plugin-os";
 import { createSignal, onMount, Show } from "solid-js";
 
-import { close, isMaximized, minimize, setMaximized, startDragging } from "../../api/app";
-import { t } from "../../i18n/i18n";
+import { close, isMaximized, minimize, setMaximized, startDragging } from "../api/app";
+import { t } from "../i18n/i18n";
 
-import logo from "../../assets/Manderrow logo.svg";
+import logo from "../assets/Manderrow logo.svg";
 import styles from "./TitleBar.module.css";
 
 const appWindow = getCurrentWindow();
@@ -18,6 +18,7 @@ export const setCurrentProfileName = _setCurrentProfileName;
 export default function TitleBar() {
   const [isMaximizedCached, setIsMaximizedCached] = createSignal(false);
   const [isFocusedCached, setIsFocusedCached] = createSignal(false);
+  const dragRegionEnabled = () => (platform() === "macos" ? undefined : true);
 
   onMount(async () => {
     setIsMaximizedCached(await isMaximized());
@@ -34,7 +35,7 @@ export default function TitleBar() {
   return (
     <div class={styles.titlebar} data-focused={isFocusedCached()}>
       <div
-        data-tauri-drag-region={platform() === "macos" ? undefined : true}
+        data-tauri-drag-region={dragRegionEnabled()}
         class={styles.titlebar__content}
         on:mousedown={(e) => {
           if (e.buttons === 1) {
@@ -45,12 +46,12 @@ export default function TitleBar() {
           }
         }}
       >
-        <div class={styles.appTitleContainer}>
-          <img src={logo} alt="Manderrow logo" />
-          <span class={styles.appTitle}>Manderrow</span>
-        </div>
-        <p class={styles.profileName}>{currentProfileName()}</p>
+        <img src={logo} alt="Manderrow logo" />
+        <span class={styles.appTitle}>Manderrow</span>
       </div>
+      <p class={styles.profileName} data-tauri-drag-region={dragRegionEnabled()}>
+        {currentProfileName()}
+      </p>
       <div class={styles.controls}>
         <button title={t("titlebar.minimize_btn")} on:click={() => minimize()} data-minimize>
           {/* <!-- https://api.iconify.design/mdi:window-minimize.svg --> */}

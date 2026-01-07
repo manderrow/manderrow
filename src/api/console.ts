@@ -1,6 +1,6 @@
 import { Accessor, Setter, createSignal } from "solid-js";
 
-import { C2SMessage, DoctorReport, allocateIpcConnection, getIpcConnections } from "./api/ipc";
+import { C2SMessage, DoctorReport, allocateIpcConnection, getIpcConnections } from "./ipc";
 import { listen } from "@tauri-apps/api/event";
 
 export type ConnectionStatus = "connecting" | "connected" | "disconnected";

@@ -10,9 +10,9 @@ import { Show, createResource, lazy, onCleanup, onMount } from "solid-js";
 import { relaunch } from "./api/app";
 import { coreResources } from "./globals";
 
-import ErrorDialog from "./components/global/ErrorDialog";
-import TitleBar from "./components/global/TitleBar.tsx";
-import Splashscreen from "./pages/splashscreen/Splashscreen.tsx";
+import ErrorDialog from "./components/ErrorDialog";
+import TitleBar from "./components/TitleBar.tsx";
+import Splashscreen from "./views/splashscreen/Splashscreen.tsx";
 import { invoke } from "@tauri-apps/api/core";
 
 export default function App() {

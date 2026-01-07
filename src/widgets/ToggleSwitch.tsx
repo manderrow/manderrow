@@ -1,4 +1,5 @@
 import { createUniqueId } from "solid-js";
+
 import styles from "./ToggleSwitch.module.css";
 
 export default function ToggleSwitch(props: { name: string; on: boolean }) {

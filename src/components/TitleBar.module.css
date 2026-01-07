@@ -8,8 +8,9 @@
   background-color: var(--clr-neutral-85);
   border-bottom: 1px solid var(--clr-neutral-80);
   user-select: none;
+  -webkit-user-select: none;
   display: grid;
-  grid-template-columns: auto max-content;
+  grid-template-columns: 1fr minmax(auto, 50%) 1fr;
   z-index: var(--titlebar-z-index);
   pointer-events: auto;
 
@@ -19,17 +20,13 @@
 
   .titlebar__content {
     display: flex;
+    justify-self: left;
     align-items: center;
-  }
-
-  .appTitleContainer {
-    padding-left: 0.5em;
-    color: var(--clr-neutral-20);
-    display: flex;
-    align-items: center;
+    padding-left: 0.4em;
     gap: 0.4em;
 
     .appTitle {
+      color: var(--clr-neutral-20);
       font-size: 0.85rem;
     }
 
@@ -42,10 +39,6 @@
   .profileName {
     text-align: center;
     line-height: var(--titlebar-height);
-    position: absolute;
-    left: 50%;
-    translate: -50%;
-    max-width: 50%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -54,6 +47,7 @@
 
   .controls {
     display: flex;
+    justify-self: right;
 
     button {
       appearance: none;
