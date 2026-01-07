@@ -73,7 +73,7 @@ import Tooltip from "../../components/global/Tooltip.tsx";
 import ContextMenu from "../../components/global/ContextMenu.tsx";
 import GameSelect from "../../components/profile/game_select/GameSelect.tsx";
 import StatusBar from "../../components/profile/StatusBar.tsx";
-import { createMatrixMainframe } from "../../utils.ts";
+import { createMultiselectableList } from "../../utils.ts";
 
 interface ProfileParams {
   profileId?: string;
@@ -254,14 +254,14 @@ function ProfileWithGame(
   };
 
   // Profiles are stored in the key values of the `selected` Map
-  const { onCtrlClickItem, onShiftClickItem, clearSelection, isPivot, selected } = createMatrixMainframe<
+  const { onCtrlClickItem, onShiftClickItem, clearSelection, isPivot, isSelected } = createMultiselectableList<
     ProfileWithId,
     string,
-    null
+    string
   >(
     queriedProfiles,
     (profile) => profile.id,
-    (_) => null,
+    (profile) => profile.id,
     currentProfile,
   );
 
@@ -404,7 +404,7 @@ function ProfileWithGame(
                       profile={profile}
                       refetchProfiles={refetchProfiles}
                       selected={profile.id === params.profileId}
-                      highlighted={selected().has(profile.id)}
+                      highlighted={isSelected(profile)}
                       ctrlClick={() => onCtrlClickItem(profile, i())}
                       shiftClick={() => onShiftClickItem(profile, i())}
                       isPivot={isPivot(profile)}
@@ -420,7 +420,7 @@ function ProfileWithGame(
                       profile={profile}
                       refetchProfiles={refetchProfiles}
                       selected={profile.id === params.profileId}
-                      highlighted={selected().has(profile.id)}
+                      highlighted={isSelected(profile)}
                       ctrlClick={() => onCtrlClickItem(profile, i())}
                       shiftClick={() => onShiftClickItem(profile, i())}
                       isPivot={isPivot(profile)}

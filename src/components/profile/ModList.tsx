@@ -46,6 +46,7 @@ import {
 import { Progress, createProgressProxyStore, initProgress, registerTaskListener, tasks } from "../../api/tasks";
 import { Mod, ModListing, ModPackage, ModVersion } from "../../types";
 import {
+  createMultiselectableList,
   dateFormatterMed,
   humanizeFileSize,
   numberFormatter,
@@ -71,15 +72,16 @@ import { useSearchParamsInPlace } from "../../utils/router.ts";
 import Checkbox from "../global/Checkbox.tsx";
 
 type PageFetcher = (page: number) => Promise<readonly Mod[]>;
+type ModFetcherResult = {
+  count: number;
+  mods: PageFetcher;
+  get: (id: ModId) => Promise<Mod | undefined> | Mod | undefined;
+};
 export type Fetcher = (
   game: string,
   query: string,
   sort: readonly SortOption<ModSortColumn>[],
-) => Promise<{
-  count: number;
-  mods: PageFetcher;
-  get: (id: ModId) => Promise<Mod | undefined> | Mod | undefined;
-}>;
+) => Promise<ModFetcherResult>;
 
 export const ModInstallContext = createContext<{
   profileId: Accessor<string>;
@@ -153,11 +155,22 @@ export default function ModList(props: {
     }
   });
 
-  const [selectedMods, setSelectedMods] = createSignal<Map<ModId, string>>(new Map(), {
-    equals: false,
-  });
+  const installContext = useContext(ModInstallContext)!;
 
-  const isSelectedMod = createSelector<Map<ModId, string>, ModId>(selectedMods, (id, selected) => selected.has(id));
+  const { onCtrlClickItem, onShiftClickItem, clearSelection, isPivot, isSelected, data } = createMultiselectableList<
+    ModPackage,
+    string,
+    ModId & { version: string }
+  >(
+    () => installContext.installed.latest,
+    (mod) => `${mod.owner}-${mod.name}`,
+    (mod) => ({ owner: mod.owner, name: mod.name, version: mod.version.version_number }),
+    () => undefined,
+  );
+
+  createEffect(() => {
+    console.log(data());
+  });
 
   return (
     <div class={styles.modListAndView}>
@@ -203,22 +216,11 @@ export default function ModList(props: {
             <ModListMods
               mods={mods.mods}
               focusedMod={[focusedModId, setFocusedModId]}
-              isSelected={props.multiselect ? isSelectedMod : undefined}
-              setSelected={
-                props.multiselect
-                  ? (mod, version, selected) => {
-                      setSelectedMods((set) => {
-                        if (selected) {
-                          set.set(mod, version);
-                        } else {
-                          set.delete(mod);
-                        }
-                        return set;
-                      });
-                    }
-                  : undefined
-              }
-              forceSelectorVisibility={props.multiselect ? selectedMods().size !== 0 : undefined}
+              isSelected={isSelected}
+              select={onCtrlClickItem}
+              shiftClick={onShiftClickItem}
+              isPivot={isPivot}
+              forceSelectorVisibility={data().length !== 0}
             />
           )}
         </Show>
@@ -237,8 +239,8 @@ export default function ModList(props: {
             <Match when={focusedMod.error === undefined && focusedMod()} keyed>
               {(mod) => <ModView mod={mod} gameId={props.game} closeModView={() => setFocusedModId(undefined)} />}
             </Match>
-            <Match when={props.multiselect && selectedMods().size !== 0}>
-              <SelectedModsList mods={selectedMods} />
+            <Match when={props.multiselect && data().length !== 0}>
+              <SelectedModsList mods={data} />
             </Match>
           </Switch>
         </div>
@@ -515,8 +517,8 @@ function ModUpdateDialogue(props: { onDismiss: () => void; updates: ModUpdate[] 
 }
 
 const MAX_SELECTED_CARDS = 5;
-function SelectedModsList(props: { mods: Accessor<Map<ModId, string>> }) {
-  const selectedCount = () => props.mods().size;
+function SelectedModsList(props: { mods: Accessor<(ModId & { version: string })[]> }) {
+  const selectedCount = () => props.mods().length;
 
   return (
     <>
@@ -527,14 +529,14 @@ function SelectedModsList(props: { mods: Accessor<Map<ModId, string>> }) {
             "--total-cards": Math.min(selectedCount(), MAX_SELECTED_CARDS),
           }}
         >
-          <For each={Array.from(props.mods()).slice(0, MAX_SELECTED_CARDS)}>
-            {([modId, version], i) => {
+          <For each={props.mods().slice(0, MAX_SELECTED_CARDS)}>
+            {({ name, owner, version }, i) => {
               return (
                 <li
                   class={styles.selected__card}
                   style={{
                     "--card-index": i(),
-                    "--bg-image": `url("${getIconUrl(getQualifiedModName(modId.owner, modId.name, version))}")`,
+                    "--bg-image": `url("${getIconUrl(getQualifiedModName(owner, name, version))}")`,
                   }}
                   data-overflow={
                     i() === MAX_SELECTED_CARDS - 1 ? `+${selectedCount() - MAX_SELECTED_CARDS + 1}` : undefined
@@ -558,7 +560,9 @@ function SelectedModsList(props: { mods: Accessor<Map<ModId, string>> }) {
         <li>
           <Fa icon={faHardDrive} />{" "}
           {humanizeFileSize(
-            Array.from(props.mods()).reduce((total, [_modId, _version]) => total /*+ getModById(modId).file_size*/, 0),
+            props
+              .mods()
+              .reduce((total, { name, owner, version }) => total /*+ getModById({name, owner}).file_size*/, 0),
           )}
         </li>
       </ul>
@@ -844,17 +848,15 @@ function ModViewDependencies(props: { gameId: string; dependencies: string[] }) 
 
 type SelectableModListProps = {
   /// Whether the mod is selected in the ModList (for bulk actions)
-  isSelected: (mod: ModId) => boolean;
-  setSelected: (mod: ModId, version: string, selected: boolean) => void;
+  isSelected: (mod: ModPackage) => boolean;
+  select: (item: ModPackage, index: number) => void;
+  shiftClick: (item: ModPackage, index: number) => void;
+  isPivot: (mod: ModPackage | undefined) => boolean;
   forceSelectorVisibility: boolean;
 };
 
-type MaybeSelectableModListProps = {
-  [key in keyof SelectableModListProps]: SelectableModListProps[key] | undefined;
-};
-
 function ModListMods(
-  props: { mods: PageFetcher; focusedMod: Signal<ModId | undefined> } & MaybeSelectableModListProps,
+  props: { mods: PageFetcher; focusedMod: Signal<ModId | undefined> } & Partial<SelectableModListProps>,
 ) {
   const infiniteScroll = createMemo(() => {
     // this should take readonly, which would make the cast unnecessary
@@ -888,13 +890,15 @@ function ModListMods(
   return (
     <ol class={styles.modList} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
       <For each={paginatedMods()}>
-        {(mod) => (
+        {(mod, i) => (
           <ModListItem
             mod={mod}
             isFocused={isFocusedMod}
             setFocused={props.focusedMod[1]}
-            isSelected={props.isSelected}
-            setSelected={props.setSelected}
+            isSelected={props.isSelected ? () => props.isSelected!(mod as ModPackage) : undefined}
+            select={() => props.select!(mod as ModPackage, i())}
+            shiftClick={() => props.shiftClick!(mod as ModPackage, i())}
+            isPivot={props.isPivot?.(mod as ModPackage)}
             forceSelectorVisibility={props.forceSelectorVisibility || modSelectorTutorialState() < 2}
           />
         )}
@@ -949,8 +953,12 @@ function ModListItem(
     isFocused: (mod: ModId) => boolean;
     setFocused: (mod: ModId | undefined) => void;
     forceSelectorVisibility: boolean;
+    select?: () => void;
+    shiftClick?: () => void;
+    isSelected?: () => boolean;
+    isPivot?: boolean;
     // setModSelectorTutorialState: (hovered: boolean) => void,
-  } & (SelectableModListProps | {}),
+  } & (Omit<Partial<SelectableModListProps>, "select" | "shiftClick" | "isPivot"> | {}),
 ) {
   const displayVersion = createMemo(() => {
     if ("version" in props.mod) return props.mod.version;
@@ -981,7 +989,13 @@ function ModListItem(
       }}
     >
       <div
-        on:click={onFocus}
+        onClick={(e) => {
+          if (e.shiftKey && "shiftClick" in props) {
+            props.shiftClick!();
+          } else {
+            onFocus();
+          }
+        }}
         onKeyDown={(key) => {
           if (key.key === "Enter") onFocus();
         }}
@@ -990,13 +1004,11 @@ function ModListItem(
         aria-pressed={props.isFocused(props.mod)}
         tabIndex={0}
       >
-        <Show when={(props as any).isSelected !== undefined}>
+        <Show when={props.isSelected !== undefined}>
           <div class={styles.mod__selector} data-always-show={props.forceSelectorVisibility ? "" : undefined}>
             <Checkbox
-              checked={(props as SelectableModListProps).isSelected(props.mod)}
-              onChange={(checked) =>
-                (props as SelectableModListProps).setSelected(props.mod, displayVersion().version_number, checked)
-              }
+              checked={props.isSelected!()}
+              onChange={(checked) => props.select!()}
               labelClass={styles.mod__selectorClickRegion}
               iconContainerClass={styles.mod__selectorIndicator}
             />

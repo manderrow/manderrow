@@ -131,28 +131,28 @@ export function createSignalResource<T>(initialValue: () => Promise<T>) {
 }
 
 /**
- * Utility to create a manager that handles selection of multiple items in a matrix-like fashion
+ * Utility to create a manager that handles selection of multiple items in a list
  * @param dataSource The array of data
  * @param keyTransformer A function that transforms the items of the dataSource into the underlying keys of data that is stored
  * @param dataTransformer A function that transforms the items of the dataSource into the underlying values of data that is stored
  * @param selected The current selected item from the array
  * @returns All the utility methods required
  */
-export function createMatrixMainframe<T, K, D>(
-  dataSource: Accessor<T[]>,
-  keyTransformer: (source: T) => K,
-  dataTransformer: (source: T) => D,
-  selected: Accessor<T | undefined>,
+export function createMultiselectableList<Source, SerializedKey extends string | number | symbol, Data>(
+  dataSource: Accessor<readonly Source[]>,
+  keyTransformer: (source: Source) => SerializedKey,
+  dataTransformer: (source: Source) => Data,
+  selected: Accessor<Source | undefined>,
 ) {
   const [pivotIndex, setPivotIndex] = createSignal<number | undefined>();
   const effectivePivot = () => (pivotIndex() !== undefined ? dataSource()[pivotIndex()!] : selected());
-  const [selectedItems, setSelectedItems] = createSignal<Map<K, D>>(new Map(), {
+  const [selectedItems, setSelectedItems] = createSignal<Map<SerializedKey, Data>>(new Map(), {
     equals: false,
   });
 
   const isPivot = createSelector(effectivePivot, (a, b) => a === b);
 
-  function onCtrlClickItem(item: T, index: number) {
+  function onCtrlClickItem(item: Source, index: number) {
     setSelectedItems((prev) => {
       const identifier = keyTransformer(item);
 
@@ -167,7 +167,7 @@ export function createMatrixMainframe<T, K, D>(
 
     setPivotIndex(index);
   }
-  function onShiftClickItem(item: T, index: number) {
+  function onShiftClickItem(item: Source, index: number) {
     setSelectedItems((prev) => {
       const pivot = effectivePivot();
 
@@ -190,7 +190,12 @@ export function createMatrixMainframe<T, K, D>(
   }
 
   return {
-    selected: selectedItems,
+    isSelected: (source: Source) => {
+      return selectedItems().has(keyTransformer(source));
+    },
+    data: () => {
+      return Array.from(selectedItems().values());
+    },
     onCtrlClickItem,
     onShiftClickItem,
     clearSelection,
