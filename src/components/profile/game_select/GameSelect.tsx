@@ -17,7 +17,7 @@ import { GameSortColumn, searchGames } from "../../../api";
 import { updateSettings } from "../../../api/settings";
 import { SimpleAsyncButton } from "../../../components/global/AsyncButton";
 import SelectDropdown from "../../global/SelectDropdown";
-import Tooltip from "../../global/Tooltip";
+import Tooltip, { TooltipTrigger } from "../../global/Tooltip";
 
 enum DisplayType {
   Card = -1,
@@ -137,9 +137,9 @@ export default function GameSelect(props: {
                       : t("game_select.search.list_display_type"),
                 })}
               >
-                <button type="button" on:click={() => setDisplayType((prev) => (prev * -1) as DisplayType)}>
+                <TooltipTrigger onClick={() => setDisplayType((prev) => (prev * -1) as DisplayType)}>
                   {displayType() === DisplayType.Card ? <Fa icon={faList} /> : <Fa icon={faTableCellsLarge} />}
-                </button>
+                </TooltipTrigger>
               </Tooltip>
             </form>
           </div>
@@ -183,9 +183,11 @@ function GameComponent(props: { game: Game; replace: boolean; dismiss: () => voi
       <img src={url} alt={t("game_select.bg_img_alt", { gameName: props.game.name })} />
       <div class={gameListStyles.game__content}>
         <p class={gameListStyles.game__title}>
-          <button class={gameListStyles.game__favoriteBtn} title={t("game_select.fav_btn")}>
-            <Fa icon={faStar} />
-          </button>
+          <Tooltip content={t("game_select.fav_btn")}>
+            <TooltipTrigger class={gameListStyles.game__favoriteBtn}>
+              <Fa icon={faStar} />
+            </TooltipTrigger>
+          </Tooltip>
 
           {props.game.name}
         </p>

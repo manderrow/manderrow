@@ -1,6 +1,8 @@
-import { JSX } from "solid-js/jsx-runtime";
-import styles from "./ContextMenu.module.css";
+import { JSX } from "solid-js";
+
 import TogglableDropdown from "./TogglableDropdown";
+
+import styles from "./ContextMenu.module.css";
 
 interface ContextMenuItem {
   label: JSX.Element | string;
@@ -25,14 +27,11 @@ interface ContextMenuProps {
 export default function ContextMenu(props: ContextMenuProps) {
   return (
     <TogglableDropdown
+      dropdownClass={styles.dropdownContainer}
       label={props.children}
-      labelBtnFocusable
       hideCaret
       anchorId={props.anchorId}
-      dropdownOptions={{
-        placement: "bottom-start",
-        strategy: "fixed",
-      }}
+      popoverProps={{ placement: "bottom-start" }}
     >
       <ul class={styles.contextMenu}>
         {props.items.map((item) =>

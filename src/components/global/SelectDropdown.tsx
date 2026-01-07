@@ -1,4 +1,4 @@
-import { createEffect, createSignal, For, JSX } from "solid-js";
+import { For, JSX } from "solid-js";
 import { faCheck } from "@fortawesome/free-solid-svg-icons";
 import Fa from "solid-fa";
 import { t } from "../../i18n/i18n";
@@ -10,7 +10,7 @@ type Option<T> = {
   label: string;
   value: T;
   selected: () => boolean;
-  liContent?: JSX.Element,
+  liContent?: JSX.Element;
 };
 
 type LabelTextValue = {
@@ -43,27 +43,27 @@ export default function SelectDropdown<T>(options: SelectDropdownOptions<T>) {
 
   let listRef!: HTMLUListElement;
 
-  const [dropdownRef, setDropdownRef] = createSignal<HTMLDivElement | undefined>(undefined);
-
-  createEffect(() => {
-    const dropdown = dropdownRef();
-    if (!dropdown) return;
-
-    if (listRef.scrollHeight > dropdown.clientHeight) {
-      listRef.querySelector("li[aria-checked=true]")?.scrollIntoView({
-        behavior: "instant",
-        block: "center",
-      });
-    }
-  });
-
   return (
     <TogglableDropdown
-      ref={setDropdownRef}
       dropdownClass={styles.dropdown}
       label={labelValue()}
       labelClass={options.labelClass}
-      offset={options.offset}
+      popoverProps={{
+        onContentPresentChange: (present) => {
+          if (present) {
+            // This settimeout should not be necessary but there appears to
+            // be a race condition that occurs more often proportional to the
+            // timeout delay, must investigate further. Keeping on 2ms for now,
+            // do not mistake this for me thinking this is good practice.
+            setTimeout(() => {
+              listRef.querySelector("li[aria-checked=true]")?.scrollIntoView({
+                behavior: "instant",
+                block: "center",
+              });
+            }, 2);
+          }
+        },
+      }}
     >
       <ul class={styles.options} role={options.multiselect === false ? "radiogroup" : "listbox"} ref={listRef}>
         <For each={options.options}>

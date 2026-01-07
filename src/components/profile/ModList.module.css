@@ -636,12 +636,6 @@
   justify-content: center;
 }
 
-.modView__versionsDropdown {
-  grid-area: versions;
-  left: 0;
-  right: 0;
-}
-
 .modView__versionsDropdownContent {
   padding: 0.5em;
 }

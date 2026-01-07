@@ -1,14 +1,15 @@
-import { Accessor, createEffect, createSignal, For, JSX, onCleanup, onMount, Show } from "solid-js";
+import { Accessor, createSignal, For, JSX, Show, splitProps } from "solid-js";
 import { createStore } from "solid-js/store";
 
-import Dialog, { DismissCallback } from "./Dialog.tsx";
+import Dialog, { DismissCallback, DialogClose, DialogExternalProps } from "./Dialog.tsx";
 
 import styles from "./MultistageModel.module.css";
 import { t } from "../../i18n/i18n.ts";
 
-interface Stage {
+interface Stage<TArgs = void> {
   title: string;
-  element: JSX.Element;
+  element: TArgs extends void ? () => JSX.Element : (args: TArgs) => JSX.Element;
+  args?: TArgs extends void ? never : TArgs;
   buttons?: CallbackButtons;
 }
 interface CallbackButton {
@@ -18,26 +19,22 @@ interface CallbackButton {
 export interface CallbackButtons {
   next: CallbackButton;
   previous: CallbackButton;
-  dismiss?: DismissCallback;
 }
-export interface InitialStageProps {
+export interface BaseStageProps {
   actions: Actions;
 }
-export interface InitialSetupProps {
-  dismiss: DismissCallback;
-}
 export interface Actions {
-  pushStage: (stage: Stage) => void;
+  pushStage: <TArgs = void>(stage: Stage<TArgs>) => void;
   popStage: () => void;
-  dismiss: DismissCallback;
+  dismiss?: DismissCallback;
 }
 
 interface Props {
-  initialStage: (actions: Actions) => Stage;
+  initialStage: (actions: Actions) => Stage<any>;
   estimatedStages: number;
-  onDismiss: DismissCallback;
+  onDismiss?: DismissCallback;
 }
-function ModelStepsDisplay(props: { estimated: Accessor<number>; stages: Stage[] }) {
+function ModelStepsDisplay(props: { estimated: Accessor<number>; stages: Stage<any>[] }) {
   const stageIndex = () => props.stages.length - 1;
 
   return (
@@ -57,60 +54,70 @@ function ModelStepsDisplay(props: { estimated: Accessor<number>; stages: Stage[]
   );
 }
 
-export default function MultistageModel(props: Props) {
+export default function MultistageModel(props: Props & DialogExternalProps) {
+  const [local, rest] = splitProps(props, ["initialStage", "estimatedStages"]);
+
   let modelElement!: HTMLDivElement;
-  let childElem!: HTMLDivElement;
+  let childElement!: HTMLDivElement;
 
   const actions: Actions = {
-    pushStage: (stage: Stage) => setStack(stack.length, stage),
+    pushStage: (stage: Stage<any>) => setStack(stack.length, stage),
     popStage: () => setStack((stages) => stages.slice(0, -1)),
-    dismiss: props.onDismiss,
+    dismiss: rest.onDismiss,
   };
 
-  const [stack, setStack] = createStore<Stage[]>([props.initialStage(actions)]);
+  const [stack, setStack] = createStore<Stage<any>[]>([local.initialStage(actions)]);
   const [modelHeight, setModelHeight] = createSignal(0);
 
   const currentStage = () => stack[stack.length - 1];
 
   function updateModelHeight() {
-    setModelHeight(Math.min(innerHeight, childElem.clientHeight));
+    setModelHeight(Math.min(innerHeight, childElement.clientHeight));
   }
 
-  onMount(() => {
-    addEventListener("resize", updateModelHeight);
-  });
-
-  createEffect(() => {
-    currentStage();
-    updateModelHeight();
-  });
-
-  onCleanup(() => {
-    removeEventListener("resize", updateModelHeight);
-  });
+  const [resizeObserver, setResizeObserver] = createSignal<ResizeObserver>();
 
   return (
-    <Dialog>
-      <div class={styles.model} style={{ "--computed-height": `${modelHeight()}px` }} ref={modelElement}>
-        <div class={styles.container} ref={childElem}>
-          <ModelStepsDisplay estimated={() => props.estimatedStages} stages={stack} />
-          <h2 class={styles.stageTitle}>{currentStage().title}</h2>
-          <div class={styles.content}>{currentStage().element}</div>
-          <Show when={currentStage().buttons}>
-            {(buttons) => (
-              <div class={styles.navBtns}>
-                <Show when={stack.length > 1}>
-                  <button onClick={buttons().previous.callback}>
-                    {buttons().previous.text || t("global.phrases.previous")}
-                  </button>
-                </Show>
-
-                <button onClick={buttons().dismiss}>{t("global.phrases.cancel")}</button>
-                <button onClick={buttons().next.callback}>{buttons().next.text || t("global.phrases.next")}</button>
-              </div>
-            )}
-          </Show>
+    <Dialog
+      class={styles.model}
+      style={{ "--computed-height": `${modelHeight()}px` }}
+      ref={modelElement}
+      hideCloseBtn
+      onContentPresentChange={(present) => {
+        if (present) {
+          const resizeObserver = new ResizeObserver(updateModelHeight);
+          resizeObserver.observe(childElement);
+          setResizeObserver(resizeObserver);
+        } else {
+          resizeObserver()?.disconnect();
+          setResizeObserver(undefined);
+          setModelHeight(0);
+        }
+      }}
+      {...rest}
+    >
+      <div class={styles.container} ref={childElement}>
+        <ModelStepsDisplay estimated={() => local.estimatedStages} stages={stack} />
+        <h2 class={styles.stageTitle}>{currentStage().title}</h2>
+        <div class={styles.content}>
+          {currentStage().args !== undefined
+            ? (currentStage().element as (args: any) => JSX.Element)(currentStage().args)
+            : (currentStage().element as () => JSX.Element)()}
         </div>
+        <Show when={currentStage().buttons}>
+          {(buttons) => (
+            <div class={styles.navBtns}>
+              <Show when={stack.length > 1}>
+                <button onClick={buttons().previous.callback}>
+                  {buttons().previous.text || t("global.phrases.previous")}
+                </button>
+              </Show>
+
+              <DialogClose onClick={rest.onDismiss}>{t("global.phrases.cancel")}</DialogClose>
+              <button onClick={buttons().next.callback}>{buttons().next.text || t("global.phrases.next")}</button>
+            </div>
+          )}
+        </Show>
       </div>
     </Dialog>
   );

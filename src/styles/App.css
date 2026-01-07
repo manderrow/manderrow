@@ -75,6 +75,11 @@ select {
   font-family: var(--font);
 }
 
+[data-corvu-tooltip-arrow] svg,
+[data-corvu-popover-arrow] svg {
+  display: block;
+}
+
 @supports selector(*:focus-visible) {
   *:focus {
     outline: none;

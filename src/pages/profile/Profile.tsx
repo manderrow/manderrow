@@ -40,7 +40,7 @@ import { OverlayScrollbarsComponent } from "overlayscrollbars-solid";
 import { Fa } from "solid-fa";
 
 import Console, { DoctorReports } from "../../components/global/Console";
-import { PromptDialog } from "../../components/global/Dialog";
+import { DialogTrigger, PromptDialog } from "../../components/global/Dialog";
 import ErrorDialog from "../../components/global/ErrorDialog.tsx";
 import SelectDropdown from "../../components/global/SelectDropdown";
 import TabRenderer from "../../components/global/TabRenderer";
@@ -69,7 +69,7 @@ import {
 } from "../../console";
 import { ActionContext } from "../../components/global/AsyncButton.tsx";
 import { setCurrentProfileName } from "../../components/global/TitleBar.tsx";
-import Tooltip from "../../components/global/Tooltip.tsx";
+import Tooltip, { TooltipAnchor, TooltipTrigger } from "../../components/global/Tooltip.tsx";
 import ContextMenu from "../../components/global/ContextMenu.tsx";
 import GameSelect from "../../components/profile/game_select/GameSelect.tsx";
 import StatusBar from "../../components/profile/StatusBar.tsx";
@@ -221,8 +221,6 @@ function ProfileWithGame(
     }
   }
 
-  const [importDialogOpen, setImportDialogOpen] = createSignal(false);
-
   const hasLiveConnection = () => focusedConnection() !== undefined && focusedConnection()?.status() !== "disconnected";
 
   // For mini sidebar on small app width only
@@ -305,9 +303,9 @@ function ProfileWithGame(
 
             <div class={styles.gameBtns}>
               <Tooltip content={t("profile.sidebar.game_settings_btn")}>
-                <button>
+                <TooltipTrigger>
                   <Fa icon={faGear} />
-                </button>
+                </TooltipTrigger>
               </Tooltip>
             </div>
           </div>
@@ -317,14 +315,20 @@ function ProfileWithGame(
             {t("profile.sidebar.profiles_title")}
             <div class={styles.sidebar__profilesActions}>
               <Tooltip content={t("profile.sidebar.create_profile_tooltip")}>
-                <button class={styles.sidebar__profilesActionBtn} onClick={() => setCreatingProfile(true)}>
+                <TooltipTrigger class={styles.sidebar__profilesActionBtn} onClick={() => setCreatingProfile(true)}>
                   <Fa icon={faPlus} />
-                </button>
+                </TooltipTrigger>
               </Tooltip>
               <Tooltip content={t("profile.sidebar.import_profile_tooltip")}>
-                <button class={styles.sidebar__profilesActionBtn} on:click={() => setImportDialogOpen(true)}>
-                  <Fa icon={faFileImport} class={sidebarStyles.sidebar__profileActionsBtnIcon} />
-                </button>
+                <ImportDialog
+                  gameId={params.gameId}
+                  profile={params.profileId}
+                  trigger={
+                    <DialogTrigger as={TooltipTrigger} class={styles.sidebar__profilesActionBtn}>
+                      <Fa icon={faFileImport} class={sidebarStyles.sidebar__profileActionsBtnIcon} />
+                    </DialogTrigger>
+                  }
+                />
               </Tooltip>
             </div>
           </h3>
@@ -516,10 +520,6 @@ function ProfileWithGame(
 
       <StatusBar />
 
-      <Show when={importDialogOpen()}>
-        <ImportDialog dismiss={() => setImportDialogOpen(false)} gameId={params.gameId} profile={params.profileId} />
-      </Show>
-
       <DoctorReports />
 
       <Show when={err()}>{(err) => <ErrorDialog err={err()} reset={() => setErr(undefined)} />}</Show>
@@ -592,7 +592,7 @@ function SidebarProfileComponent(props: {
                 }
               >
                 <Tooltip content={t("profile.sidebar.profile_running_icon")}>
-                  <Fa icon={faPlayCircle} class={sidebarStyles.profileItem__playingIcon} />
+                  <TooltipAnchor as={Fa} icon={faPlayCircle} class={sidebarStyles.profileItem__playingIcon} />
                 </Tooltip>
               </Show>
               {props.profile.name}
@@ -607,10 +607,10 @@ function SidebarProfileComponent(props: {
                         : t("profile.sidebar.pin_profile_btn")
                     }
                   >
-                    <button
+                    <TooltipTrigger
                       data-pin
                       disabled={busy()}
-                      on:click={async (e) => {
+                      onClick={async (e) => {
                         e.stopPropagation();
                         await wrapAction(async () => {
                           try {
@@ -627,23 +627,23 @@ function SidebarProfileComponent(props: {
                       }}
                     >
                       <Fa icon={props.profile.pinned ? faThumbTackSlash : faThumbTack} rotate={90} />
-                    </button>
+                    </TooltipTrigger>
                   </Tooltip>
                 )}
               </ActionContext>
               <Show when={shifting()}>
                 <Tooltip content={t("profile.sidebar.duplicate_profile_btn")}>
-                  <button data-duplicate>
+                  <TooltipTrigger data-duplicate>
                     <Fa icon={faCopy} />
-                  </button>
+                  </TooltipTrigger>
                 </Tooltip>
                 <Tooltip content={t("profile.sidebar.copy_id_profile_btn")}>
-                  <button data-copy-id>
+                  <TooltipTrigger data-copy-id>
                     <Fa icon={faClipboard} />
-                  </button>
+                  </TooltipTrigger>
                 </Tooltip>
                 <Tooltip content={t("global.phrases.delete")}>
-                  <button
+                  <TooltipTrigger
                     data-delete
                     onClick={async () => {
                       try {
@@ -654,7 +654,7 @@ function SidebarProfileComponent(props: {
                     }}
                   >
                     <Fa icon={faTrashCan} />
-                  </button>
+                  </TooltipTrigger>
                 </Tooltip>
               </Show>
               <Tooltip content={t("profile.sidebar.ellipsis_btn")} anchorId={ellipsisAnchorId}>

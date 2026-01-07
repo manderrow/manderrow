@@ -13,6 +13,8 @@ import { createInfiniteScroll } from "@solid-primitives/pagination";
 import { Fa } from "solid-fa";
 import {
   Accessor,
+  ComponentProps,
+  FlowProps,
   For,
   InitializedResource,
   JSX,
@@ -27,6 +29,7 @@ import {
   createResource,
   createSelector,
   createSignal,
+  splitProps,
   untrack,
   useContext,
 } from "solid-js";
@@ -62,12 +65,12 @@ import ModSearch from "./ModSearch.tsx";
 
 import styles from "./ModList.module.css";
 import { t } from "../../i18n/i18n.ts";
-import { DefaultDialog } from "../global/Dialog.tsx";
+import { DefaultDialog, DialogClose, DialogTrigger } from "../global/Dialog.tsx";
 import { ErrorIndicator } from "../global/ErrorDialog.tsx";
 import { SimpleProgressIndicator } from "../global/Progress.tsx";
 import SelectDropdown from "../global/SelectDropdown.tsx";
 import TogglableDropdown from "../global/TogglableDropdown.tsx";
-import Tooltip from "../global/Tooltip.tsx";
+import Tooltip, { TooltipTrigger } from "../global/Tooltip.tsx";
 import { useSearchParamsInPlace } from "../../utils/router.ts";
 import Checkbox from "../global/Checkbox.tsx";
 
@@ -310,7 +313,6 @@ export function InstalledModList(props: { game: string }) {
   const [_, setSearchParams] = useSearchParamsInPlace();
 
   const context = useContext(ModInstallContext)!;
-  const [updaterShown, setUpdaterShown] = createSignal(false);
 
   const [checkUpdatesProgress, setCheckUpdatesProgress] = createProgressProxyStore();
 
@@ -391,7 +393,7 @@ export function InstalledModList(props: { game: string }) {
             when={updates().length > 0}
             fallback={
               <SimpleAsyncButton
-                style="ghost"
+                btnStyle="ghost"
                 busy={updates.loading}
                 progress={checkUpdatesProgress}
                 onClick={checkUpdates}
@@ -400,26 +402,19 @@ export function InstalledModList(props: { game: string }) {
               </SimpleAsyncButton>
             }
           >
-            <button data-btn="primary" onClick={() => setUpdaterShown(true)}>
-              <Fa icon={faCircleUp} /> {t("modlist.installed.updates_available_btn")}
-            </button>
+            <ModUpdateDialogue updates={updates()}>
+              <DialogTrigger data-btn="primary">
+                <Fa icon={faCircleUp} /> {t("modlist.installed.updates_available_btn")}
+              </DialogTrigger>
+            </ModUpdateDialogue>
           </Show>
         }
       />
-
-      <Show when={updaterShown()}>
-        <ModUpdateDialogue
-          onDismiss={() => {
-            setUpdaterShown(false);
-          }}
-          updates={updates()}
-        />
-      </Show>
     </Show>
   );
 }
 
-function ModUpdateDialogue(props: { onDismiss: () => void; updates: ModUpdate[] }) {
+function ModUpdateDialogue(props: FlowProps & { updates: ModUpdate[] }) {
   const [_progress, _setProgress] = createProgressProxyStore();
 
   const [selectedMods, setSelectedMods] = createSignal<Set<ModUpdate>>(new Set(props.updates), {
@@ -427,7 +422,7 @@ function ModUpdateDialogue(props: { onDismiss: () => void; updates: ModUpdate[] 
   });
 
   return (
-    <DefaultDialog onDismiss={props.onDismiss} class={styles.updateDialog}>
+    <DefaultDialog class={styles.updateDialog} trigger={props.children}>
       <h2>{t("modlist.installed.updater_title")}</h2>
 
       <div class={styles.listContainer}>
@@ -508,9 +503,9 @@ function ModUpdateDialogue(props: { onDismiss: () => void; updates: ModUpdate[] 
             ? t("modlist.installed.update_all_btn")
             : t("modlist.installed.update_selected_btn")}
         </button>
-        <button onClick={props.onDismiss} style={{ order: -1 }} data-btn="ghost">
+        <DialogClose style={{ order: -1 }} data-btn="ghost">
           {t("global.phrases.cancel")}
-        </button>
+        </DialogClose>
       </div>
     </DefaultDialog>
   );
@@ -758,8 +753,8 @@ function ModView(props: { mod: Mod; gameId: string; closeModView: () => void }) 
             <TogglableDropdown
               label={t("modlist.installed.change_version_btn")}
               labelClass={styles.modView__versionLabel}
-              floatingContainerClass={styles.modView__versionsDropdown}
               dropdownClass={styles.modView__versionsDropdownContent}
+              fillToTriggerWidth
             >
               <input
                 type="text"
@@ -1060,7 +1055,8 @@ function ModListItem(
                 fallback={
                   <ErrorBoundary>
                     <Tooltip content={t("modlist.online.install_btn")}>
-                      <InstallButton
+                      <TooltipTrigger
+                        as={InstallButton}
                         mod={props.mod as ModListing}
                         installContext={installContext!}
                         class={styles.downloadBtn}
@@ -1068,7 +1064,7 @@ function ModListItem(
                         progressStyle="circular"
                       >
                         <Fa icon={faDownLong} />
-                      </InstallButton>
+                      </TooltipTrigger>
                     </Tooltip>
                   </ErrorBoundary>
                 }
@@ -1077,7 +1073,8 @@ function ModListItem(
                   {(installed) => (
                     <ErrorBoundary>
                       <Tooltip content={t("modlist.installed.uninstall_btn")}>
-                        <UninstallButton
+                        <TooltipTrigger
+                          as={UninstallButton}
                           mod={installed()}
                           installContext={installContext!}
                           class={styles.downloadBtn}
@@ -1085,7 +1082,7 @@ function ModListItem(
                           progressStyle="circular"
                         >
                           <Fa icon={faTrash} />
-                        </UninstallButton>
+                        </TooltipTrigger>
                       </Tooltip>
                     </ErrorBoundary>
                   )}
@@ -1099,27 +1096,28 @@ function ModListItem(
   );
 }
 
-function InstallButton(props: {
-  mod: Mod;
-  installContext: NonNullable<typeof ModInstallContext.defaultValue>;
-  class: JSX.HTMLAttributes<Element>["class"];
-  busyClass?: JSX.HTMLAttributes<Element>["class"];
-  children: JSX.Element;
-  progressStyle?: ProgressStyle;
-}) {
+function InstallButton(
+  props: ComponentProps<"button"> & {
+    mod: Mod;
+    installContext: NonNullable<typeof ModInstallContext.defaultValue>;
+    busyClass?: JSX.HTMLAttributes<Element>["class"];
+    progressStyle?: ProgressStyle;
+  },
+) {
+  const [local, rest] = splitProps(props, ["mod", "installContext", "busyClass", "progressStyle", "onClick"]);
+
   return (
     <SimpleAsyncButton
-      progressStyle={props.progressStyle}
+      progressStyle={local.progressStyle}
       progress
-      class={props.class}
-      busyClass={props.busyClass}
-      dataset={{ "data-install": "" }}
+      busyClass={local.busyClass}
+      data-install
       onClick={async (listener) => {
         let foundDownloadTask = false;
         await installProfileMod(
-          props.installContext.profileId(),
-          "versions" in props.mod ? removeProperty(props.mod, "versions") : removeProperty(props.mod, "version"),
-          "versions" in props.mod ? props.mod.versions[0] : props.mod.version,
+          local.installContext.profileId(),
+          "versions" in local.mod ? removeProperty(local.mod, "versions") : removeProperty(local.mod, "version"),
+          "versions" in local.mod ? local.mod.versions[0] : local.mod.version,
           (event) => {
             if (!foundDownloadTask && event.event === "dependency") {
               const dependency = tasks().get(event.dependency)!;
@@ -1138,33 +1136,36 @@ function InstallButton(props: {
             }
           },
         );
-        await props.installContext.refetchInstalled();
+        await local.installContext.refetchInstalled();
       }}
+      {...rest}
     >
       {props.children}
     </SimpleAsyncButton>
   );
 }
 
-function UninstallButton(props: {
-  mod: ModPackage;
-  installContext: NonNullable<typeof ModInstallContext.defaultValue>;
-  class: JSX.HTMLAttributes<Element>["class"];
-  busyClass?: JSX.HTMLAttributes<Element>["class"];
-  children: JSX.Element;
-  progressStyle?: ProgressStyle;
-}) {
+function UninstallButton(
+  props: ComponentProps<"button"> & {
+    mod: ModPackage;
+    installContext: NonNullable<typeof ModInstallContext.defaultValue>;
+    busyClass?: JSX.HTMLAttributes<Element>["class"];
+    progressStyle?: ProgressStyle;
+  },
+) {
+  const [local, rest] = splitProps(props, ["mod", "installContext", "busyClass", "progressStyle", "onClick"]);
+
   return (
     <SimpleAsyncButton
-      progressStyle={props.progressStyle}
+      progressStyle={local.progressStyle}
       progress
-      class={props.class}
-      dataset={{ "data-uninstall": "" }}
-      busyClass={props.busyClass}
+      data-uninstall
+      busyClass={local.busyClass}
       onClick={async (_listener) => {
-        await uninstallProfileMod(props.installContext.profileId(), props.mod.owner, props.mod.name);
-        await props.installContext.refetchInstalled();
+        await uninstallProfileMod(local.installContext.profileId(), local.mod.owner, local.mod.name);
+        await local.installContext.refetchInstalled();
       }}
+      {...rest}
     >
       {props.children}
     </SimpleAsyncButton>

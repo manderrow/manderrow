@@ -1,4 +1,4 @@
-import { Accessor, createEffect, createSignal, JSX, Match, Show, Switch } from "solid-js";
+import { Accessor, ComponentProps, createSignal, JSX, Match, Show, splitProps, Switch } from "solid-js";
 
 import { createProgressProxyStore, Listener, Progress } from "../../api/tasks";
 
@@ -52,17 +52,13 @@ type ProgressProps<P extends true | Progress | undefined> = P extends true
 export type ProgressStyle = "circular" | "simple" | "in-place";
 
 export function SimpleAsyncButton<const P extends true | Progress | undefined>(
-  props: {
+  props: Omit<ComponentProps<"button">, "onClick"> & {
     class?: string;
     busyClass?: string;
-    dataset?: Record<string, string>;
-    type?: "submit" | "reset" | "button";
-    style?: string;
+    btnStyle?: string;
     /// Optional external busy value.
     busy?: boolean;
-    ref?: (element: HTMLButtonElement) => void;
     whenBusy?: (progress: Progress) => JSX.Element;
-    children: JSX.Element;
 
     // Defaults to in-place if unset
     progressStyle?: ProgressStyle;
@@ -72,11 +68,6 @@ export function SimpleAsyncButton<const P extends true | Progress | undefined>(
   const [progress, setProgress]: ProgressSignal = (
     props.progress === true ? createProgressProxyStore() : [props.progress, undefined]
   ) as ProgressSignal;
-  let ref!: HTMLButtonElement;
-  createEffect(() => {
-    if (props.ref) props.ref(ref);
-  });
-
   const progressPercent = () =>
     progress == null
       ? null
@@ -84,34 +75,43 @@ export function SimpleAsyncButton<const P extends true | Progress | undefined>(
       ? 0
       : (progress.completed / (progress.total == 0 ? 1 : progress.total)) * 100;
 
+  const [local, rest] = splitProps(props, [
+    "class",
+    "busyClass",
+    "btnStyle",
+    "busy",
+    "onClick",
+    "progress",
+    "progressStyle",
+    "whenBusy",
+  ]);
+
   return (
     <ActionContext>
       {(busy, wrapOnClick) => (
         <button
-          class={`${styles.buttonBase} ${props.class || ""} ${
-            (props.progressStyle == null || props.progressStyle === "in-place") &&
-            props.progress &&
-            (props.busy || busy())
+          class={`${styles.buttonBase} ${local.class || ""} ${
+            (local.progressStyle == null || local.progressStyle === "in-place") &&
+            local.progress &&
+            (local.busy || busy())
               ? styles.inPlaceBtn
               : ""
           }`}
           classList={
-            props.busyClass
+            local.busyClass
               ? {
-                  [props.busyClass]: props.busy || busy(),
+                  [local.busyClass]: local.busy || busy(),
                 }
               : {}
           }
           style={{
             "--percentage":
-              props.progressStyle == null || props.progressStyle === "in-place"
+              local.progressStyle == null || local.progressStyle === "in-place"
                 ? `${progressPercent() || 0}%`
                 : undefined,
           }}
-          {...props.dataset}
-          disabled={props.busy || busy()}
-          data-btn={props.style}
-          type={props.type}
+          disabled={local.busy || busy()}
+          data-btn={local.btnStyle}
           on:click={async (e) => {
             e.stopPropagation();
             await wrapOnClick(() => {
@@ -126,20 +126,20 @@ export function SimpleAsyncButton<const P extends true | Progress | undefined>(
               }
             });
           }}
-          ref={ref}
+          {...rest}
         >
-          <Show when={props.progress && (props.busy || busy())} fallback={props.children}>
+          <Show when={local.progress && (local.busy || busy())} fallback={props.children}>
             <Show
-              when={props.whenBusy}
+              when={local.whenBusy}
               fallback={
                 <Switch>
-                  <Match when={props.progressStyle === "circular"}>
+                  <Match when={local.progressStyle === "circular"}>
                     <CircularProgressIndicator progress={progress!} />
                   </Match>
-                  <Match when={props.progressStyle === "simple"}>
+                  <Match when={local.progressStyle === "simple"}>
                     <SimpleProgressIndicator progress={progress!} />
                   </Match>
-                  <Match when={props.progressStyle === "in-place" || props.progressStyle == null}>
+                  <Match when={local.progressStyle === "in-place" || local.progressStyle == null}>
                     <span class={styles.percentageText}>
                       {progressPercent() !== null
                         ? `${roundedNumberFormatter.format(progressPercent()!)}%`

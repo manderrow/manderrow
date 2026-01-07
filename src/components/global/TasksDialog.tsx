@@ -8,7 +8,7 @@ import { t } from "../../i18n/i18n.ts";
 import { humanizeFileSize, roundedNumberFormatter } from "../../utils";
 
 import { SimpleAsyncButton } from "./AsyncButton";
-import Dialog, { DismissCallback } from "./Dialog";
+import Dialog, { DialogExternalProps } from "./Dialog";
 import { SimpleProgressIndicator } from "./Progress";
 import TabRenderer, { Tab, TabContent } from "./TabRenderer.tsx";
 
@@ -16,7 +16,7 @@ import styles from "./TasksDialog.module.css";
 
 type TabId = "active" | "completed";
 
-export default function TasksDialog(props: { onDismiss: DismissCallback }) {
+export default function TasksDialog(props: DialogExternalProps) {
   const [tab, setTab] = createSignal<TabId>("active");
   const isCurrentTab = createSelector(tab);
 
@@ -34,36 +34,34 @@ export default function TasksDialog(props: { onDismiss: DismissCallback }) {
   ];
 
   return (
-    <Dialog onDismiss={props.onDismiss}>
-      <div class={styles.tasks}>
-        <div class={styles.tasks__header}>
-          <h2>{t("task_manager.title")}</h2>
-        </div>
-
-        <div>
-          <TabRenderer<TabId>
-            id="tasks"
-            tabs={tabs}
-            styles={{
-              preset: "moving-bg",
-              classes: {
-                container: styles.tabs,
-                list: styles.tabs__list,
-                tab: styles.tabs__tab,
-              },
-            }}
-            setter={(tab) => setTab(tab.id)}
-          />
-
-          <div class={styles.tabs__trailing}>
-            <SimpleAsyncButton progress onClick={clearCache}>
-              Clear Cache
-            </SimpleAsyncButton>
-          </div>
-        </div>
-
-        <TabContent isCurrentTab={isCurrentTab} tabs={tabs} />
+    <Dialog {...props} class={styles.tasks}>
+      <div class={styles.tasks__header}>
+        <h2>{t("task_manager.title")}</h2>
       </div>
+
+      <div>
+        <TabRenderer<TabId>
+          id="tasks"
+          tabs={tabs}
+          styles={{
+            preset: "moving-bg",
+            classes: {
+              container: styles.tabs,
+              list: styles.tabs__list,
+              tab: styles.tabs__tab,
+            },
+          }}
+          setter={(tab) => setTab(tab.id)}
+        />
+
+        <div class={styles.tabs__trailing}>
+          <SimpleAsyncButton progress onClick={clearCache}>
+            Clear Cache
+          </SimpleAsyncButton>
+        </div>
+      </div>
+
+      <TabContent isCurrentTab={isCurrentTab} tabs={tabs} />
     </Dialog>
   );
 }

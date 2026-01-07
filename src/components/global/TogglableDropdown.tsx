@@ -1,90 +1,88 @@
-import { createEffect, createSignal, createUniqueId, JSX, Show } from "solid-js";
-
-import { faCaretDown } from "@fortawesome/free-solid-svg-icons";
+import { createSignal, FlowProps, JSX, Ref, Show } from "solid-js";
 import Fa from "solid-fa";
+import { faCaretDown } from "@fortawesome/free-solid-svg-icons";
+import Popover from "corvu/popover";
+import type { RootProps as PopoverRootProps } from "corvu/popover";
 
 import styles from "./TogglableDropdown.module.css";
-import { FloatingElement } from "./FloatingElement";
-import { UseFloatingOptions } from "solid-floating-ui";
-import { flip, offset, OffsetOptions, shift } from "@floating-ui/dom";
 
 export interface TogglableDropdownOptions {
   floatingContainerClass?: JSX.HTMLAttributes<HTMLElement>["class"];
   label: string | JSX.Element;
   labelClass?: JSX.HTMLAttributes<HTMLElement>["class"];
   dropdownClass?: JSX.HTMLAttributes<HTMLElement>["class"];
-  labelBtnFocusable?: boolean;
-  hideCaret?: boolean;
-  children: JSX.Element;
+  hideCaret?: boolean; // caret in toggle button
+  showArrow?: boolean; // arrow on dropdown
   anchorId?: string; // Explicit ID of element to anchor to (needed for multiple floating elements on the same anchor)
-  dropdownOptions?: UseFloatingOptions<HTMLElement, HTMLElement>;
-  offset?: OffsetOptions;
-  ref?: (element: HTMLElement) => void;
+  popoverProps?: Omit<PopoverRootProps, "children" | "contextId">;
+  offset?: number;
+  fillToTriggerWidth?: boolean;
+  ref?: Ref<HTMLDivElement>;
 }
 
-export default function TogglableDropdown(options: TogglableDropdownOptions) {
-  const id = createUniqueId();
-  const [open, setOpen] = createSignal(false);
-  const [dropdownElement, setDropdownElement] = createSignal<HTMLElement>();
-
-  let dropdownContainer!: HTMLDivElement;
-
-  createEffect(() => {
-    if (open()) dropdownContainer.focus();
-  });
+export default function TogglableDropdown(props: FlowProps & TogglableDropdownOptions) {
+  let triggerRef!: HTMLButtonElement;
+  let contentRef!: HTMLDivElement;
+  const [resizeObserver, setResizeObserver] = createSignal<ResizeObserver | null>(null);
 
   return (
-    <FloatingElement
-      ref={(element) => {
-        setDropdownElement(element);
-        if (options.ref) options.ref(element);
+    <Popover
+      floatingOptions={{
+        offset: props.offset ?? (props.showArrow ? 10 : 6),
+        flip: true,
+        shift: true,
       }}
-      class={`${styles.dropdownBase} ${options.floatingContainerClass || ""}`}
-      content={
-        <div
-          class={`${styles.dropdownDefault} ${options.dropdownClass || ""}`}
-          classList={{
-            [styles.dropdownOpen]: open(),
-          }}
-          id={id}
-          on:focusout={(event) => {
-            if (event.relatedTarget != null) {
-              if (event.relatedTarget instanceof HTMLElement && event.relatedTarget.dataset.labelBtn === id) {
-                return; // don't fire here if focus is moved to the toggle button, let it close through its click handler
-              }
-            }
-            if (dropdownElement()!.matches(":focus-within")) return;
+      contextId={props.anchorId}
+      onContentPresentChange={(present) => {
+        if (!present) {
+          resizeObserver()?.disconnect();
+          setResizeObserver(null);
+          return;
+        }
 
-            setOpen(false);
-          }}
-          tabindex="0"
-          ref={dropdownContainer}
-        >
-          {options.children}
-        </div>
-      }
-      options={{
-        middleware: [flip(), shift(), offset(options.offset)],
-        ...options.dropdownOptions,
+        if (props.fillToTriggerWidth) {
+          function updateWidth() {
+            contentRef.style.setProperty("--fill-width", `${triggerRef.offsetWidth}px`);
+          }
+
+          updateWidth();
+
+          const resizeObserver = new ResizeObserver(updateWidth);
+          resizeObserver.observe(triggerRef);
+          setResizeObserver(resizeObserver);
+        }
       }}
-      hidden={!open()}
+      {...props.popoverProps}
     >
-      <button
-        id={options.anchorId}
-        type="button"
-        data-anchor-id={options.anchorId}
-        classList={{ [styles.toggle]: true, [options.labelClass || styles.labelDefault]: true }}
-        role="checkbox"
-        data-label-btn={id}
-        aria-checked={open()}
-        on:click={() => setOpen((checked) => !checked)}
-        tabindex={options.labelBtnFocusable === false ? "-1" : "0"}
+      <Popover.Trigger
+        as="button"
+        classList={{ [styles.toggle]: true, [props.labelClass || styles.labelDefault]: true }}
+        contextId={props.anchorId}
+        ref={triggerRef}
       >
-        <Show when={!options.hideCaret}>
+        <Show when={!props.hideCaret}>
           <Fa icon={faCaretDown} class={styles.toggle__icon} />
         </Show>
-        {options.label}
-      </button>
-    </FloatingElement>
+        {props.label}
+      </Popover.Trigger>
+      <Popover.Portal contextId={props.anchorId}>
+        <Popover.Content
+          class={`${styles.dropdownBase} ${props.floatingContainerClass || ""}`}
+          contextId={props.anchorId}
+          ref={contentRef}
+        >
+          <Popover.Label class="phantom" contextId={props.anchorId}>
+            {props.label}
+          </Popover.Label>
+          <div class={`${styles.dropdownDefault} ${props.dropdownClass || ""}`} ref={props.ref}>
+            {props.children}
+          </div>
+
+          <Show when={props.showArrow}>
+            <Popover.Arrow contextId={props.anchorId} />
+          </Show>
+        </Popover.Content>
+      </Popover.Portal>
+    </Popover>
   );
 }

@@ -65,7 +65,7 @@ export default function ModSearch(props: ModSearchProps) {
             },
           ]}
           onChanged={() => {}}
-          offset={{ mainAxis: 4 }}
+          offset={4}
         />
         <button
           type="button"
@@ -77,7 +77,7 @@ export default function ModSearch(props: ModSearchProps) {
         </button>
       </div>
       <div class={styles.modSearch__group}>
-        <TogglableDropdown label="Advanced" labelClass={styles.modSearch__dropdownBtn} offset={{ mainAxis: 4 }}>
+        <TogglableDropdown label="Advanced" labelClass={styles.modSearch__dropdownBtn}>
           <div class={styles.searchOptions}>
             <div class={styles.sortOptions}>
               <div class={styles.inner}>
