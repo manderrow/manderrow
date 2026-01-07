@@ -216,10 +216,10 @@ export default function ModList(props: {
             <ModListMods
               mods={mods.mods}
               focusedMod={[focusedModId, setFocusedModId]}
-              isSelected={isSelected}
-              select={onCtrlClickItem}
-              shiftClick={onShiftClickItem}
-              isPivot={isPivot}
+              isSelected={props.multiselect ? isSelected : undefined}
+              select={props.multiselect ? onCtrlClickItem : undefined}
+              shiftClick={props.multiselect ? onShiftClickItem : undefined}
+              isPivot={props.multiselect ? isPivot : undefined}
               forceSelectorVisibility={data().length !== 0}
             />
           )}
