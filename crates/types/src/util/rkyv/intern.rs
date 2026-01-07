@@ -66,7 +66,10 @@ impl<'a> Archive for InternedString<'a> {
         munge!(let Self::Archived { repr } = out);
         if self.len() <= INLINE_CAPACITY {
             debug_assert_eq!(resolver.pos, 0);
-            munge!(let ArchivedInternedStringRepr { inline } = repr);
+            let inline = unsafe {
+                munge!(let ArchivedInternedStringRepr { inline } = repr);
+                inline
+            };
             let inline = unsafe { inline.cast_unchecked::<Inline>() };
             munge!(let Inline { data } = inline);
             let dst = unsafe { data.ptr().cast::<u8>() };
@@ -75,7 +78,10 @@ impl<'a> Archive for InternedString<'a> {
                 unsafe { dst.add(self.len()).write(END_MARKER) };
             }
         } else {
-            munge!(let ArchivedInternedStringRepr { out_of_line } = repr);
+            let out_of_line = unsafe {
+                munge!(let ArchivedInternedStringRepr { out_of_line } = repr);
+                out_of_line
+            };
             let out_of_line = unsafe { out_of_line.cast_unchecked::<OutOfLine>() };
             munge!(let OutOfLine { value: out } = out_of_line);
             let offset = ArchivedIsize::from_isize::<Panic>(
@@ -275,9 +281,14 @@ pub struct InternedStringNiche;
 
 impl<'a> Niching<ArchivedInternedString> for InternedStringNiche {
     unsafe fn is_niched(niched: *const ArchivedInternedString) -> bool {
-        let niched = unsafe { niched.as_uninit_ref().unwrap() };
-        munge!(let ArchivedInternedString { repr: ArchivedInternedStringRepr { inline } } = niched);
-        unsafe { *inline.as_ptr().cast::<u8>() == NICHE_MARKER }
+        unsafe {
+            // SAFETY: the caller guarantees the pointer is nonnull
+            let niched = niched.as_uninit_ref().unwrap();
+            // SAFETY: the inline repr is always valid
+            munge!(let ArchivedInternedString { repr: ArchivedInternedStringRepr { inline } } = niched);
+            // SAFETY: inline is nonnull and points to initialized bytes
+            *inline.as_ptr().cast::<u8>() == NICHE_MARKER
+        }
     }
 
     fn resolve_niched(out: Place<ArchivedInternedString>) {

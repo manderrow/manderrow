@@ -1,0 +1,154 @@
+import { faCopy, faDownload, faListCheck } from "@fortawesome/free-solid-svg-icons";
+import Fa from "solid-fa";
+import { For, Show, createSelector, createSignal } from "solid-js";
+
+import { clearCache } from "../api/installing";
+import { DownloadMetadata, Kind, ProgressUnit, tasksArray } from "../api/tasks";
+import { t } from "../i18n/i18n.ts";
+import { humanizeFileSize, roundedNumberFormatter } from "../utils/utils";
+
+import { SimpleAsyncButton } from "../widgets/AsyncButton";
+import Dialog, { DialogExternalProps } from "../widgets/Dialog";
+import { SimpleProgressIndicator } from "../widgets/Progress";
+import TabRenderer, { Tab, TabContent } from "../widgets/TabRenderer.tsx";
+
+import styles from "./TasksDialog.module.css";
+
+type TabId = "active" | "completed";
+
+export default function TasksDialog(props: DialogExternalProps) {
+  const [tab, setTab] = createSignal<TabId>("active");
+  const isCurrentTab = createSelector(tab);
+
+  const tabs: readonly Tab<TabId>[] = [
+    {
+      id: "active",
+      name: t("task_manager.active_tab_name"),
+      component: () => <TaskList active />,
+    },
+    {
+      id: "completed",
+      name: t("task_manager.completed_tab_name"),
+      component: () => <TaskList />,
+    },
+  ];
+
+  return (
+    <Dialog {...props} class={styles.tasks}>
+      <div class={styles.tasks__header}>
+        <h2>{t("task_manager.title")}</h2>
+      </div>
+
+      <div>
+        <TabRenderer<TabId>
+          id="tasks"
+          tabs={tabs}
+          styles={{
+            preset: "moving-bg",
+            classes: {
+              container: styles.tabs,
+              list: styles.tabs__list,
+              tab: styles.tabs__tab,
+            },
+          }}
+          setter={(tab) => setTab(tab.id)}
+        />
+
+        <div class={styles.tabs__trailing}>
+          <SimpleAsyncButton progress onClick={clearCache}>
+            Clear Cache
+          </SimpleAsyncButton>
+        </div>
+      </div>
+
+      <TabContent isCurrentTab={isCurrentTab} tabs={tabs} />
+    </Dialog>
+  );
+}
+
+function TaskKindIcon(kind: Kind) {
+  switch (kind) {
+    case Kind.Aggregate:
+      return <Fa icon={faListCheck} />;
+    case Kind.Download:
+      return <Fa icon={faDownload} />;
+    case Kind.Other:
+      return <></>;
+  }
+}
+
+function TaskList(props: { active?: boolean }) {
+  return (
+    <ul class={styles.list}>
+      <For
+        each={tasksArray().filter((task) => task.isComplete != !!props.active && task.status.status !== "Unstarted")}
+        fallback={<li>{t("task_manager.no_tasks_yet_msg")}</li>}
+      >
+        {(task) => (
+          <li>
+            <Show when={!task.isComplete}>
+              <SimpleProgressIndicator progress={task.progress} />
+            </Show>
+            <div>
+              <div>
+                <h4>
+                  {TaskKindIcon(task.metadata.kind)} {task.metadata.title}
+                </h4>
+
+                <p class={styles.status_line}>
+                  <Show when={task.status.status !== "Running" || task.progress.total === 0}>
+                    <span>{task.status.status}</span>
+                  </Show>
+                  <Show when={!task.isComplete && task.progress.total !== 0}>
+                    <span>{roundedNumberFormatter.format((task.progress.completed / task.progress.total) * 100)}%</span>
+                  </Show>
+
+                  <Show when={task.metadata.progress_unit === ProgressUnit.Bytes}>
+                    <span>
+                      <Show
+                        when={task.isComplete && task.progress.completed === task.progress.total}
+                        fallback={
+                          <>
+                            <span>{humanizeFileSize(task.progress.completed)}</span> /{" "}
+                            <span>{humanizeFileSize(task.progress.total)}</span>
+                          </>
+                        }
+                      >
+                        {humanizeFileSize(task.progress.completed)}
+                      </Show>
+                    </span>
+                  </Show>
+
+                  <Show when={task.status.status === "Success" ? task.status.success : undefined}>
+                    {(info) => <span>{info()}</span>}
+                  </Show>
+                </p>
+
+                <Show when={task.metadata.kind === Kind.Download}>
+                  <DownloadUrlLine url={(task.metadata as DownloadMetadata).url} />
+                </Show>
+              </div>
+            </div>
+          </li>
+        )}
+      </For>
+    </ul>
+  );
+}
+
+function DownloadUrlLine(props: { url: string }) {
+  return (
+    <div class={styles.downloadUrl}>
+      <a href={props.url} title={props.url}>
+        {t("task_manager.source_label")}
+      </a>
+      <button
+        onClick={() => {
+          navigator.clipboard.writeText(props.url);
+        }}
+      >
+        <Fa icon={faCopy} />
+      </button>
+    </div>
+  );
+}

@@ -1,0 +1,73 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--portal-z-index);
+
+  background-color: rgb(0 0 0 / 0.25);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+}
+
+.dialog {
+  position: fixed;
+  z-index: var(--portal-z-index);
+  width: 100%;
+  max-width: 75ch;
+  left: 50%;
+  top: 50%;
+  translate: -50% -50%;
+}
+
+.dialogDefault {
+  background-color: var(--clr-neutral-80);
+  padding: 1em;
+  border-radius: 0.5em;
+  box-shadow: 0 0 1.25em -0.25em rgb(0 0 0 / 0.75);
+  overflow-y: auto;
+}
+
+.dialog__closeBtn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  font-size: 1.5rem;
+  padding: 0.25em;
+  aspect-ratio: 1 / 1;
+  background-color: transparent;
+}
+
+.dialog__title {
+  font-size: 1.5rem;
+  margin-bottom: 0.25em;
+  text-align: center;
+}
+
+.dialog__message {
+  color: var(--clr-neutral-20);
+}
+
+.dialog__btns {
+  display: flex;
+  gap: 0.25em;
+  justify-content: flex-end;
+  margin-top: 2em;
+}
+
+.dialog__btnsBtn {
+  padding: 0.5em 1em;
+  border-radius: 4px;
+  background-color: var(--clr-neutral-70);
+}
+
+.dialog__btnsBtnDanger {
+  background-color: var(--clr-danger-4);
+}
+.dialog__btnsBtnAttention {
+  background-color: var(--clr-attention-4);
+}
+.dialog__btnsBtnOk {
+  background-color: var(--clr-ok-4);
+}
+.dialog__btnsBtnInfo {
+  background-color: var(--clr-primary-40);
+}

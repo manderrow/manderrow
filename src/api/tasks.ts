@@ -3,8 +3,8 @@ import { listen } from "@tauri-apps/api/event";
 import { Accessor, createMemo, createSignal, Setter } from "solid-js";
 import { createStore, SetStoreFunction, Store } from "solid-js/store";
 
-import { wrapInvoke } from "../api";
-import { callWithErrorStack } from "../utils";
+import { wrapInvoke } from "./api";
+import { callWithErrorStack } from "../utils/utils";
 
 export type Id = number;
 

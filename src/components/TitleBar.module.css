@@ -1,0 +1,76 @@
+.titlebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+
+  height: var(--titlebar-height);
+  background-color: var(--clr-neutral-85);
+  border-bottom: 1px solid var(--clr-neutral-80);
+  user-select: none;
+  -webkit-user-select: none;
+  display: grid;
+  grid-template-columns: 1fr minmax(auto, 50%) 1fr;
+  z-index: var(--titlebar-z-index);
+  pointer-events: auto;
+
+  &[data-focused="true"] {
+    background-color: var(--clr-neutral-90);
+  }
+
+  .titlebar__content {
+    display: flex;
+    justify-self: left;
+    align-items: center;
+    padding-left: 0.4em;
+    gap: 0.4em;
+
+    .appTitle {
+      color: var(--clr-neutral-20);
+      font-size: 0.85rem;
+    }
+
+    img {
+      width: var(--titlebar-logo-size);
+      aspect-ratio: 1 / 1;
+    }
+  }
+
+  .profileName {
+    text-align: center;
+    line-height: var(--titlebar-height);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--clr-neutral-30);
+  }
+
+  .controls {
+    display: flex;
+    justify-self: right;
+
+    button {
+      appearance: none;
+      padding: 0 0.5em;
+      margin: 0;
+      outline: none;
+      border: none;
+      display: inline-flex;
+      justify-content: center;
+      align-items: center;
+      height: 100%;
+      background-color: transparent;
+      transition: background-color 0.2s ease;
+      border-radius: 0;
+
+      &[data-minimize]:hover,
+      &[data-maximize]:hover {
+        background-color: var(--clr-neutral-70);
+      }
+
+      &[data-close]:hover {
+        background-color: var(--clr-danger-5);
+      }
+    }
+  }
+}

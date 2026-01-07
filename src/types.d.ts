@@ -7,8 +7,6 @@ declare module "solid-js" {
   }
 }
 
-export type Refetcher<T, R = unknown> = (info?: R) => T | Promise<T> | undefined | null;
-
 export interface Game {
   id: string;
   name: string;
@@ -49,9 +47,6 @@ export interface ModMetadata {
   owner: string;
   donation_link?: string;
   date_created: string;
-  date_updated: string;
-  rating_score: number;
-  is_pinned: boolean;
   is_deprecated: boolean;
   has_nsfw_content: boolean;
   categories: string[];
@@ -68,7 +63,6 @@ export interface ModListing extends ModMetadata {
  * A versioned mod package.
  */
 export interface ModPackage extends ModMetadata {
-  game: string;
   version: ModVersion;
 }
 

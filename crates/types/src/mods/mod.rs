@@ -57,25 +57,13 @@ impl<'a> serde::Serialize for ArchivedModRef<'a> {
 #[serde(deny_unknown_fields)]
 pub struct ModMetadata<'a> {
     pub name: &'a str,
-    #[allow(unused)]
-    #[serde(default, skip_serializing)]
-    pub full_name: IgnoredAny,
     pub owner: &'a str,
-    #[allow(unused)]
-    #[serde(default, skip_serializing)]
-    pub package_url: IgnoredAny,
     #[serde(deserialize_with = "empty_string_as_none")]
     pub donation_link: Option<SmolStr>,
     pub date_created: Timestamp,
-    pub date_updated: Timestamp,
-    pub rating_score: u32,
-    pub is_pinned: bool,
     pub is_deprecated: bool,
     pub has_nsfw_content: bool,
     pub categories: Vec<SmolStr>,
-    #[allow(unused)]
-    #[serde(default, skip_serializing)]
-    pub uuid4: IgnoredAny,
 }
 
 #[derive(Debug, Clone, rkyv::Archive, rkyv::Serialize, serde::Deserialize, serde::Serialize)]
@@ -95,9 +83,15 @@ pub struct ModMetadataRef<'a> {
     #[serde(deserialize_with = "empty_string_as_none")]
     pub donation_link: Option<InternedString<'a>>,
     pub date_created: Timestamp,
-    pub date_updated: Timestamp,
-    pub rating_score: u32,
-    pub is_pinned: bool,
+    #[allow(unused)]
+    #[serde(default, skip_serializing)]
+    pub date_updated: IgnoredAny,
+    #[allow(unused)]
+    #[serde(default, skip_serializing)]
+    pub rating_score: IgnoredAny,
+    #[allow(unused)]
+    #[serde(default, skip_serializing)]
+    pub is_pinned: IgnoredAny,
     pub is_deprecated: bool,
     pub has_nsfw_content: bool,
     pub categories: Vec<InternedString<'a>>,
@@ -116,9 +110,6 @@ impl<'a> serde::Serialize for ArchivedModMetadataRef<'a> {
         ser.serialize_field("owner", &self.owner)?;
         ser.serialize_field("donation_link", &self.donation_link.as_deref())?;
         ser.serialize_field("date_created", &Timestamp::from(self.date_created))?;
-        ser.serialize_field("date_updated", &Timestamp::from(self.date_updated))?;
-        ser.serialize_field("rating_score", &self.rating_score.to_native())?;
-        ser.serialize_field("is_pinned", &self.is_pinned)?;
         ser.serialize_field("is_deprecated", &self.is_deprecated)?;
         ser.serialize_field("has_nsfw_content", &self.has_nsfw_content)?;
         ser.serialize_field("categories", &SerializeArchivedVec(&self.categories))?;
@@ -129,30 +120,18 @@ impl<'a> serde::Serialize for ArchivedModMetadataRef<'a> {
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ModVersion<'a> {
-    #[allow(unused)]
-    #[serde(default, skip_serializing)]
-    pub name: IgnoredAny,
-    #[allow(unused)]
-    #[serde(default, skip_serializing)]
-    pub full_name: IgnoredAny,
     pub description: SmolStr,
-    #[allow(unused)]
-    #[serde(default, skip_serializing)]
-    pub icon: IgnoredAny,
     pub version_number: Version,
     #[serde(borrow)]
     pub dependencies: Vec<InternedString<'a>>,
-    #[allow(unused)]
-    #[serde(default, skip_serializing)]
-    pub download_url: IgnoredAny,
+    // TODO: don't store in local mod metadata
     pub downloads: u64,
     pub date_created: Timestamp,
+    // TODO: custom deserializer, remove this field, store value from latest version on mod metadata
     #[serde(deserialize_with = "empty_string_as_none")]
     pub website_url: Option<SmolStr>,
     pub is_active: bool,
-    #[allow(unused)]
-    #[serde(default, skip_serializing)]
-    pub uuid4: IgnoredAny,
+    // TODO: don't store in local mod metadata
     pub file_size: u64,
 }
 

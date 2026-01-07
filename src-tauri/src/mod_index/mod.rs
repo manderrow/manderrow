@@ -25,11 +25,11 @@ use crate::util::search::{Score, SortOption};
 use crate::util::{search, Progress};
 use crate::Reqwest;
 
-use memory::MemoryModIndex;
+use memory::{MemoryModIndex, MemoryModIndexChunk};
 
 #[derive(Default)]
 struct ModIndex {
-    data: RwLock<Vec<MemoryModIndex>>,
+    data: RwLock<MemoryModIndex>,
     refresh_lock: Mutex<()>,
     pub progress: Progress,
 }
@@ -56,11 +56,12 @@ pub async fn fetch_mod_index(
     let game = *games_by_id()?.get(game).context("No such game")?;
     let mod_index = MOD_INDEXES.get(&*game.thunderstore_url).unwrap();
 
+    // TODO: document when chunks can be empty
     if refresh
         || mod_index
             .data
             .try_read()
-            .map(|data| data.is_empty())
+            .map(|data| data.chunks.is_empty())
             .unwrap_or(true)
     {
         TaskBuilder::with_id(task_id.unwrap_or_else(tasks::allocate_task), format!("Fetch mod index for {}", game.id))
@@ -220,7 +221,7 @@ pub async fn fetch_mod_index(
                                     buf.len(),
                                     (buf.len() as f64 / buf_len as f64) * 100.0
                                 );
-                                let index = MemoryModIndex::new(buf, |data| {
+                                let index = MemoryModIndexChunk::new(buf, |data| {
                                     if cfg!(debug_assertions) {
                                         rkyv::access::<_, rkyv::rancor::Error>(data)
                                     } else{
@@ -242,7 +243,7 @@ pub async fn fetch_mod_index(
                     _ = progress_updater => unreachable!(),
                     r = new_mod_index => r?,
                 };
-                *mod_index.data.write().await = new_mod_index;
+                *mod_index.data.write().await = MemoryModIndex { chunks: new_mod_index };
 
                 #[cfg(feature = "statistics")]
                 let (inline_version_count, out_of_line_version_count) = packed_semver::get_version_repr_stats();
@@ -282,7 +283,7 @@ impl SortColumn {
     pub const VALUE_COUNT: usize = Self::VALUES.len();
 }
 
-pub type ModIndexReadGuard = RwLockReadGuard<'static, Vec<MemoryModIndex>>;
+pub type ModIndexReadGuard = RwLockReadGuard<'static, MemoryModIndex>;
 
 pub async fn read_mod_index(game: &str) -> Result<ModIndexReadGuard> {
     let game = *games_by_id()?.get(game).context("No such game")?;
@@ -302,6 +303,7 @@ pub fn count_mod_index<'a>(mod_index: &'a ModIndexReadGuard, query: &str) -> Res
     let start = Instant::now();
 
     let count = mod_index
+        .chunks
         .iter()
         .map(|mi| {
             mi.mods()
@@ -333,7 +335,7 @@ pub fn query_mod_index<'a>(
 
     let mut buf = Vec::new();
 
-    for mi in mod_index.iter() {
+    for mi in mod_index.chunks.iter() {
         buf.extend(
             mi.mods()
                 .iter()
@@ -434,6 +436,7 @@ pub async fn get_from_mod_index<'a>(
     let mut results = vec![None; mod_ids.len()];
 
     mod_index
+        .chunks
         .iter()
         .flat_map(|mi| mi.mods().iter())
         .for_each(|m| {
@@ -456,7 +459,7 @@ pub async fn get_one_from_mod_index<'a>(
 
     debug!(log, "Getting one mod from mod index");
 
-    let m = mod_index.iter().find_map(|mi| {
+    let m = mod_index.chunks.iter().find_map(|mi| {
         mi.mods().iter().find(|m| {
             mod_id
                 == ModId {

@@ -17,16 +17,19 @@
         "label": "main",
         "width": 1024,
         "height": 576,
+        "minWidth": 500,
+        "minHeight": 400,
         "visible": true,
         "transparent": false,
         "center": true,
         "backgroundColor": "#1d2430",
         "decorations": false,
-        "titleBarStyle": "Overlay"
+        "titleBarStyle": "Overlay",
+        "url": "profile"
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' gcdn.thunderstore.io"
+      "csp": "default-src 'self'; img-src 'self' gcdn.thunderstore.io data:; style-src 'self'; connect-src 'self' http://ipc.localhost;"
     },
     "macOSPrivateApi": true
   },

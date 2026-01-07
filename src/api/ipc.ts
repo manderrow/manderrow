@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { wrapInvoke } from "../api";
+import { wrapInvoke } from "./api";
 
 export type SafeOsString = { Unicode: string } | { NonUnicodeBytes: number[] } | { NonUnicodeWide: number[] };
 

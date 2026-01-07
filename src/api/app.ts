@@ -1,5 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
-import { wrapInvoke } from "../api";
+import { wrapInvoke } from "./api";
 
 export async function close(): Promise<never> {
   await wrapInvoke(() => invoke("close"));

@@ -1,0 +1,31 @@
+.tooltip {
+  background-color: var(--clr-neutral-80);
+  padding: 0.25em;
+  border: 1px solid var(--clr-neutral-70);
+  border-radius: 4px;
+  box-shadow: 0 0 0.5rem rgb(0 0 0 / 0.3);
+  z-index: var(--dropdown-z-index);
+  animation: fade-in 0.1s ease forwards;
+  width: max-content;
+  max-width: 200px;
+
+  [data-corvu-tooltip-arrow] {
+    color: var(--clr-neutral-80);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.tooltipText {
+  font-size: 0.9rem;
+  color: var(--clr-neutral-10);
+  font-weight: 320;
+}

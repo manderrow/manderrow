@@ -4,6 +4,9 @@ on:
   release:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     strategy:
@@ -15,7 +18,7 @@ jobs:
             rust_targets: 'aarch64-apple-darwin'
           - platform: 'macos-latest' # for Intel based macs.
             args: '--target x86_64-apple-darwin'
-            rust_targets: 'x86_64-apple-darwin'
+            rust_targets: 'aarch64-apple-darwin,x86_64-apple-darwin'
           - platform: 'ubuntu-22.04'
             args: ''
             rust_targets: ''
@@ -52,7 +55,7 @@ jobs:
 
       - uses: mlugg/setup-zig@v2
         with:
-          version: 0.15.0-dev.1092+d772c0627
+          version: 0.15.0-dev.1599+cf90a5e45
 
       - name: Install frontend dependencies
         run: pnpm install
@@ -62,4 +65,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           args: ${{ matrix.args }}
+          releaseName: ${{ github.event_name != 'release' && 'Nightly' || null }}
+          releaseId: ${{ github.event.release && github.event.release.id }}
+          tagName: ${{ github.event.release && github.event.release.tag_name || 'nightly' }}
+          prerelease: ${{ github.event_name != 'release' || github.event.release.tag_name == 'nightly' }}
 

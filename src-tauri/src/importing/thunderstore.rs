@@ -214,7 +214,15 @@ pub async fn lookup_profile(
             .by_name("export.r2x")
             .context("Profile archive is missing manifest file")?;
 
-        let manifest = serde_yaml::from_reader(manifest_file)?;
+        let mut manifest: ProfileManifest = serde_yaml::from_reader(manifest_file)?;
+
+        while let Some(i) = manifest
+            .mods
+            .iter()
+            .position(|m| m.full_name.value == "BepInEx-BepInExPack")
+        {
+            manifest.mods.remove(i);
+        }
 
         Ok(Profile { manifest, archive })
     })

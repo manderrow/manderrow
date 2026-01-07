@@ -219,7 +219,10 @@ impl rkyv::Archive for Version {
                 })
             };
         } else {
-            munge!(let ArchivedVersion { repr: ArchivedVersionRepr { out_of_line } } = out);
+            let out_of_line = unsafe {
+                munge!(let ArchivedVersion { repr: ArchivedVersionRepr { out_of_line } } = out);
+                out_of_line
+            };
             let out_of_line = unsafe { out_of_line.cast_unchecked::<RelPtr<ArchivedU64>>() };
             RelPtr::emplace(resolver.pos as usize, out_of_line);
         }

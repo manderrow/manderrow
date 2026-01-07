@@ -216,7 +216,7 @@ fn startAgent() void {
         dumpArgs(&buf.writer) catch {};
         switch (build_options.ipc_mode) {
             .ipc_channel, .winelib => {
-                rs.sendLog(.debug, "manderrow_agent", buf.getWritten()) catch |e| logger.warn("{}", .{e});
+                rs.sendLog(.debug, "manderrow_agent", buf.written()) catch |e| logger.warn("{}", .{e});
             },
             .stderr => {
                 logger.debug("{s}", .{buf.getWritten()});
@@ -228,7 +228,7 @@ fn startAgent() void {
         dumpEnv(&buf.writer) catch {};
         switch (build_options.ipc_mode) {
             .ipc_channel, .winelib => {
-                rs.sendLog(.debug, "manderrow_agent", buf.getWritten()) catch |e| logger.warn("{}", .{e});
+                rs.sendLog(.debug, "manderrow_agent", buf.written()) catch |e| logger.warn("{}", .{e});
             },
             .stderr => {
                 logger.debug("{s}", .{buf.getWritten()});

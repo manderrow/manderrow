@@ -16,6 +16,7 @@
 #![feature(vec_push_within_capacity)]
 
 mod app_commands;
+mod bench_commands;
 mod error;
 mod games;
 mod i18n;
@@ -100,6 +101,8 @@ fn run_app(ctx: tauri::Context<tauri::Wry>) -> anyhow::Result<()> {
             app_commands::relaunch,
             app_commands::set_maximized,
             app_commands::start_dragging,
+            bench_commands::bench_exit_interactive,
+            bench_commands::bench_exit_splash,
             games::commands::get_games,
             games::commands::search_games,
             games::commands::get_games_popularity,

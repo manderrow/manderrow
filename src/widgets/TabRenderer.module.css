@@ -1,0 +1,86 @@
+.base,
+.basic,
+.moving-bg {
+  .list {
+    display: flex;
+
+    --btn-border-radius: 6px;
+  }
+
+  .tab button {
+    padding: 0.5em 1em;
+    display: block;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+}
+
+.basic,
+.moving-bg {
+  .tab {
+    overflow: hidden;
+    border-radius: var(--btn-border-radius);
+
+    button {
+      padding: 0.5em 1em;
+      border-right: 1px solid var(--clr-neutral-70);
+      color: var(--clr-neutral-40);
+      border-radius: 0;
+      display: block;
+      font-size: 1rem;
+      font-weight: 500;
+      user-select: none;
+      -webkit-user-select: none;
+      background-color: transparent;
+      min-width: 8ch;
+    }
+
+    button:hover:not(:disabled) {
+      color: var(--clr-neutral-20);
+    }
+
+    &[data-active="true"] button {
+      border-color: var(--clr-primary-40);
+      background-color: var(--clr-primary-40);
+      color: white;
+    }
+
+    &:has(+ .tab[data-active="true"]) button {
+      border-right-color: transparent;
+    }
+  }
+}
+
+@supports (anchor-name: --foo) {
+  .moving-bg {
+    .list {
+      isolation: isolate;
+    }
+
+    .tab {
+      &[data-active="true"] {
+        anchor-name: --active-tab;
+      }
+
+      &[data-active="true"] button {
+        background-color: transparent;
+        border: transparent;
+      }
+    }
+
+    .list::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      background-color: var(--clr-primary-40);
+      border-radius: var(--btn-border-radius);
+
+      position-anchor: --active-tab;
+      top: anchor(top);
+      left: anchor(left);
+      right: anchor(right);
+      bottom: anchor(bottom);
+      transition: left 0.2s, right 0.2s;
+    }
+  }
+}

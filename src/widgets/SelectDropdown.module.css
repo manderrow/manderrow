@@ -1,0 +1,29 @@
+.dropdown {
+  overflow: auto;
+  max-height: 50dvh;
+  scrollbar-width: thin;
+}
+
+.options {
+}
+
+.option {
+  user-select: none;
+  -webkit-user-select: none;
+  padding: 0.3em 0.5em;
+  white-space: nowrap;
+}
+
+.option:hover {
+  cursor: pointer;
+  background-color: var(--clr-neutral-70);
+}
+
+.option__check {
+  opacity: 0;
+  margin-right: 0.5em;
+}
+
+.option[aria-checked="true"] .option__check {
+  opacity: 1;
+}

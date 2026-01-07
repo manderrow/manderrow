@@ -437,36 +437,22 @@ async fn install_profile_mod_inner<'a, 'b>(
                 &ModAndVersion {
                     r#mod: ModMetadata {
                         name: &m.name,
-                        full_name: IgnoredAny,
                         owner: &m.owner,
-                        package_url: IgnoredAny,
                         donation_link: m.donation_link.as_ref().map(|s| SmolStr::from(&**s)),
                         date_created: m.date_created.into(),
-                        // TODO: don't save this locally?
-                        date_updated: m.date_updated.into(),
-                        // TODO: don't save this locally
-                        rating_score: m.rating_score.into(),
-                        // TODO: don't save this locally
-                        is_pinned: m.is_pinned,
                         is_deprecated: m.is_deprecated,
                         has_nsfw_content: m.has_nsfw_content,
                         categories: m.categories.iter().map(|s| SmolStr::from(&**s)).collect(),
-                        uuid4: IgnoredAny,
                     },
                     version: ModVersion {
-                        name: IgnoredAny,
-                        full_name: IgnoredAny,
                         description: SmolStr::from(&*version.description),
-                        icon: IgnoredAny,
                         version_number: version.version_number.get(),
                         dependencies: version.dependencies.iter().map(|s| s.into()).collect(),
-                        download_url: IgnoredAny,
                         // TODO: don't save this locally
                         downloads: version.downloads.into(),
                         date_created: version.date_created.into(),
                         website_url: version.website_url.as_ref().map(|s| SmolStr::from(&**s)),
                         is_active: version.is_active,
-                        uuid4: IgnoredAny,
                         file_size: version.file_size.into(),
                     },
                 },

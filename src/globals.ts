@@ -1,9 +1,9 @@
 import { createResource, createSignal } from "solid-js";
 
-import { GameSortColumn, getGameModDownloads, getGames, getGamesPopularity, getProfiles, searchGames } from "./api";
+import { GameSortColumn, getGameModDownloads, getGames, getGamesPopularity, getProfiles, searchGames } from "./api/api";
 import { Game } from "./types";
 import { settingsResource, settingsUIResource } from "./api/settings";
-import { createSignalResource } from "./utils";
+import { createSignalResource } from "./utils/utils";
 
 export const [gamesResource] = createResource<[readonly Game[], Map<string, Game>], never>(async () => {
   const games = Object.freeze(await getGames());
@@ -46,6 +46,24 @@ export const [profiles, { refetch: refetchProfiles }] = createResource(async () 
 });
 
 export const initialGame = createSignalResource(async () => (await settingsResource.loaded).defaultGame.value);
+
+const [_shifting, setShifting] = createSignal(false);
+const [_ctrling, setCtrling] = createSignal(false);
+
+export const shifting = _shifting;
+export const ctrling = _ctrling;
+
+function onShiftDown(e: KeyboardEvent) {
+  if (e.key === "Shift") setShifting(true);
+  if (e.key === "Control") setCtrling(true);
+}
+function onShiftUp(e: KeyboardEvent) {
+  if (e.key === "Shift") setShifting(false);
+  if (e.key === "Control") setCtrling(false);
+}
+
+document.addEventListener("keydown", onShiftDown);
+document.addEventListener("keyup", onShiftUp);
 
 // You can use this for testing splashscreen errors. Add it to coreResources.
 // const [dummyResource] = createResource(() => {

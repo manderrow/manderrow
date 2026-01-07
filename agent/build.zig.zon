@@ -5,16 +5,16 @@
 
     .fingerprint = 0x976fd25251d885f2, // Changing this has security and trust implications.
 
-    .minimum_zig_version = "0.15.0-dev.1092+d772c0627",
+    .minimum_zig_version = "0.15.2",
 
     .dependencies = .{
         .dll_proxy = .{
-            .url = "git+https://github.com/manderrow/dll-proxy.git#c0e8fdd3507db46b353f310e75dc9f90ca3eb367",
-            .hash = "dll_proxy-0.0.0-WDnws-g1AAB5bZAf4Ef_DqeeFErKtQjmE6e8P7QoWvDS",
+            .url = "git+https://github.com/manderrow/dll-proxy#ef7a8a94eb2accbf2d1e549b8fde3def84d07126",
+            .hash = "dll_proxy-0.0.0-WDnwsw02AADnCRrQtD2qCl1q1Ak3LWS_wu0v5Nn0R8qK",
         },
         .wine_host_dlfcn = .{
-            .url = "git+https://github.com/manderrow/wine-host-dlfcn.git#fea271e21e9207d02245b1a60d8032b94dbcf9af",
-            .hash = "wine_host_dlfcn-0.0.0-853HMSoYAAAjuFo7EBtyzubVsIfGjDnuEPQp0KKloYeH",
+            .url = "git+https://github.com/manderrow/wine-host-dlfcn#df05786495bcc9052fd557b2386b35614a39caca",
+            .hash = "wine_host_dlfcn-0.0.0-853HMc0ZAABfBl1kTrgOXWvmYN8kaLh3KifmmMGrVz4G",
         },
     },
 

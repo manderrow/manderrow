@@ -1,12 +1,18 @@
 import { defineConfig } from "vite";
 import solid from "vite-plugin-solid";
+import checker from "vite-plugin-checker";
 import process from "node:process";
 
 const host = process.env.TAURI_DEV_HOST;
 
 // https://vitejs.dev/config/
 export default defineConfig(() => ({
-  plugins: [solid()],
+  plugins: [
+    solid(),
+    checker({
+      typescript: true,
+    }),
+  ],
 
   // Vite options tailored for Tauri development and only applied in `tauri dev` or `tauri build`
   //

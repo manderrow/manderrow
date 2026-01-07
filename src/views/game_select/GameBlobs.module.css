@@ -1,0 +1,79 @@
+.gradientBlobs {
+  position: absolute;
+  pointer-events: none;
+  overflow: hidden;
+  inset: 0;
+  z-index: -1;
+}
+
+.gradientBlob {
+  position: absolute;
+  width: 100vmax;
+  height: 100vmax;
+  overflow: visible;
+  transform-origin: top left;
+  top: 0%;
+}
+
+.gradientBlob[data-blob-1] {
+  width: 140vmax;
+  height: 100rem;
+  background-image: radial-gradient(ellipse at center, hsl(from var(--clr-primary-40) h s l / 0.7), transparent 50%);
+  left: 50%;
+  transform: translate(-50%, -50%);
+  /* animation: hollow-purple-blue 9s ease-out infinite; */
+}
+
+.gradientBlob[data-blob-2] {
+  background-image: radial-gradient(circle at center, hsl(from var(--clr-accent-4) h s l / 0.3), transparent 60%);
+  width: 135rem;
+  height: 135rem;
+  transform: translate(-30%, -15%);
+  /* animation: hollow-purple-red 9s ease-out infinite; */
+}
+
+/* @keyframes hollow-purple-blue {
+  0% {
+    transform: translate(0%, 0%) rotate(720deg);
+  }
+
+  90% {
+    transform: translate(-50%, 50%) rotate(0deg);
+  }
+
+  100% {
+    transform: scale(8) translate(0%, 0%);
+    transform-origin: center;
+  }
+}
+
+@keyframes hollow-purple-red {
+  0% {
+    transform: translate(-100%, 100%) rotate(-720deg);
+  }
+
+  90% {
+    transform: translate(-50%, 50%) rotate(0deg);
+  }
+
+  100% {
+    transform: scale(8) translate(0%, 0%);
+    transform-origin: center;
+  }
+} */
+
+.gradientBlob[data-blob-3] {
+  background-image: radial-gradient(circle at center, hsl(from var(--clr-accent-4) h s l / 0.45), transparent 60%);
+  left: 0;
+  width: 200vmax;
+  height: 200vmax;
+  transform: translate(0vmax, -70vmax);
+}
+
+.gradientBlob[data-blob-4] {
+  background-image: radial-gradient(circle at center, hsl(from var(--clr-ok-4) h s l / 0.3), transparent 50%);
+  left: 10%;
+  width: 150rem;
+  height: 150rem;
+  transform: translate(-50%, 10%);
+}

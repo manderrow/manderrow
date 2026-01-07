@@ -1,0 +1,51 @@
+.buttonBase:disabled {
+  cursor: not-allowed;
+  opacity: 1;
+}
+
+.inPlaceBtn {
+  position: relative;
+  z-index: 0;
+  background-color: transparent;
+  border: 1px solid var(--progress-bg-to, var(--clr-primary-40));
+
+  &:hover {
+    background-color: transparent;
+  }
+
+  .percentageText {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    translate: -50% -50%;
+    text-align: center;
+    text-shadow: 0 0 0.5rem rgb(0 0 0 / 0.5);
+  }
+
+  .widthRetainer {
+    visibility: hidden;
+  }
+}
+
+.inPlaceBtn::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: inherit;
+
+  background-image: linear-gradient(
+    90deg,
+    var(--progress-bg-from, var(--clr-primary-40)) 0%,
+    var(--progress-bg-to, var(--clr-primary-70)) 100%
+  );
+
+  /* Only alpha (opacity) value matters for colors, just using white */
+  mask-image: linear-gradient(90deg, white, white);
+  mask-size: var(--percentage);
+  mask-repeat: no-repeat;
+  transition: mask-size 0.15s ease;
+
+  /* I am now the alpha */
+  mask-mode: alpha;
+}

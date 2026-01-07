@@ -1,0 +1,27 @@
+@font-face {
+  font-family: "Inter";
+  src: url("/font/Inter-Variable.ttf") format("truetype");
+  font-display: swap;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "Inter";
+  src: url("/font/Inter-Italic-Variable.ttf") format("truetype");
+  font-display: swap;
+  font-style: italic;
+}
+
+@font-face {
+  font-family: "SourceCodePro";
+  src: url("/font/SourceCodePro-Variable.ttf") format("truetype");
+  font-display: swap;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: "SourceCodePro";
+  src: url("/font/SourceCodePro-Italic-Variable.ttf") format("truetype");
+  font-display: swap;
+  font-style: italic;
+}

@@ -1,0 +1,161 @@
+.page {
+  position: absolute;
+  inset: 0;
+  background-color: hsl(214 28% 5%);
+  overflow-y: scroll;
+  height: calc(100dvh - var(--titlebar-height));
+  z-index: var(--portal-z-index);
+  overscroll-behavior: none;
+
+  animation: zoom-out var(--duration) ease forwards;
+}
+
+.zoomIn {
+  animation-name: zoom-in;
+}
+
+@keyframes zoom-out {
+  from {
+    opacity: 0;
+    scale: 110%;
+  }
+
+  to {
+    opacity: 1;
+    scale: 100%;
+  }
+}
+
+@keyframes zoom-in {
+  from {
+    opacity: 1;
+    scale: 100%;
+    pointer-events: none;
+  }
+
+  to {
+    opacity: 0;
+    scale: 110%;
+    pointer-events: none;
+  }
+}
+
+.pageInner {
+  position: relative;
+  min-height: 100%;
+}
+
+.language {
+  padding: 0.5em;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25em;
+}
+
+.header {
+  padding: 5em 0;
+  padding-top: 3em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  overflow: hidden;
+  gap: 0.75em;
+  text-align: center;
+}
+
+.header h1 {
+  font-size: 4rem;
+  font-weight: 650;
+  background-image: linear-gradient(180deg, var(--clr-primary-60) 20%, var(--clr-primary-40));
+  color: transparent;
+  background-clip: text;
+  /* text-transform: uppercase; */
+  position: relative;
+}
+
+.header p {
+  color: var(--clr-neutral-20);
+  font-size: 1.25rem;
+  font-weight: 300;
+  text-shadow: 0 0 1.5rem rgb(0 0 0 / 0.4);
+}
+
+.header h1::before,
+.header h1::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 2px;
+  width: 20%;
+  pointer-events: none;
+}
+
+.header h1::before {
+  background-image: linear-gradient(-90deg, var(--clr-neutral-50), transparent);
+  transform: translateX(-100%);
+  left: -0.5em;
+}
+
+.header h1::after {
+  background-image: linear-gradient(90deg, var(--clr-neutral-50), transparent);
+  transform: translateX(100%);
+  right: -0.5em;
+}
+
+.main {
+  height: auto;
+  padding: 1em;
+  padding-bottom: 2em;
+}
+
+.gameSearch {
+  padding: 1em 0;
+  border-radius: 0.5em;
+  margin-bottom: 0.5em;
+  display: flex;
+  justify-content: center;
+  position: sticky;
+  position: -webkit-sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.gameSearch__content {
+  flex-grow: 1;
+  max-width: 75ch;
+  display: flex;
+  border-radius: inherit;
+  background-color: hsl(from var(--clr-neutral-80) h s l / 0.5);
+  border: 1px solid hsl(from var(--clr-neutral-60) h s l / 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.gameSearch input,
+.gameSearch select,
+.gameSearch button {
+  background-color: transparent;
+  border-radius: inherit;
+}
+
+.gameSearch select,
+.gameSearch button {
+  &:hover,
+  &:focus-visible {
+    background-color: hsl(from var(--clr-neutral-10) h s l / 0.1);
+  }
+}
+
+.gameSearch input {
+  border-radius: 4px;
+  padding: 0.5em 0.75em;
+  flex-grow: 1;
+  font-size: 1.1rem;
+  border: none;
+}
+
+.gameSearch input::placeholder {
+  color: rgb(196 196 196);
+}

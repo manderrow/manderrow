@@ -1,0 +1,224 @@
+.gameList {
+  list-style-type: none;
+  display: flex;
+  width: 100%;
+  max-width: calc(5 * 14rem + 6rem);
+  margin: 0 auto;
+}
+
+.gameList__gameCard.gameList {
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1em;
+  padding-inline: 1em;
+}
+
+.gameList__empty {
+  flex-grow: 1;
+  text-align: center;
+  font-weight: 500;
+  margin: 0.5em 0;
+}
+
+.gameList__gameCard.gameList.searching {
+  justify-content: flex-start;
+}
+
+.gameList__gameCard .gameList__game {
+  --width: 14rem;
+  width: var(--width);
+  /* this works around a bug in GTK WebView when using aspect-ratio */
+  height: calc(var(--width) * 4 / 3);
+  position: relative;
+  z-index: 1;
+  --padding: 5px;
+  padding: var(--padding);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.gameList__gameCard .gameList__game::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: var(--img-src);
+  background-size: cover;
+  z-index: -1;
+  filter: blur(4px) brightness(1.9);
+  transition: filter 0.7s ease, opacity 0.5s ease;
+  opacity: 0.75;
+}
+
+.gameList__gameCard .gameList__game:hover::before,
+.gameList__gameCard .gameList__game:focus-within:has(:focus-visible)::before {
+  filter: blur(4px) brightness(2);
+  opacity: 0.9;
+  transition: filter 0.2s ease;
+}
+
+.gameList__gameCard img {
+  width: calc(100% - var(--padding) * 2);
+  height: calc(100% - var(--padding) * 2);
+  object-fit: cover;
+  position: absolute;
+  border-radius: inherit;
+  z-index: -1;
+}
+
+.gameList__gameCard .game__content {
+  height: 100%;
+  padding: 0.75em;
+  border-radius: inherit;
+  display: flex;
+  flex-direction: column;
+  text-shadow: 0 0 8px rgb(0 0 0 / 0.4);
+
+  :global([data-webview="safari"]) & {
+    transition: backdrop-filter 0.2s ease, background-color 0.3s ease;
+
+    > * {
+      transition: opacity 0.3s ease;
+      opacity: 0;
+    }
+  }
+
+  :global([data-webview]:not([data-webview="safari"])) & {
+    opacity: 0;
+    transition: backdrop-filter 0.2s ease, opacity 0.3s ease;
+  }
+}
+
+.gameList__gameCard .gameList__game:hover .game__content,
+.gameList__gameCard .gameList__game:focus-within:has(:focus-visible) .game__content {
+  :global([data-webview]:not([data-webview="safari"])) & {
+    opacity: 1;
+  }
+  background-color: rgb(0 0 0 / 0.25);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.gameList__gameCard .gameList__game:hover .game__content > *,
+.gameList__gameCard .gameList__game:focus-within:has(:focus-visible) .game__content > * {
+  :global([data-webview="safari"]) & {
+    opacity: 1;
+  }
+}
+
+.game__title {
+  font-size: 1.15rem;
+  line-height: 1.1;
+  margin-bottom: 1em;
+  font-weight: 850;
+}
+
+.game__favoriteBtn {
+  float: right;
+  margin-left: 0.25em;
+  padding: 0;
+  font-size: 1.5rem;
+  border-radius: 50%;
+  background-color: transparent;
+  color: var(--clr-neutral-20);
+}
+
+.game__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-block: auto;
+  gap: 0.5em;
+}
+
+.game__actions button {
+  margin: 0 auto;
+  border-radius: 100vmax;
+  text-shadow: 0 0 8px rgb(0 0 0 / 0.4);
+}
+
+.game__actions button[data-select] {
+  background-color: rgb(245 245 245);
+  color: black;
+  font-weight: 600;
+  text-shadow: none;
+
+  &:hover {
+    background-color: rgb(215 215 215);
+  }
+}
+
+.game__actions button[data-default] {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 2px solid rgb(225 225 225 / 0.3);
+  background-color: rgb(225 225 225 / 0.2);
+
+  &:hover {
+    background-color: rgb(225 225 225 / 0.3);
+  }
+}
+
+/* --- Game list item style code --- */
+
+.gameList__gameItem.gameList {
+  flex-direction: column;
+}
+
+.gameList__gameItem .game__content {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  font-size: 1.15rem;
+}
+
+.gameList__gameItem .game__title {
+  font-weight: 650;
+  margin-bottom: 0;
+  display: flex;
+  align-items: center;
+}
+
+.gameList__gameItem .game__favoriteBtn {
+  float: unset;
+  margin-right: 0.5em;
+}
+
+.gameList__gameItem img {
+  display: none;
+}
+
+.gameList__gameItem .game__actions {
+  flex-direction: row;
+  margin-left: auto;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.gameList__gameItem .gameList__game:hover .game__actions {
+  opacity: 1;
+}
+
+.gameList__gameItem .game__actions a:last-child {
+  order: -1;
+}
+
+.gameList__gameItem .gameList__game {
+  border: 1px solid rgb(215 215 215 / 0.2);
+  border-bottom-color: transparent;
+  border-right-color: transparent;
+  border-left-color: transparent;
+  padding: 0.75em 0.5em;
+  transition: background-color 0.2s ease-out, border-color 0.2s ease, border-radius 0.3s ease-out;
+}
+
+.gameList__gameItem .gameList__game:hover {
+  border-color: rgb(215 215 215 / 0.2);
+  background-color: rgb(225 225 225 / 0.1);
+  border-radius: 5px;
+  transition: border-color 0.2s ease, border-radius 0.3s ease-out;
+}
+
+.gameList__gameItem .gameList__game:hover + .gameList__game {
+  border-top-color: transparent;
+}

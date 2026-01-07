@@ -1,6 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 
-import { wrapInvoke } from "../api.ts";
+import { wrapInvoke } from "./api.ts";
 
 export async function launchProfile(
   connId: number,

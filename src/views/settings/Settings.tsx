@@ -1,0 +1,175 @@
+import { useNavigate } from "@solidjs/router";
+import styles from "./Settings.module.css";
+import TabRenderer, { Tab, TabContent } from "../../widgets/TabRenderer.tsx";
+import { createUniqueId, For, Match, Switch, useContext, createSignal, createSelector } from "solid-js";
+
+import { Settings, SettingsPatch, updateSettings, settings, settingsUI } from "../../api/settings.ts";
+import { Fa } from "solid-fa";
+import { faChevronLeft, faClockRotateLeft } from "@fortawesome/free-solid-svg-icons";
+import { t } from "../../i18n/i18n.ts";
+import { GameSelectSetting, Setting, TextSetting, ToggleSetting } from "../../api/settings/ui.ts";
+import SelectDropdown from "../../widgets/SelectDropdown.tsx";
+import { games } from "../../globals.ts";
+import { ErrorContext, ReportErrFn } from "../../components/ErrorBoundary.tsx";
+
+export default function SettingsPage() {
+  const idPrefix = createUniqueId();
+  const navigate = useNavigate();
+
+  const tabs: Tab<string>[] = settingsUI().sections.map((section) => ({
+    id: section.id,
+    name: t(`settings.section.${section.id}`),
+    component: () => (
+      <For each={section.settings}>
+        {(setting) => (
+          <div class={styles.option}>
+            <label for={`${idPrefix}_${setting.key}`} id={`${idPrefix}-label_${setting.key}`}>
+              {t(`settings.settings.${setting.key}`)}
+            </label>
+            <div class={styles.option__input}>
+              <Switch>
+                <Match when={setting.input === "toggle"}>
+                  <ToggleInput idPrefix={idPrefix} setting={setting as ToggleSetting} />
+                </Match>
+                <Match when={setting.input === "text"}>
+                  <TextInput idPrefix={idPrefix} setting={setting as TextSetting} />
+                </Match>
+                <Match when={setting.input === "game_select"}>
+                  <GameSelectInput idPrefix={idPrefix} setting={setting as GameSelectSetting} />
+                </Match>
+              </Switch>
+              <button
+                type="button"
+                class={styles.resetButton}
+                on:click={onReset(setting.key)}
+                disabled={settings()[setting.key].isDefault}
+              >
+                <Fa icon={faClockRotateLeft} />
+              </button>
+            </div>
+          </div>
+        )}
+      </For>
+    ),
+  }));
+
+  const [currentTab, setCurrentTab] = createSignal(tabs[0].id);
+  const isCurrentTab = createSelector(currentTab);
+
+  return (
+    <main class={styles.settings}>
+      <aside class={styles.settings__sidebar}>
+        <div class={styles.settings__navbar}>
+          <div class={styles.navbar__header}>
+            <div class={styles.navbar__title}>
+              <h1>{t("settings.title")}</h1>
+              <button type="button" on:click={() => navigate(-1)} data-back>
+                <Fa icon={faChevronLeft} />
+              </button>
+            </div>
+
+            <input type="text" placeholder={t("settings.search_input_placeholder")} />
+          </div>
+          <TabRenderer
+            id="settings"
+            tabs={tabs}
+            setter={(tab) => setCurrentTab(tab.id)}
+            styles={{
+              preset: "none",
+              classes: {
+                list: styles.settings__tabs,
+                tab: styles.settings__tab,
+              },
+            }}
+          />
+        </div>
+      </aside>
+      <div class={styles.options}>
+        <TabContent isCurrentTab={isCurrentTab} tabs={tabs} />
+      </div>
+    </main>
+  );
+}
+
+export function SettingCategory(props: { id: string }) {
+  return <div>{props.id}</div>;
+}
+
+function overrideSetting<S extends Setting>(setting: S, override: SettingType<S>) {
+  return updateSettings({ [setting.key]: { override } });
+}
+
+function onChange<S extends Setting>(
+  reportErr: ReportErrFn,
+  setting: S,
+  mutator: (e: HTMLInputElement) => Settings[S["key"]]["value"],
+) {
+  return ((e: InputEvent) => {
+    try {
+      overrideSetting(setting, mutator(e.target as HTMLInputElement));
+    } catch (e) {
+      reportErr(e);
+    }
+  }) as (e: Event) => void;
+}
+
+function onReset(key: keyof SettingsPatch) {
+  return ((_: MouseEvent) => {
+    updateSettings({ [key]: "default" });
+  }) as (e: Event) => void;
+}
+
+type SettingType<S extends Setting> = Settings[S["key"]]["value"];
+
+function get<S extends Setting>(setting: S): SettingType<S> {
+  return settings()[setting.key].value;
+}
+
+function ToggleInput(props: { idPrefix: string; setting: ToggleSetting }) {
+  const reportErr = useContext(ErrorContext);
+  return (
+    <input
+      type="checkbox"
+      id={`${props.idPrefix}_${props.setting.key}`}
+      checked={get(props.setting)}
+      on:change={onChange(reportErr, props.setting, (e) => e.checked)}
+    />
+  );
+}
+
+function TextInput(props: { idPrefix: string; setting: TextSetting }) {
+  const reportErr = useContext(ErrorContext);
+  return (
+    <input
+      type="text"
+      id={`${props.idPrefix}_${props.setting.key}`}
+      value={get(props.setting)}
+      // @ts-ignore: typescript chokes on the type of `e.value`
+      on:change={onChange(reportErr, props.setting, (e) => e.value)}
+    />
+  );
+}
+
+function GameSelectInput(props: { idPrefix: string; setting: GameSelectSetting }) {
+  const reportErr = useContext(ErrorContext);
+  function onChanged(value: string, selected: boolean) {
+    if (selected) {
+      try {
+        // @ts-ignore: typescript chokes on the type of `value`
+        overrideSetting(props.setting, value);
+      } catch (e) {
+        reportErr(e);
+      }
+    }
+  }
+  const isSelectedGame = createSelector<string>(() => get(props.setting));
+  return (
+    <SelectDropdown
+      label={{ labelText: "value" }}
+      options={games()
+        .map((game) => ({ label: game.name, value: game.id, selected: () => isSelectedGame(game.id) }))
+        .sort((a, b) => a.label.localeCompare(b.label))}
+      onChanged={onChanged}
+    />
+  );
+}

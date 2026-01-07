@@ -1,0 +1,74 @@
+.splashscreen {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 0.5em;
+  padding-bottom: calc(0.5em + var(--titlebar-height));
+  text-align: center;
+  text-shadow: 0 0 1.25rem rgb(0 0 0 / 0.5);
+  background-color: hsl(214, 28%, 15%);
+  background-image: radial-gradient(circle at top center, hsl(210, 30%, 24%) 0%, var(--clr-neutral-90) 100%);
+  background-size: 100%;
+  background-repeat: no-repeat;
+  background-position: center;
+  font-size: 1.5rem;
+  animation: fade-in 0.25s ease-in forwards;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.splashscreen__title {
+  font-weight: 600;
+  font-size: 2.5em;
+}
+
+.splashscreen__text {
+  margin-top: 2em;
+  font-size: 0.9em;
+  color: hsl(212, 18%, 70%);
+}
+
+.splashscreen__loader {
+  margin-top: 0.75em;
+  border-radius: 100vmax;
+  height: 0.6em;
+  width: 100%;
+  max-width: 16em;
+  border: 1px solid hsl(210, 11%, 35%);
+  background-image: linear-gradient(90deg, var(--clr-primary-50), var(--clr-accent-5), var(--clr-primary-50));
+  background-repeat: repeat;
+  background-size: 200%;
+  animation: load 0.85s linear infinite;
+}
+
+@keyframes load {
+  from {
+    background-position: 0% 0%;
+  }
+  to {
+    background-position: 200% 0%;
+  }
+}
+
+.splashscreen__logo {
+  position: absolute;
+  z-index: -1;
+  filter: blur(4px);
+  height: 75%;
+  transform: translate(-5%, 5%);
+  mask-image: linear-gradient(45deg, transparent 0%, rgb(0 0 0 / 0.02) 45%, rgb(0 0 0 / 0.3));
+  aspect-ratio: 1 / 1;
+  right: 0;
+  top: 0;
+  pointer-events: none;
+}
