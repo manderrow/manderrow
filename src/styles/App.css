@@ -179,6 +179,7 @@ hr {
   position: absolute;
   opacity: 0;
   pointer-events: none;
+  inset: 0;
 }
 
 @media screen AND (max-width: 700px) {
