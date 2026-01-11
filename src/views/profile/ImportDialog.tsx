@@ -1,9 +1,9 @@
+import { faChevronLeft } from "@fortawesome/free-solid-svg-icons";
+import { Channel } from "@tauri-apps/api/core";
+import { OverlayScrollbarsComponent } from "overlayscrollbars-solid";
+import { Fa } from "solid-fa";
 import { createMemo, createSignal, createUniqueId, For, JSX, Show, splitProps } from "solid-js";
 import { createStore } from "solid-js/store";
-import { faChevronLeft } from "@fortawesome/free-solid-svg-icons";
-import { Fa } from "solid-fa";
-import { OverlayScrollbarsComponent } from "overlayscrollbars-solid";
-import { Channel } from "@tauri-apps/api/core";
 
 import {
   importModpackFromThunderstoreCode,
@@ -14,15 +14,14 @@ import {
 } from "../../api/api";
 import { t } from "../../i18n/i18n.ts";
 // @ts-ignore: typescript is unaware of solid's use: syntax
-import { bindValue } from "../../components/Directives";
-import { refetchProfiles } from "../../globals";
 import { initProgress, Listener, Id as TaskId, tasks } from "../../api/tasks";
+import { refetchProfiles } from "../../globals";
 
 import ErrorBoundary from "../../components/ErrorBoundary";
 import { SimpleAsyncButton } from "../../widgets/AsyncButton";
-import { SimpleProgressIndicator } from "../../widgets/Progress";
-import MultistageModel, { BaseStageProps } from "../../widgets/MultistageModel";
 import { type DialogExternalProps, DialogClose } from "../../widgets/Dialog";
+import MultistageModel, { BaseStageProps } from "../../widgets/MultistageModel";
+import { SimpleProgressIndicator } from "../../widgets/Progress";
 
 import styles from "./ImportDialog.module.css";
 

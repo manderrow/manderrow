@@ -71,6 +71,7 @@
     justify-content: center;
     align-items: center;
     aspect-ratio: 1 / 1;
+    min-width: 1.25em; /* For WebKitGTCrap */
     padding: 0.2em 0.1em;
     background-color: transparent;
   }

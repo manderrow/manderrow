@@ -1,0 +1,288 @@
+.mod {
+  display: flex;
+  --animation-time: 0.1s;
+  --animation-curve: ease-in-out;
+
+  li:has(.mod__btn:hover) + li .mod__btn,
+  li:has(.mod__btn:active) + li .mod__btn {
+    border-top-color: transparent;
+  }
+
+  .mod__selector {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+
+    width: 1.5em;
+    margin-right: -1em;
+
+    /* Setting this to higher than 0 causes
+        check boxes to display on top of the
+        sidebar when it is in its small screen
+        overlay state for some reason. This is
+        needed at all to make the hover region
+        overlap the mod image
+      */
+    z-index: 0;
+
+    transition:
+      width var(--animation-time) var(--animation-curve),
+      margin var(--animation-time) var(--animation-curve);
+
+    > input {
+      display: none;
+    }
+
+    .mod__selectorClickRegion {
+      flex-grow: 1;
+
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .mod__selectorIndicator {
+      height: 30px;
+      width: 0;
+      border: 1.5px solid var(--clr-neutral-15);
+      border-radius: 2px;
+
+      transition: 
+        height var(--animation-time) var(--animation-curve) 0.05s,
+        width var(--animation-time) var(--animation-curve),
+        border-width var(--animation-time) var(--animation-curve),
+        transform var(--animation-time) var(--animation-curve) 0.05s,
+        margin var(--animation-time) var(--animation-curve);
+      transform: translateX(-1.5px);
+
+      > svg {
+        visibility: hidden;
+      }
+    }
+
+    &:hover,
+    &:has(> input:checked),
+    &[data-always-show] {
+      width: calc((0.5em * 2) + 18px + 1em);
+
+      .mod__selectorIndicator {
+        border-width: 2px;
+        width: 18px;
+        height: 18px;
+        appearance: none;
+
+        transition: 
+          height var(--animation-time) var(--animation-curve),
+          width var(--animation-time) var(--animation-curve),
+          border-width var(--animation-time) var(--animation-curve),
+          transform var(--animation-time) var(--animation-curve),
+          margin var(--animation-time) var(--animation-curve);
+        transform: none;
+
+        margin: 0 0.5em;
+      }
+
+      input:checked + .mod__selectorIndicator svg {
+        visibility: visible;
+      }
+    }
+  }
+
+  .mod__btn {
+    display: flex;
+    margin: 0;
+    border: 1px solid transparent;
+    max-width: 100%;
+    border-top-color: var(--clr-neutral-80);
+    flex-grow: 1;
+    background-color: transparent;
+    transition: background-color 0.1s ease-in-out, border-color 0.1s ease-in-out, border-radius 0.3s ease-out;
+
+    .mod__btnContent {
+      display: flex;
+      margin: 0;
+      padding: 0.5em;
+      gap: 0.75em;
+      text-align: left;
+      flex-grow: 1;
+      overflow: hidden;
+    }
+
+    .modIcon {
+      aspect-ratio: 1;
+      align-self: flex-start;
+      border-radius: 6px;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    &:has(.mod__selector) {
+      .mod__btnContent {
+        padding-left: 0;
+      }
+
+      &:not(:hover):not(:has(.mod__selector > input:checked, .mod__selector[data-always-show])) {
+        .mod__selectorIndicator {
+          height: 0;
+          border-width: 0;
+
+          transition:
+            height var(--animation-time) var(--animation-curve),
+            width var(--animation-time) var(--animation-curve),
+            border-width var(--animation-time) var(--animation-curve) var(--animation-time),
+            transform var(--animation-time) var(--animation-curve),
+            margin var(--animation-time) var(--animation-curve);
+        }
+      }
+    }
+
+    &:hover {
+      background-color: var(--clr-neutral-80);
+      border-radius: 6px;
+      /* transition: border-color 0.2s ease, border-radius 0.3s ease-out; */
+      border-color: var(--clr-neutral-70);
+      cursor: pointer;
+
+      .downloadBtn {
+        visibility: visible;
+      }
+    }
+
+    &:active {
+      border-color: var(--clr-neutral-50);
+    }
+  }
+
+  &.selected .mod__btn {
+    border-color: var(--clr-primary-60);
+    border-radius: 6px;
+    background-color: var(--clr-neutral-80);
+  }
+
+  &.selected .mod__btn:hover {
+    background-color: var(--clr-neutral-70);
+  }
+
+  &.selected .mod__btn:active {
+    border-color: var(--clr-neutral-50);
+  }
+
+  .mod__content {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    flex-grow: 1;
+    gap: 1em;
+    min-width: 0;
+
+    .info {
+      display: flex;
+      align-items: center;
+      gap: 0.35em;
+      color: var(--clr-neutral-20);
+      font-size: 0.9rem;
+    }
+
+    .info * {
+      flex-shrink: 0;
+    }
+
+    .separator {
+      color: var(--clr-neutral-60);
+      font-weight: 400;
+      font-size: 0.75rem;
+    }
+
+    .left,
+    .right {
+      gap: 0.35em;
+    }
+
+    .left {
+      display: flex;
+      flex-direction: column;
+      flex-grow: 1;
+      min-width: 0;
+    }
+
+    .downloadBtn {
+      visibility: hidden;
+      align-self: center;
+
+      padding: 0.25em 0.65em;
+      font-size: 1.5rem;
+      aspect-ratio: 1 / 1;
+
+      &[data-install] {
+        --bg-clr: var(--clr-primary-40);
+
+        &:hover,
+        &:focus-visible {
+          --bg-clr: var(--clr-primary-50);
+        }
+      }
+
+      &[data-uninstall] {
+        --bg-clr: var(--clr-danger-4);
+
+        &:hover,
+        &:focus-visible {
+          --bg-clr: var(--clr-danger-5);
+        }
+      }
+
+      &.downloadBtnBusy,
+      &.downloadBtnBusy:hover,
+      &.downloadBtnBusy:focus-visible {
+        padding: 0;
+        --bg-clr: transparent;
+        visibility: visible;
+      }
+    }
+
+    .name {
+      font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: var(--clr-neutral-10);
+      font-size: 1rem;
+      flex-shrink: 1;
+      min-width: 5ch;
+      white-space: nowrap;
+    }
+
+    .medHierarchy {
+      color: var(--clr-neutral-20);
+      font-size: 0.9rem;
+    }
+
+    .lowHierarchy,
+    .description {
+      color: var(--clr-neutral-30);
+      font-size: 0.85rem;
+    }
+
+    .description {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+  }
+
+  .categories {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.3em;
+    margin-top: 0.5em;
+
+    > li {
+      border-radius: 100vmax;
+      padding: 0.25em 0.6em;
+      font-size: 0.8rem;
+      color: var(--clr-neutral-20);
+      border: 1px solid var(--clr-neutral-60);
+    }
+  }
+}

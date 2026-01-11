@@ -1,0 +1,257 @@
+.modView {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+
+  overflow: hidden;
+
+  .versions {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    > li {
+      display: flex;
+      flex-direction: column;
+    }
+  }
+
+  .name {
+    white-space: break-word;
+  }
+}
+
+.modSticky {
+  margin-right: 1em;
+}
+
+.modMeta {
+  display: grid;
+  grid-template-areas:
+    "name close"
+    "owner donate"
+    "meta donate";
+  grid-template-columns: minmax(min-content, 100%) 1fr;
+  row-gap: 0.25em;
+  column-gap: 0.5em;
+  padding-bottom: 0.75em;
+}
+
+.modMetaLink {
+  display: flex;
+  align-items: center;
+  width: min-content;
+  gap: 0.35em;
+}
+
+.modMeta__closeBtn {
+  padding: 0.1em 0.5em;
+  font-size: 1.25rem;
+  background-color: transparent;
+  justify-self: right;
+}
+
+.modMetadata {
+  grid-area: meta;
+  display: flex;
+  gap: 1em;
+  color: var(--clr-neutral-20);
+  margin-top: 0.5em;
+}
+
+.metadata__field {
+  white-space: nowrap;
+}
+
+.modMeta__donate {
+  grid-area: donate;
+  align-self: center;
+  justify-self: right;
+  padding: 0.5em 1em;
+  border: 1px solid var(--clr-neutral-70);
+  border-radius: 4px;
+  text-align: center;
+  font-size: 0.9rem;
+
+  .donate__icon {
+    font-size: 1.25em;
+  }
+}
+
+.modDeps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5em;
+  padding-right: 1em;
+
+  .dependency {
+    display: flex;
+    align-items: center;
+    gap: 0.75em;
+    padding: 0.5em;
+    border: 1px solid var(--clr-neutral-75);
+    border-radius: 4px;
+
+    transition: background-color 0.1s ease;
+
+    [data-name] {
+      color: var(--clr-neutral-15);
+    }
+
+    [data-owner],
+    .externalIcon {
+      color: var(--clr-neutral-30);
+      font-size: 0.9rem;
+    }
+
+    [data-version] {
+      color: var(--clr-neutral-20);
+    }
+
+    :last-child {
+      margin-left: auto;
+    }
+
+    &:hover {
+      background-color: var(--clr-neutral-75);
+    }
+  }
+}
+
+.tabs {
+  border-bottom: 1px solid var(--clr-neutral-70);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.tabs__list {
+  display: flex;
+}
+
+.tabs__tab {
+  border-bottom: 2px solid transparent;
+}
+
+.tabs__tab button {
+  padding: 0.4em 1em;
+  color: var(--clr-neutral-40);
+  display: block;
+  user-select: none;
+  -webkit-user-select: none;
+  background-color: transparent;
+}
+
+.tabs__tab button:hover:not(:disabled) {
+  color: var(--clr-neutral-20);
+}
+
+.tabs__tab[data-active="true"] {
+  border-color: var(--clr-neutral-20);
+}
+
+.tabs__tab[data-active="true"] button {
+  color: white;
+}
+
+.modView__content {
+  overflow: auto;
+  flex-grow: 1;
+  padding-block: 1em;
+}
+
+.modView__content :global(.markdown) {
+  padding-right: 0.75em;
+}
+
+.modView__form {
+  margin-right: 1em;
+  padding-block: 0.5em 0.75em;
+  border-top: 1px solid var(--clr-neutral-70);
+}
+
+.modView__onlineActions {
+  display: flex;
+  align-items: center;
+  gap: 0.25em;
+}
+
+.modView__versions {
+  align-self: stretch;
+  border: none;
+  border: 1px solid var(--clr-neutral-60);
+  border-radius: 100vmax 0 0 100vmax;
+  flex-grow: 1;
+  max-width: 8rem;
+}
+
+.modView__versionsItem {
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+
+  > div {
+    padding: 0.5em 0.25em;
+
+    [data-version] {
+      font-weight: 600;
+      margin-bottom: 0.25em;
+    }
+
+    [data-date] {
+      color: var(--clr-neutral-30);
+      font-size: 0.8rem;
+    }
+  }
+}
+
+.modView__downloadBtn {
+  flex-grow: 1;
+  padding: 0.5em 0.25em;
+  font-size: 1.15rem;
+  font-weight: 500;
+  --bg-clr: var(--clr-primary-40);
+  border-radius: 0 100vmax 100vmax 0;
+
+  &:hover:not(:disabled) {
+    --bg-clr: var(--clr-primary-50);
+  }
+}
+
+.modView__installedActions {
+  display: grid;
+  align-items: stretch;
+  justify-items: stretch;
+  grid-template-columns: 1fr 1fr;
+  grid-template-areas: "versions uninstall";
+  gap: 0.75em;
+  position: relative;
+
+  button {
+    width: 100%;
+  }
+}
+
+.modView__versionLabel {
+  grid-area: versions;
+  justify-content: center;
+}
+
+.modView__versionsDropdownContent {
+  padding: 0.5em;
+}
+
+.modView__uninstallBtn {
+  grid-area: uninstall;
+  border: 1px solid var(--clr-danger-4);
+  background-color: transparent;
+
+  --progress-bg-from: var(--clr-danger-4);
+  --progress-bg-to: var(--clr-danger-6);
+}
+
+.modView__uninstallBtn:hover,
+.modView__uninstallBtn:focus {
+  border-color: var(--clr-danger-5);
+  background-color: var(--clr-danger-5);
+}

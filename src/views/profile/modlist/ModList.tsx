@@ -1,20 +1,8 @@
-import { faHardDrive, faHeart } from "@fortawesome/free-regular-svg-icons";
-import {
-  faArrowRightLong,
-  faCircleUp,
-  faDownLong,
-  faDownload,
-  faExternalLink,
-  faRefresh,
-  faTrash,
-  faXmark,
-} from "@fortawesome/free-solid-svg-icons";
+import { faCircleUp, faRefresh } from "@fortawesome/free-solid-svg-icons";
 import { createInfiniteScroll } from "@solid-primitives/pagination";
 import { Fa } from "solid-fa";
 import {
   Accessor,
-  ComponentProps,
-  FlowProps,
   For,
   InitializedResource,
   JSX,
@@ -29,7 +17,6 @@ import {
   createResource,
   createSelector,
   createSignal,
-  splitProps,
   untrack,
   useContext,
 } from "solid-js";
@@ -41,38 +28,27 @@ import {
   countModIndex,
   fetchModIndex,
   getFromModIndex,
-  installProfileMod,
   modIdEquals,
   queryModIndex,
-  uninstallProfileMod,
 } from "../../../api/api";
-import { Progress, createProgressProxyStore, initProgress, registerTaskListener, tasks } from "../../../api/tasks";
-import { Mod, ModListing, ModPackage, ModVersion } from "../../../types";
-import {
-  createMultiselectableList,
-  dateFormatterMed,
-  humanizeFileSize,
-  numberFormatter,
-  removeProperty,
-  roundedNumberFormatter,
-} from "../../../utils/utils";
+import { Progress, createProgressProxyStore } from "../../../api/tasks";
+import { Mod, ModPackage } from "../../../types";
+import { createMultiselectableList, numberFormatter } from "../../../utils/utils";
 
-import { ActionContext, ProgressStyle, SimpleAsyncButton } from "../../../widgets/AsyncButton";
-import ErrorBoundary from "../../../components/ErrorBoundary.tsx";
-import TabRenderer, { Tab, TabContent } from "../../../widgets/TabRenderer";
-import ModMarkdown from "./ModMarkdown.tsx";
+import { ActionContext, SimpleAsyncButton } from "../../../widgets/AsyncButton";
 import ModSearch from "./ModSearch.tsx";
 
 import styles from "./ModList.module.css";
 import { t } from "../../../i18n/i18n.ts";
-import { DefaultDialog, DialogClose, DialogTrigger } from "../../../widgets/Dialog.tsx";
+import { DialogTrigger } from "../../../widgets/Dialog.tsx";
 import { ErrorIndicator } from "../../../components/ErrorDialog.tsx";
 import { SimpleProgressIndicator } from "../../../widgets/Progress.tsx";
-import SelectDropdown from "../../../widgets/SelectDropdown.tsx";
-import TogglableDropdown from "../../../widgets/TogglableDropdown.tsx";
-import Tooltip, { TooltipTrigger } from "../../../widgets/Tooltip.tsx";
+
 import { useSearchParamsInPlace } from "../../../utils/router.ts";
-import Checkbox from "../../../widgets/Checkbox.tsx";
+import ModListItem from "./ModListItem.tsx";
+import ModUpdateDialogue, { ModUpdate } from "./Updater.tsx";
+import ModView from "./ModView.tsx";
+import BulkActions from "./BulkActions.tsx";
 
 type PageFetcher = (page: number) => Promise<readonly Mod[]>;
 type ModFetcherResult = {
@@ -80,6 +56,7 @@ type ModFetcherResult = {
   mods: PageFetcher;
   get: (id: ModId) => Promise<Mod | undefined> | Mod | undefined;
 };
+
 export type Fetcher = (
   game: string,
   query: string,
@@ -92,165 +69,13 @@ export const ModInstallContext = createContext<{
   refetchInstalled: () => Promise<void>;
 }>();
 
-const MODS_PER_PAGE = 50;
-
-export default function ModList(props: {
-  game: string;
-  mods: Fetcher;
-  refresh: () => Promise<void> | void;
-  isLoading: boolean;
-  progress: Progress;
-  trailingControls?: JSX.Element;
-  multiselect: boolean;
-}) {
-  const [focusedModId, setFocusedModId] = createSignal<ModId>();
-
-  const [profileSortOrder, setProfileSortOrder] = createSignal(false);
-  const [query, setQuery] = createSignal("");
-
-  const [sort, setSort] = createSignal<readonly SortOption<ModSortColumn>[]>([
-    { column: ModSortColumn.Relevance, descending: true },
-    { column: ModSortColumn.Downloads, descending: true },
-    { column: ModSortColumn.Name, descending: false },
-    { column: ModSortColumn.Owner, descending: false },
-    { column: ModSortColumn.Size, descending: true },
-  ]);
-
-  const [queriedMods] = createResource(
-    () => {
-      try {
-        props.mods;
-      } catch {}
-      return [props.game, query(), sort()] as [string, string, readonly SortOption<ModSortColumn>[]];
-    },
-    ([game, query, sort]) => untrack(() => props.mods)(game, query, sort),
-    { initialValue: { mods: async (_: number) => [], count: 0, get: (_: ModId) => undefined } },
-  );
-
-  const [focusedMod] = createResource(
-    () => {
-      try {
-        queriedMods.latest;
-      } catch {}
-      return focusedModId() ?? {};
-    },
-    (id) => ("owner" in id ? untrack(() => queriedMods.latest.get(id as ModId)) : undefined),
-  );
-
-  createEffect(() => {
-    const mod = focusedModId();
-
-    if (mod) {
-      let mods;
-      try {
-        mods = queriedMods.latest;
-      } catch {}
-
-      (async () => {
-        if (mods) {
-          if (await mods.get(mod)) {
-            return;
-          }
-        }
-
-        setFocusedModId(undefined);
-      })();
-    }
-  });
-
-  const installContext = useContext(ModInstallContext)!;
-
-  const { onCtrlClickItem, onShiftClickItem, clearSelection, isPivot, isSelected, data } = createMultiselectableList<
-    ModPackage,
-    string,
-    ModId & { version: string }
-  >(
-    () => installContext.installed.latest,
-    (mod) => `${mod.owner}-${mod.name}`,
-    (mod) => ({ owner: mod.owner, name: mod.name, version: mod.version.version_number }),
-    () => undefined,
-  );
-
-  createEffect(() => {
-    console.log(data());
-  });
-
-  return (
-    <div class={styles.modListAndView}>
-      <div class={styles.modListContainer}>
-        <ModSearch
-          game={props.game}
-          query={query()}
-          setQuery={setQuery}
-          sort={sort()}
-          setSort={setSort}
-          profileSortOrder={profileSortOrder()}
-          setProfileSortOrder={setProfileSortOrder}
-        />
-
-        <div class={styles.discoveredLine}>
-          <Switch>
-            <Match when={props.isLoading || queriedMods.loading}>
-              <span>{t("modlist.fetching_msg")}</span>
-              <SimpleProgressIndicator progress={props.progress} />
-            </Match>
-            <Match when={queriedMods.error}>
-              {(err) => <ErrorIndicator icon={true} message="Query failed" err={err()} reset={props.refresh} />}
-            </Match>
-            <Match when={queriedMods.latest}>
-              <span>{t("modlist.discovered_msg", { count: numberFormatter.format(queriedMods()!.count) })}</span>
-              <ActionContext>
-                {(busy, wrapOnClick) => (
-                  <button class={styles.refreshButton} disabled={busy()} on:click={() => wrapOnClick(props.refresh)}>
-                    <Fa icon={faRefresh} />
-                  </button>
-                )}
-              </ActionContext>
-            </Match>
-          </Switch>
-
-          <Show when={props.trailingControls}>
-            <div class={styles.trailingControls}>{props.trailingControls}</div>
-          </Show>
-        </div>
-
-        <Show when={queriedMods.error === undefined && queriedMods()} keyed>
-          {(mods) => (
-            <ModListMods
-              mods={mods.mods}
-              focusedMod={[focusedModId, setFocusedModId]}
-              isSelected={props.multiselect ? isSelected : undefined}
-              select={props.multiselect ? onCtrlClickItem : undefined}
-              shiftClick={props.multiselect ? onShiftClickItem : undefined}
-              isPivot={props.multiselect ? isPivot : undefined}
-              forceSelectorVisibility={data().length !== 0}
-            />
-          )}
-        </Show>
-      </div>
-
-      <div class={styles.modViewContainer}>
-        <div class={styles.modView}>
-          <Switch
-            fallback={
-              <div class={styles.nothingMsg}>
-                <h2>{t("modlist.modview.no_mod_selected_title")}</h2>
-                <p>{t("modlist.modview.no_mod_selected_subtitle")}</p>
-              </div>
-            }
-          >
-            <Match when={focusedMod.error === undefined && focusedMod()} keyed>
-              {(mod) => <ModView mod={mod} gameId={props.game} closeModView={() => setFocusedModId(undefined)} />}
-            </Match>
-            <Match when={props.multiselect && data().length !== 0}>
-              <SelectedModsList mods={data} />
-            </Match>
-          </Switch>
-        </div>
-      </div>
-    </div>
-  );
+export const enum ModSelectorTutorialState {
+  INIT,
+  HOVERED,
+  LEFT,
 }
+
+const MODS_PER_PAGE = 50;
 
 export function OnlineModList(props: { game: string }) {
   const [progress, setProgress] = createProgressProxyStore();
@@ -300,11 +125,6 @@ export function OnlineModList(props: { game: string }) {
       multiselect={false}
     />
   );
-}
-
-interface ModUpdate {
-  newMod: ModListing;
-  oldVersionNumber: string;
 }
 
 const CHECK_UPDATES_REFETCH: unique symbol = Symbol();
@@ -414,434 +234,159 @@ export function InstalledModList(props: { game: string }) {
   );
 }
 
-function ModUpdateDialogue(props: FlowProps & { updates: ModUpdate[] }) {
-  const [_progress, _setProgress] = createProgressProxyStore();
+function ModList(props: {
+  game: string;
+  mods: Fetcher;
+  refresh: () => Promise<void> | void;
+  isLoading: boolean;
+  progress: Progress;
+  trailingControls?: JSX.Element;
+  multiselect: boolean;
+}) {
+  const [focusedModId, setFocusedModId] = createSignal<ModId>();
 
-  const [selectedMods, setSelectedMods] = createSignal<Set<ModUpdate>>(new Set(props.updates), {
-    equals: false,
+  const [profileSortOrder, setProfileSortOrder] = createSignal(false);
+  const [query, setQuery] = createSignal("");
+
+  const [sort, setSort] = createSignal<readonly SortOption<ModSortColumn>[]>([
+    { column: ModSortColumn.Relevance, descending: true },
+    { column: ModSortColumn.Downloads, descending: true },
+    { column: ModSortColumn.Name, descending: false },
+    { column: ModSortColumn.Owner, descending: false },
+    { column: ModSortColumn.Size, descending: true },
+  ]);
+
+  const [queriedMods] = createResource(
+    () => {
+      try {
+        props.mods;
+      } catch {}
+      return [props.game, query(), sort()] as [string, string, readonly SortOption<ModSortColumn>[]];
+    },
+    ([game, query, sort]) => untrack(() => props.mods)(game, query, sort),
+    { initialValue: { mods: async (_: number) => [], count: 0, get: (_: ModId) => undefined } },
+  );
+
+  const [focusedMod] = createResource(
+    () => {
+      try {
+        queriedMods.latest;
+      } catch {}
+      return focusedModId() ?? {};
+    },
+    (id) => ("owner" in id ? untrack(() => queriedMods.latest.get(id as ModId)) : undefined),
+  );
+
+  createEffect(() => {
+    const mod = focusedModId();
+
+    if (mod) {
+      let mods;
+      try {
+        mods = queriedMods.latest;
+      } catch {}
+
+      (async () => {
+        if (mods) {
+          if (await mods.get(mod)) {
+            return;
+          }
+        }
+
+        setFocusedModId(undefined);
+      })();
+    }
   });
 
-  return (
-    <DefaultDialog class={styles.updateDialog} trigger={props.children}>
-      <h2>{t("modlist.installed.updater_title")}</h2>
+  const installContext = useContext(ModInstallContext)!;
 
-      <div class={styles.listContainer}>
-        <form action="#">
-          <fieldset>
-            <input
-              type="checkbox"
-              id="update-select-all-mods"
-              checked={selectedMods().size === props.updates.length}
-              onInput={(e) => {
-                if (e.target.checked) {
-                  setSelectedMods(new Set(props.updates));
-                } else {
-                  setSelectedMods(new Set<ModUpdate>());
-                }
-              }}
-            />
-            <label for="update-select-all-mods">{t("global.phrases.select_all")}</label>
-          </fieldset>
-          <fieldset>
-            <label for="update-search" class="phantom">
-              {t("global.phrases.search")}
-            </label>
-            <input type="text" id="update-search" placeholder={t("global.phrases.search")} />
-          </fieldset>
-        </form>
-        <ul>
-          {props.updates.map((update) => (
-            <li>
-              <label for={update.newMod.name}>
-                <input
-                  id={update.newMod.name}
-                  type="checkbox"
-                  checked={selectedMods().has(update)}
-                  onChange={(e) => {
-                    if (e.target.checked) {
-                      setSelectedMods((selectedMods) => selectedMods.add(update));
-                    } else {
-                      setSelectedMods((selectedMods) => {
-                        selectedMods.delete(update);
-                        return selectedMods;
-                      });
-                    }
-                  }}
-                />
-                <img
-                  width={48}
-                  height={48}
-                  alt="mod icon"
-                  src={getIconUrl(
-                    getQualifiedModName(
-                      update.newMod.owner,
-                      update.newMod.name,
-                      update.newMod.versions[0].version_number,
-                    ),
-                  )}
-                />
-                <div class={styles.updateMetadata}>
-                  <p data-name>{update.newMod.name}</p>
-                  <p data-owner>{update.newMod.owner}</p>
-                  <p data-version>
-                    <span data-old-version>{update.oldVersionNumber}</span>
-                    <span data-arrow>
-                      <Fa icon={faArrowRightLong} />
-                    </span>
-                    <span data-new-version>{update.newMod.versions[0].version_number}</span>
-                  </p>
-                </div>
-              </label>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div class={styles.updateBtns}>
-        <button data-btn="primary">
-          {selectedMods().size === props.updates.length
-            ? t("modlist.installed.update_all_btn")
-            : t("modlist.installed.update_selected_btn")}
-        </button>
-        <DialogClose style={{ order: -1 }} data-btn="ghost">
-          {t("global.phrases.cancel")}
-        </DialogClose>
-      </div>
-    </DefaultDialog>
-  );
-}
-
-const MAX_SELECTED_CARDS = 5;
-function SelectedModsList(props: { mods: Accessor<(ModId & { version: string })[]> }) {
-  const selectedCount = () => props.mods().length;
-
-  return (
-    <>
-      <div class={styles.selected__cards} aria-hidden>
-        <ul
-          class={styles.cards__list}
-          style={{
-            "--total-cards": Math.min(selectedCount(), MAX_SELECTED_CARDS),
-          }}
-        >
-          <For each={props.mods().slice(0, MAX_SELECTED_CARDS)}>
-            {({ name, owner, version }, i) => {
-              return (
-                <li
-                  class={styles.selected__card}
-                  style={{
-                    "--card-index": i(),
-                    "--bg-image": `url("${getIconUrl(getQualifiedModName(owner, name, version))}")`,
-                  }}
-                  data-overflow={
-                    i() === MAX_SELECTED_CARDS - 1 ? `+${selectedCount() - MAX_SELECTED_CARDS + 1}` : undefined
-                  }
-                ></li>
-              );
-            }}
-          </For>
-        </ul>
-      </div>
-
-      <h2 class={styles.selected__title}>{t("modlist.installed.multiselect_title")}</h2>
-
-      <ul>
-        <li>
-          {t(
-            selectedCount() > 1 ? "modlist.installed.selected_count_plural" : "modlist.installed.selected_count_single",
-            { count: selectedCount() },
-          )}
-        </li>
-        <li>
-          <Fa icon={faHardDrive} />{" "}
-          {humanizeFileSize(
-            props
-              .mods()
-              .reduce((total, { name, owner, version }) => total /*+ getModById({name, owner}).file_size*/, 0),
-          )}
-        </li>
-      </ul>
-
-      <div class={styles.selected__actions}>
-        <button>{t("modlist.installed.enable_selected")}</button>
-        <button>{t("modlist.installed.disable_selected")}</button>
-        <button>{t("global.phrases.delete")}</button>
-        <button>{t("modlist.installed.update_selected")}</button>
-      </div>
-    </>
-  );
-}
-
-function ModView(props: { mod: Mod; gameId: string; closeModView: () => void }) {
-  const [_progress, setProgress] = createProgressProxyStore();
-
-  function getInitialModListing(mod: Mod) {
-    if ("version" in mod) {
-      const obj: ModListing & { game?: string; version?: ModVersion } = { ...mod, versions: [mod.version] };
-      delete obj.version;
-      delete obj.game;
-      return obj;
-    } else {
-      return mod;
-    }
-  }
-
-  const [modListing] = createResource<ModListing | undefined, Mod | Record<never, never>, never>(
-    () => props.mod,
-    async (mod) => {
-      if ("version" in mod) {
-        await fetchModIndex(props.gameId, { refresh: false }, (event) => {
-          if (event.event === "created") {
-            setProgress(event.progress);
-          }
-        });
-        return (await getFromModIndex(props.gameId, [{ owner: mod.owner, name: mod.name }]))[0];
-      } else if ("versions" in mod) {
-        setProgress(initProgress());
-        return mod;
-      }
-    },
-    { initialValue: getInitialModListing(props.mod) },
+  const { onCtrlClickItem, onShiftClickItem, clearSelection, isPivot, isSelected, data } = createMultiselectableList<
+    ModPackage,
+    string,
+    ModId & { version: string }
+  >(
+    () => installContext.installed.latest,
+    (mod) => `${mod.owner}-${mod.name}`,
+    (mod) => ({ owner: mod.owner, name: mod.name, version: mod.version.version_number }),
+    () => undefined,
   );
 
-  const [selectedVersion, setSelectedVersion] = createSignal<string>();
-
-  const modVersionData = () => {
-    const selected = selectedVersion();
-
-    const versions = "versions" in props.mod ? props.mod.versions : modListing?.latest?.versions;
-
-    // If online, display the mod listing. Otherwise, in installed, display mod package initially, then
-    // mod listing after it loads. Coincidentally, this undefined logic check works as the mod listing
-    // loads after the initial mod package is always displayed by default first
-    return (
-      (selected === undefined ? undefined : versions?.find((v) => v.version_number === selected)) ??
-      ("versions" in props.mod ? props.mod.versions[0] : props.mod.version)
-    );
-  };
-
-  const tabs: Tab<"overview" | "dependencies" | "changelog">[] = [
-    {
-      id: "overview",
-      name: "Overview",
-      component: () => <ModMarkdown mod={props.mod} selectedVersion={selectedVersion()} endpoint="readme" />,
-    },
-    {
-      id: "dependencies",
-      name: "Dependencies",
-      component: () => <ModViewDependencies dependencies={modVersionData().dependencies} gameId={props.gameId} />,
-    },
-    {
-      id: "changelog",
-      name: "Changelog",
-      component: () => <ModMarkdown mod={props.mod} selectedVersion={selectedVersion()} endpoint="changelog" />,
-    },
-  ];
-
-  const [currentTab, setCurrentTab] = createSignal(tabs[0].id);
-  const isCurrentTab = createSelector(currentTab);
-
-  const installContext = useContext(ModInstallContext);
-
-  const isSelectedVersion = createSelector(selectedVersion);
-
-  const installed = useInstalled(installContext, () => props.mod);
-
   return (
-    <>
-      <div class={styles.modSticky}>
-        <div class={styles.modMeta}>
-          {/* TODO: For local mod with no package URL, remove link */}
-          <div style={{ "grid-area": "name" }}>
-            <a
-              href={getModUrl(props.gameId, props.mod.owner, props.mod.name)}
-              target="_blank"
-              rel="noopener noreferrer"
-              class={styles.modMetaLink}
-            >
-              <h2 class={styles.name}>{props.mod.name}</h2>
-              <Fa icon={faExternalLink} />
-            </a>
-          </div>
-          <div style={{ "grid-area": "owner" }}>
-            <a
-              href={getModAuthorUrl(props.gameId, props.mod.owner)}
-              target="_blank"
-              rel="noopener noreferrer"
-              class={styles.modMetaLink}
-            >
-              {props.mod.owner}
-              <Fa icon={faExternalLink} />
-            </a>
-          </div>
-          <ul class={styles.modMetadata}>
-            <li class={styles.metadata__field}>v{modVersionData().version_number}</li>
-            <li class={styles.metadata__field}>
-              <Fa icon={faDownload} /> {roundedNumberFormatter.format(modVersionData().downloads)}
-            </li>
-            <li class={styles.metadata__field}>
-              <Fa icon={faHardDrive} /> {humanizeFileSize(modVersionData().file_size)}
-            </li>
-          </ul>
+    <div class={styles.modListAndView}>
+      <div class={styles.modListContainer}>
+        <ModSearch
+          game={props.game}
+          query={query()}
+          setQuery={setQuery}
+          sort={sort()}
+          setSort={setSort}
+          profileSortOrder={profileSortOrder()}
+          setProfileSortOrder={setProfileSortOrder}
+        />
 
-          <Show when={props.mod.donation_link != null}>
-            <a class={styles.modMeta__donate} href={props.mod.donation_link} target="_blank" rel="noopener noreferrer">
-              <Fa icon={faHeart} class={styles.donate__icon} />
-              <br /> {t("modlist.modview.donate_btn")}
-            </a>
+        <div class={styles.discoveredLine}>
+          <Switch>
+            <Match when={props.isLoading || queriedMods.loading}>
+              <span>{t("modlist.fetching_msg")}</span>
+              <SimpleProgressIndicator progress={props.progress} />
+            </Match>
+            <Match when={queriedMods.error}>
+              {(err) => <ErrorIndicator icon={true} message="Query failed" err={err()} reset={props.refresh} />}
+            </Match>
+            <Match when={queriedMods.latest}>
+              <span>{t("modlist.discovered_msg", { count: numberFormatter.format(queriedMods()!.count) })}</span>
+              <ActionContext>
+                {(busy, wrapOnClick) => (
+                  <button class={styles.refreshButton} disabled={busy()} on:click={() => wrapOnClick(props.refresh)}>
+                    <Fa icon={faRefresh} />
+                  </button>
+                )}
+              </ActionContext>
+            </Match>
+          </Switch>
+
+          <Show when={props.trailingControls}>
+            <div class={styles.trailingControls}>{props.trailingControls}</div>
           </Show>
-
-          <button style={{ "grid-area": "close" }} class={styles.modMeta__closeBtn} onClick={props.closeModView}>
-            <Fa icon={faXmark} />
-          </button>
         </div>
 
-        <TabRenderer
-          id="mod-view"
-          tabs={tabs}
-          styles={{
-            preset: "base",
-            classes: {
-              container: styles.tabs,
-              tab: styles.tabs__tab,
-            },
-          }}
-          setter={(tab) => setCurrentTab(tab.id)}
-        />
+        <Show when={queriedMods.error === undefined && queriedMods()} keyed>
+          {(mods) => (
+            <ModListMods
+              mods={mods.mods}
+              focusedMod={[focusedModId, setFocusedModId]}
+              isSelected={props.multiselect ? isSelected : undefined}
+              select={props.multiselect ? onCtrlClickItem : undefined}
+              shiftClick={props.multiselect ? onShiftClickItem : undefined}
+              isPivot={props.multiselect ? isPivot : undefined}
+              forceSelectorVisibility={data().length !== 0}
+            />
+          )}
+        </Show>
       </div>
 
-      <div class={styles.modView__content}>
-        <TabContent isCurrentTab={isCurrentTab} tabs={tabs} />
-      </div>
-
-      <form class={styles.modView__form} action="#">
-        <Show
-          when={installed()}
+      <div class={styles.modViewContainer}>
+        <Switch
           fallback={
-            <div class={styles.modView__onlineActions}>
-              <SelectDropdown<string>
-                options={
-                  modListing.latest?.versions.map((version, i) => ({
-                    label: version.version_number,
-                    value: version.version_number,
-                    selected: () =>
-                      selectedVersion() == null && i === 0 ? true : isSelectedVersion(version.version_number),
-                    liContent: (
-                      <div>
-                        <p data-version>{version.version_number}</p>
-                        <p data-date>{dateFormatterMed.format(new Date(version.date_created))}</p>
-                      </div>
-                    ),
-                  })) ?? []
-                }
-                label={{ labelText: "value" }}
-                labelClass={styles.modView__versions}
-                onChanged={(value) => setSelectedVersion(value)}
-                liClass={styles.modView__versionsItem}
-              />
-              <InstallButton
-                mod={props.mod as ModListing}
-                installContext={installContext!}
-                class={styles.modView__downloadBtn}
-              >
-                {t("modlist.online.install_btn")}
-              </InstallButton>
+            <div class={styles.nothingMsg}>
+              <h2>{t("modlist.modview.no_mod_selected_title")}</h2>
+              <p>{t("modlist.modview.no_mod_selected_subtitle")}</p>
             </div>
           }
         >
-          <div class={styles.modView__installedActions}>
-            <TogglableDropdown
-              label={t("modlist.installed.change_version_btn")}
-              labelClass={styles.modView__versionLabel}
-              dropdownClass={styles.modView__versionsDropdownContent}
-              fillToTriggerWidth
-            >
-              <input
-                type="text"
-                name="version-search"
-                id="version-search"
-                placeholder={t("modlist.installed.search_version_placeholder")}
-              />
-              <label for="version-search" class="phantom">
-                {t("modlist.installed.search_version_placeholder")}
-              </label>
-
-              <Show when={modListing.latest}>
-                {(listing) => (
-                  <>
-                    <SelectDropdown
-                      label={{ labelText: "value" }}
-                      onChanged={setSelectedVersion}
-                      options={(listing().versions ?? []).map((version) => ({
-                        label: version.version_number,
-                        value: version.version_number,
-                        selected: () => isSelectedVersion(version.version_number),
-                      }))}
-                    />
-
-                    <InstallButton
-                      mod={
-                        {
-                          ...removeProperty(listing(), "versions"),
-                          version:
-                            listing().versions.find((v) => v.version_number === selectedVersion()) ??
-                            listing().versions[0],
-                        } as ModPackage
-                      }
-                      installContext={installContext!}
-                      class={styles.downloadBtn}
-                    >
-                      {t("global.phrases.apply")}
-                    </InstallButton>
-                  </>
-                )}
-              </Show>
-            </TogglableDropdown>
-            <UninstallButton mod={installed()!} installContext={installContext!} class={styles.modView__uninstallBtn}>
-              {t("modlist.installed.uninstall_btn")}
-            </UninstallButton>
-          </div>
-        </Show>
-      </form>
-    </>
+          <Match when={focusedMod.error === undefined && focusedMod()} keyed>
+            {(mod) => <ModView mod={mod} gameId={props.game} closeModView={() => setFocusedModId(undefined)} />}
+          </Match>
+          <Match when={props.multiselect && data().length !== 0}>
+            <BulkActions mods={data} />
+          </Match>
+        </Switch>
+      </div>
+    </div>
   );
 }
 
-function ModViewDependencies(props: { gameId: string; dependencies: string[] }) {
-  return (
-    <Show when={props.dependencies.length > 0} fallback={<p>{t("modlist.modview.no_dependencies_msg")}</p>}>
-      <ul class={styles.modDeps}>
-        <For each={props.dependencies}>
-          {(dependency) => {
-            const [author, name, version] = dependency.split("-");
-
-            return (
-              <li>
-                <a
-                  class={styles.dependency}
-                  href={getModVersionUrl(props.gameId, author, name, version)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <img src={getIconUrl(dependency)} width="48px" alt={name} class={styles.modIcon} />
-                  <div>
-                    <p data-name>
-                      {name} <Fa icon={faExternalLink} class={styles.externalIcon} />
-                    </p>
-                    <p data-owner>{author}</p>
-                  </div>
-                  <p data-version>{version}</p>
-                </a>
-              </li>
-            );
-          }}
-        </For>
-      </ul>
-    </Show>
-  );
-}
-
-type SelectableModListProps = {
+export type SelectableModListProps = {
   /// Whether the mod is selected in the ModList (for bulk actions)
   isSelected: (mod: ModPackage) => boolean;
   select: (item: ModPackage, index: number) => void;
@@ -902,272 +447,5 @@ function ModListMods(
         <li use:infiniteScrollLoader>{t("global.phrases.loading")}...</li>
       </Show>
     </ol>
-  );
-}
-
-function getIconUrl(qualifiedModName: string) {
-  return `https://gcdn.thunderstore.io/live/repository/icons/${qualifiedModName}.png`;
-}
-function getQualifiedModName(owner: string, name: string, version: string) {
-  return `${owner}-${name}-${version}`;
-}
-function getModVersionUrl(gameId: string, owner: string, name: string, version: string) {
-  return getModAuthorUrl(gameId, owner) + `${name}/versions#:~:text=${version}`;
-}
-function getModUrl(gameId: string, owner: string, name: string) {
-  return getModAuthorUrl(gameId, owner) + `${name}/`;
-}
-function getModAuthorUrl(gameId: string, owner: string) {
-  return `https://thunderstore.io/c/${gameId}/p/${owner}/`;
-}
-
-function useInstalled(
-  installContext: typeof ModInstallContext.defaultValue,
-  modAccessor: Accessor<Mod>,
-): Accessor<ModPackage | undefined> {
-  return createMemo(() => {
-    const mod = modAccessor();
-    if ("version" in mod) {
-      return mod;
-    } else {
-      return installContext?.installed.latest.find((pkg) => pkg.owner === mod.owner && pkg.name === mod.name);
-    }
-  });
-}
-
-const enum ModSelectorTutorialState {
-  INIT,
-  HOVERED,
-  LEFT,
-}
-
-function ModListItem(
-  props: {
-    mod: Mod;
-    /// Whether the mod is focused in the ModView
-    isFocused: (mod: ModId) => boolean;
-    setFocused: (mod: ModId | undefined) => void;
-    forceSelectorVisibility: boolean;
-    select?: () => void;
-    shiftClick?: () => void;
-    isSelected?: () => boolean;
-    isPivot?: boolean;
-    // setModSelectorTutorialState: (hovered: boolean) => void,
-  } & (Omit<Partial<SelectableModListProps>, "select" | "shiftClick" | "isPivot"> | {}),
-) {
-  const displayVersion = createMemo(() => {
-    if ("version" in props.mod) return props.mod.version;
-    return props.mod.versions[0];
-  });
-
-  const installContext = useContext(ModInstallContext);
-  const installed = useInstalled(installContext, () => props.mod);
-
-  function onFocus() {
-    const isFocused = props.isFocused(props.mod);
-
-    props.setFocused(
-      isFocused
-        ? undefined
-        : {
-            owner: props.mod.owner,
-            name: props.mod.name,
-          },
-    );
-  }
-
-  return (
-    <li
-      classList={{
-        [styles.mod]: true,
-        [styles.selected]: props.isFocused(props.mod),
-      }}
-    >
-      <div
-        onClick={(e) => {
-          if (e.shiftKey && "shiftClick" in props) {
-            props.shiftClick!();
-          } else {
-            onFocus();
-          }
-        }}
-        onKeyDown={(key) => {
-          if (key.key === "Enter") onFocus();
-        }}
-        class={styles.mod__btn}
-        role="button"
-        aria-pressed={props.isFocused(props.mod)}
-        tabIndex={0}
-      >
-        <Show when={props.isSelected !== undefined}>
-          <div class={styles.mod__selector} data-always-show={props.forceSelectorVisibility ? "" : undefined}>
-            <Checkbox
-              checked={props.isSelected!()}
-              onChange={(checked) => props.select!()}
-              labelClass={styles.mod__selectorClickRegion}
-              iconContainerClass={styles.mod__selectorIndicator}
-            />
-          </div>
-        </Show>
-        <div class={styles.mod__btnContent}>
-          <img
-            class={styles.modIcon}
-            width={64}
-            alt="mod icon"
-            src={getIconUrl(getQualifiedModName(props.mod.owner, props.mod.name, displayVersion().version_number))}
-          />
-          <div class={styles.mod__content}>
-            <div class={styles.left}>
-              <p class={styles.info}>
-                <span class={styles.name}>{props.mod.name}</span>
-                <span class={styles.separator} aria-hidden>
-                  &bull;
-                </span>
-                <span class={styles.medHierarchy}>{props.mod.owner}</span>
-                <Show when={"version" in props.mod}>
-                  <span class={styles.separator} aria-hidden>
-                    &bull;
-                  </span>
-                  <span class={styles.version}>{(props.mod as ModPackage).version.version_number}</span>
-                </Show>
-              </p>
-              <p class={styles.info}>
-                <Switch>
-                  <Match when={"version" in props.mod}>
-                    <span class={styles.lowHierarchy}>
-                      <Fa icon={faHardDrive} /> {humanizeFileSize((props.mod as ModPackage).version.file_size)}
-                    </span>
-                  </Match>
-                  <Match when={"versions" in props.mod}>
-                    <span class={styles.lowHierarchy}>
-                      <Fa icon={faDownload} />{" "}
-                      {roundedNumberFormatter.format(
-                        (props.mod as ModListing).versions.map((v) => v.downloads).reduce((acc, x) => acc + x),
-                      )}
-                    </span>
-                  </Match>
-                </Switch>
-              </p>
-              <p class={styles.description}>{displayVersion().description}</p>
-            </div>
-            <Show when={installContext !== undefined}>
-              <Switch
-                fallback={
-                  <ErrorBoundary>
-                    <Tooltip content={t("modlist.online.install_btn")}>
-                      <TooltipTrigger
-                        as={InstallButton}
-                        mod={props.mod as ModListing}
-                        installContext={installContext!}
-                        class={styles.downloadBtn}
-                        busyClass={styles.downloadBtnBusy}
-                        progressStyle="circular"
-                      >
-                        <Fa icon={faDownLong} />
-                      </TooltipTrigger>
-                    </Tooltip>
-                  </ErrorBoundary>
-                }
-              >
-                <Match when={installed()}>
-                  {(installed) => (
-                    <ErrorBoundary>
-                      <Tooltip content={t("modlist.installed.uninstall_btn")}>
-                        <TooltipTrigger
-                          as={UninstallButton}
-                          mod={installed()}
-                          installContext={installContext!}
-                          class={styles.downloadBtn}
-                          busyClass={styles.downloadBtnBusy}
-                          progressStyle="circular"
-                        >
-                          <Fa icon={faTrash} />
-                        </TooltipTrigger>
-                      </Tooltip>
-                    </ErrorBoundary>
-                  )}
-                </Match>
-              </Switch>
-            </Show>
-          </div>
-        </div>
-      </div>
-    </li>
-  );
-}
-
-function InstallButton(
-  props: ComponentProps<"button"> & {
-    mod: Mod;
-    installContext: NonNullable<typeof ModInstallContext.defaultValue>;
-    busyClass?: JSX.HTMLAttributes<Element>["class"];
-    progressStyle?: ProgressStyle;
-  },
-) {
-  const [local, rest] = splitProps(props, ["mod", "installContext", "busyClass", "progressStyle", "onClick"]);
-
-  return (
-    <SimpleAsyncButton
-      progressStyle={local.progressStyle}
-      progress
-      busyClass={local.busyClass}
-      data-install
-      onClick={async (listener) => {
-        let foundDownloadTask = false;
-        await installProfileMod(
-          local.installContext.profileId(),
-          "versions" in local.mod ? removeProperty(local.mod, "versions") : removeProperty(local.mod, "version"),
-          "versions" in local.mod ? local.mod.versions[0] : local.mod.version,
-          (event) => {
-            if (!foundDownloadTask && event.event === "dependency") {
-              const dependency = tasks().get(event.dependency)!;
-              if (dependency.metadata.kind === "Download") {
-                foundDownloadTask = true;
-                registerTaskListener(event.dependency, listener);
-              } else if (dependency.status.status === "Unstarted") {
-                // wait for metadata to be filled in and check again
-                registerTaskListener(event.dependency, (depEvent) => {
-                  if (!foundDownloadTask && depEvent.event === "created" && depEvent.metadata.kind === "Download") {
-                    foundDownloadTask = true;
-                    registerTaskListener(event.dependency, listener);
-                  }
-                });
-              }
-            }
-          },
-        );
-        await local.installContext.refetchInstalled();
-      }}
-      {...rest}
-    >
-      {props.children}
-    </SimpleAsyncButton>
-  );
-}
-
-function UninstallButton(
-  props: ComponentProps<"button"> & {
-    mod: ModPackage;
-    installContext: NonNullable<typeof ModInstallContext.defaultValue>;
-    busyClass?: JSX.HTMLAttributes<Element>["class"];
-    progressStyle?: ProgressStyle;
-  },
-) {
-  const [local, rest] = splitProps(props, ["mod", "installContext", "busyClass", "progressStyle", "onClick"]);
-
-  return (
-    <SimpleAsyncButton
-      progressStyle={local.progressStyle}
-      progress
-      data-uninstall
-      busyClass={local.busyClass}
-      onClick={async (_listener) => {
-        await uninstallProfileMod(local.installContext.profileId(), local.mod.owner, local.mod.name);
-        await local.installContext.refetchInstalled();
-      }}
-      {...rest}
-    >
-      {props.children}
-    </SimpleAsyncButton>
   );
 }
