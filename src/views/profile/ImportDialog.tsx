@@ -17,6 +17,7 @@ import { t } from "../../i18n/i18n.ts";
 import { initProgress, Listener, Id as TaskId, tasks } from "../../api/tasks";
 import { refetchProfiles } from "../../globals";
 
+import { bindValue } from "../../components/Directives";
 import ErrorBoundary from "../../components/ErrorBoundary";
 import { SimpleAsyncButton } from "../../widgets/AsyncButton";
 import { type DialogExternalProps, DialogClose } from "../../widgets/Dialog";
