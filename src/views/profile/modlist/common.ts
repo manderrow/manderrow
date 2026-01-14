@@ -9,6 +9,9 @@ export function getIconUrl(qualifiedModName: string) {
 export function getQualifiedModName(owner: string, name: string, version: string) {
   return `${owner}-${name}-${version}`;
 }
+export function concatenateMod(owner: string, name: string, version: string) {
+  return `${owner}${name}${version}`;
+}
 export function getModVersionUrl(gameId: string, owner: string, name: string, version: string) {
   return getModAuthorUrl(gameId, owner) + `${name}/versions#:~:text=${version}`;
 }

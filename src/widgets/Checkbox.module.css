@@ -1,16 +1,18 @@
 .switch {
+  display: block;
+
   .iconContainer {
     display: flex;
     align-items: center;
   }
 
-  .iconContainer svg {
+  .iconContainer .switch__icon {
     clip-path: inset(0% 100% 0% 0%);
 
     transition: clip-path 0.2s;
   }
 
-  input:checked + .iconContainer svg {
+  input:checked + .iconContainer .switch__icon {
     clip-path: inset(0% 0% 0% 0%);
   }
 }
@@ -19,7 +21,7 @@
   border: 1px solid var(--clr-neutral-60);
   border-radius: 2px;
 
-  width: 0.5rem;
+  width: 1em;
 
   &:has(> input:checked) {
     background-color: var(--clr-primary-40);

@@ -23,7 +23,7 @@ import { autofocus } from "../../components/Directives";
 import { t } from "../../i18n/i18n";
 import { ActionContext } from "../../widgets/AsyncButton";
 import ContextMenu from "../../widgets/ContextMenu";
-import { PromptDialog } from "../../widgets/Dialog";
+import { DialogTrigger, PromptDialog } from "../../widgets/Dialog";
 import Tooltip, { TooltipAnchor, TooltipTrigger } from "../../widgets/Tooltip";
 
 import sidebarStyles from "./SidebarProfiles.module.css";
@@ -52,7 +52,6 @@ export function SidebarProfileComponent(props: {
   ctrlClick: () => void;
   shiftClick: () => void;
 }) {
-  const [confirmingDeletion, setConfirmingDeletion] = createSignal(false);
   const [deleting, setDeleting] = createSignal(false);
 
   const navigate = useNavigate();
@@ -171,10 +170,40 @@ export function SidebarProfileComponent(props: {
                       },
                     },
                     {
-                      label: <SidebarContextMenuItem icon={faTrashCan} label={t("global.phrases.delete")} />,
-                      action() {
-                        setConfirmingDeletion(true);
-                      },
+                      labelIsBtn: true,
+                      label: (
+                        <PromptDialog
+                          title={t("global.phrases.confirm")}
+                          question={t("profile.delete_msg", { profileName: props.profile.name })}
+                          btns={{
+                            ok: {
+                              type: "danger",
+                              text: t("global.phrases.delete"),
+                              async callback() {
+                                if (props.selected) {
+                                  navigate(`/profile/${props.gameId}`, { replace: true });
+                                }
+                                if (deleting()) return;
+                                setDeleting(true);
+                                try {
+                                  await deleteProfile(props.profile.id);
+                                } finally {
+                                  setDeleting(false);
+                                  await props.refetchProfiles();
+                                }
+                              },
+                            },
+                            cancel: {},
+                          }}
+                          trigger={
+                            <DialogTrigger>
+                              <SidebarContextMenuItem icon={faTrashCan} label={t("global.phrases.delete")} />
+                            </DialogTrigger>
+                          }
+                        />
+                      ),
+
+                      action() {},
                     },
                     {
                       label: (
@@ -219,40 +248,6 @@ export function SidebarProfileComponent(props: {
                 </ContextMenu>
               </Tooltip>
             </div>
-
-            <Show when={confirmingDeletion()}>
-              <PromptDialog
-                options={{
-                  title: t("global.phrases.confirm"),
-                  question: t("profile.delete_msg", { profileName: props.profile.name }),
-                  btns: {
-                    ok: {
-                      type: "danger",
-                      text: t("global.phrases.delete"),
-                      async callback() {
-                        if (props.selected) {
-                          navigate(`/profile/${props.gameId}`, { replace: true });
-                        }
-                        if (deleting()) return;
-                        setDeleting(true);
-                        try {
-                          await deleteProfile(props.profile.id);
-                        } finally {
-                          setConfirmingDeletion(false);
-                          setDeleting(false);
-                          await props.refetchProfiles();
-                        }
-                      },
-                    },
-                    cancel: {
-                      callback() {
-                        setConfirmingDeletion(false);
-                      },
-                    },
-                  },
-                }}
-              />
-            </Show>
           </>
         }
       >

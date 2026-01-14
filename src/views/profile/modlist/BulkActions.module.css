@@ -1,7 +1,15 @@
-/* Selected mods list */
+.selected {
+  flex: 1 1 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
+  --bulk-border: 1px solid var(--clr-neutral-75);
+}
 
 .selected__cards {
-  height: 20%;
+  height: 9rem;
+  /* flex-shrink: 0; */
   overflow: hidden;
   position: relative;
 }
@@ -16,6 +24,7 @@
   position: absolute;
   aspect-ratio: 5 / 7;
   width: 10%;
+  min-width: 4rem;
   border: 1px solid var(--clr-neutral-70);
   background-color: var(--clr-neutral-80);
   border-radius: 8px;
@@ -24,7 +33,7 @@
   background-size: cover;
   background-position: center;
 
-  offset-path: circle(20% at center 80%);
+  offset-path: circle(20% at center bottom);
 
   /* the degree offset of each card from the origin on the circle */
   --card-angle: calc((var(--cards-offset)) + (var(--card-spacing)) * (var(--card-index)));
@@ -49,20 +58,102 @@
   }
 }
 
+.selected__header {
+  padding: 0.5em;
+  border: var(--bulk-border);
+  border-radius: 0.5em 0.5em 0 0;
+  margin-right: 1em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .selected__title {
-  text-align: center;
-  padding-top: 0.25em;
-  border-top: 1px solid var(--clr-neutral-70);
-  margin-top: 0.25em;
+  font-weight: 400;
+  color: var(--clr-neutral-20);
+}
+
+.selected__tableContainer {
+  flex-grow: 1;
+  overflow: auto;
+  padding-right: 1em;
+  display: flex;
+  flex-direction: column;
+}
+
+.selected__table {
+  display: grid;
+  grid-template-columns: min-content 1fr minmax(min-content, 4rem);
+  column-gap: 1em;
+  align-content: start;
+  flex-grow: 1;
+  border: var(--bulk-border);
+  border-bottom: none;
+
+  li {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: subgrid;
+    align-items: center;
+    padding: 0.35em;
+    border-bottom: var(--bulk-border);
+
+    &:nth-child(even) {
+      background-color: var(--clr-neutral-80);
+    }
+
+    &:hover,
+    &:focus-within {
+      background-color: var(--clr-neutral-75);
+    }
+  }
+
+  .mod__info {
+    display: flex;
+    align-items: center;
+    gap: 0.25em;
+  }
+
+  .lowHierarchy {
+    color: var(--clr-neutral-35);
+    font-size: 0.85rem;
+  }
+
+  .separator {
+    color: var(--clr-neutral-65);
+    font-size: 0.85rem;
+  }
+
+  .removeBtn {
+    background-color: transparent;
+    padding: 0.25em 0.5em;
+
+    &:hover,
+    &:focus {
+      color: var(--clr-danger-5);
+    }
+  }
+}
+
+.summary__row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1em;
+  padding: 0.5em;
+  margin-right: 1em;
+  border: var(--bulk-border);
+  border-radius: 0 0 0.5em 0.5em;
 }
 
 .selected__actions {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(3rem, 7rem));
+  grid-template-columns: repeat(auto-fit, minmax(3rem, 6rem));
   gap: 0.5em;
   justify-content: center;
   margin-top: auto;
   padding: 0.5em;
+  margin-right: 1em;
+  margin-bottom: 0.25em;
 
   button {
     width: 100%;

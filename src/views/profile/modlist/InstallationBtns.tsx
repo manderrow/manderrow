@@ -63,9 +63,17 @@ export function UninstallButton(
     installContext: NonNullable<typeof ModInstallContext.defaultValue>;
     busyClass?: JSX.HTMLAttributes<Element>["class"];
     progressStyle?: ProgressStyle;
+    afterUninstall?: () => void;
   },
 ) {
-  const [local, rest] = splitProps(props, ["mod", "installContext", "busyClass", "progressStyle", "onClick"]);
+  const [local, rest] = splitProps(props, [
+    "mod",
+    "installContext",
+    "busyClass",
+    "progressStyle",
+    "onClick",
+    "afterUninstall",
+  ]);
 
   return (
     <SimpleAsyncButton
@@ -75,6 +83,7 @@ export function UninstallButton(
       busyClass={local.busyClass}
       onClick={async (_listener) => {
         await uninstallProfileMod(local.installContext.profileId(), local.mod.owner, local.mod.name);
+        local.afterUninstall?.();
         await local.installContext.refetchInstalled();
       }}
       {...rest}

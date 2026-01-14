@@ -17,7 +17,10 @@
       "back": "Back",
       "next": "Next",
       "previous": "Previous",
-      "close": "Close"
+      "close": "Close",
+      "remove": "Remove",
+      "remove_all": "Remove All",
+      "edit": "Edit"
     },
     "game_sort_column": {
       "name": "Name",
@@ -43,7 +46,8 @@
     "select_dropdown": {
       "default_fallback": "Select...",
       "sort_by": "Sort By"
-    }
+    },
+    "dialogue_default_title": "Confirm Decision?"
   },
 
   "splashscreen": {
@@ -158,11 +162,14 @@
       "updates_available_btn": "Updates Available",
 
       "multiselect_title": "Bulk Actions",
+      "multiselect_mod_name": "Mod Name",
+      "multiselect_size": "Size",
       "selected_count_single": "{{ count }} mod selected",
       "selected_count_plural": "{{ count }} mods selected",
-      "enable_selected": "Enable",
-      "disable_selected": "Disable",
-      "update_selected": "Update",
+      "enable_all": "Enable All",
+      "disable_all": "Disable All",
+      "delete_all": "Delete All",
+      "update_all": "Update All",
 
       "updater_title": "Select mods to update",
       "update_selected_btn": "Update Selected",

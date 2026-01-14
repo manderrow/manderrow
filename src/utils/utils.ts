@@ -196,6 +196,12 @@ export function createMultiselectableList<Source, SerializedKey extends string |
     data: () => {
       return Array.from(selectedItems().values());
     },
+    delete: (source: Source) => {
+      setSelectedItems((prev) => {
+        prev.delete(keyTransformer(source));
+        return prev;
+      });
+    },
     onCtrlClickItem,
     onShiftClickItem,
     clearSelection,

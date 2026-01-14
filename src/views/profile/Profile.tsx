@@ -38,7 +38,7 @@ import { createProfile, getProfileMods, ProfileWithId } from "../../api/api";
 import * as globals from "../../globals.ts";
 import { initialGame, refetchProfiles } from "../../globals.ts";
 // @ts-ignore: TS is unaware of `use:` directives despite using them for type definitions
-import {  bindValue } from "../../components/Directives";
+import { bindValue } from "../../components/Directives";
 
 import styles from "./Profile.module.css";
 import sidebarStyles from "./SidebarProfiles.module.css";

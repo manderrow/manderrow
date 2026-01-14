@@ -4,6 +4,7 @@ import TogglableDropdown from "./TogglableDropdown";
 import styles from "./ContextMenu.module.css";
 
 interface ContextMenuItem {
+  labelIsBtn?: true;
   label: JSX.Element | string;
   action: () => void;
 }
@@ -40,7 +41,11 @@ export default function ContextMenu(props: ContextMenuProps) {
             </li>
           ) : (
             <li class={styles.contextMenuItem}>
-              <button onClick={(item as ContextMenuItem).action}>{item.label}</button>
+              {(item as ContextMenuItem).labelIsBtn ? (
+                item.label
+              ) : (
+                <button onClick={(item as ContextMenuItem).action}>{item.label}</button>
+              )}
             </li>
           ),
         )}

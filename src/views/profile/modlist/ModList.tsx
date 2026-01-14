@@ -300,11 +300,15 @@ function ModList(props: {
 
   const installContext = useContext(ModInstallContext)!;
 
-  const { onCtrlClickItem, onShiftClickItem, clearSelection, isPivot, isSelected, data } = createMultiselectableList<
-    ModPackage,
-    string,
-    ModId & { version: string }
-  >(
+  const {
+    onCtrlClickItem,
+    onShiftClickItem,
+    clearSelection,
+    isPivot,
+    isSelected,
+    data,
+    delete: deleteSelectedMod,
+  } = createMultiselectableList<ModPackage, string, ModId & { version: string }>(
     () => installContext.installed.latest,
     (mod) => `${mod.owner}-${mod.name}`,
     (mod) => ({ owner: mod.owner, name: mod.name, version: mod.version.version_number }),
@@ -358,6 +362,7 @@ function ModList(props: {
               isSelected={props.multiselect ? isSelected : undefined}
               select={props.multiselect ? onCtrlClickItem : undefined}
               shiftClick={props.multiselect ? onShiftClickItem : undefined}
+              deleteSelectedMod={props.multiselect ? deleteSelectedMod : undefined}
               isPivot={props.multiselect ? isPivot : undefined}
               forceSelectorVisibility={data().length !== 0}
             />
@@ -378,7 +383,7 @@ function ModList(props: {
             {(mod) => <ModView mod={mod} gameId={props.game} closeModView={() => setFocusedModId(undefined)} />}
           </Match>
           <Match when={props.multiselect && data().length !== 0}>
-            <BulkActions mods={data} />
+            <BulkActions mods={data} clearSelection={clearSelection} deleteSelectedMod={deleteSelectedMod} />
           </Match>
         </Switch>
       </div>
@@ -392,6 +397,7 @@ export type SelectableModListProps = {
   select: (item: ModPackage, index: number) => void;
   shiftClick: (item: ModPackage, index: number) => void;
   isPivot: (mod: ModPackage | undefined) => boolean;
+  deleteSelectedMod: (mod: ModPackage) => void;
   forceSelectorVisibility: boolean;
 };
 
@@ -438,6 +444,7 @@ function ModListMods(
             isSelected={props.isSelected ? () => props.isSelected!(mod as ModPackage) : undefined}
             select={() => props.select!(mod as ModPackage, i())}
             shiftClick={() => props.shiftClick!(mod as ModPackage, i())}
+            deleteSelectedMod={() => props.deleteSelectedMod!(mod as ModPackage)}
             isPivot={props.isPivot?.(mod as ModPackage)}
             forceSelectorVisibility={props.forceSelectorVisibility || modSelectorTutorialState() < 2}
           />

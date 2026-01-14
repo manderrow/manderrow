@@ -62,7 +62,7 @@
     }
 
     &:hover,
-    &:has(> input:checked),
+    &:where(> input:checked),
     &[data-always-show] {
       width: calc((0.5em * 2) + 18px + 1em);
 
@@ -71,6 +71,7 @@
         width: 18px;
         height: 18px;
         appearance: none;
+        border-color: var(--clr-neutral-45);
 
         transition: 
           height var(--animation-time) var(--animation-curve),
@@ -86,6 +87,14 @@
       input:checked + .mod__selectorIndicator svg {
         visibility: visible;
       }
+
+      input:checked + .mod__selectorIndicator {
+        border-color: var(--clr-neutral-15);
+      }
+    }
+
+    &:hover .mod__selectorIndicator {
+      border-color: var(--clr-neutral-15);
     }
   }
 

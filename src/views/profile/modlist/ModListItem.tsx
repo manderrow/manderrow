@@ -26,6 +26,7 @@ export default function ModListItem(
     forceSelectorVisibility: boolean;
     select?: () => void;
     shiftClick?: () => void;
+    deleteSelectedMod?: () => void;
     isSelected?: () => boolean;
     isPivot?: boolean;
     // setModSelectorTutorialState: (hovered: boolean) => void,
@@ -160,6 +161,7 @@ export default function ModListItem(
                           class={styles.downloadBtn}
                           busyClass={styles.downloadBtnBusy}
                           progressStyle="circular"
+                          afterUninstall={props.deleteSelectedMod}
                         >
                           <Fa icon={faTrash} />
                         </TooltipTrigger>

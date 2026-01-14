@@ -22,7 +22,7 @@ export default function Checkbox(props: {
         tabIndex={-1}
         onChange={(e) => props.onChange(e.currentTarget.checked)}
       />
-      <div class={`${styles.iconContainer} ${props.iconContainerClass}`}>
+      <div class={`${styles.iconContainer} ${props.iconContainerClass || ""}`}>
         <Fa icon={faCheck} class={styles.switch__icon} />
       </div>
     </label>
