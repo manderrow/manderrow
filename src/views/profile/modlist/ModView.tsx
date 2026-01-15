@@ -248,7 +248,7 @@ export default function ModView(props: { mod: Mod; gameId: string; closeModView:
                       }
                       installContext={installContext!}
                       class={styles.applyBtn}
-                      disabled={isSelectedVersion(selectedVersion())}
+                      disabled={"version" in props.mod ? isSelectedVersion(props.mod.version) : false}
                     >
                       {t("global.phrases.apply")}
                     </InstallButton>
