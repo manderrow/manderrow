@@ -1,5 +1,4 @@
-.buttonBase:disabled {
-  cursor: not-allowed;
+.busyBase:disabled {
   opacity: 1;
 }
 

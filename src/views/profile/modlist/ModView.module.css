@@ -191,7 +191,7 @@
   font-size: 0.9rem;
 
   > div {
-    padding: 0.5em 0.25em;
+    padding: 0.25em;
 
     [data-version] {
       font-weight: 600;
@@ -219,11 +219,8 @@
 }
 
 .modView__installedActions {
-  display: grid;
-  align-items: stretch;
-  justify-items: stretch;
-  grid-template-columns: 1fr 1fr;
-  grid-template-areas: "versions uninstall";
+  display: flex;
+  justify-content: stretch;
   gap: 0.75em;
   position: relative;
 
@@ -232,17 +229,35 @@
   }
 }
 
-.modView__versionLabel {
-  grid-area: versions;
-  justify-content: center;
-}
-
 .modView__versionsDropdownContent {
   padding: 0.5em;
 }
 
+.modView__versionSearch {
+  width: 100%;
+  margin-bottom: 0.5em;
+}
+
+.modView__versionLabel {
+  justify-content: center;
+}
+
+.modView__versionsList {
+  margin: 0 -0.5em;
+  max-height: 20rem;
+  overflow: auto;
+}
+
+.applyBtn {
+  margin-top: 0.5em;
+  --bg-clr: var(--clr-primary-40);
+
+  &:hover:not(:disabled) {
+    --bg-clr: var(--clr-primary-50);
+  }
+}
+
 .modView__uninstallBtn {
-  grid-area: uninstall;
   border: 1px solid var(--clr-danger-4);
   background-color: transparent;
 

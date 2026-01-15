@@ -100,6 +100,7 @@ export function SimpleAsyncButton<const P extends true | Progress | undefined>(
           classList={
             local.busyClass
               ? {
+                  [styles.busyBase]: local.busy || busy(),
                   [local.busyClass]: local.busy || busy(),
                 }
               : {}

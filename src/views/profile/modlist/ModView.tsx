@@ -1,7 +1,7 @@
 import { faHeart } from "@fortawesome/free-regular-svg-icons";
 import { faDownload, faExternalLink, faHardDrive, faXmark } from "@fortawesome/free-solid-svg-icons";
 import Fa from "solid-fa";
-import { createResource, createSelector, createSignal, For, Show, useContext } from "solid-js";
+import { createEffect, createResource, createSelector, createSignal, For, Show, useContext } from "solid-js";
 
 import { fetchModIndex, getFromModIndex } from "../../../api/api";
 import { createProgressProxyStore, initProgress } from "../../../api/tasks";
@@ -9,8 +9,9 @@ import { t } from "../../../i18n/i18n";
 import { Mod, ModListing, ModPackage, ModVersion } from "../../../types";
 import { dateFormatterMed, humanizeFileSize, removeProperty, roundedNumberFormatter } from "../../../utils/utils";
 import { getIconUrl, getModAuthorUrl, getModUrl, getModVersionUrl, useInstalled } from "./common";
+import { bindValue } from "../../../components/Directives";
 
-import SelectDropdown from "../../../widgets/SelectDropdown";
+import SelectDropdown, { SelectDropdownList } from "../../../widgets/SelectDropdown";
 import TabRenderer, { Tab, TabContent } from "../../../widgets/TabRenderer";
 import TogglableDropdown from "../../../widgets/TogglableDropdown";
 import { InstallButton, UninstallButton } from "./InstallationBtns";
@@ -51,37 +52,36 @@ export default function ModView(props: { mod: Mod; gameId: string; closeModView:
     { initialValue: getInitialModListing(props.mod) },
   );
 
-  const [selectedVersion, setSelectedVersion] = createSignal<string>();
+  const [selectedVersion, setSelectedVersion] = createSignal<ModVersion | undefined>(
+    "version" in props.mod ? props.mod.version : undefined,
+  );
+  const [versionSearch, setVersionSearch] = createSignal<string>("");
 
-  const modVersionData = () => {
-    const selected = selectedVersion();
-
-    const versions = "versions" in props.mod ? props.mod.versions : modListing?.latest?.versions;
-
-    // If online, display the mod listing. Otherwise, in installed, display mod package initially, then
-    // mod listing after it loads. Coincidentally, this undefined logic check works as the mod listing
-    // loads after the initial mod package is always displayed by default first
-    return (
-      (selected === undefined ? undefined : versions?.find((v) => v.version_number === selected)) ??
-      ("versions" in props.mod ? props.mod.versions[0] : props.mod.version)
-    );
-  };
+  createEffect(() => {
+    if (selectedVersion() == null && modListing.latest) {
+      setSelectedVersion(modListing.latest.versions[0]);
+    }
+  });
 
   const tabs: Tab<"overview" | "dependencies" | "changelog">[] = [
     {
       id: "overview",
       name: "Overview",
-      component: () => <ModMarkdown mod={props.mod} selectedVersion={selectedVersion()} endpoint="readme" />,
+      component: () => (
+        <ModMarkdown mod={props.mod} selectedVersion={selectedVersion()?.version_number} endpoint="readme" />
+      ),
     },
     {
       id: "dependencies",
       name: "Dependencies",
-      component: () => <ModViewDependencies dependencies={modVersionData().dependencies} gameId={props.gameId} />,
+      component: () => <ModViewDependencies dependencies={selectedVersion()?.dependencies} gameId={props.gameId} />,
     },
     {
       id: "changelog",
       name: "Changelog",
-      component: () => <ModMarkdown mod={props.mod} selectedVersion={selectedVersion()} endpoint="changelog" />,
+      component: () => (
+        <ModMarkdown mod={props.mod} selectedVersion={selectedVersion()?.version_number} endpoint="changelog" />
+      ),
     },
   ];
 
@@ -90,7 +90,7 @@ export default function ModView(props: { mod: Mod; gameId: string; closeModView:
 
   const installContext = useContext(ModInstallContext);
 
-  const isSelectedVersion = createSelector(selectedVersion);
+  const isSelectedVersion = createSelector(selectedVersion, (a, b) => a?.version_number === b?.version_number);
 
   const installed = useInstalled(installContext, () => props.mod);
 
@@ -122,12 +122,13 @@ export default function ModView(props: { mod: Mod; gameId: string; closeModView:
             </a>
           </div>
           <ul class={styles.modMetadata}>
-            <li class={styles.metadata__field}>v{modVersionData().version_number}</li>
+            <li class={styles.metadata__field}>v{selectedVersion()?.version_number || "..."}</li>
             <li class={styles.metadata__field}>
-              <Fa icon={faDownload} /> {roundedNumberFormatter.format(modVersionData().downloads)}
+              <Fa icon={faDownload} />{" "}
+              {selectedVersion() ? roundedNumberFormatter.format(selectedVersion()!.downloads) : "..."}
             </li>
             <li class={styles.metadata__field}>
-              <Fa icon={faHardDrive} /> {humanizeFileSize(modVersionData().file_size)}
+              <Fa icon={faHardDrive} /> {selectedVersion() ? humanizeFileSize(selectedVersion()!.file_size) : "..."}
             </li>
           </ul>
 
@@ -166,13 +167,12 @@ export default function ModView(props: { mod: Mod; gameId: string; closeModView:
           when={installed()}
           fallback={
             <div class={styles.modView__onlineActions}>
-              <SelectDropdown<string>
+              <SelectDropdown<ModVersion>
                 options={
                   modListing.latest?.versions.map((version, i) => ({
                     label: version.version_number,
-                    value: version.version_number,
-                    selected: () =>
-                      selectedVersion() == null && i === 0 ? true : isSelectedVersion(version.version_number),
+                    value: version,
+                    selected: () => (selectedVersion() == null && i === 0 ? true : isSelectedVersion(version)),
                     liContent: (
                       <div>
                         <p data-version>{version.version_number}</p>
@@ -207,7 +207,9 @@ export default function ModView(props: { mod: Mod; gameId: string; closeModView:
                 type="text"
                 name="version-search"
                 id="version-search"
+                class={styles.modView__versionSearch}
                 placeholder={t("modlist.installed.search_version_placeholder")}
+                use:bindValue={[versionSearch, setVersionSearch]}
               />
               <label for="version-search" class="phantom">
                 {t("modlist.installed.search_version_placeholder")}
@@ -216,14 +218,23 @@ export default function ModView(props: { mod: Mod; gameId: string; closeModView:
               <Show when={modListing.latest}>
                 {(listing) => (
                   <>
-                    <SelectDropdown
-                      label={{ labelText: "value" }}
+                    <SelectDropdownList<ModVersion>
+                      ulClass={styles.modView__versionsList}
+                      liClass={styles.modView__versionsItem}
                       onChanged={setSelectedVersion}
-                      options={(listing().versions ?? []).map((version) => ({
-                        label: version.version_number,
-                        value: version.version_number,
-                        selected: () => isSelectedVersion(version.version_number),
-                      }))}
+                      options={listing()
+                        .versions.map((version) => ({
+                          label: version.version_number,
+                          value: version,
+                          selected: () => isSelectedVersion(version),
+                          liContent: (
+                            <div>
+                              <p data-version>{version.version_number}</p>
+                              <p data-date>{dateFormatterMed.format(new Date(version.date_created))}</p>
+                            </div>
+                          ),
+                        }))
+                        .filter((option) => option.label.toLowerCase().includes(versionSearch().toLowerCase()))}
                     />
 
                     <InstallButton
@@ -231,12 +242,13 @@ export default function ModView(props: { mod: Mod; gameId: string; closeModView:
                         {
                           ...removeProperty(listing(), "versions"),
                           version:
-                            listing().versions.find((v) => v.version_number === selectedVersion()) ??
+                            listing().versions.find((v) => v.version_number === selectedVersion()?.version_number) ??
                             listing().versions[0],
                         } as ModPackage
                       }
                       installContext={installContext!}
-                      class={styles.downloadBtn}
+                      class={styles.applyBtn}
+                      disabled={isSelectedVersion(selectedVersion())}
                     >
                       {t("global.phrases.apply")}
                     </InstallButton>
@@ -254,36 +266,40 @@ export default function ModView(props: { mod: Mod; gameId: string; closeModView:
   );
 }
 
-function ModViewDependencies(props: { gameId: string; dependencies: string[] }) {
+function ModViewDependencies(props: { gameId: string; dependencies?: string[] }) {
   return (
-    <Show when={props.dependencies.length > 0} fallback={<p>{t("modlist.modview.no_dependencies_msg")}</p>}>
-      <ul class={styles.modDeps}>
-        <For each={props.dependencies}>
-          {(dependency) => {
-            const [author, name, version] = dependency.split("-");
+    <Show when={props.dependencies} fallback={<p>{t("global.phrases.loading")}</p>}>
+      {(dependencies) => (
+        <Show when={dependencies().length > 0} fallback={<p>{t("modlist.modview.no_dependencies_msg")}</p>}>
+          <ul class={styles.modDeps}>
+            <For each={props.dependencies}>
+              {(dependency) => {
+                const [author, name, version] = dependency.split("-");
 
-            return (
-              <li>
-                <a
-                  class={styles.dependency}
-                  href={getModVersionUrl(props.gameId, author, name, version)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <img src={getIconUrl(dependency)} width="48px" alt={name} class={styles.modIcon} />
-                  <div>
-                    <p data-name>
-                      {name} <Fa icon={faExternalLink} class={styles.externalIcon} />
-                    </p>
-                    <p data-owner>{author}</p>
-                  </div>
-                  <p data-version>{version}</p>
-                </a>
-              </li>
-            );
-          }}
-        </For>
-      </ul>
+                return (
+                  <li>
+                    <a
+                      class={styles.dependency}
+                      href={getModVersionUrl(props.gameId, author, name, version)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <img src={getIconUrl(dependency)} width="48px" alt={name} class={styles.modIcon} />
+                      <div>
+                        <p data-name>
+                          {name} <Fa icon={faExternalLink} class={styles.externalIcon} />
+                        </p>
+                        <p data-owner>{author}</p>
+                      </div>
+                      <p data-version>{version}</p>
+                    </a>
+                  </li>
+                );
+              }}
+            </For>
+          </ul>
+        </Show>
+      )}
     </Show>
   );
 }

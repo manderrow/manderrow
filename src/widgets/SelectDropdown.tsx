@@ -65,39 +65,54 @@ export default function SelectDropdown<T>(options: SelectDropdownOptions<T>) {
         },
       }}
     >
-      <ul class={styles.options} role={options.multiselect === false ? "radiogroup" : "listbox"} ref={listRef}>
-        <For each={options.options}>
-          {(option) => {
-            let ref!: HTMLLIElement;
-
-            // TODO: we could use a single function that checks the event target instead of using a ref
-            function onSelect() {
-              // use the cached value here, so the action performed by the
-              // UI is **never** out of sync with the displayed value.
-              const isSelected = ref.ariaChecked! !== "true";
-              options.onChanged(option.value, isSelected);
-            }
-
-            return (
-              <li
-                tabIndex={0}
-                role={options.multiselect === false ? "radio" : "option"}
-                class={`${styles.option} ${options.liClass || ""}`}
-                aria-checked={option.selected()}
-                on:click={onSelect}
-                on:keydown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") onSelect();
-                }}
-                ref={ref}
-              >
-                <Fa icon={faCheck} class={styles.option__check} />
-
-                {option.liContent ? option.liContent : option.label}
-              </li>
-            );
-          }}
-        </For>
-      </ul>
+      <SelectDropdownList<T> {...options} ref={listRef} />
     </TogglableDropdown>
+  );
+}
+
+export function SelectDropdownList<T>(
+  props: Pick<SelectDropdownOptions<T>, "multiselect" | "options" | "onChanged" | "liClass"> & {
+    ulClass?: string;
+    ref?: HTMLUListElement;
+  },
+) {
+  return (
+    <ul
+      class={props.ulClass || styles.options}
+      role={props.multiselect === false ? "radiogroup" : "listbox"}
+      ref={props.ref}
+    >
+      <For each={props.options}>
+        {(option) => {
+          let ref!: HTMLLIElement;
+
+          // TODO: we could use a single function that checks the event target instead of using a ref
+          function onSelect() {
+            // use the cached value here, so the action performed by the
+            // UI is **never** out of sync with the displayed value.
+            const isSelected = ref.ariaChecked! !== "true";
+            props.onChanged(option.value, isSelected);
+          }
+
+          return (
+            <li
+              tabIndex={0}
+              role={props.multiselect === false ? "radio" : "option"}
+              class={`${styles.option} ${props.liClass || ""}`}
+              aria-checked={option.selected()}
+              onClick={onSelect}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") onSelect();
+              }}
+              ref={ref}
+            >
+              <Fa icon={faCheck} class={styles.option__check} />
+
+              {option.liContent ? option.liContent : option.label}
+            </li>
+          );
+        }}
+      </For>
+    </ul>
   );
 }

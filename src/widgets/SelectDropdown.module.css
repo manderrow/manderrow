@@ -14,7 +14,8 @@
   white-space: nowrap;
 }
 
-.option:hover {
+.option:hover,
+.option:focus-within {
   cursor: pointer;
   background-color: var(--clr-neutral-70);
 }
