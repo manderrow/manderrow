@@ -84,7 +84,7 @@ export default function ModListItem(
           <div class={styles.mod__selector} data-always-show={props.forceSelectorVisibility ? "" : undefined}>
             <Checkbox
               checked={props.isSelected!()}
-              onChange={(checked) => props.select!()}
+              onChange={() => props.select!()}
               labelClass={styles.mod__selectorClickRegion}
               iconContainerClass={styles.mod__selectorIndicator}
             />

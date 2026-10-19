@@ -6,6 +6,7 @@ import { ModId } from "../../../api/api.ts";
 import { t } from "../../../i18n/i18n.ts";
 import { humanizeFileSize } from "../../../utils/utils.ts";
 import { concatenateMod, getIconUrl, getQualifiedModName } from "./common.ts";
+// @ts-ignore: TS is unaware of `use:` directives despite using them for type definitions
 import { bindValue } from "../../../components/Directives.tsx";
 
 import styles from "./BulkActions.module.css";
@@ -85,7 +86,7 @@ export default function BulkActions(props: BulkActionsProps) {
                 concatenateMod(owner, name, version).toLowerCase().includes(search().toLowerCase()),
               )}
           >
-            {({ name, owner, version }) => {
+            {({ name, owner }) => {
               const mod = getInstalledMod({ name, owner });
               if (mod == null)
                 throw new Error(
@@ -129,7 +130,7 @@ export default function BulkActions(props: BulkActionsProps) {
             props
               .mods()
               .reduce(
-                (total, { name, owner, version }) =>
+                (total, { name, owner }) =>
                   total + (getInstalledMod({ name, owner })!.version!.file_size ?? 0),
                 0,
               ),

@@ -9,6 +9,7 @@ import { t } from "../../../i18n/i18n";
 import { Mod, ModListing, ModPackage, ModVersion } from "../../../types";
 import { dateFormatterMed, humanizeFileSize, removeProperty, roundedNumberFormatter } from "../../../utils/utils";
 import { getIconUrl, getModAuthorUrl, getModUrl, getModVersionUrl, useInstalled } from "./common";
+// @ts-ignore: TS is unaware of `use:` directives despite using them for type definitions
 import { bindValue } from "../../../components/Directives";
 
 import SelectDropdown, { SelectDropdownList } from "../../../widgets/SelectDropdown";

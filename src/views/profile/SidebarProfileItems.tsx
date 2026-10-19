@@ -18,6 +18,7 @@ import { createSignal, createUniqueId, Show } from "solid-js";
 import { deleteProfile, overwriteProfileMetadata, ProfileWithId } from "../../api/api";
 import { connections, connectionsUpdate } from "../../api/console";
 import { ctrling, shifting } from "../../globals";
+// @ts-ignore: TS is unaware of `use:` directives despite using them for type definitions
 import { autofocus } from "../../components/Directives";
 
 import { t } from "../../i18n/i18n";

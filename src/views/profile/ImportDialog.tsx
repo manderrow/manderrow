@@ -17,6 +17,7 @@ import { t } from "../../i18n/i18n.ts";
 import { initProgress, Listener, Id as TaskId, tasks } from "../../api/tasks";
 import { refetchProfiles } from "../../globals";
 
+// @ts-ignore: TS is unaware of `use:` directives despite using them for type definitions
 import { bindValue } from "../../components/Directives";
 import ErrorBoundary from "../../components/ErrorBoundary";
 import { SimpleAsyncButton } from "../../widgets/AsyncButton";
