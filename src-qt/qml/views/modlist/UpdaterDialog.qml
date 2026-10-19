@@ -1,0 +1,221 @@
+import QtQuick
+import QtQuick.Controls.Basic
+import QtQuick.Layouts
+import Manderrow
+
+// Lets the user choose mods to update, ported from Updater.tsx.
+Dialog {
+    id: dialog
+
+    /// `[{ newMod, oldVersionNumber }]`
+    property var updates: []
+    /// Indices into `updates` of the mods selected for updating.
+    property var selected: ({})
+
+    readonly property int selectedCount: Object.keys(selected).length
+
+    maxWidth: 600
+    padding: 0.75 * Theme.rem
+    onUpdatesChanged: selectAll(true)
+    Component.onCompleted: selectAll(true)
+
+    function selectAll(on) {
+        const out = {};
+        if (on) {
+            for (let i = 0; i < updates.length; i++)
+                out[i] = true;
+        }
+        selected = out;
+    }
+
+    ColumnLayout {
+        width: parent.width
+        spacing: Theme.rem
+
+        Text {
+            Layout.fillWidth: true
+            Layout.bottomMargin: 0.5 * 1.5 * Theme.rem
+            horizontalAlignment: Text.AlignHCenter
+            text: I18n.t("modlist.installed.updater_title")
+            color: Theme.neutral10
+            font.family: Theme.font
+            font.pixelSize: 1.5 * Theme.rem
+            font.weight: Font.Medium
+        }
+
+        Rectangle {
+            Layout.fillWidth: true
+            implicitHeight: listColumn.implicitHeight + 2
+            radius: 0.5 * Theme.rem
+            color: "transparent"
+            border.color: Theme.neutral70
+
+            ColumnLayout {
+                id: listColumn
+                x: 1
+                y: 1
+                width: parent.width - 2
+                spacing: 0
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.margins: 0.5 * Theme.rem
+                    spacing: 0.5 * Theme.rem
+
+                    Row {
+                        spacing: 0.5 * Theme.rem
+                        Checkbox {
+                            checked: dialog.selectedCount === dialog.updates.length
+                            onToggled: checked => dialog.selectAll(checked)
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                        Text {
+                            text: I18n.t("global.phrases.select_all")
+                            color: Theme.neutral05
+                            font.family: Theme.font
+                            font.pixelSize: Theme.rem
+                            anchors.verticalCenter: parent.verticalCenter
+                        }
+                    }
+                    Item {
+                        Layout.fillWidth: true
+                    }
+                    Field {
+                        placeholderText: I18n.t("global.phrases.search")
+                    }
+                }
+
+                Rectangle {
+                    Layout.fillWidth: true
+                    implicitHeight: 1
+                    color: Theme.neutral70
+                }
+
+                ListView {
+                    id: list
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: Math.min(contentHeight, (Ui.window ? Ui.window.height : 600) * 0.75)
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
+                    acceptedButtons: Qt.NoButton
+                    ScrollBar.vertical: AppScrollBar {}
+                    model: dialog.updates
+
+                    delegate: Rectangle {
+                        id: entry
+
+                        required property var modelData
+                        required property int index
+                        readonly property bool isLast: index === dialog.updates.length - 1
+
+                        width: list.width
+                        implicitHeight: entryRow.implicitHeight + Theme.rem
+                        bottomLeftRadius: isLast ? 4 : 0
+                        bottomRightRadius: isLast ? 4 : 0
+                        color: entryHover.hovered ? Theme.neutral70 : index % 2 === 1 ? Theme.neutral85 : "transparent"
+
+                        HoverHandler {
+                            id: entryHover
+                        }
+                        TapHandler {
+                            onTapped: {
+                                const selected = Object.assign({}, dialog.selected);
+                                if (selected[entry.index])
+                                    delete selected[entry.index];
+                                else
+                                    selected[entry.index] = true;
+                                dialog.selected = selected;
+                            }
+                        }
+
+                        RowLayout {
+                            id: entryRow
+                            anchors.fill: parent
+                            anchors.margins: 0.5 * Theme.rem
+                            spacing: 0.5 * Theme.rem
+
+                            Checkbox {
+                                checked: !!dialog.selected[entry.index]
+                                enabled: false
+                            }
+
+                            Image {
+                                Layout.preferredWidth: 3 * Theme.rem
+                                Layout.preferredHeight: 3 * Theme.rem
+                                source: Util.getIconUrl(Util.getQualifiedModName(entry.modelData.newMod.owner, entry.modelData.newMod.name, entry.modelData.newMod.versions[0].version_number))
+                                sourceSize: Qt.size(48, 48)
+                                asynchronous: true
+                            }
+
+                            ColumnLayout {
+                                Layout.fillWidth: true
+                                spacing: 0
+
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: entry.modelData.newMod.name
+                                    elide: Text.ElideRight
+                                    color: Theme.neutral10
+                                    font.family: Theme.font
+                                    font.pixelSize: 0.9 * Theme.rem
+                                    font.weight: Font.Medium
+                                }
+                                Text {
+                                    Layout.fillWidth: true
+                                    text: entry.modelData.newMod.owner
+                                    elide: Text.ElideRight
+                                    color: Theme.neutral30
+                                    font.family: Theme.font
+                                    font.pixelSize: 0.9 * Theme.rem
+                                }
+                            }
+
+                            // old version → new version
+                            Row {
+                                spacing: 0.3 * Theme.rem
+
+                                Text {
+                                    width: 7 * Ui.ch * 0.9
+                                    horizontalAlignment: Text.AlignRight
+                                    text: entry.modelData.oldVersionNumber
+                                    color: Theme.neutral20
+                                    font.family: Theme.font
+                                    font.pixelSize: 0.9 * Theme.rem
+                                }
+                                FaIcon {
+                                    name: "arrowRightLong"
+                                    size: 0.9 * Theme.rem
+                                    color: Theme.neutral40
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                Text {
+                                    width: 7 * Ui.ch * 0.9
+                                    text: entry.modelData.newMod.versions[0].version_number
+                                    color: Theme.neutral20
+                                    font.family: Theme.font
+                                    font.pixelSize: 0.9 * Theme.rem
+                                    font.weight: Font.DemiBold
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        RowLayout {
+            Layout.alignment: Qt.AlignRight
+            spacing: 0.5 * Theme.rem
+
+            Btn {
+                variant: "ghost"
+                text: I18n.t("global.phrases.cancel")
+                onClicked: dialog.close()
+            }
+            Btn {
+                variant: "primary"
+                text: dialog.selectedCount === dialog.updates.length ? I18n.t("modlist.installed.update_all_btn") : I18n.t("modlist.installed.update_selected_btn")
+            }
+        }
+    }
+}

@@ -4,34 +4,33 @@ export RUST_BACKTRACE := "1"
 export RUST_LOG := "debug"
 
 run *ARGS:
-	pnpm tauri dev {{ARGS}}
+	cargo run --manifest-path src-qt/Cargo.toml {{ARGS}}
 
 build *ARGS:
-	pnpm tauri build {{ARGS}}
+	cargo build --release --manifest-path src-qt/Cargo.toml {{ARGS}}
 
 fmt:
 	cargo fmt --manifest-path crates/Cargo.toml --all
-	cargo fmt --manifest-path src-tauri/Cargo.toml
+	cargo fmt --manifest-path src-qt/Cargo.toml
 	zig fmt agent
 
 clean:
 	cargo clean --manifest-path crates/Cargo.toml
-	cargo clean --manifest-path src-tauri/Cargo.toml
+	cargo clean --manifest-path src-qt/Cargo.toml
 	rm -vrf agent/.zig-cache
 	rm -vrf agent/zig-out
 
 test:
 	cargo test --manifest-path crates/Cargo.toml
-	cargo test --manifest-path src-tauri/Cargo.toml
+	cargo test --manifest-path src-qt/Cargo.toml
 
 update:
 	cargo update --manifest-path crates/Cargo.toml --verbose
-	cargo update --manifest-path src-tauri/Cargo.toml --verbose
-	pnpm update
+	cargo update --manifest-path src-qt/Cargo.toml --verbose
 
 check:
 	cargo check --manifest-path crates/Cargo.toml
-	cargo check --manifest-path src-tauri/Cargo.toml
+	cargo check --manifest-path src-qt/Cargo.toml
 
 run-script BIN *ARGS:
 	cargo run --manifest-path crates/Cargo.toml --bin {{BIN}} -- {{ARGS}}
