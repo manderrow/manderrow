@@ -14,17 +14,9 @@ jobs:
       matrix:
         include:
           - platform: 'macos-latest' # for Arm based macs (M1 and above).
-            args: '--target aarch64-apple-darwin'
-            rust_targets: 'aarch64-apple-darwin'
-          - platform: 'macos-latest' # for Intel based macs.
-            args: '--target x86_64-apple-darwin'
-            rust_targets: 'aarch64-apple-darwin,x86_64-apple-darwin'
+          - platform: 'macos-13' # for Intel based macs.
           - platform: 'ubuntu-22.04'
-            args: ''
-            rust_targets: ''
           - platform: 'windows-latest'
-            args: ''
-            rust_targets: 'x86_64-pc-windows-gnu'
 
     runs-on: ${{ matrix.platform }}
     steps:
@@ -34,39 +26,30 @@ jobs:
         if: matrix.platform == 'ubuntu-22.04' # This must match the platform value defined above.
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf wine64-development-tools
+          sudo apt-get install -y libgl1-mesa-dev libxkbcommon-dev wine64-development-tools
 
-      - name: Setup PNPM
-        uses: pnpm/action-setup@v4
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
         with:
-          version: latest
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: lts/*
-          cache: 'pnpm'
-          cache-dependency-path: 'pnpm-lock.yaml'
+          version: '6.9.*'
+          cache: true
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@nightly
-        with:
-          targets: ${{ matrix.rust_targets }}
 
       - uses: mlugg/setup-zig@v2
         with:
-          version: 0.15.0-dev.1599+cf90a5e45
+          version: 0.15.2
 
-      - name: Install frontend dependencies
-        run: pnpm install
+      - name: Build
+        run: cargo build --release --manifest-path src-qt/Cargo.toml
 
-      - uses: tauri-apps/tauri-action@v0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # TODO: bundle Qt with the app (macdeployqt, windeployqt, linuxdeploy) and publish installers
+      # to the release, as tauri-action did.
+      - uses: actions/upload-artifact@v4
         with:
-          args: ${{ matrix.args }}
-          releaseName: ${{ github.event_name != 'release' && 'Nightly' || null }}
-          releaseId: ${{ github.event.release && github.event.release.id }}
-          tagName: ${{ github.event.release && github.event.release.tag_name || 'nightly' }}
-          prerelease: ${{ github.event_name != 'release' || github.event.release.tag_name == 'nightly' }}
-
+          name: manderrow-${{ matrix.platform }}
+          path: |
+            src-qt/target/release/manderrow
+            src-qt/target/release/manderrow.exe
+            agent/zig-out/libmanderrow_agent

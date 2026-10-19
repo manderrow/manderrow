@@ -1,0 +1,120 @@
+[package]
+name = "manderrow"
+version = "0.1.0"
+description = "A mod manager for Thunderstore games"
+authors = ["Jack Huang", "Michael Pfaff"]
+edition = "2021"
+
+[lib]
+# The `_lib` suffix may seem redundant but it is necessary
+# to make the lib name unique and wouldn't conflict with the bin name.
+# This seems to be only an issue on Windows, see https://github.com/rust-lang/cargo/issues/8519
+name = "manderrow_lib"
+
+[features]
+default = ["search-sublime_fuzzy"]
+
+statistics = ["packed-semver/statistics", "rkyv_intern/statistics"]
+
+search-sublime_fuzzy = ["sublime_fuzzy"]
+
+[build-dependencies]
+cxx-qt-build = { version = "0.10", features = ["link_qt_object_files"] }
+
+[dependencies]
+manderrow-args = { path = "../crates/args" }
+manderrow-ipc = { path = "../crates/ipc", features = ["doctor", "serde", "slog"] }
+manderrow-macros = { path = "../crates/macros" }
+manderrow-paths = { path = "../crates/paths" }
+manderrow-process-util = { path = "../crates/process-util" }
+manderrow-types = { path = "../crates/types" }
+packed-semver = { path = "../crates/packed-semver" }
+
+# ui
+cxx = "1"
+cxx-qt = "0.10"
+cxx-qt-lib = { version = "0.10", features = ["qt_gui", "qt_qml", "qt_quickcontrols"] }
+
+# markdown rendering, mirroring marked + marked-alert + node-emoji + DOMPurify in the old web UI
+ammonia = "4.1"
+comrak = { version = "0.56", default-features = false, features = ["shortcodes"] }
+
+serde = { version = "=1.0.203", features = ["derive"] }
+serde_json = { version = "1", features = ["raw_value"] }
+serde_with = "3.11.0"
+serde_yaml = "0.9.34"
+simd-json = "=0.15"
+
+base64 = "0.22.1"
+
+bincode = "2"
+
+rkyv = { version = "0.8.10", features = ["smol_str-0_3", "uuid-1"] }
+rkyv_intern = { git = "https://github.com/mpfaff/rkyv_intern", version = "0.1.0" }
+
+vdf = { package = "vdf", git = "https://git.pfaff.dev/michael/starling" }
+
+# general
+anyhow = "1"
+bytes = "1.8.0"
+chrono = { version = "0.4.39", default-features = false, features = ["serde"] }
+fastrand = "2.3.0"
+hashbrown = "0.15.2"
+itertools = "0.14.0"
+lexopt = "0.3.0"
+parking_lot = { version = "0.12.3", features = ["send_guard"] }
+pin-project-lite = "0.2.16"
+smol_str = { version = "0.3.2", features = ["serde"] }
+sublime_fuzzy = { version = "0.7.0", optional = true }
+thiserror = "2"
+trie-rs = "0.4.2"
+triomphe = "0.1.14"
+
+
+blake3 = { version = "1.5.5", features = ["mmap", "serde"] }
+
+# async
+futures-util = { version = "0.3.31", features = ["io"] }
+tokio = { version = "1.44.2", features = ["full"] }
+tokio-util = { version = "0.7.13", features = ["compat", "io"] }
+
+# data types
+url = { version = "2.5.4", features = ["serde"] }
+uuid = { version = "1.11.0", features = ["serde"] }
+
+# os, io, networking
+dirs = "6"
+fs4 = { version = "0.13.1", default-features = false, features = ["tokio"] }
+interprocess = "2.2"
+get-locale = { git = "https://git.pfaff.dev/michael/get-locale.rs", version = "0.1.0" }
+reqwest = { version = "0.12.12", features = ["stream"] }
+tempfile = "3.14.0"
+walkdir = "2.5.0"
+
+slog = { version = "2.7.0", features = ["release_max_level_debug"] }
+slog-envlogger = { version = "2.2.0", default-features = false }
+slog-scope = "4.4.0"
+
+# provides gzip and zip
+async-compression = { version = "0.4.18", features = ["gzip", "tokio"] }
+flate2 = "1.0.35"
+zip = "4"
+
+[target.'cfg(windows)'.dependencies]
+registry = "1.3"
+windows = { version = "0.61.0", features = ["Win32_System_Diagnostics_ToolHelp"] }
+winsafe = { version = "0.0.25", features = ["kernel"] }
+
+[target.'cfg(not(windows))'.dependencies]
+rustix = { version = "1", features = ["event", "process"] }
+
+[profile.dev]
+lto = false
+opt-level = 0
+debug-assertions = true
+
+[profile.dev.package."*"]
+opt-level = 1
+
+[profile.dev.build-override]
+opt-level = 2
