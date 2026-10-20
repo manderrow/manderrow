@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use anyhow::Result;
 use manderrow_types::mods::{ModMetadata, ModVersion};
 use smol_str::SmolStr;
@@ -25,6 +27,10 @@ pub async fn overwrite_profile_metadata(id: Uuid, metadata: Profile) -> Result<(
 
 pub async fn delete_profile(id: Uuid) -> Result<(), CommandError> {
     super::delete_profile(id).await.map_err(Into::into)
+}
+
+pub fn get_profile_path(id: Uuid) -> Result<PathBuf, CommandError> {
+    Ok(super::profile_path(id))
 }
 
 pub async fn get_profile_mods(id: Uuid) -> Result<RawJson, CommandError> {
