@@ -104,7 +104,7 @@ Item {
                     id: checkBtn
                     visible: root.updates.length === 0
                     variant: "ghost"
-                    iconName: "refresh"
+                    iconName: "refresh-cw"
                     text: I18n.t("modlist.installed.check_updates_btn")
                     externalBusy: root.updatesLoading
                     progressMode: "external"
@@ -116,7 +116,8 @@ Item {
                     id: updatesBtn
                     visible: root.updates.length > 0
                     variant: "primary"
-                    iconName: "circleUp"
+                    iconName: "circle-arrow-up"
+                    iconFilled: true
                     text: I18n.t("modlist.installed.updates_available_btn")
                     onClicked: updater.open()
                 }

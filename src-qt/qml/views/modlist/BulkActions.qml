@@ -197,7 +197,7 @@ Item {
 
                     Btn {
                         variant: "plain"
-                        iconName: "xmark"
+                        iconName: "x"
                         horizontalPadding: 0.5 * fontSize
                         verticalPadding: 0.25 * fontSize
                         activeBgColor: "transparent"
@@ -280,8 +280,8 @@ Item {
                 }
                 Row {
                     spacing: 0.3 * Theme.rem
-                    FaIcon {
-                        name: "regular:hardDrive"
+                    Icon {
+                        name: "hard-drive"
                         anchors.verticalCenter: parent.verticalCenter
                     }
                     SText {

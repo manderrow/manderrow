@@ -50,6 +50,8 @@ just test   # run the tests
 
 The app lives in `src-qt`: the backend is in `src-qt/src`, the bridge to the UI in `src-qt/src/qt`, and the UI in `src-qt/qml`.
 
+The UI's icons are [Lucide](https://lucide.dev/) icons, generated into a font, `src-qt/assets/fonts/ManderrowIcons.ttf`, and its index, `src-qt/qml/core/Icons.qml`, by `just icons` with [Deno](https://deno.com/). To add one, add its name to `scripts/icons/main.ts` and run it again.
+
 Debug builds accept some options for developing and testing the UI, as `MANDERROW_DEV_<NAME>` environment variables:
 
 | Option       | Effect                                                                                        |

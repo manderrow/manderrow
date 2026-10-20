@@ -135,7 +135,7 @@ FocusScope {
                     variant: "plain"
                     padAll: 0
                     fontSize: 1.5 * Theme.rem
-                    iconName: "regular:star"
+                    iconName: "star"
                     textColor: Theme.neutral20
                     activeBgColor: "transparent"
                     tooltip: I18n.t("game_select.fav_btn")

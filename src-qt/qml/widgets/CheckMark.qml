@@ -29,7 +29,7 @@ Item {
             }
         }
 
-        FaIcon {
+        Icon {
             id: icon
             name: "check"
             size: mark.size

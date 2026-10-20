@@ -309,7 +309,8 @@ void manderrow_configure_app()
 {
     QGuiApplication::setWindowIcon(QIcon(QStringLiteral(":/assets/icon.png")));
     for (const auto& font : { "Inter-Variable.ttf", "Inter-Italic-Variable.ttf",
-                              "SourceCodePro-Variable.ttf", "SourceCodePro-Italic-Variable.ttf" }) {
+                              "SourceCodePro-Variable.ttf", "SourceCodePro-Italic-Variable.ttf",
+                              "ManderrowIcons.ttf" }) {
         QFontDatabase::addApplicationFont(QStringLiteral(":/assets/fonts/") + QLatin1StringView(font));
     }
 }

@@ -96,9 +96,10 @@ Rectangle {
         width: parent.width
         implicitHeight: label.implicitHeight + 2 * 0.35 * Theme.rem
 
-        FaIcon {
+        Icon {
             visible: profileItem._running
-            name: "playCircle"
+            name: "circle-play"
+            filled: true
             size: 0.6 * Theme.rem
             color: Theme.primary60
             x: 0.2 * Theme.rem
@@ -211,7 +212,7 @@ Rectangle {
                     btn.horizontalPadding: 0.1 * Theme.rem
                     btn.verticalPadding: 0.2 * Theme.rem
                     btn.iconRotation: 90
-                    iconName: profileItem.profile.pinned ? "thumbTackSlash" : "thumbTack"
+                    iconName: profileItem.profile.pinned ? "pin-off" : "pin"
                     tooltip: profileItem.profile.pinned ? I18n.t("profile.sidebar.unpin_profile_btn") : I18n.t("profile.sidebar.pin_profile_btn")
                     action: () => Api.overwriteProfileMetadata(profileItem.profile.id, profileItem._metadata({ pinned: !profileItem.profile.pinned })).then(() => Globals.refetchProfiles(), e => Globals.refetchProfiles().then(() => {
                             throw e;
@@ -230,7 +231,7 @@ Rectangle {
                 }
                 OptionButton {
                     visible: Native.shift
-                    iconName: "trashCan"
+                    iconName: "trash-2"
                     tooltip: I18n.t("global.phrases.delete")
                     onClicked: Api.deleteProfile(profileItem.profile.id).then(() => Globals.refetchProfiles(), e => Globals.refetchProfiles().then(() => Ui.window.reportError(e)))
                 }
@@ -242,18 +243,18 @@ Rectangle {
                     width: Math.max(height, 1.25 * Theme.rem)
                     trigger.variant: "plain"
                     trigger.radius: 4
-                    trigger.iconName: "ellipsisVertical"
+                    trigger.iconName: "ellipsis-vertical"
                     trigger.horizontalPadding: 0.1 * Theme.rem
                     trigger.verticalPadding: 0.2 * Theme.rem
                     trigger.tooltip: menu.opened ? "" : I18n.t("profile.sidebar.ellipsis_btn")
                     items: [
                         {
-                            icon: "penToSquare",
+                            icon: "square-pen",
                             label: I18n.t("profile.sidebar.rename_profile_btn"),
                             action: () => profileItem.renaming = true
                         },
                         {
-                            icon: "trashCan",
+                            icon: "trash-2",
                             label: I18n.t("global.phrases.delete"),
                             action: () => deletePrompt.open()
                         },
@@ -264,7 +265,7 @@ Rectangle {
                             action: () => {}
                         },
                         {
-                            icon: "share",
+                            icon: "forward",
                             label: I18n.t("profile.sidebar.share_profile_btn"),
                             // TODO: implement share profile
                             action: () => {}
@@ -279,8 +280,7 @@ Rectangle {
                             action: () => {}
                         },
                         {
-                            icon: "folderOpen",
-                            iconOffset: 2,
+                            icon: "folder-open",
                             label: I18n.t("profile.sidebar.open_folder_profile_btn"),
                             // TODO: implement open folder
                             action: () => {}

@@ -289,7 +289,7 @@ Item {
                 AsyncButton {
                     visible: !modList.isLoading && !modList.queriedLoading && modList.queriedError === null && modList.queried !== null
                     variant: "plain"
-                    iconName: "refresh"
+                    iconName: "refresh-cw"
                     btn.padAll: 8
                     btn.activeBgColor: Theme.primary40
                     btn.width: btn.height

@@ -81,8 +81,8 @@ Item {
                 font.weight: link.fontWeight
                 anchors.verticalCenter: parent.verticalCenter
             }
-            FaIcon {
-                name: "externalLink"
+            Icon {
+                name: "external-link"
                 color: linkArea.hovered ? Theme.primary70 : Theme.primary60
                 anchors.verticalCenter: parent.verticalCenter
             }
@@ -117,7 +117,7 @@ Item {
                 Btn {
                     Layout.alignment: Qt.AlignRight | Qt.AlignTop
                     variant: "plain"
-                    iconName: "xmark"
+                    iconName: "x"
                     fontSize: 1.25 * Theme.rem
                     horizontalPadding: 0.5 * fontSize
                     verticalPadding: 0.1 * fontSize
@@ -142,7 +142,7 @@ Item {
                             property string icon
                             property string value
                             spacing: 0.3 * Theme.rem
-                            FaIcon {
+                            Icon {
                                 visible: parent.icon !== ""
                                 name: parent.icon
                                 color: Theme.neutral20
@@ -164,7 +164,7 @@ Item {
                             value: view.selectedVersion ? Util.formatRounded(view.selectedVersion.downloads) : "..."
                         }
                         MetaField {
-                            icon: "hardDrive"
+                            icon: "hard-drive"
                             value: view.selectedVersion ? Util.humanizeFileSize(view.selectedVersion.file_size) : "..."
                         }
                     }
@@ -184,9 +184,9 @@ Item {
                         id: donate
                         anchors.centerIn: parent
 
-                        FaIcon {
+                        Icon {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            name: "regular:heart"
+                            name: "heart"
                             size: 1.25 * 0.9 * Theme.rem
                             color: donateHover.hovered ? Theme.primary70 : Theme.primary60
                         }

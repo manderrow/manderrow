@@ -43,3 +43,7 @@ add-games:
 scrape:
 	bun run scrape
 
+
+[working-directory: 'scripts/icons']
+icons:
+	deno run generate

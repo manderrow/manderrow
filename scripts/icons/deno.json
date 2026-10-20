@@ -1,0 +1,11 @@
+{
+  "tasks": {
+    "generate": "deno install && deno run --allow-read=. --allow-write=../../src-qt/qml/core/Icons.qml,../../src-qt/assets/fonts/ManderrowIcons.ttf --no-prompt main.ts"
+  },
+  "imports": {
+    "@std/path": "jsr:@std/path@^1.0.8",
+    "lucide-static": "npm:lucide-static@1.52.0",
+    "svg2ttf": "npm:svg2ttf@6.1.0"
+  },
+  "nodeModulesDir": "auto"
+}

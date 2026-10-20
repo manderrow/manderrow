@@ -241,8 +241,8 @@ Item {
                     Row {
                         spacing: 0.3 * Theme.rem
 
-                        FaIcon {
-                            name: modItem.isPackage ? "regular:hardDrive" : "download"
+                        Icon {
+                            name: modItem.isPackage ? "hard-drive" : "download"
                             size: 0.85 * Theme.rem
                             color: Theme.neutral30
                             anchors.verticalCenter: parent.verticalCenter
@@ -289,7 +289,7 @@ Item {
             btn.width: btn.height
             btn.horizontalPadding: 0.65 * fontSize
             btn.verticalPadding: 0.25 * fontSize
-            iconName: "downLong"
+            iconName: "move-down"
             tooltip: I18n.t("modlist.online.install_btn")
         }
     }

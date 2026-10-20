@@ -99,7 +99,7 @@ MultistageModal {
                 spacing: 0.5 * Theme.rem
 
                 Btn {
-                    iconName: "chevronLeft"
+                    iconName: "chevron-left"
                     onClicked: dialog.popStage()
                 }
                 Text {
