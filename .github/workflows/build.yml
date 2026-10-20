@@ -55,11 +55,13 @@ jobs:
         if: runner.os == 'macOS'
         run: echo DEVELOPER_DIR=/Applications/Xcode_26.3.app/Contents/Developer >> "$GITHUB_ENV"
 
+      # qtshadertools for qsb, which build.rs uses to compile shaders, and qtimageformats for the
+      # WebP plugin, as most of the app's images are WebP
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.QT_VERSION }}
-          modules: 'qtshadertools' # for qsb, which build.rs uses to compile shaders
+          modules: 'qtshadertools qtimageformats'
           cache: true
 
       - name: Install Qt for Windows
@@ -70,6 +72,7 @@ jobs:
           host: 'windows'
           target: 'desktop'
           arch: 'win64_msvc2022_64'
+          modules: 'qtimageformats'
           dir: ${{ runner.temp }}/qt-windows
           install-deps: 'false'
           set-env: 'false'

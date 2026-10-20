@@ -61,10 +61,13 @@ pub fn run(app: AppHandle, instance: InstanceLock) -> anyhow::Result<()> {
     });
 
     let mut engine = QQmlApplicationEngine::new();
-    engine
-        .as_mut()
-        .context("Failed to create the QML engine")?
-        .load(&QUrl::from(MAIN_QML));
+    // Without a window, the app would run on unseen, with nothing to quit it.
+    if let Err(errors) = setup::load_root(
+        engine.as_mut().context("Failed to create the QML engine")?,
+        &QUrl::from(MAIN_QML),
+    ) {
+        bail!("Failed to load the user interface:\n{errors}");
+    }
 
     let code = qapp
         .as_mut()

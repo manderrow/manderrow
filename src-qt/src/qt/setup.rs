@@ -56,9 +56,26 @@ mod ffi {
         #[rust_name = "qicon_new"]
         fn make_unique(file_name: &QString) -> UniquePtr<QIcon>;
     }
+
+    unsafe extern "C++" {
+        include!("cxx-qt-lib/qqmlapplicationengine.h");
+        type QQmlApplicationEngine = cxx_qt_lib::QQmlApplicationEngine;
+        include!("cxx-qt-lib/qurl.h");
+        type QUrl = cxx_qt_lib::QUrl;
+    }
+
+    #[namespace = "manderrow"]
+    unsafe extern "C++" {
+        include!("manderrow/cpp/qt.h");
+
+        #[rust_name = "load_root"]
+        fn loadRoot(engine: Pin<&mut QQmlApplicationEngine>, url: &QUrl) -> QString;
+    }
 }
 
-use cxx_qt_lib::{QQuickStyle, QString};
+use core::pin::Pin;
+
+use cxx_qt_lib::{QQmlApplicationEngine, QQuickStyle, QString, QUrl};
 
 /// Registers a binary resource bundle produced by `rcc --binary`.
 pub fn register_resources(data: &'static [u8]) -> bool {
@@ -81,6 +98,16 @@ pub fn configure_before_app() {
 /// Lets QML tools, like qmlprofiler, attach. For development builds.
 pub fn enable_qml_debugging() {
     ffi::QQmlDebuggingEnabler::enable_debugging(true);
+}
+
+/// Loads the root QML file, returning the errors that kept it from creating its window, if any.
+pub fn load_root(engine: Pin<&mut QQmlApplicationEngine>, url: &QUrl) -> Result<(), QString> {
+    let errors = ffi::load_root(engine, url);
+    if errors.is_empty() {
+        Ok(())
+    } else {
+        Err(errors)
+    }
 }
 
 /// Configuration that must happen after the `QGuiApplication` is created.
