@@ -33,6 +33,11 @@ Item {
             Ui.window.reportError(new Error(`Unknown profile ${profileId}`));
     }
 
+    /// The width of the sidebar where it doesn't expand over the content.
+    readonly property real sidebarWidth: Theme.windowWidth <= 1200 ? sidebar.miniWidth : sidebar.fullWidth
+    // the height of the profile's tab bar, while it shows
+    property real _tabBarHeight: 0
+
     // launch errors are tracked here instead of being reported globally
     property var launchError: null
 
@@ -71,17 +76,28 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
 
-            // the content, to the right of the sidebar
+            // the content's background, beside the sidebar's, and below the tab bar's, so that
+            // they don't overlap where the window is translucent
+            Rectangle {
+                x: view.sidebarWidth
+                y: view._tabBarHeight
+                width: parent.width - x
+                height: parent.height - y
+                color: Theme.surface(Theme.neutral85)
+            }
+
+            // the content, to the right of the sidebar. Its padding is left by each part of it that
+            // has any, so that what reaches its edges, as the tab bar does, stays within it: Qt
+            // can skip delivering the pointer to items outside their parent.
             Item {
                 id: content
                 anchors.fill: parent
-                anchors.margins: Theme.rem
-                // a specific margin overrides `margins`, so this includes the content's padding
-                anchors.leftMargin: (Theme.windowWidth <= 1200 ? sidebar.miniWidth : sidebar.fullWidth) + Theme.rem
-                anchors.bottomMargin: 0
+                anchors.leftMargin: view.sidebarWidth
 
                 Loader {
                     anchors.fill: parent
+                    anchors.margins: Theme.rem
+                    anchors.bottomMargin: 0
                     active: view.profileId === undefined
                     sourceComponent: Item {
                         ColumnLayout {
@@ -121,13 +137,11 @@ Item {
                         spacing: 0
 
                         Rectangle {
+                            id: tabBar
                             Layout.fillWidth: true
-                            Layout.leftMargin: -Theme.rem
-                            Layout.rightMargin: -Theme.rem
-                            Layout.topMargin: -Theme.rem
                             Layout.bottomMargin: 0.75 * Theme.rem
                             implicitHeight: tabs.implicitHeight + 2 * 0.3 * Theme.rem + 1
-                            color: Theme.neutral90
+                            color: Theme.surface(Theme.neutral90)
 
                             PillTabs {
                                 id: tabs
@@ -161,11 +175,19 @@ Item {
                                 color: Theme.neutral80
                             }
                         }
+                        Binding {
+                            target: view
+                            property: "_tabBarHeight"
+                            value: tabBar.height
+                        }
 
                         Loader {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
-                            Layout.rightMargin: tabs.currentId === "logs" ? -Theme.rem : 0
+                            Layout.leftMargin: Theme.rem
+                            // the mod lists and the log reach the window's edge, and leave its
+                            // padding themselves
+                            Layout.rightMargin: ["mod-list", "mod-search", "logs"].includes(tabs.currentId) ? 0 : Theme.rem
                             sourceComponent: {
                                 switch (tabs.currentId) {
                                 case "mod-list":
@@ -209,10 +231,11 @@ Item {
 
         StatusBar {
             Layout.fillWidth: true
+            leftInset: view.sidebarWidth
         }
     }
 
-    // the sidebar spans the full height, over the end of the status bar
+    // the sidebar spans the full height, over the start of the status bar
     Sidebar {
         id: sidebar
         height: parent.height
@@ -238,9 +261,12 @@ Item {
         }
     }
 
-    ErrorDialog {
-        visible: view.launchError !== null
-        err: view.launchError
-        reset: () => view.launchError = null
+    Loader {
+        active: view.launchError !== null
+        sourceComponent: ErrorDialog {
+            visible: true
+            err: view.launchError
+            reset: () => view.launchError = null
+        }
     }
 }

@@ -67,8 +67,14 @@ Dialog {
             Layout.fillHeight: true
             clip: true
             boundsBehavior: Flickable.StopAtBounds
-            ScrollBar.vertical: AppScrollBar {}
+            ScrollBar.vertical: AppScrollBar {
+                id: bar
+            }
             WheelScroll {}
+            // one stop in the Tab order, whose items the arrow keys move between
+            FocusGroup {
+                view: list
+            }
             model: Tasks.tasksArray.filter(task => task.isComplete !== (tabs.currentId === "active") && task.status.status !== "Unstarted")
 
             SText {
@@ -89,7 +95,7 @@ Dialog {
                 readonly property var progress: task.progress
                 readonly property bool bytes: task.metadata.progress_unit === "Bytes"
 
-                width: list.width
+                width: list.width - bar.gutter
                 spacing: 0
 
                 // a 2px white separator between tasks
@@ -172,16 +178,14 @@ Dialog {
                         font.family: Theme.font
                         font.pixelSize: Theme.rem
 
-                        HoverHandler {
+                        ClickArea {
                             id: sourceHover
-                            cursorShape: Qt.PointingHandCursor
-                        }
-                        TapHandler {
-                            onTapped: Util.openUrl(entry.task.metadata.url)
+                            activatesOnSpace: false
+                            onActivated: Util.openUrl(entry.task.metadata.url)
                         }
                         Tip {
                             text: entry.task.metadata.url || ""
-                            visible: sourceHover.hovered
+                            shown: sourceHover.hovered
                         }
                     }
 

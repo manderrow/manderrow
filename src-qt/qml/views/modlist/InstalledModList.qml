@@ -49,6 +49,8 @@ Item {
     ColumnLayout {
         visible: root.installContext.installed.length === 0
         anchors.centerIn: parent
+        // centred within the page's padding, which the list leaves beside it
+        anchors.horizontalCenterOffset: -Theme.rem / 2
         spacing: 0.5 * Theme.rem
 
         Text {
@@ -119,10 +121,12 @@ Item {
                     onClicked: updater.open()
                 }
 
-                UpdaterDialog {
+                PopupLoader {
                     id: updater
-                    objectName: "updaterDialog"
-                    updates: root.updates
+                    sourceComponent: UpdaterDialog {
+                        objectName: "updaterDialog"
+                        updates: root.updates
+                    }
                 }
             }
         }

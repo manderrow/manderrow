@@ -16,8 +16,12 @@ Item {
     property int _generation: 0
 
     readonly property string _version: mod ? (selectedVersion !== undefined ? selectedVersion : Util.displayVersion(mod).version_number) : ""
+    readonly property bool _hasMarkdown: result !== undefined && !!result.markdown
+    /// Whether it is being fetched, or the Markdown is still being created, so that it appears
+    /// all at once.
+    readonly property bool _loading: (result === undefined && error === null) || (_hasMarkdown && !markdown.ready)
 
-    implicitHeight: result !== undefined && result.markdown ? markdown.implicitHeight : status.implicitHeight
+    implicitHeight: _hasMarkdown && markdown.ready ? markdown.implicitHeight : status.implicitHeight
 
     function load() {
         const generation = ++_generation;
@@ -39,19 +43,21 @@ Item {
         });
     }
 
-    on_VersionChanged: load()
-    onEndpointChanged: load()
+    /// What is shown, which is loaded again whenever it changes. Different mods can have the same
+    /// version number.
+    readonly property string _key: mod ? [mod.owner, mod.name, _version, endpoint].join("/") : ""
+    on_KeyChanged: load()
     Component.onCompleted: load()
 
     Item {
         id: status
-        visible: root.result === undefined || !root.result.markdown
+        visible: !markdown.visible
         width: parent.width
-        implicitHeight: root.result === undefined && root.error === null ? bar.implicitHeight : message.implicitHeight
+        implicitHeight: root._loading ? bar.implicitHeight : message.implicitHeight
 
         ProgressBar {
             id: bar
-            visible: root.result === undefined && root.error === null
+            visible: root._loading
             width: Math.min(parent.width, 12 * Theme.rem)
             progress: root._task ? root._task.progress : undefined
         }
@@ -70,8 +76,8 @@ Item {
 
     Markdown {
         id: markdown
-        visible: root.result !== undefined && !!root.result.markdown
+        visible: root._hasMarkdown && ready
         width: parent.width
-        source: visible ? root.result.markdown : ""
+        source: root._hasMarkdown ? root.result.markdown : ""
     }
 }

@@ -45,10 +45,8 @@ Item {
                 border.color: Theme.neutral75
 
                 Behavior on color {
-                    ColorAnimation {
+                    SmoothColorAnimation {
                         duration: 100
-                        easing.type: Easing.Bezier
-                        easing.bezierCurve: Theme.ease
                     }
                 }
 

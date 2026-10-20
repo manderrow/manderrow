@@ -147,8 +147,14 @@ Item {
             Layout.rightMargin: Theme.rem
             clip: true
             boundsBehavior: Flickable.StopAtBounds
-            ScrollBar.vertical: AppScrollBar {}
+            ScrollBar.vertical: AppScrollBar {
+                id: tableBar
+            }
             WheelScroll {}
+            // one stop in the Tab order, whose items the arrow keys move between
+            FocusGroup {
+                view: table
+            }
             model: bulk.mods.filter(id => Util.concatenateMod(id.owner, id.name, id.version).toLowerCase().includes(bulk.search.toLowerCase()))
 
             // the table's border, without a bottom edge
@@ -168,7 +174,7 @@ Item {
                 required property int index
                 readonly property var mod: bulk.installedMod(modelData)
 
-                width: table.width
+                width: table.width - tableBar.gutter
                 implicitHeight: entryRow.implicitHeight + 2 * 0.35 * Theme.rem + 1
                 color: entryHover.hovered ? Theme.neutral75 : index % 2 === 1 ? Theme.neutral80 : "transparent"
 

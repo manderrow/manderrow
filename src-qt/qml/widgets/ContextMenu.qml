@@ -12,12 +12,8 @@ Dropdown {
 
     hideCaret: true
     placement: "bottom-start"
-    contentWidth: column.implicitWidth
-    contentHeight: column.implicitHeight
 
     ColumnLayout {
-        id: column
-        width: menu.panel.availableWidth
         spacing: 0
 
         Repeater {

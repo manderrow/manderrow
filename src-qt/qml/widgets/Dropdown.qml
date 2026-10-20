@@ -4,6 +4,9 @@ import QtQuick.Effects
 import Manderrow
 
 // A button that toggles a floating panel, ported from TogglableDropdown.tsx.
+//
+// The panel's contents are a component, created each time it opens, and the panel takes their
+// implicit size.
 Item {
     id: root
 
@@ -17,24 +20,22 @@ Item {
     property real panelPadding: 0.5 * Theme.rem
     property real panelMaxHeight: Ui.window ? Ui.window.height * 0.5 : 400
     property alias trigger: trigger
-    property alias panel: popup
-    readonly property alias opened: popup.opened
+    readonly property alias opened: panel.opened
     /// The contents of the panel.
-    default property alias content: panelContent.data
-    /// The panel content's implicit size, which the panel is sized to.
-    property real contentWidth: panelContent.childrenRect.width
-    property real contentHeight: panelContent.childrenRect.height
-
-    signal aboutToShow
+    default property Component content
 
     implicitWidth: trigger.implicitWidth
     implicitHeight: trigger.implicitHeight
 
     function open() {
-        popup.open();
+        panel.active = true;
+        // the panel takes the focus when opened from the keyboard, so the keyboard can reach its
+        // contents, but leaves it where it is for the pointer
+        panel.popup.focus = Ui.focusVisible;
+        panel.popup.open();
     }
     function close() {
-        popup.close();
+        panel.close();
     }
 
     Btn {
@@ -42,75 +43,81 @@ Item {
         anchors.fill: parent
         text: root.label
         iconName: root.hideCaret ? "" : "caretDown"
-        iconRotation: popup.opened ? 180 : 0
+        iconRotation: root.opened ? 180 : 0
         horizontalPadding: 0.75 * fontSize
         verticalPadding: 0.25 * fontSize
         spacing: 0.35 * fontSize
-        forceActive: popup.opened
-        onClicked: popup.opened ? popup.close() : popup.open()
+        forceActive: root.opened
+        onClicked: root.opened ? root.close() : root.open()
     }
 
-    Popup {
-        id: popup
+    PopupLoader {
+        id: panel
 
-        property bool above: false
+        sourceComponent: Popup {
+            id: popup
 
-        parent: trigger
-        padding: 0
-        margins: 4
-        topPadding: root.panelPadding
-        bottomPadding: root.panelPadding
-        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
-        width: Math.max(root.fillToTriggerWidth ? trigger.width : 0, root.contentWidth)
-        height: Math.min(root.contentHeight + topPadding + bottomPadding, root.panelMaxHeight)
-        x: root.placement === "bottom-start" ? 0 : (trigger.width - width) / 2
-        y: above ? -height - root.offset : trigger.height + root.offset
+            property bool above: false
 
-        onAboutToShow: {
-            root.aboutToShow();
-            // flip above the trigger when there isn't room below it
-            const window = Ui.window;
-            if (window) {
-                const top = trigger.mapToItem(null, 0, 0).y;
-                const below = window.height - (top + trigger.height + root.offset);
-                above = below < height && top - root.offset > below;
-            }
-        }
+            parent: trigger
+            padding: 0
+            margins: 4
+            topPadding: root.panelPadding
+            bottomPadding: root.panelPadding
+            closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
+            width: Math.max(root.fillToTriggerWidth ? trigger.width : 0, implicitWidth)
+            height: Math.min(implicitHeight, root.panelMaxHeight)
+            x: root.placement === "bottom-start" ? 0 : (trigger.width - width) / 2
+            y: above ? -height - root.offset : trigger.height + root.offset
 
-        enter: Transition {
-            NumberAnimation {
-                property: "opacity"
-                from: 0
-                to: 1
-                duration: 100
-                easing.type: Easing.Bezier
-                easing.bezierCurve: Theme.ease
-            }
-        }
-        exit: null
-
-        background: Item {
-            PopupInputBlocker {}
-
-            RectangularShadow {
-                anchors.fill: panelBg
-                radius: panelBg.radius
-                blur: 1.5 * Theme.rem
-                color: Qt.rgba(0, 0, 0, 0.3)
+            onAboutToShow: {
+                // flip above the trigger when there isn't room below it
+                const window = Ui.window;
+                if (window) {
+                    const top = trigger.mapToItem(null, 0, 0).y;
+                    const below = window.height - (top + trigger.height + root.offset);
+                    above = below < height && top - root.offset > below;
+                }
             }
 
-            Rectangle {
-                id: panelBg
-                anchors.fill: parent
-                color: Theme.neutral80
-                border.color: Theme.neutral70
-                radius: 4
+            enter: Transition {
+                SmoothNumberAnimation {
+                    property: "opacity"
+                    from: 0
+                    to: 1
+                    duration: 100
+                }
             }
-        }
+            exit: null
 
-        contentItem: Item {
-            id: panelContent
-            clip: true
+            background: Item {
+                PopupInputBlocker {}
+
+                RectangularShadow {
+                    anchors.fill: panelBg
+                    radius: panelBg.radius
+                    blur: 1.5 * Theme.rem
+                    color: Qt.rgba(0, 0, 0, 0.3)
+                }
+
+                Rectangle {
+                    id: panelBg
+                    anchors.fill: parent
+                    color: Theme.neutral80
+                    border.color: Theme.neutral70
+                    radius: 4
+                }
+            }
+
+            contentItem: Loader {
+                id: panelContent
+                clip: true
+                focus: true
+                sourceComponent: root.content
+                // the arrow keys move through the panel's items, as in a menu
+                Keys.onUpPressed: event => event.accepted = Ui.focusNavigator.moveFocusWithin(panelContent, false)
+                Keys.onDownPressed: event => event.accepted = Ui.focusNavigator.moveFocusWithin(panelContent, true)
+            }
         }
     }
 }

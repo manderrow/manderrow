@@ -12,6 +12,14 @@ Column {
     /// Paragraphs in tight lists and blockquotes have no margins.
     property bool compact: false
     property color textColor: Theme.neutral05
+    component Progress: QtObject {
+        /// How many loaders are creating blocks.
+        property int pending: 0
+    }
+    /// How many of the blocks are still being created, shared with the nested blocks.
+    property Progress progress: Progress {}
+    /// Whether every block has been created.
+    readonly property bool ready: progress.pending === 0
 
     // .markdown's font size depends on the window width
     readonly property real baseSize: Theme.windowWidth < 32 * 16 ? 12 : Theme.windowWidth < 48 * 16 ? 15 : 16
@@ -52,8 +60,23 @@ Column {
         return `<style>a { color: ${Theme.primary60}; text-decoration: none; } code { font-family: "${Theme.fontMonospace}"; background-color: ${Theme.neutral90}; color: ${Theme.neutral05}; font-size: ${Math.round(0.9 * rem)}px; } del { text-decoration: line-through; }</style>` + `<div style="line-height: ${Math.round(lineHeight * size)}px">${html}</div>`;
     }
 
+    // Creates its blocks asynchronously, as long documents would otherwise take frames to create
+    // at once, and counts itself in `progress` while it does.
+    component BlocksLoader: Loader {
+        property bool _counted: false
+        asynchronous: true
+        onStatusChanged: {
+            const loading = status === Loader.Loading;
+            if (loading !== _counted) {
+                root.progress.pending += loading ? 1 : -1;
+                _counted = loading;
+            }
+        }
+        Component.onDestruction: if (_counted && root.progress)
+            root.progress.pending--
+    }
+
     component RichBlock: TextEdit {
-        id: rich
         property string html
         property real size: root.rem
         property real lineHeight: 1.35
@@ -61,18 +84,14 @@ Column {
         width: parent ? parent.width : 0
         textFormat: TextEdit.RichText
         wrapMode: TextEdit.Wrap
+        // selected, its links opened, and its cursor set by Markdown's SelectionArea
         readOnly: true
-        selectByMouse: true
+        selectByMouse: false
         selectionColor: Theme.primary50
         color: root.textColor
         font.family: Theme.font
         font.pixelSize: size
         text: root.richText(html, lineHeight, size)
-        onLinkActivated: link => Util.openUrl(link)
-
-        HoverHandler {
-            cursorShape: rich.hoveredLink !== "" ? Qt.PointingHandCursor : Qt.IBeamCursor
-        }
     }
 
     Repeater {
@@ -92,13 +111,10 @@ Column {
             width: root.width
             height: topGap + (loader.item ? loader.item.height : 0) + margin.bottom
 
-            Loader {
+            BlocksLoader {
                 id: loader
                 y: slot.topGap
                 width: parent.width
-                // long documents would otherwise take frames to create at once, so the blocks
-                // are created over several frames
-                asynchronous: true
                 sourceComponent: {
                     switch (slot.block.type) {
                     case "heading":
@@ -173,12 +189,11 @@ Column {
                             height: implicitWidth > 0 ? width * implicitHeight / implicitWidth : 0
                             x: slot.block.centered ? (parent.width - width) / 2 : 0
 
-                            HoverHandler {
-                                cursorShape: slot.block.href ? Qt.PointingHandCursor : Qt.ArrowCursor
-                            }
-                            TapHandler {
+                            // a link around the image
+                            ClickArea {
                                 enabled: !!slot.block.href
-                                onTapped: Util.openUrl(slot.block.href)
+                                activatesOnSpace: false
+                                onActivated: Util.openUrl(slot.block.href)
                             }
                         }
                     }
@@ -205,7 +220,7 @@ Column {
                                 text: slot.block.text
                                 textFormat: TextEdit.PlainText
                                 readOnly: true
-                                selectByMouse: true
+                                selectByMouse: false
                                 selectionColor: Theme.primary50
                                 color: Theme.neutral05
                                 font.family: Theme.fontMonospace
@@ -226,14 +241,14 @@ Column {
                             height: parent.height
                             color: Theme.neutral40
                         }
-                        Loader {
+                        BlocksLoader {
                             id: quoteBlocks
                             x: 4 + root.baseSize
                             y: 0.5 * root.baseSize
                             width: parent.width - x - root.baseSize
-                            asynchronous: true
                             Component.onCompleted: setSource("MarkdownBlocks.qml", {
                                 blocks: slot.block.children,
+                                progress: root.progress,
                                 compact: true,
                                 textColor: Theme.neutral20
                             })
@@ -263,11 +278,11 @@ Column {
                                 font.pixelSize: root.rem
                             }
                         }
-                        Loader {
+                        BlocksLoader {
                             width: parent.width
-                            asynchronous: true
                             Component.onCompleted: setSource("MarkdownBlocks.qml", {
-                                blocks: slot.block.children
+                                blocks: slot.block.children,
+                                progress: root.progress
                             })
                         }
                     }
@@ -310,13 +325,13 @@ Column {
                                     enabled: false
                                 }
 
-                                Loader {
+                                BlocksLoader {
                                     id: itemBlocks
                                     x: 1.5 * root.baseSize
                                     width: parent.width - x
-                                    asynchronous: true
                                     Component.onCompleted: setSource("MarkdownBlocks.qml", {
                                         blocks: listItem.modelData.children,
+                                        progress: root.progress,
                                         compact: slot.block.tight
                                     })
                                 }
@@ -333,13 +348,15 @@ Column {
                         contentWidth: tableText.width
                         contentHeight: tableText.height
 
-                        Text {
+                        TextEdit {
                             id: tableText
-                            textFormat: Text.RichText
+                            textFormat: TextEdit.RichText
+                            readOnly: true
+                            selectByMouse: false
+                            selectionColor: Theme.primary50
                             color: root.textColor
                             font.family: Theme.font
                             font.pixelSize: root.baseSize
-                            onLinkActivated: link => Util.openUrl(link)
                             text: {
                                 const block = slot.block;
                                 let html = `<table style="border-collapse: collapse; border-color: ${Theme.neutral50}" border="1" cellspacing="0" cellpadding="${Math.round(0.35 * root.baseSize)}">`;

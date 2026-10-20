@@ -12,8 +12,15 @@ Rectangle {
     property var setDefault: function () {}
 
     readonly property bool hovered: hover.hovered
+    /// Hovered, or holding the focus, which shows the actions.
+    readonly property bool hot: hovered || Ui.isWithin(Window.activeFocusItem, row)
 
     signal selected
+
+    // an item of the game list's FocusGroup; Enter selects the game, as its button does
+    activeFocusOnTab: true
+    Keys.onReturnPressed: row.selected()
+    Keys.onEnterPressed: row.selected()
 
     radius: hovered ? 5 : 0
     color: hovered ? Qt.rgba(225 / 255, 225 / 255, 225 / 255, 0.1) : Qt.rgba(225 / 255, 225 / 255, 225 / 255, 0)
@@ -21,15 +28,18 @@ Rectangle {
     border.color: Qt.rgba(215 / 255, 215 / 255, 215 / 255, 0.2)
 
     Behavior on color {
-        ColorAnimation {
+        SmoothColorAnimation {
             duration: 200
-            easing.type: Easing.Bezier
-            easing.bezierCurve: Theme.easeOut
+            curve: Theme.easeOut
         }
     }
 
     HoverHandler {
         id: hover
+    }
+
+    FocusRing {
+        radius: parent.radius
     }
 
     // the top border separating rows
@@ -74,15 +84,13 @@ Rectangle {
         anchors.rightMargin: 0.5 * Theme.rem
         anchors.verticalCenter: parent.verticalCenter
         horizontal: true
-        opacity: row.hovered ? 1 : 0
+        opacity: row.hot ? 1 : 0
         setDefault: row.setDefault
         onSelected: row.selected()
 
         Behavior on opacity {
-            NumberAnimation {
+            SmoothNumberAnimation {
                 duration: 200
-                easing.type: Easing.Bezier
-                easing.bezierCurve: Theme.ease
             }
         }
     }

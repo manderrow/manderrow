@@ -24,18 +24,11 @@ Dropdown {
         return fallback !== "" ? fallback : I18n.t("global.select_dropdown.default_fallback");
     }
 
-    contentWidth: list.implicitWidth
-    contentHeight: list.contentHeight
-
-    onAboutToShow: Qt.callLater(list.scrollToSelected)
-
     SelectList {
-        id: list
-        width: root.panel.availableWidth
-        height: root.panel.availableHeight
         options: root.options
         fontSize: root.optionFontSize
         itemPadding: root.optionPadding
         onChanged: (value, selected) => root.changed(value, selected)
+        Component.onCompleted: Qt.callLater(scrollToSelected)
     }
 }

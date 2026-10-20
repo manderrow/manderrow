@@ -32,10 +32,9 @@ Dialog {
     onClosed: stack = []
 
     Behavior on height {
-        NumberAnimation {
+        SmoothNumberAnimation {
             duration: 200
-            easing.type: Easing.Bezier
-            easing.bezierCurve: Theme.easeInOut
+            curve: Theme.easeInOut
         }
     }
 

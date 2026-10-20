@@ -4,6 +4,11 @@ import Manderrow
 
 // The 404 page, ported from views/error/Error.tsx.
 Item {
+    Rectangle {
+        anchors.fill: parent
+        color: Theme.surface(Theme.neutral85)
+    }
+
     ColumnLayout {
         anchors.horizontalCenter: parent.horizontalCenter
         y: Theme.rem

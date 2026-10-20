@@ -30,10 +30,8 @@ Item {
             color: Theme.primary50
 
             Behavior on width {
-                NumberAnimation {
+                SmoothNumberAnimation {
                     duration: 200
-                    easing.type: Easing.Bezier
-                    easing.bezierCurve: Theme.ease
                 }
             }
         }
@@ -67,38 +65,34 @@ Item {
                 running: root.indeterminate && root.visible
                 loops: Animation.Infinite
 
-                NumberAnimation {
+                SmoothNumberAnimation {
                     target: runnerScale
                     property: "xScale"
                     from: 0.5
                     to: 0.8
                     duration: 600
-                    easing.type: Easing.Bezier
-                    easing.bezierCurve: Theme.easeInOut
+                    curve: Theme.easeInOut
                 }
-                NumberAnimation {
+                SmoothNumberAnimation {
                     target: runnerScale
                     property: "xScale"
                     to: 0.2
                     duration: 450
-                    easing.type: Easing.Bezier
-                    easing.bezierCurve: Theme.easeInOut
+                    curve: Theme.easeInOut
                 }
-                NumberAnimation {
+                SmoothNumberAnimation {
                     target: runnerScale
                     property: "xScale"
                     to: 0.15
                     duration: 300
-                    easing.type: Easing.Bezier
-                    easing.bezierCurve: Theme.easeInOut
+                    curve: Theme.easeInOut
                 }
-                NumberAnimation {
+                SmoothNumberAnimation {
                     target: runnerScale
                     property: "xScale"
                     to: 1
                     duration: 150
-                    easing.type: Easing.Bezier
-                    easing.bezierCurve: Theme.easeInOut
+                    curve: Theme.easeInOut
                 }
             }
         }

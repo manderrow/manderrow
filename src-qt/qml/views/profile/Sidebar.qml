@@ -108,7 +108,8 @@ Rectangle {
     readonly property bool hasLiveConnection: focusedConnection !== null && focusedConnection.status !== "disconnected"
 
     width: mini ? miniWidth : fullWidth
-    color: Theme.neutral90
+    // expanded over the content on narrow windows, it hides the content beneath
+    color: open ? Theme.neutral90 : Theme.surface(Theme.neutral90)
 
     // border-right
     Rectangle {
@@ -161,18 +162,18 @@ Rectangle {
         background.clip: false
     }
 
+    // The sidebar's padding is left by each part that has any, so that the parts that reach its
+    // edges stay within the column: Qt can skip delivering the pointer to items outside their
+    // parent.
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: sidebar.mini ? 0 : sidebar.pad
+        anchors.bottomMargin: sidebar.mini ? 0 : sidebar.pad
         spacing: 0
 
         // the game banner and launch buttons
         Item {
             id: mainActions
             Layout.fillWidth: true
-            Layout.leftMargin: sidebar.mini ? 0 : -sidebar.pad
-            Layout.rightMargin: sidebar.mini ? 0 : -sidebar.pad
-            Layout.topMargin: sidebar.mini ? 0 : -sidebar.pad
             Layout.preferredHeight: sidebar.mini ? actionBtns.implicitHeight + 0.5 * Theme.rem : Math.max(10 * Theme.rem, nav.implicitHeight + actionBtns.implicitHeight + 2 * 0.75 * Theme.rem + 0.35 * Theme.rem)
             clip: true
 
@@ -360,12 +361,12 @@ Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.topMargin: 0.75 * Theme.rem
-            Layout.leftMargin: -0.5 * Theme.rem
-            Layout.rightMargin: -0.5 * Theme.rem
             spacing: 0
 
             RowLayout {
                 Layout.fillWidth: true
+                Layout.leftMargin: 0.5 * Theme.rem
+                Layout.rightMargin: 0.5 * Theme.rem
                 Layout.bottomMargin: 0.5 * Theme.rem
 
                 Text {
@@ -403,6 +404,8 @@ Rectangle {
             Rectangle {
                 id: searchForm
                 Layout.fillWidth: true
+                Layout.leftMargin: 0.5 * Theme.rem
+                Layout.rightMargin: 0.5 * Theme.rem
                 implicitHeight: searchRow.implicitHeight + 2
                 radius: 4
                 color: Theme.neutral80
@@ -460,8 +463,6 @@ Rectangle {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.topMargin: 0.5 * Theme.rem
-                Layout.leftMargin: -0.5 * Theme.rem
-                Layout.rightMargin: -0.5 * Theme.rem
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
                 activeFocusOnTab: true
@@ -469,6 +470,10 @@ Rectangle {
                     autoHide: true
                 }
                 WheelScroll {}
+                // one stop in the Tab order, whose items the arrow keys move between
+                FocusGroup {
+                    view: profileList
+                }
                 model: sidebar.listedProfiles
 
                 // the selection clears once focus leaves the list
@@ -540,6 +545,8 @@ Rectangle {
         Item {
             Layout.fillWidth: true
             Layout.alignment: Qt.AlignBottom
+            Layout.leftMargin: sidebar.mini ? 0 : sidebar.pad
+            Layout.rightMargin: sidebar.mini ? 0 : sidebar.pad
             Layout.topMargin: sidebar.mini ? 0 : 0.75 * Theme.rem
             implicitHeight: settingsLink.implicitHeight + (sidebar.mini ? 0 : 0.75 * Theme.rem)
 
@@ -548,6 +555,13 @@ Rectangle {
                 width: parent.width
                 height: 1
                 color: Theme.neutral80
+            }
+
+            ClickArea {
+                id: settingsHover
+                anchors.fill: settingsLink
+                activatesOnSpace: false
+                onActivated: Router.navigate("/settings")
             }
 
             Row {
@@ -572,21 +586,15 @@ Rectangle {
                     font.family: Theme.font
                     font.pixelSize: 1.1 * Theme.rem
                 }
-
-                HoverHandler {
-                    id: settingsHover
-                    cursorShape: Qt.PointingHandCursor
-                }
-                TapHandler {
-                    onTapped: Router.navigate("/settings")
-                }
             }
         }
     }
 
-    ImportDialog {
+    PopupLoader {
         id: importDialog
-        gameId: sidebar.gameId
-        profileId: sidebar.profileId
+        sourceComponent: ImportDialog {
+            gameId: sidebar.gameId
+            profileId: sidebar.profileId
+        }
     }
 }

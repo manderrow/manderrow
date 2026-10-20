@@ -44,6 +44,9 @@ AbstractButton {
 
     hoverEnabled: true
     focusPolicy: Qt.TabFocus
+    // Enter presses buttons on the web, as well as Space
+    Keys.onReturnPressed: control.clicked()
+    Keys.onEnterPressed: control.clicked()
     // the border adds to the size, as it does on the web
     horizontalPadding: (padAll !== undefined ? padAll : 1.5 * fontSize) + borderWidth
     verticalPadding: (padAll !== undefined ? padAll : 0.35 * fontSize) + borderWidth
@@ -69,24 +72,17 @@ AbstractButton {
         border.width: control.borderWidth
 
         Behavior on color {
-            ColorAnimation {
+            SmoothColorAnimation {
                 duration: 100
-                easing.type: Easing.Bezier
-                easing.bezierCurve: Theme.ease
             }
         }
 
-        // focus-visible outline
-        Rectangle {
-            anchors.fill: parent
+        FocusRing {
+            target: control
             topLeftRadius: control.leftRadius
             bottomLeftRadius: control.leftRadius
             topRightRadius: control.rightRadius
             bottomRightRadius: control.rightRadius
-            color: "transparent"
-            border.color: Theme.warn5
-            border.width: 2
-            visible: control.visualFocus
         }
     }
 
@@ -97,6 +93,6 @@ AbstractButton {
     Tip {
         text: control.tooltip
         hideArrow: control.tooltipHideArrow
-        visible: control.tooltip !== "" && control.hovered
+        shown: control.hovered
     }
 }

@@ -97,8 +97,14 @@ Dialog {
                     Layout.preferredHeight: Math.min(contentHeight, (Ui.window ? Ui.window.height : 600) * 0.75)
                     clip: true
                     boundsBehavior: Flickable.StopAtBounds
-                    ScrollBar.vertical: AppScrollBar {}
+                    ScrollBar.vertical: AppScrollBar {
+                        id: bar
+                    }
                     WheelScroll {}
+                    // one stop in the Tab order, whose items the arrow keys move between
+                    FocusGroup {
+                        view: list
+                    }
                     model: dialog.updates
 
                     delegate: Rectangle {
@@ -108,17 +114,16 @@ Dialog {
                         required property int index
                         readonly property bool isLast: index === dialog.updates.length - 1
 
-                        width: list.width
+                        width: list.width - bar.gutter
                         implicitHeight: entryRow.implicitHeight + Theme.rem
                         bottomLeftRadius: isLast ? 4 : 0
                         bottomRightRadius: isLast ? 4 : 0
                         color: entryHover.hovered ? Theme.neutral70 : index % 2 === 1 ? Theme.neutral85 : "transparent"
 
-                        HoverHandler {
+                        ClickArea {
                             id: entryHover
-                        }
-                        TapHandler {
-                            onTapped: {
+                            cursorShape: Qt.ArrowCursor
+                            onActivated: {
                                 const selected = Object.assign({}, dialog.selected);
                                 if (selected[entry.index])
                                     delete selected[entry.index];

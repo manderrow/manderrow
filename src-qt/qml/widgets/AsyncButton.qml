@@ -41,8 +41,8 @@ Item {
     property var _task: null
     property var _err: null
 
-    implicitWidth: _err !== null ? errorIndicator.implicitWidth : button.implicitWidth
-    implicitHeight: _err !== null ? errorIndicator.implicitHeight : button.implicitHeight
+    implicitWidth: errorIndicator.item ? (errorIndicator.item as Item).implicitWidth : button.implicitWidth
+    implicitHeight: errorIndicator.item ? (errorIndicator.item as Item).implicitHeight : button.implicitHeight
 
     function run() {
         _busy = true;
@@ -87,8 +87,8 @@ Item {
         onClicked: root.run()
 
         contentItem: Item {
-            implicitWidth: root.showProgress && root.progressStyle === "circular" ? circular.implicitWidth : root.showProgress && root.progressStyle === "simple" ? bar.implicitWidth : label.implicitWidth
-            implicitHeight: root.showProgress && root.progressStyle === "circular" ? circular.implicitHeight : label.implicitHeight
+            implicitWidth: circular.item ? circular.implicitWidth : bar.item ? bar.implicitWidth : label.implicitWidth
+            implicitHeight: circular.item ? circular.implicitHeight : label.implicitHeight
 
             BtnContent {
                 id: label
@@ -109,20 +109,24 @@ Item {
                 z: 1
             }
 
-            CircularProgress {
+            Loader {
                 id: circular
-                visible: root.showProgress && root.progressStyle === "circular"
                 anchors.centerIn: parent
-                progress: root.progress
-                size: button.fontSize
+                active: root.showProgress && root.progressStyle === "circular"
+                sourceComponent: CircularProgress {
+                    progress: root.progress
+                    size: button.fontSize
+                }
             }
 
-            ProgressBar {
+            Loader {
                 id: bar
-                visible: root.showProgress && root.progressStyle === "simple"
                 anchors.verticalCenter: parent.verticalCenter
                 width: parent.width
-                progress: root.progress
+                active: root.showProgress && root.progressStyle === "simple"
+                sourceComponent: ProgressBar {
+                    progress: root.progress
+                }
             }
         }
 
@@ -140,10 +144,8 @@ Item {
                 clip: true
 
                 Behavior on width {
-                    NumberAnimation {
+                    SmoothNumberAnimation {
                         duration: 150
-                        easing.type: Easing.Bezier
-                        easing.bezierCurve: Theme.ease
                     }
                 }
 
@@ -170,11 +172,13 @@ Item {
         }
     }
 
-    ErrorIndicator {
+    Loader {
         id: errorIndicator
-        visible: root._err !== null
         anchors.fill: parent
-        err: root._err
-        reset: () => root._err = null
+        active: root._err !== null
+        sourceComponent: ErrorIndicator {
+            err: root._err
+            reset: () => root._err = null
+        }
     }
 }

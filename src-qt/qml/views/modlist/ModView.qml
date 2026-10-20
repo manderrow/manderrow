@@ -53,33 +53,39 @@ Item {
                 })).filter(option => !filter || option.label.toLowerCase().includes(filter.toLowerCase()));
     }
 
-    component MetaLink: Row {
+    component MetaLink: Item {
         id: link
         property string text
         property string url
         property real fontSize: Theme.rem
         property int fontWeight: Font.Normal
-        spacing: 0.35 * Theme.rem
 
-        Text {
-            text: link.text
-            color: linkHover.hovered ? Theme.primary70 : Theme.primary60
-            font.family: Theme.font
-            font.pixelSize: link.fontSize
-            font.weight: link.fontWeight
-            anchors.verticalCenter: parent.verticalCenter
+        implicitWidth: linkRow.implicitWidth
+        implicitHeight: linkRow.implicitHeight
+
+        ClickArea {
+            id: linkArea
+            activatesOnSpace: false
+            onActivated: Util.openUrl(link.url)
         }
-        FaIcon {
-            name: "externalLink"
-            color: linkHover.hovered ? Theme.primary70 : Theme.primary60
-            anchors.verticalCenter: parent.verticalCenter
-        }
-        HoverHandler {
-            id: linkHover
-            cursorShape: Qt.PointingHandCursor
-        }
-        TapHandler {
-            onTapped: Util.openUrl(link.url)
+
+        Row {
+            id: linkRow
+            spacing: 0.35 * Theme.rem
+
+            Text {
+                text: link.text
+                color: linkArea.hovered ? Theme.primary70 : Theme.primary60
+                font.family: Theme.font
+                font.pixelSize: link.fontSize
+                font.weight: link.fontWeight
+                anchors.verticalCenter: parent.verticalCenter
+            }
+            FaIcon {
+                name: "externalLink"
+                color: linkArea.hovered ? Theme.primary70 : Theme.primary60
+                anchors.verticalCenter: parent.verticalCenter
+            }
         }
     }
 
@@ -193,12 +199,11 @@ Item {
                         }
                     }
 
-                    HoverHandler {
+                    ClickArea {
                         id: donateHover
-                        cursorShape: Qt.PointingHandCursor
-                    }
-                    TapHandler {
-                        onTapped: Util.openUrl(view.mod.donation_link)
+                        radius: parent.radius
+                        activatesOnSpace: false
+                        onActivated: Util.openUrl(view.mod.donation_link)
                     }
                 }
             }
@@ -233,7 +238,9 @@ Item {
             contentHeight: scrollContent.implicitHeight
             boundsBehavior: Flickable.StopAtBounds
             clip: true
-            ScrollBar.vertical: AppScrollBar {}
+            ScrollBar.vertical: AppScrollBar {
+                id: scrollBar
+            }
             WheelScroll {}
 
             Item {
@@ -244,7 +251,8 @@ Item {
                 Loader {
                     id: tabContent
                     y: Theme.rem
-                    width: parent.width - 0.75 * Theme.rem
+                    // padding-right: 0.75em, beside the scroll bar
+                    width: parent.width - 0.75 * Theme.rem - scrollBar.gutter
                     sourceComponent: tabs.currentId === "dependencies" ? dependenciesTab : markdownTab
                 }
             }
@@ -324,32 +332,27 @@ Item {
                 spacing: 0.75 * Theme.rem
 
                 Dropdown {
-                    id: versionDropdown
                     Layout.fillWidth: true
                     Layout.preferredWidth: 1
                     label: I18n.t("modlist.installed.change_version_btn")
                     fillToTriggerWidth: true
                     panelPadding: 0.5 * Theme.rem
-                    contentWidth: trigger.width
-                    contentHeight: versionPanel.implicitHeight
 
                     ColumnLayout {
-                        id: versionPanel
-                        x: 0.5 * Theme.rem
-                        width: versionDropdown.panel.availableWidth - Theme.rem
                         spacing: 0
 
                         Field {
                             Layout.fillWidth: true
+                            Layout.leftMargin: 0.5 * Theme.rem
+                            Layout.rightMargin: 0.5 * Theme.rem
                             Layout.bottomMargin: 0.5 * Theme.rem
                             placeholderText: I18n.t("modlist.installed.search_version_placeholder")
-                            onTextChanged: view.versionSearch = text
+                            text: view.versionSearch
+                            onTextEdited: view.versionSearch = text
                         }
 
                         SelectList {
                             Layout.fillWidth: true
-                            Layout.leftMargin: -0.5 * Theme.rem
-                            Layout.rightMargin: -0.5 * Theme.rem
                             Layout.preferredHeight: Math.min(contentHeight, 20 * Theme.rem)
                             options: view.versionOptions(view.versionSearch)
                             fontSize: 0.9 * Theme.rem
@@ -359,6 +362,8 @@ Item {
 
                         InstallButton {
                             Layout.fillWidth: true
+                            Layout.leftMargin: 0.5 * Theme.rem
+                            Layout.rightMargin: 0.5 * Theme.rem
                             Layout.topMargin: 0.5 * Theme.rem
                             mod: Object.assign(Util.removeProperty(view.modListing, "versions"), {
                                 version: view.modListing.versions.find(v => view.isSelectedVersion(v)) || view.modListing.versions[0]

@@ -28,10 +28,16 @@ fn read() -> anyhow::Result<Option<Settings>> {
     let SettingsOnDisk {
         default_game,
         open_console_on_launch,
+        window_translucent,
+        window_opacity,
+        window_blur,
     } = simd_json::from_slice::<SettingsOnDisk>(&mut bytes)?;
     Ok(Some(Settings {
         default_game,
         open_console_on_launch,
+        window_translucent,
+        window_opacity,
+        window_blur,
     }))
 }
 
@@ -39,11 +45,17 @@ async fn write(
     &Settings {
         ref default_game,
         open_console_on_launch,
+        window_translucent,
+        window_opacity,
+        window_blur,
     }: &Settings,
 ) -> anyhow::Result<()> {
     let settings = SettingsOnDisk {
         default_game: default_game.clone(),
         open_console_on_launch,
+        window_translucent,
+        window_opacity,
+        window_blur,
     };
     tokio::task::spawn_blocking(move || {
         let path = get_path();
@@ -95,13 +107,34 @@ enum Change<T> {
     Override(T),
 }
 
-#[manderrow_macros::settings(sections = [general, launching])]
+#[manderrow_macros::settings(sections = [general, appearance, launching])]
 struct Settings {
     #[section(general)]
     #[default(None)]
     #[input(game_select)]
     #[ref_by(Option<&'a String>, Option::as_ref)]
     default_game: Option<String>,
+
+    /// Shows the desktop through the window's background.
+    #[section(appearance)]
+    #[default(true)]
+    #[input(toggle)]
+    #[ref_by(bool, bool::clone)]
+    window_translucent: bool,
+
+    /// How opaque the window's background is while it is translucent, in percent.
+    #[section(appearance)]
+    #[default(70)]
+    #[input(percent)]
+    #[ref_by(u8, u8::clone)]
+    window_opacity: u8,
+
+    /// Blurs the desktop behind the translucent window, where the platform supports it.
+    #[section(appearance)]
+    #[default(true)]
+    #[input(toggle)]
+    #[ref_by(bool, bool::clone)]
+    window_blur: bool,
 
     #[section(launching)]
     #[default(false)]
@@ -119,4 +152,13 @@ pub struct SettingsOnDisk {
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     open_console_on_launch: Option<bool>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    window_translucent: Option<bool>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    window_opacity: Option<u8>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    window_blur: Option<bool>,
 }

@@ -11,7 +11,8 @@ ApplicationWindow {
     minimumHeight: 400
     visible: true
     title: "Manderrow"
-    color: Theme.neutral85
+    // translucent, the window's regions each draw their own background
+    color: Ui.translucent ? "transparent" : Theme.neutral85
     // macOS keeps its native window controls over the app's title bar, like Tauri's overlay
     // title bar style. Elsewhere the app draws the whole frame.
     flags: Qt.platform.os === "osx" ? Qt.Window | Qt.ExpandedClientAreaHint | Qt.NoTitleBarBackgroundHint : Qt.Window | Qt.FramelessWindowHint
@@ -103,6 +104,8 @@ ApplicationWindow {
     Component.onCompleted: {
         Ui.window = appWindow;
         Ui.appContent = content;
+        // once the window exists on screen
+        Qt.callLater(() => Native.setBlurBehind(appWindow, appWindow._blurBehind));
         Theme.windowWidth = width;
         _restoreState();
 
@@ -177,18 +180,36 @@ ApplicationWindow {
         onFontChanged: Ui.ch = advanceWidth("0")
     }
 
-    // As on the web, pressing anywhere outside the focused text input or text blurs it, which
-    // commits editors and clears selections. Qt only moves focus to items that take it.
-    Connections {
-        target: Native
-        function onPointerPressed(position) {
-            const item = appWindow.activeFocusItem;
-            if (!item || item.cursorPosition === undefined)
-                return;
-            const local = item.mapFromItem(null, position.x, position.y);
-            if (!item.contains(local))
-                item.focus = false;
-        }
+    // The appearance settings' glass: the window's background shows the desktop, blurred,
+    // through it. Until the settings load, their defaults apply.
+    function _setting(key, fallback) {
+        const setting = Globals.settings ? Globals.settings[key] : undefined;
+        return setting !== undefined ? setting.value : fallback;
+    }
+    Binding {
+        target: Ui
+        property: "surfaceOpacity"
+        value: appWindow._setting("windowTranslucent", true) ? Math.max(0, Math.min(100, appWindow._setting("windowOpacity", 70))) / 100 : 1
+    }
+    readonly property bool _blurBehind: Ui.translucent && _setting("windowBlur", true)
+    on_BlurBehindChanged: Native.setBlurBehind(appWindow, _blurBehind)
+    onVisibleChanged: Native.setBlurBehind(appWindow, _blurBehind)
+
+    // The title bar is outside the overlay of popups, which is above it: pressing it neither
+    // closes popups nor is blocked by a modal one, so that the window can still be moved and
+    // controlled while a dialog is open. Dialogs and their backdrops are placed below it.
+    Binding {
+        target: appWindow.Overlay.overlay
+        property: "containmentMask"
+        value: Ui.belowTitleBar
+    }
+
+    // browser-like focus, Tab, and keyboard scrolling
+    FocusNavigator {
+        id: navigator
+        window: appWindow
+        home: root
+        Component.onCompleted: Ui.focusNavigator = navigator
     }
 
     Connections {
@@ -210,6 +231,10 @@ ApplicationWindow {
         id: root
         anchors.fill: parent
         color: appWindow.color
+        // holds the focus when nothing else does, so that the keyboard can still scroll and move
+        // the focus on from where the pointer was pressed
+        focus: true
+        Keys.onPressed: event => navigator.handleKey(event)
 
         Item {
             id: content
@@ -267,20 +292,28 @@ ApplicationWindow {
         }
     }
 
-    ErrorDialog {
-        id: startupError
-        visible: Globals.error !== null
-        err: Globals.error
-        reset: () => {
-            const error = Backend.relaunch();
-            if (error !== "")
-                throw new Error(error);
-            Qt.quit();
+    Loader {
+        active: Globals.error !== null
+        sourceComponent: ErrorDialog {
+            visible: true
+            err: Globals.error
+            reset: () => {
+                const error = Backend.relaunch();
+                if (error !== "")
+                    throw new Error(error);
+                Qt.quit();
+            }
         }
     }
 
-    ErrorDialog {
+    PopupLoader {
         id: globalError
-        reset: () => {}
+
+        property var err: null
+
+        sourceComponent: ErrorDialog {
+            err: globalError.err
+            reset: () => {}
+        }
     }
 }

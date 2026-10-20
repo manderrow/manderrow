@@ -24,10 +24,8 @@ Item {
 
         Behavior on width {
             // always enabled, since toggling it with `checked` would race the width's binding
-            NumberAnimation {
+            SmoothNumberAnimation {
                 duration: 200
-                easing.type: Easing.Bezier
-                easing.bezierCurve: Theme.ease
             }
         }
 

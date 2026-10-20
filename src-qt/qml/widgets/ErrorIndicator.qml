@@ -17,9 +17,11 @@ Btn {
     spacing: 8
     onClicked: errorDialog.open()
 
-    ErrorDialog {
+    PopupLoader {
         id: errorDialog
-        err: indicator.err
-        reset: () => indicator.reset()
+        sourceComponent: ErrorDialog {
+            err: indicator.err
+            reset: () => indicator.reset()
+        }
     }
 }

@@ -27,6 +27,9 @@ Item {
 
     Row {
         id: row
+        // the arrow keys move between the tabs, as in a tab list
+        Keys.onLeftPressed: event => event.accepted = Ui.focusNavigator.moveFocusWithin(row, false)
+        Keys.onRightPressed: event => event.accepted = Ui.focusNavigator.moveFocusWithin(row, true)
 
         Repeater {
             model: tabs.model

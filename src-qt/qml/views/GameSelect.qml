@@ -52,7 +52,7 @@ Rectangle {
         return out;
     }
 
-    color: Theme.hsl(214, 28, 5)
+    color: Theme.surface(Theme.hsl(214, 28, 5))
     clip: true
 
     function _refresh() {
@@ -95,11 +95,9 @@ Rectangle {
         }
     }
     transitions: Transition {
-        NumberAnimation {
+        SmoothNumberAnimation {
             properties: "opacity,scale"
             duration: page.zoomDuration
-            easing.type: Easing.Bezier
-            easing.bezierCurve: Theme.ease
         }
     }
     // the page ignores input while it zooms away
@@ -213,6 +211,10 @@ Rectangle {
             boundsBehavior: Flickable.StopAtBounds
             ScrollBar.vertical: AppScrollBar {}
             WheelScroll {}
+            // one stop in the Tab order, whose items the arrow keys move between
+            FocusGroup {
+                view: list
+            }
 
             property int hoveredRow: -1
 
@@ -377,7 +379,8 @@ Rectangle {
                 sourceRect: Qt.rect(searchBox.x + searchContent.x, searchBox.y + searchContent.y, searchContent.width, searchContent.height)
                 radius: 8
                 cornerRadius: searchShape.radius
-                backgroundColor: page.color
+                // opaque, since the content beneath it isn't hidden
+                backgroundColor: Theme.alpha(page.color, 1)
             }
 
             Rectangle {

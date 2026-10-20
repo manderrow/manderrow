@@ -60,8 +60,11 @@ Item {
     property var focusedModId: null
     property var focusedMod: null
     property int _focusGeneration: 0
+    /// Identifies the focused mod. Its object is replaced when the results are, which leaves the
+    /// key unchanged.
+    readonly property string _focusedKey: focusedMod ? focusedMod.owner + "/" + focusedMod.name : ""
 
-    // the loaded pages of mods
+    // the loaded pages of mods, which `rows` index
     property var mods: []
     property int _nextPage: 0
     property bool _end: true
@@ -137,7 +140,8 @@ Item {
                 return;
             }
             const start = modList.mods.length;
-            modList.mods = modList.mods.concat(pageMods);
+            // appended in place: the rows already loaded keep their mods, so they aren't updated
+            modList.mods.push(...pageMods);
             for (let i = 0; i < pageMods.length; i++)
                 rows.append({ i: start + i });
             // keep loading until the list is filled
@@ -223,13 +227,14 @@ Item {
         id: rows
     }
 
-    // grid-template-columns: minmax(0, 5fr) minmax(0, 3fr)
+    // grid-template-columns: minmax(0, 5fr) minmax(0, 3fr), in the page's padding, which the mod
+    // view extends into (margin-right: -1em)
     Item {
         anchors.fill: parent
 
         ColumnLayout {
             id: listColumn
-            width: parent.width * 5 / 8
+            width: (parent.width - Theme.rem) * 5 / 8
             height: parent.height
             spacing: 0.5 * Theme.rem
 
@@ -302,13 +307,21 @@ Item {
 
             ListView {
                 id: list
+                objectName: "modListView"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
-                rightMargin: 0.5 * Theme.rem
+                // padding-right: 0.5em, beside the scroll bar
+                rightMargin: 0.5 * Theme.rem + listBar.gutter
                 boundsBehavior: Flickable.StopAtBounds
-                ScrollBar.vertical: AppScrollBar {}
+                ScrollBar.vertical: AppScrollBar {
+                    id: listBar
+                }
                 WheelScroll {}
+                // one stop in the Tab order, whose items the arrow keys move between
+                FocusGroup {
+                    view: list
+                }
                 visible: modList.queriedError === null
                 model: rows
 
@@ -381,18 +394,19 @@ Item {
         // the mod view, or bulk actions for the selection
         Item {
             x: listColumn.width
+            width: parent.width - x
             height: parent.height
-            // margin-right: -1em
-            width: parent.width * 3 / 8 + Theme.rem
 
             Item {
                 anchors.fill: parent
                 anchors.leftMargin: 0.75 * Theme.rem
 
-                Loader {
-                    anchors.fill: parent
-                    active: modList.focusedMod !== null
-                    sourceComponent: ModView {
+                // a mod view for each mod, so none of one mod's state carries over to the next
+                Repeater {
+                    model: modList._focusedKey !== "" ? [modList._focusedKey] : []
+
+                    ModView {
+                        anchors.fill: parent
                         mod: modList.focusedMod
                         gameId: modList.game
                         installContext: modList.installContext

@@ -26,9 +26,13 @@ Item {
     property int quality: BackdropBlur.Fast
     property real cornerRadius: 0
     property color tint: "transparent"
-    /// Drawn under the blurred copy. The content is transparent where the window's background
-    /// shows through it, so without this the sharp content beneath would show through the copy.
-    property color backgroundColor: Ui.window ? Ui.window.color : "transparent"
+    /// Hides `source` while this shows, so that it doesn't show through the blurred copy, for a
+    /// backdrop that covers all of it. The copy can then be translucent, as the window is.
+    property bool hidesSource: false
+    /// Drawn under the blurred copy, unless the source is hidden. The content is transparent where
+    /// the window's background shows through it, so without this the sharp content beneath would
+    /// show through the copy.
+    property color backgroundColor: hidesSource ? "transparent" : Theme.neutral85
 
     Rectangle {
         anchors.fill: parent
@@ -47,6 +51,7 @@ Item {
         GaussianBlur {
             source: backdrop.source
             sourceRect: backdrop.sourceRect
+            hidesSource: backdrop.hidesSource
             radius: backdrop.radius
             cornerRadius: backdrop.cornerRadius
         }
@@ -58,6 +63,7 @@ Item {
             source: ShaderEffectSource {
                 sourceItem: backdrop.source
                 sourceRect: backdrop.sourceRect
+                hideSource: backdrop.hidesSource && backdrop.visible
             }
             blurEnabled: true
             blur: 1

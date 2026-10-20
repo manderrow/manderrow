@@ -1,3 +1,4 @@
+import QtQml.Models
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
@@ -22,11 +23,29 @@ Item {
         })
     property string searchInput: ""
 
-    function isVisible(row) {
-        if (row.filter !== "" && !visibleLevels[row.filter])
-            return false;
-        return !row.searchable || row.message.includes(searchInput);
+    /// The lines of the connection's log that the levels and the search show.
+    SortFilterProxyModel {
+        id: shownLines
+        model: consoleView.connection ? consoleView.connection.events : null
+        filters: [
+            FunctionFilter {
+                component Line: QtObject {
+                    property string filter
+                    property bool searchable
+                    property string message
+                }
+                function filter(line: Line): bool {
+                    if (line.filter !== "" && !consoleView.visibleLevels[line.filter])
+                        return false;
+                    return !line.searchable || line.message.includes(consoleView.searchInput);
+                }
+            }
+        ]
     }
+
+    // the filter reads these, which the model doesn't watch
+    onVisibleLevelsChanged: shownLines.invalidate()
+    onSearchInputChanged: shownLines.invalidate()
 
     ColumnLayout {
         anchors.fill: parent
@@ -149,11 +168,9 @@ Item {
                                         font.family: Theme.font
                                         font.pixelSize: 0.8 * Theme.rem
                                     }
-                                    HoverHandler {
-                                        cursorShape: Qt.PointingHandCursor
-                                    }
-                                    TapHandler {
-                                        onTapped: {
+                                    ClickArea {
+                                        radius: parent.radius
+                                        onActivated: {
                                             const levels = Object.assign({}, consoleView.visibleLevels);
                                             levels[toggle.modelData] = !toggle.on;
                                             consoleView.visibleLevels = levels;
@@ -264,7 +281,7 @@ Item {
                 policy: ScrollBar.AlwaysOn
             }
             WheelScroll {}
-            model: consoleView.connection ? consoleView.connection.events : null
+            model: shownLines
 
             readonly property real fontSize: 0.9 * Theme.rem
             readonly property real typeWidth: {
@@ -306,7 +323,7 @@ Item {
                 Qt.callLater(positionViewAtEnd)
 
             SText {
-                visible: !consoleView.connection || log.count === 0
+                visible: !consoleView.connection || consoleView.connection.events.count === 0
                 x: log.leftMargin
                 text: consoleView.connection ? I18n.t("console.launching_log_placeholder") : I18n.t("console.game_not_running")
                 color: Theme.neutral20
@@ -321,13 +338,9 @@ Item {
                 required property string dataType
                 required property string scope
                 required property string message
-                required property string filter
-                required property bool searchable
-                readonly property bool shown: consoleView.isVisible({ filter, searchable, message })
 
                 width: log.width - log.leftMargin - log.rightMargin
-                height: shown ? Math.max(typeCell.implicitHeight, messageCell.implicitHeight) + 2 : 0
-                visible: shown
+                height: Math.max(typeCell.implicitHeight, messageCell.implicitHeight) + 2
 
                 // [TYPE], with the brackets at either end of the column
                 Rectangle {
