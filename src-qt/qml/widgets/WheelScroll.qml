@@ -72,10 +72,12 @@ WheelHandler {
         return Math.max(viewport * 0.875, viewport - 40, 1);
     }
 
-    onWheel: event => {
-        const pixels = vertical ? event.pixelDelta.y : event.pixelDelta.x;
-        // a horizontal scroller also follows vertical wheels, as browsers do
-        const angle = vertical ? event.angleDelta.y : (event.angleDelta.x !== 0 ? event.angleDelta.x : event.angleDelta.y);
+    /// Scrolls for a wheel event. A horizontal scroller also follows vertical wheels, as browsers
+    /// do with Shift held, when given one by a handler that takes those.
+    function scrollFor(event) {
+        const sideways = !vertical && event.angleDelta.x === 0 && event.pixelDelta.x === 0;
+        const pixels = vertical || sideways ? event.pixelDelta.y : event.pixelDelta.x;
+        const angle = vertical || sideways ? event.angleDelta.y : event.angleDelta.x;
         if (pixels !== 0 && event.device.type === PointerDevice.TouchPad) {
             scrollBy(-pixels, false);
         } else if (angle !== 0) {
@@ -83,6 +85,8 @@ WheelHandler {
             scrollBy(-angle / 120 * Math.pow(Math.max(viewport, 1), 2 / 3), true);
         }
     }
+
+    onWheel: event => scrollFor(event)
 
     // the wheel is handled here, and the mouse doesn't drag the content, as on the web
     onFlickableChanged: if (flickable)
