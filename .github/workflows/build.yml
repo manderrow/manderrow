@@ -113,6 +113,11 @@ jobs:
           echo "$RUNNER_TEMP/zig-$host-$ZIG_VERSION" >> "$GITHUB_PATH"
 
       - name: Build
+        env:
+          # git.pfaff.dev only accepts TLS 1.3, which libgit2 cannot negotiate through macOS's
+          # SecureTransport, so fetch git dependencies with git, whose curl can use LibreSSL instead.
+          CARGO_NET_GIT_FETCH_WITH_CLI: ${{ runner.os == 'macOS' }}
+          CURL_SSL_BACKEND: ${{ runner.os == 'macOS' && 'openssl' || '' }}
         run: |
           if [ '${{ matrix.target }}' = x86_64-pc-windows-msvc ]; then
             cargo xwin build --release --manifest-path src-qt/Cargo.toml --target ${{ matrix.target }}
