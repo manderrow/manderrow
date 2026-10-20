@@ -112,12 +112,26 @@ jobs:
           curl -fsSL "https://ziglang.org/download/$ZIG_VERSION/zig-$host-$ZIG_VERSION.tar.xz" | tar -xJ -C "$RUNNER_TEMP"
           echo "$RUNNER_TEMP/zig-$host-$ZIG_VERSION" >> "$GITHUB_PATH"
 
+      # Downloading these from Microsoft takes several minutes.
+      - name: Cache MSVC CRT and Windows SDK
+        if: matrix.target == 'x86_64-pc-windows-msvc'
+        uses: actions/cache@v5
+        with:
+          path: ${{ runner.temp }}/cargo-xwin
+          key: cargo-xwin-${{ runner.os }}
+
       - name: Build
         env:
+          XWIN_CACHE_DIR: ${{ runner.temp }}/cargo-xwin
           # git.pfaff.dev only accepts TLS 1.3, which libgit2 cannot negotiate through macOS's
           # SecureTransport, so fetch git dependencies with git, whose curl can use LibreSSL instead.
           CARGO_NET_GIT_FETCH_WITH_CLI: ${{ runner.os == 'macOS' }}
           CURL_SSL_BACKEND: ${{ runner.os == 'macOS' && 'openssl' || '' }}
+          # Qt's minimum, as the C++ code would otherwise only run on the runner's version of macOS
+          MACOSX_DEPLOYMENT_TARGET: '13.0'
+          # Qt 6.10's qYieldCpu() calls __yield() without including the header that Xcode 26's Clang
+          # now requires for it, which Qt 6.11 fixes.
+          CXXFLAGS_aarch64_apple_darwin: '-include arm_acle.h'
         run: |
           if [ '${{ matrix.target }}' = x86_64-pc-windows-msvc ]; then
             cargo xwin build --release --manifest-path src-qt/Cargo.toml --target ${{ matrix.target }}
