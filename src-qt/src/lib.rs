@@ -35,6 +35,8 @@ mod stores;
 mod tasks;
 mod util;
 mod window_state;
+#[cfg(windows)]
+mod windows_console;
 mod wrap;
 mod wrap_with_injection;
 
@@ -77,6 +79,9 @@ fn run_app() -> anyhow::Result<()> {
 }
 
 pub fn main() -> anyhow::Result<()> {
+    #[cfg(windows)]
+    windows_console::attach();
+
     manderrow_paths::init().unwrap();
 
     // Qt reads its own arguments, of which QML tools pass this one in debug builds
@@ -98,6 +103,9 @@ pub fn main() -> anyhow::Result<()> {
         }
     }
 
+    #[cfg(windows)]
+    windows_console::show_main_thread_panics();
+
     let _guard = slog_envlogger::init()?;
 
     if let Some(pid) = relaunch {
@@ -109,5 +117,10 @@ pub fn main() -> anyhow::Result<()> {
         })?;
     }
 
-    run_app()
+    let result = run_app();
+    #[cfg(windows)]
+    if let Err(e) = &result {
+        windows_console::show_fatal_error(&format!("{e:?}"));
+    }
+    result
 }
