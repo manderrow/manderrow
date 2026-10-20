@@ -1,11 +1,14 @@
 import QtQuick
+import QtQuick.Controls.Basic
 import Manderrow
 
 // The default contents of a Btn: an optional icon and a label.
 Item {
     id: content
 
-    required property Btn btn
+    /// The Btn, typed as its base: Btn instantiates this, and Qt 6.10 can't load a type with a
+    /// property of a type that instantiates it (6.11 can).
+    required property AbstractButton btn
 
     implicitWidth: row.implicitWidth
     // at least a line of text tall, like the line box around a web button's icon
