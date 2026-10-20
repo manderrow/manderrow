@@ -5,6 +5,8 @@ mod ffi {
     unsafe extern "C++" {
         include!("cxx-qt-lib/qtypes.h");
         type quintptr = cxx_qt_lib::quintptr;
+
+        include!(<QtGui/QWindow>);
         type QWindow = crate::qt::native::qobject::QWindow;
 
         #[rust_name = "win_id"]
@@ -76,7 +78,7 @@ pub fn show_window_menu(window: Pin<&mut QWindow>, x: f64, y: f64) -> bool {
         // the menu's items follow the window's state, as they do for a native title bar
         let maximized = IsZoomed(hwnd).as_bool();
         let enable = |command, enabled: bool| {
-            EnableMenuItem(
+            _ = EnableMenuItem(
                 menu,
                 command,
                 MF_BYCOMMAND | if enabled { MF_ENABLED } else { MF_GRAYED },

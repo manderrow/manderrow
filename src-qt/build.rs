@@ -302,6 +302,11 @@ fn zig_build(
     println!("cargo::rerun-if-changed={:?}", dir.join("src"));
 
     let mut command = Command::new("zig");
+    // build.zig runs cargo for the agent's own targets, which must not inherit the rustflags that
+    // Cargo passes this build script for the app's target, nor the app's target directory, whose
+    // lock this build holds.
+    command.env_remove("CARGO_ENCODED_RUSTFLAGS");
+    command.env_remove("CARGO_TARGET_DIR");
     command.current_dir(dir);
     command.arg("build");
 

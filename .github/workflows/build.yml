@@ -7,50 +7,133 @@ on:
 permissions:
   contents: write
 
+env:
+  QT_VERSION: '6.10.*'
+  ZIG_VERSION: '0.15.2'
+
 jobs:
   build:
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos-latest' # for Arm based macs (M1 and above).
-          - platform: 'macos-13' # for Intel based macs.
           - platform: 'ubuntu-22.04'
-          - platform: 'windows-latest'
+            target: 'x86_64-unknown-linux-gnu'
+          # Cross-compiled with cargo-xwin, which downloads the MSVC CRT and Windows SDK.
+          - platform: 'ubuntu-24.04'
+            target: 'x86_64-pc-windows-msvc'
+          - platform: 'macos-latest'
+            target: 'aarch64-apple-darwin'
+          # Qt's macOS binaries are universal, so Intel Macs are cross-compiled on the same runner.
+          - platform: 'macos-latest'
+            target: 'x86_64-apple-darwin'
 
     runs-on: ${{ matrix.platform }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install dependencies
-        if: matrix.platform == 'ubuntu-22.04' # This must match the platform value defined above.
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
         run: |
           sudo apt-get update
           sudo apt-get install -y libgl1-mesa-dev libxkbcommon-dev wine64-development-tools
 
+      # The MSVC STL that xwin downloads requires a newer Clang than Ubuntu's default. The agent is
+      # built with the GNU ABI, whose raw-dylib imports need MinGW's dlltool.
+      - name: Install cross-compilation dependencies
+        if: matrix.target == 'x86_64-pc-windows-msvc'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-19 lld-19 llvm-19 binutils-mingw-w64-x86-64
+          echo /usr/lib/llvm-19/bin >> "$GITHUB_PATH"
+          pipx install cargo-xwin
+
       - name: Install Qt
+        id: qt-host
         uses: jurplel/install-qt-action@v4
         with:
-          version: '6.10.*'
+          version: ${{ env.QT_VERSION }}
           modules: 'qtshadertools' # for qsb, which build.rs uses to compile shaders
           cache: true
+
+      - name: Install Qt for Windows
+        id: qt-windows
+        if: matrix.target == 'x86_64-pc-windows-msvc'
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: ${{ env.QT_VERSION }}
+          host: 'windows'
+          target: 'desktop'
+          arch: 'win64_msvc2022_64'
+          dir: ${{ runner.temp }}/qt-windows
+          install-deps: 'false'
+          set-env: 'false'
+          cache: true
+
+      # Qt's tools must run on the host while the headers and libraries come from the Windows
+      # installation, so point a qmake for the host at the latter, as Qt's own cross builds do.
+      - name: Configure Qt for Windows
+        if: matrix.target == 'x86_64-pc-windows-msvc'
+        run: |
+          qt_host='${{ steps.qt-host.outputs.qtPath }}'
+          qt_target='${{ steps.qt-windows.outputs.qtPath }}'
+          cat > "$qt_target/bin/target_qt.conf" <<EOF
+          [Paths]
+          Prefix=$qt_target
+          HostPrefix=$qt_host
+          HostBinaries=bin
+          HostLibraries=lib
+          HostLibraryExecutables=libexec
+          EOF
+          cat > "$qt_target/bin/qmake" <<EOF
+          #!/bin/sh
+          exec '$qt_host/bin/qmake' -qtconf '$qt_target/bin/target_qt.conf' "\$@"
+          EOF
+          chmod +x "$qt_target/bin/qmake"
+          echo "QMAKE=$qt_target/bin/qmake" >> "$GITHUB_ENV"
+          # The host's rcc compresses with zstd, which Qt for Windows is built without.
+          echo "CXX_QT_AUTORCC_OPTIONS=--no-zstd" >> "$GITHUB_ENV"
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@nightly
 
-      - uses: mlugg/setup-zig@v2
-        with:
-          version: 0.15.2
+      # rust-toolchain.toml pins the toolchain, so the targets must be added to that one. The agent
+      # is always built with the GNU ABI on Windows.
+      - name: Add Rust targets
+        run: rustup target add ${{ matrix.target }} ${{ matrix.target == 'x86_64-pc-windows-msvc' && 'x86_64-pc-windows-gnu' || '' }}
+
+      - name: Install Zig
+        run: |
+          case '${{ runner.os }}-${{ runner.arch }}' in
+            Linux-X64) host=x86_64-linux ;;
+            macOS-ARM64) host=aarch64-macos ;;
+            macOS-X64) host=x86_64-macos ;;
+          esac
+          curl -fsSL "https://ziglang.org/download/$ZIG_VERSION/zig-$host-$ZIG_VERSION.tar.xz" | tar -xJ -C "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP/zig-$host-$ZIG_VERSION" >> "$GITHUB_PATH"
 
       - name: Build
-        run: cargo build --release --manifest-path src-qt/Cargo.toml
+        run: |
+          if [ '${{ matrix.target }}' = x86_64-pc-windows-msvc ]; then
+            cargo xwin build --release --manifest-path src-qt/Cargo.toml --target ${{ matrix.target }}
+          else
+            cargo build --release --manifest-path src-qt/Cargo.toml --target ${{ matrix.target }}
+          fi
 
-      # TODO: bundle Qt with the app (macdeployqt, windeployqt, linuxdeploy) and publish installers
-      # to the release, as tauri-action did.
-      - uses: actions/upload-artifact@v4
+      - name: Bundle
+        run: |
+          release='src-qt/target/${{ matrix.target }}/release'
+          bundle="$RUNNER_TEMP/manderrow"
+          if [ '${{ matrix.target }}' = x86_64-pc-windows-msvc ]; then
+            python3 -I scripts/bundle-windows.py "$release/manderrow.exe" "$bundle"
+          else
+            # TODO: bundle Qt with the app (macdeployqt, linuxdeploy), as on Windows.
+            mkdir -p "$bundle"
+            cp "$release/manderrow" agent/zig-out/libmanderrow_agent "$bundle"
+          fi
+
+      # TODO: publish installers to the release, as tauri-action did.
+      - uses: actions/upload-artifact@v7
         with:
-          name: manderrow-${{ matrix.platform }}
-          path: |
-            src-qt/target/release/manderrow
-            src-qt/target/release/manderrow.exe
-            agent/zig-out/libmanderrow_agent
+          name: manderrow-${{ matrix.target }}
+          path: ${{ runner.temp }}/manderrow
