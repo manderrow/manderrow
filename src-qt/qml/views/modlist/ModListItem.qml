@@ -29,7 +29,9 @@ Item {
     readonly property bool hot: hover.hovered
     /// The buttons show while hovered or while the focus is within the item, as on the web.
     readonly property bool revealed: hot || Ui.isWithin(Window.activeFocusItem, modItem)
-    readonly property bool _selectorShown: selectable && (forceSelectorVisibility || selected || selectorHover.hovered || hot)
+    /// Whether the checkbox shows: while the pointer is near the item's left edge, over the selector,
+    /// rather than anywhere over the item, which only hints at it with a line along that edge.
+    readonly property bool _selectorShown: selectable && (forceSelectorVisibility || selected || selectorHover.hovered)
 
     implicitHeight: row.implicitHeight + 2
     // a role="button" with tabIndex 0 on the web
@@ -103,10 +105,12 @@ Item {
         width: parent.width - 2
         spacing: 0
 
-        // the bulk selection checkbox, which grows in on hover
+        // the bulk selection checkbox, which grows in when the pointer nears it
         Item {
             id: selector
             visible: modItem.selectable
+            // above the content, which the region the pointer reveals it from overlaps
+            z: 1
             Layout.fillHeight: true
             Layout.preferredWidth: modItem._selectorShown ? 18 + Theme.rem : 0.5 * Theme.rem
 
@@ -117,32 +121,53 @@ Item {
                 }
             }
 
-            HoverHandler {
-                id: selectorHover
-                cursorShape: Qt.PointingHandCursor
-            }
-            TapHandler {
-                id: selectorTap
-                // takes the press for itself, so that the item doesn't also open the mod
-                gesturePolicy: TapHandler.ReleaseWithinBounds
-                onTapped: (eventPoint, button) => {
-                    if (selectorTap.point.modifiers & Qt.ShiftModifier)
-                        modItem.shiftClicked();
-                    else
-                        modItem.selectToggled();
+            // the region that reveals and toggles the checkbox, which reaches 1em into the content
+            Item {
+                width: parent.width + Theme.rem
+                height: parent.height
+
+                HoverHandler {
+                    id: selectorHover
+                    cursorShape: Qt.PointingHandCursor
+                }
+                TapHandler {
+                    id: selectorTap
+                    // takes the press for itself, so that the item doesn't also open the mod
+                    gesturePolicy: TapHandler.ReleaseWithinBounds
+                    onTapped: (eventPoint, button) => {
+                        if (selectorTap.point.modifiers & Qt.ShiftModifier)
+                            modItem.shiftClicked();
+                        else
+                            modItem.selectToggled();
+                    }
                 }
             }
 
+            // the checkbox, or the line hinting at it along the edge of the hovered item
             Rectangle {
-                x: modItem._selectorShown ? 0.5 * Theme.rem : 0
+                readonly property bool hint: !modItem._selectorShown && modItem.hot
+
+                x: modItem._selectorShown ? 0.5 * Theme.rem : -1.5
                 anchors.verticalCenter: parent.verticalCenter
-                width: modItem._selectorShown ? 18 : 0
-                height: modItem._selectorShown ? 18 : 0
+                width: modItem._selectorShown ? 18 : hint ? 3 : 0
+                height: modItem._selectorShown ? 18 : hint ? 30 : 0
                 radius: 2
                 color: "transparent"
-                border.width: modItem._selectorShown ? 2 : 0
-                border.color: modItem.selected || selectorHover.hovered ? Theme.neutral15 : Theme.neutral45
+                border.width: modItem._selectorShown ? 2 : hint ? 1.5 : 0
+                border.color: modItem.selected || selectorHover.hovered || hint ? Theme.neutral15 : Theme.neutral45
 
+                Behavior on x {
+                    SmoothNumberAnimation {
+                        duration: 100
+                        curve: Theme.easeInOut
+                    }
+                }
+                Behavior on border.width {
+                    SmoothNumberAnimation {
+                        duration: 100
+                        curve: Theme.easeInOut
+                    }
+                }
                 Behavior on width {
                     SmoothNumberAnimation {
                         duration: 100
