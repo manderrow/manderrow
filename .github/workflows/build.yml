@@ -32,6 +32,7 @@ jobs:
         uses: jurplel/install-qt-action@v4
         with:
           version: '6.10.*'
+          modules: 'qtshadertools' # for qsb, which build.rs uses to compile shaders
           cache: true
 
       - name: Install Rust
