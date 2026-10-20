@@ -7,16 +7,6 @@ pub mod qobject {
         type QString = cxx_qt_lib::QString;
     }
 
-    #[namespace = ""]
-    unsafe extern "C++" {
-        include!("manderrow/cpp/native.h");
-
-        fn manderrow_register_resources(data: &[u8]) -> bool;
-        fn manderrow_configure_before_app();
-        fn manderrow_enable_qml_debugging();
-        fn manderrow_configure_app();
-    }
-
     #[auto_cxx_name]
     unsafe extern "RustQt" {
         #[qobject]
@@ -73,11 +63,6 @@ use cxx_qt::{CxxQtType, Threading};
 use cxx_qt_lib::QString;
 
 use crate::CommandError;
-
-pub use qobject::{
-    manderrow_configure_app, manderrow_configure_before_app, manderrow_enable_qml_debugging,
-    manderrow_register_resources,
-};
 
 #[derive(Default)]
 pub struct BackendRust {
