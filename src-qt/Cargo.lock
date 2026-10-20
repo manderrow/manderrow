@@ -1674,6 +1674,7 @@ dependencies = [
  "interprocess",
  "itertools",
  "lexopt",
+ "libc",
  "libmimalloc-sys",
  "manderrow-args",
  "manderrow-ipc",

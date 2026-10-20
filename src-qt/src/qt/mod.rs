@@ -1,6 +1,12 @@
 //! The Qt Quick frontend host.
 
 mod bridge;
+mod native;
+#[cfg(all(unix, not(target_vendor = "apple")))]
+mod native_unix;
+#[cfg(windows)]
+mod native_win32;
+mod setup;
 
 use std::sync::OnceLock;
 
@@ -37,17 +43,17 @@ pub fn run(app: AppHandle, instance: InstanceLock) -> anyhow::Result<()> {
         bail!("Qt frontend is already running");
     }
 
-    if !bridge::manderrow_register_resources(ASSETS) {
+    if !setup::register_resources(ASSETS) {
         bail!("Failed to register the asset bundle");
     }
 
-    bridge::manderrow_configure_before_app();
+    setup::configure_before_app();
     // Development hook: MANDERROW_DEV_QML_DEBUG=1 lets qmlprofiler and other QML tools attach.
     if cfg!(debug_assertions) && std::env::var_os("MANDERROW_DEV_QML_DEBUG").is_some() {
-        bridge::manderrow_enable_qml_debugging();
+        setup::enable_qml_debugging();
     }
     let mut qapp = QGuiApplication::new();
-    bridge::manderrow_configure_app();
+    setup::configure_app();
 
     // Another launch of the app asks this instance to come to the front.
     instance.listen(move || {

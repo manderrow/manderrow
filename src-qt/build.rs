@@ -16,11 +16,6 @@ struct Env<'a> {
 }
 
 fn main() {
-    // Native::setBlurBehind uses the DWM's backdrops on Windows
-    if var_os("CARGO_CFG_TARGET_OS").is_some_and(|os| os == "windows") {
-        println!("cargo::rustc-link-lib=dwmapi");
-    }
-
     let mut root_dir = PathBuf::from(var_os("CARGO_MANIFEST_DIR").unwrap());
     assert!(root_dir.pop());
     let crates_dir = root_dir.join("crates");
@@ -110,6 +105,16 @@ fn build_qt(crate_dir: &Path) {
             .singleton(source.lines().any(|line| line.trim() == "pragma Singleton"))
     }));
 
+    // Native's platform services, which only build for their platforms
+    let mut bridges = vec!["src/qt/bridge.rs", "src/qt/native.rs", "src/qt/setup.rs"];
+    if var_os("CARGO_CFG_WINDOWS").is_some() {
+        bridges.push("src/qt/native_win32.rs");
+    } else if var_os("CARGO_CFG_UNIX").is_some()
+        && var_os("CARGO_CFG_TARGET_VENDOR").is_none_or(|vendor| vendor != "apple")
+    {
+        bridges.push("src/qt/native_unix.rs");
+    }
+
     // Qt's private headers, if they are installed, for the QPA headers that Native uses
     let private_headers = qt_dir("QT_INSTALL_HEADERS")
         .join("QtGui")
@@ -119,8 +124,7 @@ fn build_qt(crate_dir: &Path) {
         .qt_module("Gui")
         .qt_module("Quick")
         .qt_module("QuickControls2")
-        .files(["src/qt/bridge.rs"])
-        .cpp_files(["cpp/native.h", "cpp/native.cpp"]);
+        .files(bridges);
     // SAFETY: this only adds include directories
     let builder = unsafe {
         builder.cc_builder(|cc| {
