@@ -22,10 +22,11 @@ jobs:
           # Cross-compiled with cargo-xwin, which downloads the MSVC CRT and Windows SDK.
           - platform: 'ubuntu-24.04'
             target: 'x86_64-pc-windows-msvc'
-          - platform: 'macos-latest'
+          # Pinned, as the Xcode that the build selects must be installed on the runner.
+          - platform: 'macos-26'
             target: 'aarch64-apple-darwin'
           # Qt's macOS binaries are universal, so Intel Macs are cross-compiled on the same runner.
-          - platform: 'macos-latest'
+          - platform: 'macos-26'
             target: 'x86_64-apple-darwin'
 
     runs-on: ${{ matrix.platform }}
@@ -47,6 +48,12 @@ jobs:
           sudo apt-get install -y clang-19 lld-19 llvm-19 binutils-mingw-w64-x86-64
           echo /usr/lib/llvm-19/bin >> "$GITHUB_PATH"
           pipx install cargo-xwin
+
+      # Zig 0.15.2 cannot link against the SDK of Xcode 26.4 and later, whose libSystem.tbd lists
+      # arm64e but not arm64, so even the build runner fails to link (ziglang/zig#31658).
+      - name: Select Xcode
+        if: runner.os == 'macOS'
+        run: echo DEVELOPER_DIR=/Applications/Xcode_26.3.app/Contents/Developer >> "$GITHUB_ENV"
 
       - name: Install Qt
         uses: jurplel/install-qt-action@v4
