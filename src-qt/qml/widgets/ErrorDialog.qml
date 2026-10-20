@@ -60,12 +60,16 @@ Dialog {
             border.color: Theme.neutral70
             radius: 0.5 * Theme.rem
 
-            ScrollView {
+            Flickable {
                 anchors.fill: parent
                 anchors.margins: 0.5 * Theme.rem
+                contentWidth: pre.implicitWidth
+                contentHeight: pre.implicitHeight
+                boundsBehavior: Flickable.StopAtBounds
                 clip: true
                 ScrollBar.vertical: AppScrollBar {}
                 ScrollBar.horizontal: AppScrollBar {}
+                WheelScroll {}
 
                 TextEdit {
                     id: pre

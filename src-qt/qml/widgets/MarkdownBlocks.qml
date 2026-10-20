@@ -96,6 +96,9 @@ Column {
                 id: loader
                 y: slot.topGap
                 width: parent.width
+                // long documents would otherwise take frames to create at once, so the blocks
+                // are created over several frames
+                asynchronous: true
                 sourceComponent: {
                     switch (slot.block.type) {
                     case "heading":
@@ -185,21 +188,20 @@ Column {
                     id: code
                     Rectangle {
                         width: parent.width
-                        height: codeText.height + 2 * 0.5 * root.rem
+                        height: codeScroller.height
                         color: Theme.neutral90
 
-                        Flickable {
-                            anchors.fill: parent
-                            anchors.margins: 0.5 * root.rem
-                            contentWidth: codeText.width
-                            contentHeight: codeText.height
-                            flickableDirection: Flickable.HorizontalFlick
-                            acceptedButtons: Qt.NoButton
-                            clip: true
-                            ScrollBar.horizontal: AppScrollBar {}
+                        HorizontalScrollView {
+                            id: codeScroller
+                            width: parent.width
+                            // pre { padding: 0.5rem }, which scrolls with the code
+                            contentWidth: codeText.width + 2 * 0.5 * root.rem
+                            contentHeight: codeText.height + 2 * 0.5 * root.rem
 
                             TextEdit {
                                 id: codeText
+                                x: 0.5 * root.rem
+                                y: 0.5 * root.rem
                                 text: slot.block.text
                                 textFormat: TextEdit.PlainText
                                 readOnly: true
@@ -229,13 +231,12 @@ Column {
                             x: 4 + root.baseSize
                             y: 0.5 * root.baseSize
                             width: parent.width - x - root.baseSize
-                            source: "MarkdownBlocks.qml"
-                            onLoaded: {
-                                item.blocks = Qt.binding(() => slot.block.children);
-                                item.compact = true;
-                                item.textColor = Theme.neutral20;
-                                item.width = Qt.binding(() => quoteBlocks.width);
-                            }
+                            asynchronous: true
+                            Component.onCompleted: setSource("MarkdownBlocks.qml", {
+                                blocks: slot.block.children,
+                                compact: true,
+                                textColor: Theme.neutral20
+                            })
                         }
                     }
                 }
@@ -264,11 +265,10 @@ Column {
                         }
                         Loader {
                             width: parent.width
-                            source: "MarkdownBlocks.qml"
-                            onLoaded: {
-                                item.blocks = Qt.binding(() => slot.block.children);
-                                item.width = Qt.binding(() => width);
-                            }
+                            asynchronous: true
+                            Component.onCompleted: setSource("MarkdownBlocks.qml", {
+                                blocks: slot.block.children
+                            })
                         }
                     }
                 }
@@ -314,12 +314,11 @@ Column {
                                     id: itemBlocks
                                     x: 1.5 * root.baseSize
                                     width: parent.width - x
-                                    source: "MarkdownBlocks.qml"
-                                    onLoaded: {
-                                        item.blocks = Qt.binding(() => listItem.modelData.children);
-                                        item.compact = slot.block.tight;
-                                        item.width = Qt.binding(() => itemBlocks.width);
-                                    }
+                                    asynchronous: true
+                                    Component.onCompleted: setSource("MarkdownBlocks.qml", {
+                                        blocks: listItem.modelData.children,
+                                        compact: slot.block.tight
+                                    })
                                 }
                             }
                         }
@@ -329,15 +328,10 @@ Column {
                 Component {
                     id: table
                     // Qt's rich text sizes table columns itself, so the table is rendered as HTML
-                    Flickable {
+                    HorizontalScrollView {
                         width: parent.width
-                        height: tableText.height
                         contentWidth: tableText.width
                         contentHeight: tableText.height
-                        flickableDirection: Flickable.HorizontalFlick
-                        acceptedButtons: Qt.NoButton
-                        clip: true
-                        ScrollBar.horizontal: AppScrollBar {}
 
                         Text {
                             id: tableText

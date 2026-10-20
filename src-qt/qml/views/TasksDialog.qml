@@ -14,9 +14,9 @@ Dialog {
         anchors.fill: parent
         spacing: 0
 
-        Text {
+        SText {
             Layout.fillWidth: true
-            horizontalAlignment: Text.AlignHCenter
+            horizontalAlignment: TextEdit.AlignHCenter
             text: I18n.t("task_manager.title")
             color: Theme.neutral05
             font.family: Theme.font
@@ -68,9 +68,10 @@ Dialog {
             clip: true
             boundsBehavior: Flickable.StopAtBounds
             ScrollBar.vertical: AppScrollBar {}
+            WheelScroll {}
             model: Tasks.tasksArray.filter(task => task.isComplete !== (tabs.currentId === "active") && task.status.status !== "Unstarted")
 
-            Text {
+            SText {
                 visible: list.count === 0
                 topPadding: 8
                 text: I18n.t("task_manager.no_tasks_yet_msg")
@@ -118,21 +119,21 @@ Dialog {
                         name: entry.task.metadata.kind === "Aggregate" ? "listCheck" : "download"
                         anchors.verticalCenter: parent.verticalCenter
                     }
-                    Text {
+                    SText {
                         text: entry.task.metadata.title
                         color: Theme.neutral05
                         font.family: Theme.font
                         font.pixelSize: Theme.rem
                         font.weight: Font.Bold
                         width: Math.min(implicitWidth, list.width - 2 * Theme.rem)
-                        wrapMode: Text.WrapAnywhere
+                        wrapMode: TextEdit.WrapAnywhere
                     }
                 }
 
                 // the status, percentage, size, and success info, separated by dots
-                Text {
+                SText {
                     Layout.fillWidth: true
-                    wrapMode: Text.Wrap
+                    wrapMode: TextEdit.Wrap
                     color: Theme.neutral05
                     font.family: Theme.font
                     font.pixelSize: Theme.rem
@@ -164,7 +165,7 @@ Dialog {
                         id: urlHover
                     }
 
-                    Text {
+                    SText {
                         anchors.verticalCenter: parent.verticalCenter
                         text: I18n.t("task_manager.source_label")
                         color: sourceHover.hovered ? Theme.primary70 : Theme.primary60

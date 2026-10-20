@@ -121,6 +121,7 @@ Item {
 
                 UpdaterDialog {
                     id: updater
+                    objectName: "updaterDialog"
                     updates: root.updates
                 }
             }

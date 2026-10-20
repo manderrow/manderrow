@@ -49,9 +49,9 @@ Rectangle {
         anchors.verticalCenter: parent.verticalCenter
         spacing: 0.4 * Theme.rem
 
-        Image {
+        SharpImage {
             source: "qrc:/assets/logo.svg"
-            sourceSize: Qt.size(Theme.titlebarLogoSize * 2, Theme.titlebarLogoSize * 2)
+            fillMode: Image.PreserveAspectFit
             Layout.preferredWidth: Theme.titlebarLogoSize
             Layout.preferredHeight: Theme.titlebarLogoSize
         }
@@ -88,11 +88,13 @@ Rectangle {
 
         Rectangle {
             anchors.fill: parent
-            color: hover.hovered ? control.hoverColor : "transparent"
+            color: hover.hovered ? control.hoverColor : Theme.alpha(control.hoverColor, 0)
 
             Behavior on color {
                 ColorAnimation {
                     duration: 200
+                    easing.type: Easing.Bezier
+                    easing.bezierCurve: Theme.ease
                 }
             }
         }

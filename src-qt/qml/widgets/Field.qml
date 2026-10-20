@@ -12,24 +12,27 @@ TextField {
     property color bgColor: Theme.neutral80
     property color borderColor: Theme.neutral70
     property real radius: variant === "pill" ? height / 2 : 4
+    readonly property real borderWidth: variant === "bare" ? 0 : 1
 
     font.family: Theme.font
     font.pixelSize: fontSize
     color: Theme.neutral05
-    placeholderTextColor: Theme.alpha(Theme.neutral05, 0.5)
+    // WebKit's default ::placeholder color, darkgray
+    placeholderTextColor: "#a9a9a9"
     selectionColor: Theme.primary50
     selectedTextColor: "white"
-    leftPadding: 0.5 * fontSize
-    rightPadding: 0.5 * fontSize
-    topPadding: 0.35 * fontSize
-    bottomPadding: 0.35 * fontSize
+    // the border adds to the size, as it does on the web
+    leftPadding: 0.5 * fontSize + borderWidth
+    rightPadding: 0.5 * fontSize + borderWidth
+    topPadding: 0.35 * fontSize + borderWidth
+    bottomPadding: 0.35 * fontSize + borderWidth
     selectByMouse: true
 
     background: Rectangle {
         visible: field.variant !== "bare"
         color: field.bgColor
         border.color: field.borderColor
-        border.width: 1
+        border.width: field.borderWidth
         radius: field.radius
     }
 }

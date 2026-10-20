@@ -11,11 +11,41 @@ Item {
     anchors.fill: parent
     visible: window.visibility === Window.Windowed
 
+    /// Whether an item under a point of the window, other than these handles, takes input at the
+    /// window's edges itself, by having `claimsWindowEdge` set, as scroll bars there do.
+    function claimedAt(item, x, y) {
+        if (item === handles || !item.visible)
+            return false;
+        const local = item.mapFromItem(null, x, y);
+        if (item.clip && !item.contains(local))
+            return false;
+        if (item.claimsWindowEdge === true && item.contains(local))
+            return true;
+        for (let i = 0; i < item.children.length; i++) {
+            if (claimedAt(item.children[i], x, y))
+                return true;
+        }
+        return false;
+    }
+
     component Handle: MouseArea {
+        id: handle
+
         property int edges
 
         acceptedButtons: Qt.LeftButton
         onPressed: handles.window.startSystemResize(edges)
+
+        // Where an item claims the edge, the handle isn't there at all, so that item gets the
+        // pointer's presses, hovering, and cursor.
+        containmentMask: QtObject {
+            function contains(point: point): bool {
+                if (point.x < 0 || point.y < 0 || point.x >= handle.width || point.y >= handle.height)
+                    return false;
+                const scene = handle.mapToItem(null, point.x, point.y);
+                return !handles.claimedAt(handles.window.contentItem, scene.x, scene.y);
+            }
+        }
     }
 
     Handle {

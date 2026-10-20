@@ -52,14 +52,15 @@ The app lives in `src-qt`: the backend is in `src-qt/src`, the bridge to the UI 
 
 Debug builds accept some options for developing and testing the UI, as `MANDERROW_DEV_<NAME>` environment variables:
 
-| Option              | Effect                                                                                |
-| ------------------- | ------------------------------------------------------------------------------------- |
-| `ROUTE`             | Opens a route at startup, like `/profile/lethal-company` or `/settings`               |
-| `THEME`             | Forces the `dark` or `light` theme                                                    |
-| `SIZE`              | Sets the window size, like `1280x720`                                                 |
-| `SPLASH`            | Keeps the splashscreen up                                                             |
-| `SCREENSHOT`        | Saves a screenshot to this path after `SCREENSHOT_DELAY` milliseconds, then quits    |
-| `SCRIPT`            | Runs JavaScript after `SCRIPT_DELAY` milliseconds, with `find(objectName)` available |
+| Option       | Effect                                                                                        |
+| ------------ | --------------------------------------------------------------------------------------------- |
+| `ROUTE`      | Opens a route at startup, like `/profile/lethal-company` or `/settings`                       |
+| `THEME`      | Forces the `dark` or `light` theme                                                            |
+| `SIZE`       | Sets the window size, like `1280x720`                                                         |
+| `SPLASH`     | Keeps the splashscreen up                                                                     |
+| `SCREENSHOT` | Saves a screenshot to this path after `SCREENSHOT_DELAY` milliseconds, then quits             |
+| `SCRIPT`     | Runs JavaScript after `SCRIPT_DELAY` milliseconds, with `find(objectName)` and the singletons |
+| `QML_DEBUG`  | Lets QML tools attach, like `qmlprofiler -o trace.qtd target/debug/manderrow`                 |
 
 For example, to screenshot the settings page without a display:
 

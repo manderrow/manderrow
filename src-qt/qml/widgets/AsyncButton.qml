@@ -142,6 +142,8 @@ Item {
                 Behavior on width {
                     NumberAnimation {
                         duration: 150
+                        easing.type: Easing.Bezier
+                        easing.bezierCurve: Theme.ease
                     }
                 }
 

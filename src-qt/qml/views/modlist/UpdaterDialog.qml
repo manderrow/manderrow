@@ -32,10 +32,10 @@ Dialog {
         width: parent.width
         spacing: Theme.rem
 
-        Text {
+        SText {
             Layout.fillWidth: true
             Layout.bottomMargin: 0.5 * 1.5 * Theme.rem
-            horizontalAlignment: Text.AlignHCenter
+            horizontalAlignment: TextEdit.AlignHCenter
             text: I18n.t("modlist.installed.updater_title")
             color: Theme.neutral10
             font.family: Theme.font
@@ -97,8 +97,8 @@ Dialog {
                     Layout.preferredHeight: Math.min(contentHeight, (Ui.window ? Ui.window.height : 600) * 0.75)
                     clip: true
                     boundsBehavior: Flickable.StopAtBounds
-                    acceptedButtons: Qt.NoButton
                     ScrollBar.vertical: AppScrollBar {}
+                    WheelScroll {}
                     model: dialog.updates
 
                     delegate: Rectangle {
@@ -139,12 +139,12 @@ Dialog {
                                 enabled: false
                             }
 
-                            Image {
+                            // img { width: 3rem; border-radius: 4px }
+                            RoundedImage {
                                 Layout.preferredWidth: 3 * Theme.rem
                                 Layout.preferredHeight: 3 * Theme.rem
+                                radius: 4
                                 source: Util.getIconUrl(Util.getQualifiedModName(entry.modelData.newMod.owner, entry.modelData.newMod.name, entry.modelData.newMod.versions[0].version_number))
-                                sourceSize: Qt.size(48, 48)
-                                asynchronous: true
                             }
 
                             ColumnLayout {

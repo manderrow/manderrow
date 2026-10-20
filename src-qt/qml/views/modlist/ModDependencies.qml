@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Effects
 import QtQuick.Layouts
 import Manderrow
 
@@ -42,12 +41,14 @@ Item {
                 width: column.width
                 height: row.implicitHeight + Theme.rem
                 radius: 4
-                color: hover.hovered ? Theme.neutral75 : "transparent"
+                color: hover.hovered ? Theme.neutral75 : Theme.alpha(Theme.neutral75, 0)
                 border.color: Theme.neutral75
 
                 Behavior on color {
                     ColorAnimation {
                         duration: 100
+                        easing.type: Easing.Bezier
+                        easing.bezierCurve: Theme.ease
                     }
                 }
 
@@ -69,12 +70,9 @@ Item {
                         Layout.preferredWidth: 48
                         Layout.preferredHeight: 48
 
-                        Image {
-                            id: icon
+                        SharpImage {
                             anchors.fill: parent
                             source: Util.getIconUrl(dependency.modelData)
-                            sourceSize: Qt.size(48, 48)
-                            asynchronous: true
                         }
                     }
 

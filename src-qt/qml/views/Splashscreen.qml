@@ -14,7 +14,8 @@ Item {
     Behavior on opacity {
         NumberAnimation {
             duration: 250
-            easing.type: Easing.InQuad
+            easing.type: Easing.Bezier
+            easing.bezierCurve: Theme.easeIn
         }
     }
 
@@ -57,11 +58,11 @@ Item {
         anchors.rightMargin: width * 0.05
         anchors.topMargin: height * 0.05
 
-        Image {
+        SharpImage {
             id: logo
             anchors.fill: parent
             source: "qrc:/assets/logo.svg"
-            sourceSize: Qt.size(width, height)
+            fillMode: Image.PreserveAspectFit
             visible: false
             layer.enabled: true
         }
@@ -102,7 +103,8 @@ Item {
             source: logo
             blurEnabled: true
             blur: 1
-            blurMax: 8
+            // filter: blur(4px)
+            blurMax: Theme.blurMax(4)
             maskEnabled: true
             maskSource: mask
             maskThresholdMin: 0.5

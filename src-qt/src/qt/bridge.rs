@@ -13,6 +13,7 @@ pub mod qobject {
 
         fn manderrow_register_resources(data: &[u8]) -> bool;
         fn manderrow_configure_before_app();
+        fn manderrow_enable_qml_debugging();
         fn manderrow_configure_app();
     }
 
@@ -73,7 +74,10 @@ use cxx_qt_lib::QString;
 
 use crate::CommandError;
 
-pub use qobject::{manderrow_configure_app, manderrow_configure_before_app, manderrow_register_resources};
+pub use qobject::{
+    manderrow_configure_app, manderrow_configure_before_app, manderrow_enable_qml_debugging,
+    manderrow_register_resources,
+};
 
 #[derive(Default)]
 pub struct BackendRust {

@@ -37,23 +37,23 @@ Dialog {
         width: parent.width
         spacing: 0
 
-        Text {
+        SText {
             visible: prompt.title !== undefined
             Layout.fillWidth: true
             Layout.bottomMargin: 0.25 * 1.5 * Theme.rem
             text: prompt.title === null || prompt.title === undefined ? I18n.t("global.dialogue_default_title") : prompt.title
-            horizontalAlignment: Text.AlignHCenter
-            wrapMode: Text.Wrap
+            horizontalAlignment: TextEdit.AlignHCenter
+            wrapMode: TextEdit.Wrap
             color: Theme.neutral05
             font.family: Theme.font
             font.pixelSize: 1.5 * Theme.rem
             font.weight: Font.Bold
         }
 
-        Text {
+        SText {
             Layout.fillWidth: true
             text: prompt.question
-            wrapMode: Text.Wrap
+            wrapMode: TextEdit.Wrap
             color: Theme.neutral20
             font.family: Theme.font
             font.pixelSize: Theme.rem

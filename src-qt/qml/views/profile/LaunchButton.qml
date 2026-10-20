@@ -20,7 +20,8 @@ AbstractButton {
 
     hoverEnabled: true
     opacity: enabled ? 1 : 0.5
-    padding: 0.5 * Theme.rem
+    // the border adds to the size, as it does on the web
+    padding: 0.5 * Theme.rem + borderWidth
     font.family: Theme.font
     font.pixelSize: mini ? 1.2 * Theme.rem : Theme.rem
 
@@ -28,13 +29,49 @@ AbstractButton {
         cursorShape: launch.enabled ? Qt.PointingHandCursor : Qt.ForbiddenCursor
     }
 
+    // How far the glint has swept across, and its opacity. The transition is only declared on
+    // :hover, so leaving snaps them back.
+    property real _glint: 0
+    property real _glintOpacity: 0
+
+    onHotChanged: {
+        if (hot) {
+            glintIn.restart();
+        } else {
+            glintIn.stop();
+            _glint = 0;
+            _glintOpacity = 0;
+        }
+    }
+
+    ParallelAnimation {
+        id: glintIn
+        NumberAnimation {
+            target: launch
+            property: "_glint"
+            from: 0
+            to: 1
+            duration: 1300
+            easing.type: Easing.Bezier
+            easing.bezierCurve: Theme.ease
+        }
+        NumberAnimation {
+            target: launch
+            property: "_glintOpacity"
+            from: 0
+            to: 1
+            duration: 750
+            easing.type: Easing.Bezier
+            easing.bezierCurve: Theme.ease
+        }
+    }
+
     background: Item {
-        visible: !launch.mini
-        clip: true
 
         // the border: radial-gradient(circle at center, primary-20, primary-60, primary-30),
         // which doubles in size on hover
         Shape {
+            visible: !launch.mini
             anchors.fill: parent
             preferredRendererType: Shape.CurveRenderer
             ShapePath {
@@ -45,6 +82,8 @@ AbstractButton {
                     Behavior on size {
                         NumberAnimation {
                             duration: 1000
+                            easing.type: Easing.Bezier
+                            easing.bezierCurve: Theme.ease
                         }
                     }
                     centerX: launch.width / 2
@@ -75,6 +114,7 @@ AbstractButton {
 
         // the fill: linear-gradient(20deg, primary-30, primary-50)
         Shape {
+            visible: !launch.mini
             anchors.fill: parent
             anchors.margins: launch.borderWidth
             preferredRendererType: Shape.CurveRenderer
@@ -103,39 +143,32 @@ AbstractButton {
             }
         }
 
-        // the glint that sweeps across on hover
+        // the glint that sweeps across on hover. It is the button's inner shape filled with the
+        // conic gradient, which clips it to the rounded corners like `overflow: hidden`.
         Shape {
-            id: glint
-            width: launch.width + 2 * launch.borderWidth
-            height: width
-            y: (launch.height - height) / 2
-            x: launch.hot ? 0.05 * width - width / 2 + launch.width / 2 : -1.05 * width + launch.width / 2
-            rotation: 30
-            opacity: launch.hot ? 1 : 0
-
-            Behavior on x {
-                enabled: launch.hot
-                NumberAnimation {
-                    duration: 1300
-                    easing.type: Easing.InOutQuad
-                }
-            }
-            Behavior on opacity {
-                enabled: launch.hot
-                NumberAnimation {
-                    duration: 750
-                }
-            }
+            anchors.fill: parent
+            anchors.margins: launch.borderWidth
+            preferredRendererType: Shape.CurveRenderer
+            opacity: launch._glintOpacity
 
             ShapePath {
                 id: glintPath
+
+                // The ::before square is the button's width plus the border, centred on the
+                // button and translated from -105% to 5% of its size.
+                readonly property real square: launch.width + 2 * launch.borderWidth
+                readonly property real centerX: launch.width / 2 + (1.1 * launch._glint - 0.55) * square
                 readonly property color glintColor: launch.down ? Qt.rgba(1, 1, 1, 0.15) : Qt.rgba(1, 1, 1, 0.3)
+
                 strokeWidth: -1
                 strokeColor: "transparent"
                 fillGradient: ConicalGradient {
-                    centerX: glint.width / 2
-                    centerY: glint.height / 2
-                    angle: 90
+                    // in the inner shape's coordinates
+                    centerX: glintPath.centerX - launch.borderWidth
+                    centerY: launch.height / 2 - launch.borderWidth
+                    // CSS's conic gradient starts at the top; Qt's starts at 3 o'clock and runs
+                    // the other way. The ::before is rotated by 30deg.
+                    angle: 90 - 30
                     GradientStop {
                         position: 0
                         color: glintPath.glintColor
@@ -166,8 +199,9 @@ AbstractButton {
                     }
                 }
                 PathRectangle {
-                    width: glint.width
-                    height: glint.height
+                    width: launch.width - 2 * launch.borderWidth
+                    height: launch.height - 2 * launch.borderWidth
+                    radius: height / 2
                 }
             }
         }
@@ -180,6 +214,8 @@ AbstractButton {
         Row {
             id: row
             anchors.centerIn: parent
+            // the contents shift as the arrow slides in, which snapping to whole pixels makes jerky
+            anchors.alignWhenCentered: false
             spacing: 0.35 * Theme.rem
 
             FaIcon {
@@ -192,6 +228,8 @@ AbstractButton {
                     Behavior on x {
                         NumberAnimation {
                             duration: 200
+                            easing.type: Easing.Bezier
+                            easing.bezierCurve: Theme.ease
                         }
                     }
                 }
@@ -205,17 +243,20 @@ AbstractButton {
                 anchors.verticalCenter: parent.verticalCenter
             }
 
-            // the arrow slides in on hover
+            // the arrow slides in on hover, as its max-width transitions from 0 to 3ch
             Item {
                 visible: !launch.mini
-                width: launch.hot ? arrow.width : 0
+                property real maxWidth: launch.hot ? 3 * Ui.ch : 0
+                width: Math.min(arrow.width, maxWidth)
                 height: arrow.height
                 clip: true
                 anchors.verticalCenter: parent.verticalCenter
 
-                Behavior on width {
+                Behavior on maxWidth {
                     NumberAnimation {
                         duration: 300
+                        easing.type: Easing.Bezier
+                        easing.bezierCurve: Theme.ease
                     }
                 }
 

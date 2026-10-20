@@ -308,6 +308,7 @@ Item {
                 rightMargin: 0.5 * Theme.rem
                 boundsBehavior: Flickable.StopAtBounds
                 ScrollBar.vertical: AppScrollBar {}
+                WheelScroll {}
                 visible: modList.queriedError === null
                 model: rows
 
@@ -352,7 +353,7 @@ Item {
                     selectable: modList.multiselect
                     selected: modList.multiselect && modList.isSelected(mod)
                     forceSelectorVisibility: modList.selectedMods.length !== 0 || modList.tutorialState < 2
-                    previousHot: list.hotIndex === index - 1
+                    previousHot: index > 0 && list.hotIndex === index - 1
                     onHotChanged: {
                         if (hot)
                             list.hotIndex = index;

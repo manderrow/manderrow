@@ -32,6 +32,8 @@ Item {
             Behavior on width {
                 NumberAnimation {
                     duration: 200
+                    easing.type: Easing.Bezier
+                    easing.bezierCurve: Theme.ease
                 }
             }
         }
@@ -71,28 +73,32 @@ Item {
                     from: 0.5
                     to: 0.8
                     duration: 600
-                    easing.type: Easing.InOutQuad
+                    easing.type: Easing.Bezier
+                    easing.bezierCurve: Theme.easeInOut
                 }
                 NumberAnimation {
                     target: runnerScale
                     property: "xScale"
                     to: 0.2
                     duration: 450
-                    easing.type: Easing.InOutQuad
+                    easing.type: Easing.Bezier
+                    easing.bezierCurve: Theme.easeInOut
                 }
                 NumberAnimation {
                     target: runnerScale
                     property: "xScale"
                     to: 0.15
                     duration: 300
-                    easing.type: Easing.InOutQuad
+                    easing.type: Easing.Bezier
+                    easing.bezierCurve: Theme.easeInOut
                 }
                 NumberAnimation {
                     target: runnerScale
                     property: "xScale"
                     to: 1
                     duration: 150
-                    easing.type: Easing.InOutQuad
+                    easing.type: Easing.Bezier
+                    easing.bezierCurve: Theme.easeInOut
                 }
             }
         }

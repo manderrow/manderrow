@@ -20,6 +20,12 @@ QtObject {
     readonly property string font: "Inter"
     readonly property string fontMonospace: "Source Code Pro"
 
+    // CSS timing functions, for `easing.bezierCurve` with `easing.type: Easing.Bezier`
+    readonly property var ease: [0.25, 0.1, 0.25, 1, 1, 1]
+    readonly property var easeIn: [0.42, 0, 1, 1, 1, 1]
+    readonly property var easeOut: [0, 0, 0.58, 1, 1, 1]
+    readonly property var easeInOut: [0.42, 0, 0.58, 1, 1, 1]
+
     readonly property real titlebarHeight: 28
     readonly property real titlebarLogoSize: 16
 
@@ -30,6 +36,29 @@ QtObject {
     /// Returns `color` with its alpha replaced.
     function alpha(color, a) {
         return Qt.rgba(color.r, color.g, color.b, a);
+    }
+
+    // MultiEffect blurMax for a CSS `blur(sigma)`, measured by blurring an edge and comparing its
+    // 10-90% width to a Gaussian's. MultiEffect works in texture pixels, hence the pixel ratio.
+    readonly property var _blurCurve: [[0, 0], [1, 5], [2, 10], [3, 15], [4, 20], [6, 27], [8, 32], [15, 48], [21, 64]]
+
+    function blurMax(sigma) {
+        const s = sigma * Ui.dpr;
+        const curve = _blurCurve;
+        for (let i = 1; i < curve.length; i++) {
+            if (s <= curve[i][0]) {
+                const [x0, y0] = curve[i - 1];
+                const [x1, y1] = curve[i];
+                return y0 + (y1 - y0) * (s - x0) / (x1 - x0);
+            }
+        }
+        return 64;
+    }
+
+    /// The color to animate from `color` towards `other`. Animating from "transparent" (transparent
+    /// black) would pass through dark tints, unlike CSS, which interpolates premultiplied colors.
+    function fadeFrom(color, other) {
+        return color.a === 0 ? Qt.rgba(other.r, other.g, other.b, 0) : color;
     }
 
     /// Returns `color` with its HSL lightness shifted by `delta` percentage points.

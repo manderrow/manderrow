@@ -8,6 +8,7 @@ use std::time::Instant;
 
 use anyhow::{Context as _, Result};
 use async_compression::tokio::bufread::GzipDecoder;
+use futures_util::{StreamExt as _, TryStreamExt as _};
 use manderrow_types::mods::{ArchivedModRef, ModId, ModRef};
 use manderrow_types::util::rkyv::InternedString;
 use rkyv_intern::Interner;
@@ -26,6 +27,8 @@ use crate::util::{search, Progress};
 use crate::Reqwest;
 
 use memory::{MemoryModIndex, MemoryModIndexChunk};
+
+const MAX_CHUNKS_IN_FLIGHT: usize = 4;
 
 #[derive(Default)]
 struct ModIndex {
@@ -113,7 +116,9 @@ pub async fn fetch_mod_index(
 
                     let started_at = std::time::Instant::now();
 
-                    futures_util::future::try_join_all(chunk_urls.into_iter().map(|url| async {
+                    // Each chunk's JSON takes several times its encoded size while it's decoded, so
+                    // bound how many are in flight to bound the peak memory use.
+                    futures_util::stream::iter(chunk_urls.into_iter().map(|url| async {
                         let log = log.clone();
                         let reqwest = reqwest.clone();
                         tokio::task::spawn(async move {
@@ -233,7 +238,10 @@ pub async fn fetch_mod_index(
                             })
                         })
                         .await?
-                    })).await
+                    }))
+                    .buffered(MAX_CHUNKS_IN_FLIGHT)
+                    .try_collect::<Vec<_>>()
+                    .await
                 };
                 let new_mod_index = select! {
                     // The "fair" strategy employed by select! should be entirely unnecessary for
@@ -530,7 +538,8 @@ mod tests {
                         ("2wheelsNcoffee", "moresuits_2WC"),
                         ("notnotnotswipez", "MoreCompany"),
                     ],
-                );
+                )
+                .await;
                 assert_top_result(
                     &mod_index,
                     "com",
@@ -540,7 +549,8 @@ mod tests {
                         ("Xaymar", "common"),
                         ("notnotnotswipez", "MoreCompany"),
                     ],
-                );
+                )
+                .await;
             });
     }
 

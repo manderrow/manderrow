@@ -37,7 +37,7 @@ MultistageModal {
             property var modal
             spacing: 0
 
-            Text {
+            SText {
                 Layout.bottomMargin: 0.25 * Theme.rem
                 text: I18n.t("profile.import_model.thunderstore_code_label")
                 color: Theme.neutral05
@@ -113,18 +113,24 @@ MultistageModal {
                 }
             }
 
-            ScrollView {
+            Flickable {
+                id: preview
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.preferredHeight: previewColumn.implicitHeight
-                contentWidth: availableWidth
+                contentWidth: width
+                contentHeight: previewColumn.implicitHeight
+                boundsBehavior: Flickable.StopAtBounds
                 clip: true
-                ScrollBar.vertical: AppScrollBar {}
-                ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                // overlayscrollbars, which hide when the pointer leaves
+                ScrollBar.vertical: AppScrollBar {
+                    autoHide: true
+                }
+                WheelScroll {}
 
                 ColumnLayout {
                     id: previewColumn
-                    width: parent.width
+                    width: preview.width
                     spacing: 0
 
                     component Heading: Text {

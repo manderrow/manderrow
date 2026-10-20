@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Effects
 import QtQuick.Layouts
 import Manderrow
 
@@ -40,14 +39,29 @@ Item {
         id: frame
         anchors.fill: parent
         radius: item.hot || item.focused ? 6 : 0
-        color: item.hot ? (item.focused ? Theme.neutral70 : Theme.neutral80) : item.focused ? Theme.neutral80 : "transparent"
+        color: item.hot ? (item.focused ? Theme.neutral70 : Theme.neutral80) : item.focused ? Theme.neutral80 : Theme.alpha(Theme.neutral80, 0)
         border.width: 1
-        border.color: tap.pressed ? Theme.neutral50 : item.focused ? Theme.primary60 : item.hot ? Theme.neutral70 : "transparent"
+        border.color: tap.pressed ? Theme.neutral50 : item.focused ? Theme.primary60 : item.hot ? Theme.neutral70 : Theme.alpha(Theme.neutral70, 0)
 
         Behavior on color {
             ColorAnimation {
                 duration: 100
-                easing.type: Easing.InOutQuad
+                easing.type: Easing.Bezier
+                easing.bezierCurve: Theme.easeInOut
+            }
+        }
+        Behavior on border.color {
+            ColorAnimation {
+                duration: 100
+                easing.type: Easing.Bezier
+                easing.bezierCurve: Theme.easeInOut
+            }
+        }
+        Behavior on radius {
+            NumberAnimation {
+                duration: 300
+                easing.type: Easing.Bezier
+                easing.bezierCurve: Theme.easeOut
             }
         }
 
@@ -90,7 +104,8 @@ Item {
             Behavior on Layout.preferredWidth {
                 NumberAnimation {
                     duration: 100
-                    easing.type: Easing.InOutQuad
+                    easing.type: Easing.Bezier
+                    easing.bezierCurve: Theme.easeInOut
                 }
             }
 
@@ -121,20 +136,26 @@ Item {
                 Behavior on width {
                     NumberAnimation {
                         duration: 100
+                        easing.type: Easing.Bezier
+                        easing.bezierCurve: Theme.easeInOut
                     }
                 }
                 Behavior on height {
                     NumberAnimation {
                         duration: 100
+                        easing.type: Easing.Bezier
+                        easing.bezierCurve: Theme.easeInOut
                     }
                 }
 
-                FaIcon {
-                    anchors.centerIn: parent
-                    name: "check"
-                    size: 12
-                    color: Theme.neutral15
-                    visible: item.selected && item._selectorShown
+                // the check is revealed like the Checkbox's, and hidden at once when unchecked
+                CheckMark {
+                    x: 2
+                    anchors.verticalCenter: parent.verticalCenter
+                    checked: item.selected && item._selectorShown
+                    hideWhenUnchecked: true
+                    size: Theme.rem
+                    clip: false
                 }
             }
         }
@@ -151,33 +172,12 @@ Item {
                 spacing: 0.75 * Theme.rem
 
                 // the icon, with rounded corners
-                Item {
+                RoundedImage {
                     Layout.alignment: Qt.AlignTop
                     Layout.preferredWidth: 64
                     Layout.preferredHeight: 64
-
-                    Image {
-                        id: icon
-                        anchors.fill: parent
-                        source: Util.getIconUrl(Util.getQualifiedModName(item.mod.owner, item.mod.name, item.displayVersion.version_number))
-                        sourceSize: Qt.size(64, 64)
-                        asynchronous: true
-                        visible: false
-                        layer.enabled: true
-                    }
-                    Rectangle {
-                        id: iconMask
-                        anchors.fill: parent
-                        radius: 6
-                        visible: false
-                        layer.enabled: true
-                    }
-                    MultiEffect {
-                        anchors.fill: parent
-                        source: icon
-                        maskEnabled: true
-                        maskSource: iconMask
-                    }
+                    radius: 6
+                    source: Util.getIconUrl(Util.getQualifiedModName(item.mod.owner, item.mod.name, item.displayVersion.version_number))
                 }
 
                 ColumnLayout {

@@ -56,7 +56,8 @@ Item {
                 Behavior on sweepAngle {
                     NumberAnimation {
                         duration: 100
-                        easing.type: Easing.InOutQuad
+                        easing.type: Easing.Bezier
+                        easing.bezierCurve: Theme.easeInOut
                     }
                 }
             }

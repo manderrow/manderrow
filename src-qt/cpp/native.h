@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include <QtCore/QObject>
+#include <QtCore/QPointF>
 #include <QtCore/QString>
 #include <QtQml/QQmlEngine>
 
@@ -32,10 +33,18 @@ public:
     /// Saves a screenshot of a window, including its popups. Returns whether it succeeded.
     Q_INVOKABLE bool grabWindow(QObject* window, const QString& path) const;
 
+    /// Clicks a window at a point in its coordinates, as the mouse would. For development scripts.
+    Q_INVOKABLE void click(QObject* window, qreal x, qreal y) const;
+    /// Drags the mouse across a window, between points in its coordinates. For development scripts.
+    Q_INVOKABLE void drag(QObject* window, qreal fromX, qreal fromY, qreal toX, qreal toY) const;
+
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 Q_SIGNALS:
     void modifiersChanged();
+    /// A mouse button was pressed in a window, at a point in its coordinates. This is emitted
+    /// before the press is delivered to the window's items.
+    void pointerPressed(const QPointF& position);
 
 private:
     void setModifiers(Qt::KeyboardModifiers modifiers);
@@ -48,6 +57,8 @@ bool manderrow_register_resources(rust::Slice<const std::uint8_t> data);
 
 /// Configuration that must happen before the QGuiApplication is created.
 void manderrow_configure_before_app();
+/// Lets QML tools, like qmlprofiler, attach. For development builds.
+void manderrow_enable_qml_debugging();
 
 /// Configuration that must happen after the QGuiApplication is created.
 void manderrow_configure_app();

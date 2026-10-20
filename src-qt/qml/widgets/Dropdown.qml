@@ -83,11 +83,15 @@ Item {
                 from: 0
                 to: 1
                 duration: 100
+                easing.type: Easing.Bezier
+                easing.bezierCurve: Theme.ease
             }
         }
         exit: null
 
         background: Item {
+            PopupInputBlocker {}
+
             RectangularShadow {
                 anchors.fill: panelBg
                 radius: panelBg.radius

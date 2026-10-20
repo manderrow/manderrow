@@ -107,10 +107,10 @@ Item {
                             Field {
                                 variant: "pill"
                                 fontSize: 0.9 * Theme.rem
-                                leftPadding: 0.75 * fontSize
-                                rightPadding: 0.75 * fontSize
-                                topPadding: 0.25 * fontSize
-                                bottomPadding: 0.25 * fontSize
+                                leftPadding: 0.75 * fontSize + borderWidth
+                                rightPadding: 0.75 * fontSize + borderWidth
+                                topPadding: 0.25 * fontSize + borderWidth
+                                bottomPadding: 0.25 * fontSize + borderWidth
                                 placeholderText: "Search log..."
                                 onTextChanged: consoleView.searchInput = text
                             }
@@ -177,7 +177,7 @@ Item {
                     readonly property bool live: !consoleView.connection || consoleView.connection.status !== "disconnected"
                     readonly property bool connected: !!consoleView.connection && consoleView.connection.status === "connected"
 
-                    Text {
+                    SText {
                         anchors.horizontalCenter: parent.horizontalCenter
                         bottomPadding: 0.25 * Theme.rem
                         text: status.live ? I18n.t("console.live_log") : I18n.t("console.log_created_at")
@@ -238,7 +238,7 @@ Item {
                         }
                     }
 
-                    Text {
+                    SText {
                         visible: !status.live
                         text: consoleView.connection ? Util.formatDateTime(consoleView.connection.createdTime) : ""
                         color: Theme.neutral05
@@ -260,10 +260,10 @@ Item {
             topMargin: 0.5 * Theme.rem
             bottomMargin: Theme.rem
             boundsBehavior: Flickable.StopAtBounds
-            acceptedButtons: Qt.NoButton
             ScrollBar.vertical: AppScrollBar {
                 policy: ScrollBar.AlwaysOn
             }
+            WheelScroll {}
             model: consoleView.connection ? consoleView.connection.events : null
 
             readonly property real fontSize: 0.9 * Theme.rem
@@ -305,7 +305,7 @@ Item {
             onCountChanged: if (!userScrolling)
                 Qt.callLater(positionViewAtEnd)
 
-            Text {
+            SText {
                 visible: !consoleView.connection || log.count === 0
                 x: log.leftMargin
                 text: consoleView.connection ? I18n.t("console.launching_log_placeholder") : I18n.t("console.game_not_running")

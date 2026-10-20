@@ -32,6 +32,7 @@ ListView {
     boundsBehavior: Flickable.StopAtBounds
     keyNavigationEnabled: true
     ScrollBar.vertical: AppScrollBar {}
+    WheelScroll {}
 
     FontMetrics {
         id: metrics

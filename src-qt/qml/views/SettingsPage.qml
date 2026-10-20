@@ -38,7 +38,8 @@ Item {
             x: Theme.rem
             y: page.paddingBlock
             width: page.sidebarWidth
-            height: Math.min(navContent.implicitHeight + 2 * 1.25 * Theme.rem, parent.height - 2 * page.paddingBlock)
+            // the content and the border around it
+            height: Math.min(navContent.implicitHeight + 2 * 1.25 * Theme.rem + 2, parent.height - 2 * page.paddingBlock)
             radius: 6
             color: "transparent"
             border.color: Theme.neutral80
@@ -48,8 +49,8 @@ Item {
                 anchors.margins: 1
                 contentHeight: navContent.implicitHeight + 2 * 1.25 * Theme.rem
                 clip: true
-                acceptedButtons: Qt.NoButton
                 ScrollBar.vertical: AppScrollBar {}
+                WheelScroll {}
 
                 ColumnLayout {
                     id: navContent
@@ -69,7 +70,7 @@ Item {
                             verticalPadding: 0.4 * fontSize
                             onClicked: Router.navigate(-1)
                         }
-                        Text {
+                        SText {
                             Layout.fillWidth: true
                             text: I18n.t("settings.title")
                             color: Theme.neutral05
@@ -111,7 +112,8 @@ Item {
 
         // the options of the current section
         ColumnLayout {
-            x: Theme.rem + page.sidebarWidth + 1.5 * Theme.rem + Theme.rem
+            // the sidebar is absolutely positioned, so the flex gap doesn't separate them
+            x: Theme.rem + page.sidebarWidth + Theme.rem
             y: page.paddingBlock
             width: parent.width - x - Theme.rem
             spacing: 0
@@ -144,6 +146,7 @@ Item {
                         x: 0.5 * Theme.rem
                         y: (option.isFirst ? 0.5 : 1) * Theme.rem
                         width: parent.width - Theme.rem
+                        spacing: 0
 
                         Text {
                             Layout.fillWidth: true
@@ -154,6 +157,8 @@ Item {
                         }
 
                         Loader {
+                            // .option__input stretches the dropdown to the reset button's height
+                            Layout.fillHeight: option.modelData.input === "game_select"
                             sourceComponent: {
                                 switch (option.modelData.input) {
                                 case "toggle":
