@@ -49,7 +49,6 @@ jobs:
           pipx install cargo-xwin
 
       - name: Install Qt
-        id: qt-host
         uses: jurplel/install-qt-action@v4
         with:
           version: ${{ env.QT_VERSION }}
@@ -57,7 +56,6 @@ jobs:
           cache: true
 
       - name: Install Qt for Windows
-        id: qt-windows
         if: matrix.target == 'x86_64-pc-windows-msvc'
         uses: jurplel/install-qt-action@v4
         with:
@@ -75,8 +73,10 @@ jobs:
       - name: Configure Qt for Windows
         if: matrix.target == 'x86_64-pc-windows-msvc'
         run: |
-          qt_host='${{ steps.qt-host.outputs.qtPath }}'
-          qt_target='${{ steps.qt-windows.outputs.qtPath }}'
+          # install-qt-action does not expose its qtPath output, so find the installations directly.
+          qt_host="$QT_ROOT_DIR"
+          qt_target=$(echo "$RUNNER_TEMP"/qt-windows/Qt/*/msvc2022_64)
+          [ -n "$qt_host" ] && [ -d "$qt_target" ] || { echo "Qt not found: '$qt_host' '$qt_target'"; exit 1; }
           cat > "$qt_target/bin/target_qt.conf" <<EOF
           [Paths]
           Prefix=$qt_target
