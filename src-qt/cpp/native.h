@@ -31,6 +31,8 @@ public:
     bool ctrl() const;
 
     Q_INVOKABLE void copyText(const QString& text) const;
+    /// Opens a folder in the platform's file manager. Returns whether it could.
+    Q_INVOKABLE bool openFolder(const QString& path) const;
 
     /// Saves a screenshot of a window, including its popups. Returns whether it succeeded.
     Q_INVOKABLE bool grabWindow(QObject* window, const QString& path) const;

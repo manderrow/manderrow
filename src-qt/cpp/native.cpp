@@ -17,7 +17,9 @@
 #endif
 
 #include <QtCore/QResource>
+#include <QtCore/QUrl>
 #include <QtGui/QClipboard>
+#include <QtGui/QDesktopServices>
 #include <QtGui/QFontDatabase>
 #include <QtGui/QGuiApplication>
 #include <QtGui/QIcon>
@@ -49,6 +51,11 @@ bool Native::ctrl() const
 void Native::copyText(const QString& text) const
 {
     QGuiApplication::clipboard()->setText(text);
+}
+
+bool Native::openFolder(const QString& path) const
+{
+    return QDesktopServices::openUrl(QUrl::fromLocalFile(path));
 }
 
 bool Native::grabWindow(QObject* window, const QString& path) const

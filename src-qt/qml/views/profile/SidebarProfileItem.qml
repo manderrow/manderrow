@@ -61,6 +61,13 @@ Rectangle {
         }));
     }
 
+    function _openFolder() {
+        Api.getProfilePath(profile.id).then(path => {
+            if (!Native.openFolder(path))
+                throw new Error(`Failed to open folder: ${path}`);
+        }).catch(e => Ui.window.reportError(e));
+    }
+
     HoverHandler {
         id: hover
     }
@@ -228,6 +235,7 @@ Rectangle {
                     visible: Native.shift
                     iconName: "clipboard"
                     tooltip: I18n.t("profile.sidebar.copy_id_profile_btn")
+                    onClicked: Native.copyText(profileItem.profile.id)
                 }
                 OptionButton {
                     visible: Native.shift
@@ -276,14 +284,12 @@ Rectangle {
                         {
                             icon: "clipboard",
                             label: I18n.t("profile.sidebar.copy_id_profile_btn"),
-                            // TODO: implement copy profile ID
-                            action: () => {}
+                            action: () => Native.copyText(profileItem.profile.id)
                         },
                         {
                             icon: "folder-open",
                             label: I18n.t("profile.sidebar.open_folder_profile_btn"),
-                            // TODO: implement open folder
-                            action: () => {}
+                            action: () => profileItem._openFolder()
                         }
                     ]
                 }

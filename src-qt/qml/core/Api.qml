@@ -194,6 +194,9 @@ QtObject {
     function deleteProfile(id) {
         return invoke("delete_profile", { id });
     }
+    function getProfilePath(id) {
+        return invoke("get_profile_path", { id });
+    }
     function getProfileMods(id) {
         return invoke("get_profile_mods", { id });
     }

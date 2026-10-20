@@ -210,6 +210,10 @@ pub async fn dispatch(
             let a = args!(args, { id: Uuid });
             json(profiles::commands::delete_profile(a.id).await)
         }
+        "get_profile_path" => {
+            let a = args!(args, { id: Uuid });
+            json(profiles::commands::get_profile_path(a.id))
+        }
         "get_profile_mods" => {
             let a = args!(args, { id: Uuid });
             raw(profiles::commands::get_profile_mods(a.id).await)
