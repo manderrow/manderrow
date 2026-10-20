@@ -12,6 +12,7 @@ AbstractButton {
     property real fontSize: Theme.rem
     property int fontWeight: Font.Normal
     property string iconName
+    property bool iconFilled: false
     property real iconSize: fontSize
     property real iconRotation: 0
     /// Places the icon after the text instead of before it.

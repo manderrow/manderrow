@@ -86,8 +86,8 @@ Item {
                                 font.family: Theme.font
                                 font.pixelSize: Theme.rem
                             }
-                            FaIcon {
-                                name: "externalLink"
+                            Icon {
+                                name: "external-link"
                                 size: 0.9 * Theme.rem
                                 color: Theme.neutral30
                                 anchors.verticalCenter: parent.verticalCenter

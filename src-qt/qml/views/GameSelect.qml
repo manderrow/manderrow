@@ -229,7 +229,7 @@ Rectangle {
                     y: 0.5 * Theme.rem
                     spacing: 0.25 * Theme.rem
 
-                    FaIcon {
+                    Icon {
                         name: "globe"
                         anchors.verticalCenter: parent.verticalCenter
                     }
@@ -445,7 +445,7 @@ Rectangle {
                     variant: "plain"
                     radius: 0.5 * Theme.rem
                     activeBgColor: Theme.alpha(Theme.neutral10, 0.1)
-                    iconName: page.displayType === "card" ? "list" : "tableCellsLarge"
+                    iconName: page.displayType === "card" ? "list" : "grid-2x2"
                     tooltip: I18n.t("game_select.search.display_type_btn", {
                         type: page.displayType === "card" ? I18n.t("game_select.search.card_display_type") : I18n.t("game_select.search.list_display_type")
                     })

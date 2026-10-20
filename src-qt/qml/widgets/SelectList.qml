@@ -98,7 +98,7 @@ ListView {
             anchors.verticalCenter: parent.verticalCenter
             spacing: 0.5 * list.fontSize
 
-            FaIcon {
+            Icon {
                 name: "check"
                 size: list.fontSize
                 opacity: option.modelData.selected ? 1 : 0

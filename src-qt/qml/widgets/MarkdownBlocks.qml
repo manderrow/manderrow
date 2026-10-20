@@ -265,8 +265,9 @@ Column {
                             spacing: 0.5 * root.rem
                             bottomPadding: 0.75 * root.rem
 
-                            FaIcon {
-                                name: "octicon:" + slot.block.kind
+                            Icon {
+                                // the nearest Lucide icons to the Octicons that GitHub shows
+                                name: ({ note: "info", tip: "lightbulb", important: "message-square-warning", warning: "triangle-alert", caution: "octagon-alert" })[slot.block.kind] || ""
                                 size: 16
                                 color: root.textColor
                                 anchors.verticalCenter: parent.verticalCenter

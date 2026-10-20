@@ -137,7 +137,7 @@ Rectangle {
         variant: "plain"
         radius: 0
         fontSize: 1.5 * Theme.rem
-        iconName: "anglesRight"
+        iconName: "chevrons-right"
         iconRotation: sidebar.open ? 180 : 0
         horizontalPadding: 0.35 * fontSize
         verticalPadding: (sidebar.open ? 1 : 0.75) * fontSize
@@ -241,7 +241,7 @@ Rectangle {
 
                 Btn {
                     variant: "plain"
-                    iconName: "chevronDown"
+                    iconName: "chevron-down"
                     fontSize: 1.35 * Theme.rem
                     horizontalPadding: 0.6 * fontSize
                     verticalPadding: 0.4 * fontSize
@@ -312,7 +312,7 @@ Rectangle {
 
                 SessionButton {
                     visible: !!sidebar.focusedConnection && sidebar.focusedConnection.status === "connected"
-                    iconName: "skullCrossbones"
+                    iconName: "skull"
                     label: I18n.t("profile.sidebar.kill_game_btn")
                     tone1: Theme.danger3
                     tone2: Theme.danger4
@@ -323,7 +323,7 @@ Rectangle {
 
                 SessionButton {
                     visible: sidebar.hasLiveConnection && sidebar.focusedConnection.status !== "connected"
-                    iconName: "xmark"
+                    iconName: "x"
                     label: I18n.t("profile.sidebar.cancel_launch_btn")
                     tone1: Theme.warn3
                     tone2: Theme.warn4
@@ -346,7 +346,8 @@ Rectangle {
                     visible: !sidebar.mini
                     Layout.alignment: Qt.AlignBottom
                     variant: "plain"
-                    iconName: "gear"
+                    iconName: "settings"
+                    iconFilled: true
                     horizontalPadding: 0.25 * fontSize
                     verticalPadding: 0.1 * fontSize
                     tooltip: I18n.t("profile.sidebar.game_settings_btn")
@@ -395,7 +396,7 @@ Rectangle {
                     onClicked: sidebar.createProfile()
                 }
                 ProfilesActionButton {
-                    iconName: "fileImport"
+                    iconName: "file-input"
                     tooltip: I18n.t("profile.sidebar.import_profile_tooltip")
                     onClicked: importDialog.open()
                 }
@@ -451,7 +452,7 @@ Rectangle {
                         Layout.fillHeight: true
                         horizontalPadding: 0.5 * Theme.rem
                         textColor: Theme.neutral20
-                        iconName: sidebar.profileSortOrder ? "arrowUpWideShort" : "arrowDownShortWide"
+                        iconName: sidebar.profileSortOrder ? "arrow-up-wide-narrow" : "arrow-down-narrow-wide"
                         onClicked: sidebar.profileSortOrder = !sidebar.profileSortOrder
                     }
                 }
@@ -572,8 +573,9 @@ Rectangle {
                 topPadding: sidebar.mini ? 0.5 * 1.75 * Theme.rem : 0
                 bottomPadding: sidebar.mini ? 0.5 * 1.75 * Theme.rem : 0
 
-                FaIcon {
-                    name: "gear"
+                Icon {
+                    name: "settings"
+                    filled: true
                     size: 1.75 * Theme.rem
                     color: settingsHover.hovered ? Theme.primary50 : Theme.neutral20
                     anchors.verticalCenter: parent.verticalCenter

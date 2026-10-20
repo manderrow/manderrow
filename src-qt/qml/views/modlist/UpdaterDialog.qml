@@ -187,8 +187,8 @@ Dialog {
                                     font.family: Theme.font
                                     font.pixelSize: 0.9 * Theme.rem
                                 }
-                                FaIcon {
-                                    name: "arrowRightLong"
+                                Icon {
+                                    name: "move-right"
                                     size: 0.9 * Theme.rem
                                     color: Theme.neutral40
                                     anchors.verticalCenter: parent.verticalCenter

@@ -70,7 +70,7 @@ Item {
 
                         Btn {
                             variant: "plain"
-                            iconName: "chevronLeft"
+                            iconName: "chevron-left"
                             horizontalPadding: fontSize
                             verticalPadding: 0.4 * fontSize
                             onClicked: Router.navigate(-1)
@@ -252,7 +252,7 @@ Item {
 
                         Btn {
                             variant: "plain"
-                            iconName: "clockRotateLeft"
+                            iconName: "history"
                             padAll: 0.5 * fontSize
                             enabled: !option.value.isDefault
                             onClicked: page.update(option.modelData.key, "default")

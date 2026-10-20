@@ -117,7 +117,7 @@ Popup {
             anchors.top: parent ? parent.top : undefined
             anchors.right: parent ? parent.right : undefined
             variant: "plain"
-            iconName: "xmark"
+            iconName: "x"
             fontSize: 1.5 * Theme.rem
             padAll: 0.25 * fontSize
             width: height

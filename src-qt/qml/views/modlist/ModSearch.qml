@@ -86,7 +86,7 @@ Rectangle {
                 radius: 0
                 bgColor: "transparent"
                 textColor: Theme.neutral20
-                iconName: search.profileSortOrder ? "arrowUpWideShort" : "arrowDownShortWide"
+                iconName: search.profileSortOrder ? "arrow-up-wide-narrow" : "arrow-down-narrow-wide"
                 onClicked: search.profileSortOrderEdited(!search.profileSortOrder)
             }
         }

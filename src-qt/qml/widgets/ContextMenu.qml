@@ -63,12 +63,11 @@ Dropdown {
                             width: 17
                             height: label.height
 
-                            FaIcon {
+                            Icon {
                                 name: entry.modelData.icon || ""
                                 size: itemBtn.fontSize
                                 color: itemBtn.currentTextColor
                                 anchors.centerIn: parent
-                                anchors.horizontalCenterOffset: entry.modelData.iconOffset || 0
                             }
                         }
 

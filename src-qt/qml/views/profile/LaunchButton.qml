@@ -212,8 +212,9 @@ AbstractButton {
             anchors.alignWhenCentered: false
             spacing: 0.35 * Theme.rem
 
-            FaIcon {
-                name: "circlePlay"
+            Icon {
+                name: "circle-play"
+                filled: true
                 size: launch.font.pixelSize
                 anchors.verticalCenter: parent.verticalCenter
                 // nudges left while pressed
@@ -250,9 +251,9 @@ AbstractButton {
                     }
                 }
 
-                FaIcon {
+                Icon {
                     id: arrow
-                    name: "arrowRightLong"
+                    name: "move-right"
                     size: launch.font.pixelSize
                 }
             }

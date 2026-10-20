@@ -120,9 +120,9 @@ Dialog {
                 Row {
                     spacing: 0.3 * Theme.rem
 
-                    FaIcon {
+                    Icon {
                         visible: entry.task.metadata.kind !== "Other"
-                        name: entry.task.metadata.kind === "Aggregate" ? "listCheck" : "download"
+                        name: entry.task.metadata.kind === "Aggregate" ? "list-checks" : "download"
                         anchors.verticalCenter: parent.verticalCenter
                     }
                     SText {

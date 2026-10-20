@@ -42,7 +42,7 @@ Item {
         id: trigger
         anchors.fill: parent
         text: root.label
-        iconName: root.hideCaret ? "" : "caretDown"
+        iconName: root.hideCaret ? "" : "chevron-down"
         iconRotation: root.opened ? 180 : 0
         horizontalPadding: 0.75 * fontSize
         verticalPadding: 0.25 * fontSize

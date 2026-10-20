@@ -23,8 +23,9 @@ Item {
         x: content.btn.horizontalAlignment === Qt.AlignLeft ? 0 : (parent.width - width) / 2
         anchors.verticalCenter: parent.verticalCenter
 
-        FaIcon {
+        Icon {
             name: content.btn.iconName
+            filled: content.btn.iconFilled
             visible: content.btn.iconName !== ""
             size: content.btn.iconSize
             color: content.btn.currentTextColor

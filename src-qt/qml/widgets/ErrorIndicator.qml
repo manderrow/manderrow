@@ -13,7 +13,8 @@ Btn {
     property string message: "Error"
 
     text: message
-    iconName: showIcon ? "circleExclamation" : ""
+    iconName: showIcon ? "circle-alert" : ""
+    iconFilled: true
     spacing: 8
     onClicked: errorDialog.open()
 
