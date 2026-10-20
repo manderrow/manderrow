@@ -18,6 +18,8 @@ Item {
     Loader {
         anchors.fill: parent
         active: Router.gameId !== undefined
+        // the game selection screen covers it, and would show it through its translucency
+        visible: !profile.gameSelectShouldShow
         sourceComponent: ProfileWithGame {
             gameId: Router.gameId
             profileId: Router.profileId

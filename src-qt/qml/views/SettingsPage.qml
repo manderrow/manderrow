@@ -26,6 +26,11 @@ Item {
         Api.updateSettings(patch).catch(e => Ui.window.reportError(e));
     }
 
+    Rectangle {
+        anchors.fill: parent
+        color: Theme.surface(Theme.neutral85)
+    }
+
     Item {
         id: main
         anchors.horizontalCenter: parent.horizontalCenter
@@ -167,6 +172,8 @@ Item {
                                     return textInput;
                                 case "game_select":
                                     return gameSelectInput;
+                                case "percent":
+                                    return percentInput;
                                 default:
                                     return null;
                                 }
@@ -184,6 +191,47 @@ Item {
                                 Field {
                                     text: option.value.value || ""
                                     onEditingFinished: page.update(option.modelData.key, { override: text })
+                                }
+                            }
+                            Component {
+                                id: percentInput
+                                Row {
+                                    spacing: 0.75 * Theme.rem
+
+                                    AppSlider {
+                                        id: slider
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        from: 0
+                                        to: 100
+                                        stepSize: 1
+                                        value: option.value.value
+                                        // applies as it moves, without saving every step
+                                        onMoved: commit.restart()
+
+                                        Timer {
+                                            id: commit
+                                            interval: 100
+                                            onTriggered: page.update(option.modelData.key, { override: Math.round(slider.value) })
+                                        }
+                                    }
+                                    Text {
+                                        anchors.verticalCenter: parent.verticalCenter
+                                        // the widest value, so the slider doesn't move as it changes
+                                        width: percentMetrics.advanceWidth
+                                        horizontalAlignment: Text.AlignRight
+                                        text: `${Math.round(slider.value)}%`
+                                        color: Theme.neutral05
+                                        font.family: Theme.font
+                                        font.pixelSize: Theme.rem
+                                        font.features: ({ "tnum": 1 })
+
+                                        TextMetrics {
+                                            id: percentMetrics
+                                            font.family: Theme.font
+                                            font.pixelSize: Theme.rem
+                                            text: "100%"
+                                        }
+                                    }
                                 }
                             }
                             Component {

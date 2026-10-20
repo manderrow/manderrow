@@ -97,8 +97,6 @@ Rectangle {
             label: "Advanced"
             trigger.bgColor: "transparent"
             trigger.textColor: Theme.neutral20
-            contentWidth: sortOptions.implicitWidth
-            contentHeight: sortOptions.implicitHeight
 
             // the sort columns, reordered by dragging
             Item {
@@ -143,10 +141,9 @@ Rectangle {
 
                         Behavior on y {
                             enabled: !option.dragging
-                            NumberAnimation {
+                            SmoothNumberAnimation {
                                 duration: 150
-                                easing.type: Easing.Bezier
-                                easing.bezierCurve: [0.4, 0, 0.2, 1, 1, 1]
+                                curve: [0.4, 0, 0.2, 1, 1, 1]
                             }
                         }
 
@@ -205,11 +202,8 @@ Rectangle {
                                 font.family: Theme.font
                                 font.pixelSize: Theme.rem
 
-                                HoverHandler {
-                                    cursorShape: Qt.PointingHandCursor
-                                }
-                                TapHandler {
-                                    onTapped: {
+                                ClickArea {
+                                    onActivated: {
                                         const updated = search.sort.slice();
                                         updated[option.index] = {
                                             column: option.modelData.column,

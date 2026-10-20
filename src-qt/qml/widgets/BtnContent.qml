@@ -32,10 +32,8 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
 
             Behavior on rotation {
-                NumberAnimation {
+                SmoothNumberAnimation {
                     duration: 200
-                    easing.type: Easing.Bezier
-                    easing.bezierCurve: Theme.ease
                 }
             }
         }
@@ -48,10 +46,8 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
 
             Behavior on color {
-                ColorAnimation {
+                SmoothColorAnimation {
                     duration: 100
-                    easing.type: Easing.Bezier
-                    easing.bezierCurve: Theme.ease
                 }
             }
         }

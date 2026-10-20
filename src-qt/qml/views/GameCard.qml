@@ -22,6 +22,9 @@ FocusScope {
     readonly property bool hot: hover.hovered || activeFocus
 
     activeFocusOnTab: true
+    // Enter selects the game, as its button does
+    Keys.onReturnPressed: card.selected()
+    Keys.onEnterPressed: card.selected()
 
     HoverHandler {
         id: hover
@@ -49,26 +52,20 @@ FocusScope {
             // the hover rule only transitions filter, so opacity changes at once on hover
             Transition {
                 to: "hot"
-                NumberAnimation {
+                SmoothNumberAnimation {
                     property: "brightness"
                     duration: 200
-                    easing.type: Easing.Bezier
-                    easing.bezierCurve: Theme.ease
                 }
             },
             Transition {
                 from: "hot"
-                NumberAnimation {
+                SmoothNumberAnimation {
                     property: "brightness"
                     duration: 700
-                    easing.type: Easing.Bezier
-                    easing.bezierCurve: Theme.ease
                 }
-                NumberAnimation {
+                SmoothNumberAnimation {
                     property: "opacity"
                     duration: 500
-                    easing.type: Easing.Bezier
-                    easing.bezierCurve: Theme.ease
                 }
             }
         ]
@@ -87,10 +84,8 @@ FocusScope {
     // the name and actions, revealed on hover, within the card's padding like the web UI's content
     property real _overlayOpacity: hot ? 1 : 0
     Behavior on _overlayOpacity {
-        NumberAnimation {
+        SmoothNumberAnimation {
             duration: 300
-            easing.type: Easing.Bezier
-            easing.bezierCurve: Theme.ease
         }
     }
 

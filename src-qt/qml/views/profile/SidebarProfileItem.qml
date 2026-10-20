@@ -4,7 +4,7 @@ import Manderrow
 
 // A profile in the sidebar, ported from SidebarProfileComponent.
 Rectangle {
-    id: item
+    id: profileItem
 
     required property var profile
     required property string gameId
@@ -23,7 +23,8 @@ Rectangle {
     property bool _deleting: false
 
     readonly property bool _menuOpen: menu.opened
-    readonly property bool _hot: hover.hovered || _menuOpen || options.activeFocus
+    // the options also show while the focus is within the item, as on the web
+    readonly property bool _hot: hover.hovered || _menuOpen || Ui.isWithin(Window.activeFocusItem, profileItem)
     readonly property var _activeConnection: {
         ConsoleStore.connectionsUpdate; // track
         return ConsoleStore.connections[ConsoleStore.connectionsUpdate];
@@ -31,6 +32,14 @@ Rectangle {
     readonly property bool _running: !!_activeConnection && _activeConnection.status !== "disconnected" && _activeConnection.profileId === profile.id
 
     implicitHeight: renaming ? editorLoader.implicitHeight : name.implicitHeight
+    // a link on the web
+    activeFocusOnTab: !renaming
+    Keys.onReturnPressed: profileItem._open()
+    Keys.onEnterPressed: profileItem._open()
+
+    function _open() {
+        Router.navigate(`/profile/${gameId}/${profile.id}`);
+    }
     color: highlighted ? Theme.primary25 : selected ? Theme.neutral80 : _hot ? Theme.neutral85 : "transparent"
 
     function _metadata(changes) {
@@ -44,7 +53,7 @@ Rectangle {
             return Promise.resolve();
         _deleting = true;
         const refetch = () => {
-            item._deleting = false;
+            profileItem._deleting = false;
             return Globals.refetchProfiles();
         };
         return Api.deleteProfile(profile.id).then(refetch, e => refetch().then(() => {
@@ -56,37 +65,39 @@ Rectangle {
         id: hover
     }
 
+    FocusRing {}
+
     // the pivot of a shift-click range selection
     Rectangle {
         anchors.fill: parent
         color: "transparent"
         border.color: Theme.primary45
         border.width: 1
-        visible: item.isPivot && (item.listFocused || item._menuOpen)
+        visible: profileItem.isPivot && (profileItem.listFocused || profileItem._menuOpen)
         z: 2
     }
 
     Loader {
         id: editorLoader
-        active: item.renaming
+        active: profileItem.renaming
         width: parent.width
         sourceComponent: ProfileNameEditor {
-            initialValue: item.profile.name
-            submit: name => Api.overwriteProfileMetadata(item.profile.id, item._metadata({ name })).then(() => Globals.refetchProfiles(), e => Globals.refetchProfiles().then(() => {
+            initialValue: profileItem.profile.name
+            submit: name => Api.overwriteProfileMetadata(profileItem.profile.id, profileItem._metadata({ name })).then(() => Globals.refetchProfiles(), e => Globals.refetchProfiles().then(() => {
                     throw e;
                 }))
-            onClosed: item.renaming = false
+            onClosed: profileItem.renaming = false
         }
     }
 
     Item {
         id: name
-        visible: !item.renaming
+        visible: !profileItem.renaming
         width: parent.width
         implicitHeight: label.implicitHeight + 2 * 0.35 * Theme.rem
 
         FaIcon {
-            visible: item._running
+            visible: profileItem._running
             name: "playCircle"
             size: 0.6 * Theme.rem
             color: Theme.primary60
@@ -98,7 +109,7 @@ Rectangle {
             }
             Tip {
                 text: I18n.t("profile.sidebar.profile_running_icon")
-                visible: playingHover.hovered
+                shown: playingHover.hovered
             }
         }
 
@@ -108,30 +119,30 @@ Rectangle {
             width: parent.width - 2 * Theme.rem
             anchors.verticalCenter: parent.verticalCenter
             // HTML collapses whitespace
-            text: item.profile.name.replace(/\s+/g, " ").trim()
+            text: profileItem.profile.name.replace(/\s+/g, " ").trim()
             elide: Text.ElideRight
             // .profileList__itemName sets its own color over the active item's primary color
             color: Theme.neutral20
             font.family: Theme.font
             font.pixelSize: Theme.rem
-            font.weight: item.selected ? 620 : Font.Normal
+            font.weight: profileItem.selected ? 620 : Font.Normal
             // Qt rounds weights to the font's named instances otherwise
-            font.variableAxes: ({ "wght": item.selected ? 620 : 400 })
+            font.variableAxes: ({ "wght": profileItem.selected ? 620 : 400 })
         }
 
         TapHandler {
             onTapped: (eventPoint, button) => {
                 // shift clicks take priority over control clicks
                 if (Native.shift)
-                    item.shiftClicked();
+                    profileItem.shiftClicked();
                 else if (Native.ctrl)
-                    item.ctrlClicked();
+                    profileItem.ctrlClicked();
                 else
-                    Router.navigate(`/profile/${item.gameId}/${item.profile.id}`);
+                    profileItem._open();
             }
             onDoubleTapped: {
                 if (!Native.ctrl && !Native.shift)
-                    item.renaming = true;
+                    profileItem.renaming = true;
             }
         }
         HoverHandler {
@@ -142,21 +153,18 @@ Rectangle {
     // the buttons revealed on hover
     Row {
         id: options
-        visible: !item.renaming
+        visible: !profileItem.renaming
         anchors.right: parent.right
         anchors.rightMargin: 0.25 * Theme.rem
         anchors.top: parent.top
         anchors.bottom: parent.bottom
         anchors.topMargin: 2
         anchors.bottomMargin: 2
-        opacity: item._hot ? 1 : 0
-        enabled: item._hot
+        opacity: profileItem._hot ? 1 : 0
 
         Behavior on opacity {
-            NumberAnimation {
+            SmoothNumberAnimation {
                 duration: 100
-                easing.type: Easing.Bezier
-                easing.bezierCurve: Theme.ease
             }
         }
 
@@ -172,7 +180,7 @@ Rectangle {
                 }
                 GradientStop {
                     position: 1
-                    color: item.color
+                    color: profileItem.color
                 }
             }
         }
@@ -180,7 +188,7 @@ Rectangle {
         Rectangle {
             width: buttons.width
             height: parent.height
-            color: item.color
+            color: profileItem.color
 
             Row {
                 id: buttons
@@ -203,9 +211,9 @@ Rectangle {
                     btn.horizontalPadding: 0.1 * Theme.rem
                     btn.verticalPadding: 0.2 * Theme.rem
                     btn.iconRotation: 90
-                    iconName: item.profile.pinned ? "thumbTackSlash" : "thumbTack"
-                    tooltip: item.profile.pinned ? I18n.t("profile.sidebar.unpin_profile_btn") : I18n.t("profile.sidebar.pin_profile_btn")
-                    action: () => Api.overwriteProfileMetadata(item.profile.id, item._metadata({ pinned: !item.profile.pinned })).then(() => Globals.refetchProfiles(), e => Globals.refetchProfiles().then(() => {
+                    iconName: profileItem.profile.pinned ? "thumbTackSlash" : "thumbTack"
+                    tooltip: profileItem.profile.pinned ? I18n.t("profile.sidebar.unpin_profile_btn") : I18n.t("profile.sidebar.pin_profile_btn")
+                    action: () => Api.overwriteProfileMetadata(profileItem.profile.id, profileItem._metadata({ pinned: !profileItem.profile.pinned })).then(() => Globals.refetchProfiles(), e => Globals.refetchProfiles().then(() => {
                             throw e;
                         }))
                 }
@@ -224,7 +232,7 @@ Rectangle {
                     visible: Native.shift
                     iconName: "trashCan"
                     tooltip: I18n.t("global.phrases.delete")
-                    onClicked: Api.deleteProfile(item.profile.id).then(() => Globals.refetchProfiles(), e => Globals.refetchProfiles().then(() => Ui.window.reportError(e)))
+                    onClicked: Api.deleteProfile(profileItem.profile.id).then(() => Globals.refetchProfiles(), e => Globals.refetchProfiles().then(() => Ui.window.reportError(e)))
                 }
 
                 ContextMenu {
@@ -242,7 +250,7 @@ Rectangle {
                         {
                             icon: "penToSquare",
                             label: I18n.t("profile.sidebar.rename_profile_btn"),
-                            action: () => item.renaming = true
+                            action: () => profileItem.renaming = true
                         },
                         {
                             icon: "trashCan",
@@ -283,15 +291,17 @@ Rectangle {
         }
     }
 
-    PromptDialog {
+    PopupLoader {
         id: deletePrompt
-        title: I18n.t("global.phrases.confirm")
-        question: I18n.t("profile.delete_msg", { profileName: item.profile.name })
-        okType: "danger"
-        okText: I18n.t("global.phrases.delete")
-        onAccepted: {
-            close();
-            item._delete().catch(e => Ui.window.reportError(e));
+        sourceComponent: PromptDialog {
+            title: I18n.t("global.phrases.confirm")
+            question: I18n.t("profile.delete_msg", { profileName: profileItem.profile.name })
+            okType: "danger"
+            okText: I18n.t("global.phrases.delete")
+            onAccepted: {
+                close();
+                profileItem._delete().catch(e => Ui.window.reportError(e));
+            }
         }
     }
 }

@@ -16,6 +16,11 @@ struct Env<'a> {
 }
 
 fn main() {
+    // Native::setBlurBehind uses the DWM's backdrops on Windows
+    if var_os("CARGO_CFG_TARGET_OS").is_some_and(|os| os == "windows") {
+        println!("cargo::rustc-link-lib=dwmapi");
+    }
+
     let mut root_dir = PathBuf::from(var_os("CARGO_MANIFEST_DIR").unwrap());
     assert!(root_dir.pop());
     let crates_dir = root_dir.join("crates");
@@ -105,13 +110,27 @@ fn build_qt(crate_dir: &Path) {
             .singleton(source.lines().any(|line| line.trim() == "pragma Singleton"))
     }));
 
-    CxxQtBuilder::new_qml_module(module)
+    // Qt's private headers, if they are installed, for the QPA headers that Native uses
+    let private_headers = qt_dir("QT_INSTALL_HEADERS")
+        .join("QtGui")
+        .join(qt_dir("QT_VERSION"));
+
+    let builder = CxxQtBuilder::new_qml_module(module)
         .qt_module("Gui")
         .qt_module("Quick")
         .qt_module("QuickControls2")
         .files(["src/qt/bridge.rs"])
-        .cpp_files(["cpp/native.h", "cpp/native.cpp"])
-        .build();
+        .cpp_files(["cpp/native.h", "cpp/native.cpp"]);
+    // SAFETY: this only adds include directories
+    let builder = unsafe {
+        builder.cc_builder(|cc| {
+            if private_headers.exists() {
+                cc.include(&private_headers)
+                    .include(private_headers.join("QtGui"));
+            }
+        })
+    };
+    builder.build();
 }
 
 /// Compiles the static assets into a binary Qt resource bundle, which is embedded in the

@@ -20,9 +20,12 @@ Popup {
     signal dismissed
 
     parent: Overlay.overlay
-    anchors.centerIn: parent
+    // centered in the window below the title bar, which dialogs leave uncovered
+    readonly property real _areaHeight: parent ? parent.height - Theme.titlebarHeight : implicitHeight
+    x: parent ? (parent.width - width) / 2 : 0
+    y: Theme.titlebarHeight + (_areaHeight - height) / 2
     width: Math.min(parent ? parent.width : maxWidth, maxWidth)
-    height: Math.min(implicitHeight, parent ? parent.height : implicitHeight)
+    height: Math.min(implicitHeight, _areaHeight)
     modal: true
     focus: true
     padding: defaultStyle ? Theme.rem : 0
@@ -31,12 +34,17 @@ Popup {
 
     // the backdrop: rgb(0 0 0 / 0.25) with blur(2px), below the title bar like the web UI's
     Overlay.modal: Item {
+        // it doesn't take the title bar's input, which isn't covered
+        containmentMask: Ui.belowTitleBar
+
         BackdropBlur {
             y: Theme.titlebarHeight
             width: parent.width
             height: parent.height - y
             radius: 2
             quality: BackdropBlur.Gaussian
+            // it covers all of the app, so the app needn't be drawn sharp beneath it
+            hidesSource: true
             tint: Qt.rgba(0, 0, 0, 0.25)
 
             // the app behind isn't hovered or scrolled; pressing here closes the dialog
@@ -69,6 +77,12 @@ Popup {
     contentItem: Item {
         implicitWidth: scroll.implicitWidth
         implicitHeight: scroll.implicitHeight
+        // takes the dialog's focus, so that the keys its body leaves unhandled can scroll it
+        focus: true
+        Keys.onPressed: event => {
+            if (Ui.focusNavigator)
+                Ui.focusNavigator.handleKey(event);
+        }
 
         // scrolls when the dialog is taller than the window
         Flickable {
@@ -93,13 +107,15 @@ Popup {
             }
         }
 
-        // in the dialog's corner, outside the padding, and over the body
+        // in the dialog's corner, outside the padding, and over the body. It is in the popup's own
+        // item, which the padding is part of, as Qt can skip delivering the pointer to items
+        // outside their parent.
         Btn {
+            parent: dialog.contentItem.parent
+            z: 1
             visible: !dialog.hideCloseBtn
-            anchors.top: parent.top
-            anchors.right: parent.right
-            anchors.topMargin: -dialog.topPadding
-            anchors.rightMargin: -dialog.rightPadding
+            anchors.top: parent ? parent.top : undefined
+            anchors.right: parent ? parent.right : undefined
             variant: "plain"
             iconName: "xmark"
             fontSize: 1.5 * Theme.rem

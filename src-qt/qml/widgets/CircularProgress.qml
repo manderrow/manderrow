@@ -54,10 +54,9 @@ Item {
                 sweepAngle: 360 * root.percentage / 100
 
                 Behavior on sweepAngle {
-                    NumberAnimation {
+                    SmoothNumberAnimation {
                         duration: 100
-                        easing.type: Easing.Bezier
-                        easing.bezierCurve: Theme.easeInOut
+                        curve: Theme.easeInOut
                     }
                 }
             }

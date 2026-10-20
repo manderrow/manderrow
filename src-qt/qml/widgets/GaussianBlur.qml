@@ -15,6 +15,8 @@ Item {
     property real radius: 0
     /// Clips the result to rounded corners.
     property real cornerRadius: 0
+    /// Hides `source` itself while this shows, for a blur that covers it all.
+    property bool hidesSource: false
 
     readonly property real _dpr: Screen.devicePixelRatio > 0 ? Screen.devicePixelRatio : 1
 
@@ -23,6 +25,7 @@ Item {
         anchors.fill: parent
         sourceItem: root.source
         sourceRect: root.sourceRect
+        hideSource: root.hidesSource && root.visible
         visible: false
     }
 

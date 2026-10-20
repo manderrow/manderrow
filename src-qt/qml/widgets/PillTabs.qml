@@ -51,23 +51,22 @@ Item {
         color: Theme.primary40
 
         Behavior on x {
-            NumberAnimation {
+            SmoothNumberAnimation {
                 duration: 200
-                easing.type: Easing.Bezier
-                easing.bezierCurve: Theme.ease
             }
         }
         Behavior on width {
-            NumberAnimation {
+            SmoothNumberAnimation {
                 duration: 200
-                easing.type: Easing.Bezier
-                easing.bezierCurve: Theme.ease
             }
         }
     }
 
     Row {
         id: row
+        // the arrow keys move between the tabs, as in a tab list
+        Keys.onLeftPressed: event => event.accepted = Ui.focusNavigator.moveFocusWithin(row, false)
+        Keys.onRightPressed: event => event.accepted = Ui.focusNavigator.moveFocusWithin(row, true)
         x: tabs.inset ? 0.2 * Theme.rem : 0
         y: x
 

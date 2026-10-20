@@ -46,23 +46,19 @@ AbstractButton {
 
     ParallelAnimation {
         id: glintIn
-        NumberAnimation {
+        SmoothNumberAnimation {
             target: launch
             property: "_glint"
             from: 0
             to: 1
             duration: 1300
-            easing.type: Easing.Bezier
-            easing.bezierCurve: Theme.ease
         }
-        NumberAnimation {
+        SmoothNumberAnimation {
             target: launch
             property: "_glintOpacity"
             from: 0
             to: 1
             duration: 750
-            easing.type: Easing.Bezier
-            easing.bezierCurve: Theme.ease
         }
     }
 
@@ -80,10 +76,8 @@ AbstractButton {
                 fillGradient: RadialGradient {
                     property real size: launch.hot ? 2 : 1
                     Behavior on size {
-                        NumberAnimation {
+                        SmoothNumberAnimation {
                             duration: 1000
-                            easing.type: Easing.Bezier
-                            easing.bezierCurve: Theme.ease
                         }
                     }
                     centerX: launch.width / 2
@@ -226,10 +220,8 @@ AbstractButton {
                 transform: Translate {
                     x: launch.down && !launch.mini ? -0.5 * launch.font.pixelSize : 0
                     Behavior on x {
-                        NumberAnimation {
+                        SmoothNumberAnimation {
                             duration: 200
-                            easing.type: Easing.Bezier
-                            easing.bezierCurve: Theme.ease
                         }
                     }
                 }
@@ -253,10 +245,8 @@ AbstractButton {
                 anchors.verticalCenter: parent.verticalCenter
 
                 Behavior on maxWidth {
-                    NumberAnimation {
+                    SmoothNumberAnimation {
                         duration: 300
-                        easing.type: Easing.Bezier
-                        easing.bezierCurve: Theme.ease
                     }
                 }
 

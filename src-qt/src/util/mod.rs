@@ -6,6 +6,13 @@ pub use progress::Progress;
 
 use std::io;
 
+/// Returns the memory that this thread has freed to the OS. The allocator otherwise keeps it until
+/// the thread allocates again, which after decoding a mod index can be hundreds of megabytes.
+pub fn release_freed_memory() {
+    // SAFETY: this takes no pointers, and only returns memory that is no longer allocated
+    unsafe { libmimalloc_sys::mi_collect(true) }
+}
+
 pub trait IoErrorKindExt {
     fn is_not_found(&self) -> bool;
 }

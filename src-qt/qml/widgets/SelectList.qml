@@ -30,8 +30,13 @@ ListView {
     model: options
     clip: true
     boundsBehavior: Flickable.StopAtBounds
-    keyNavigationEnabled: true
-    ScrollBar.vertical: AppScrollBar {}
+    // the arrow keys move the focus between the options, as in the panels they show in
+    keyNavigationEnabled: false
+    Keys.onUpPressed: event => event.accepted = Ui.focusNavigator.moveFocusWithin(list, false)
+    Keys.onDownPressed: event => event.accepted = Ui.focusNavigator.moveFocusWithin(list, true)
+    ScrollBar.vertical: AppScrollBar {
+        id: bar
+    }
     WheelScroll {}
 
     FontMetrics {
@@ -66,14 +71,17 @@ ListView {
         required property var modelData
         required property int index
 
-        width: list.width
+        width: list.width - bar.gutter
         implicitHeight: row.implicitHeight + 2 * list.itemPadding
         color: hover.hovered || activeFocus ? Theme.neutral70 : "transparent"
+        // tabIndex 0 on the web
+        activeFocusOnTab: true
 
         function select() {
             list.changed(modelData.value, !modelData.selected);
         }
 
+        FocusRing {}
         HoverHandler {
             id: hover
             cursorShape: Qt.PointingHandCursor

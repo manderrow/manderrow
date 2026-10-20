@@ -36,7 +36,7 @@ Manderrow is a Rust application with a [Qt Quick](https://doc.qt.io/qt-6/qtquick
 
 - The nightly Rust toolchain pinned in `rust-toolchain.toml`
 - [Zig](https://ziglang.org/) 0.15, which builds the injection agent
-- Qt 6.9 or newer, with the Qt Quick, Qt Quick Controls, and Qt SVG development packages. Set `QMAKE` to the path of `qmake` if it isn't on your `PATH`.
+- Qt 6.10 or newer, with the Qt Quick, Qt Quick Controls, and Qt SVG development packages. Set `QMAKE` to the path of `qmake` if it isn't on your `PATH`.
   - Fedora: `sudo dnf install qt6-qtbase-devel qt6-qtbase-private-devel qt6-qtdeclarative-devel qt6-qtsvg-devel`
   - Debian/Ubuntu: `sudo apt install qt6-base-dev qt6-base-private-dev qt6-declarative-dev qt6-svg-dev`
 

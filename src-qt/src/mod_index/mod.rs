@@ -140,7 +140,7 @@ pub async fn fetch_mod_index(
                             }
                             let fetched_at = std::time::Instant::now();
                             let fetched_in = fetched_at.duration_since(spawned_at);
-                            tokio::task::block_in_place(move || {
+                            let index = tokio::task::block_in_place(move || {
                                 let buf_len = buf.len();
                                 // TODO: rkyv serialize from simd_json tape directly, validating as we go
                                 let mods = simd_json::from_slice::<Vec<ModRef>>(&mut buf)?;
@@ -235,7 +235,10 @@ pub async fn fetch_mod_index(
                                     }
                                 }).with_context(|| format!("Failed to create mod index from chunk at {url:?}"))?;
                                 Ok::<_, anyhow::Error>(index)
-                            })
+                            });
+                            // decoding freed several times the chunk's size on this thread
+                            crate::util::release_freed_memory();
+                            index
                         })
                         .await?
                     }))
@@ -252,6 +255,8 @@ pub async fn fetch_mod_index(
                     r = new_mod_index => r?,
                 };
                 *mod_index.data.write().await = MemoryModIndex { chunks: new_mod_index };
+                // the index replaced, if any
+                crate::util::release_freed_memory();
 
                 #[cfg(feature = "statistics")]
                 let (inline_version_count, out_of_line_version_count) = packed_semver::get_version_repr_stats();

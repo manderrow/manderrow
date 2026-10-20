@@ -237,10 +237,14 @@
 
     "section": {
       "general": "General",
+      "appearance": "Appearance",
       "launching": "Launching"
     },
     "settings": {
       "defaultGame": "Default game",
+      "windowTranslucent": "Translucent window",
+      "windowOpacity": "Window opacity",
+      "windowBlur": "Blur behind window",
       "openConsoleOnLaunch": "Open console on launch?"
     }
   },

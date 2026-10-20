@@ -12,10 +12,9 @@ Item {
     Component.onCompleted: opacity = 1
 
     Behavior on opacity {
-        NumberAnimation {
+        SmoothNumberAnimation {
             duration: 250
-            easing.type: Easing.Bezier
-            easing.bezierCurve: Theme.easeIn
+            curve: Theme.easeIn
         }
     }
 
@@ -34,11 +33,11 @@ Item {
                 focalY: 0
                 GradientStop {
                     position: 0
-                    color: Theme.hsl(210, 30, 24)
+                    color: Theme.surface(Theme.hsl(210, 30, 24))
                 }
                 GradientStop {
                     position: 1
-                    color: Theme.neutral90
+                    color: Theme.surface(Theme.neutral90)
                 }
             }
             PathRectangle {

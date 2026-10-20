@@ -20,7 +20,7 @@ QtObject {
     readonly property string font: "Inter"
     readonly property string fontMonospace: "Source Code Pro"
 
-    // CSS timing functions, for `easing.bezierCurve` with `easing.type: Easing.Bezier`
+    // CSS timing functions, for the `curve` of SmoothNumberAnimation and SmoothColorAnimation
     readonly property var ease: [0.25, 0.1, 0.25, 1, 1, 1]
     readonly property var easeIn: [0.42, 0, 1, 1, 1, 1]
     readonly property var easeOut: [0, 0, 0.58, 1, 1, 1]
@@ -36,6 +36,13 @@ QtObject {
     /// Returns `color` with its alpha replaced.
     function alpha(color, a) {
         return Qt.rgba(color.r, color.g, color.b, a);
+    }
+
+    /// The background of a region of the window, such as a panel or a page, which is translucent
+    /// while the window is. The regions each draw their own background over nothing, rather than
+    /// over the window's, so that the desktop shows through all of them alike.
+    function surface(color) {
+        return Ui.surfaceOpacity >= 1 ? color : alpha(color, color.a * Ui.surfaceOpacity);
     }
 
     // MultiEffect blurMax for a CSS `blur(sigma)`, measured by blurring an edge and comparing its

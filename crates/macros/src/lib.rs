@@ -121,6 +121,8 @@ pub fn settings(args: TokenStream, input: TokenStream) -> TokenStream {
                     Some(ident) if ident == "ref_by" => {
                         ref_by = Some(try_parse_attribute(ref_by, attr)?);
                     }
+                    // documentation for the field
+                    Some(ident) if ident == "doc" => {}
                     _ => return Err(Error::new(attr.path().span(), "Unrecognized attribute")),
                 }
             }

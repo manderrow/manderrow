@@ -2,9 +2,14 @@ import QtQuick
 import Manderrow
 
 // The bar along the bottom of the profile view, ported from StatusBar.tsx.
-Rectangle {
+Item {
     id: bar
     objectName: "statusBar"
+
+    /// Where the bar's background starts, after what covers the bar's start. The background isn't
+    /// drawn under it, so that it doesn't show through when the window is translucent. The
+    /// contents stay centered in the whole bar.
+    property real leftInset: 0
 
     function openTasks() {
         tasksDialog.open();
@@ -25,12 +30,24 @@ Rectangle {
     }
 
     implicitHeight: row.implicitHeight + 2 * 0.2 * Theme.rem + 1
-    color: Theme.neutral90
 
     Rectangle {
-        width: parent.width
-        height: 1
-        color: Theme.neutral80
+        x: bar.leftInset
+        width: parent.width - x
+        height: parent.height
+        color: Theme.surface(Theme.neutral90)
+
+        Rectangle {
+            width: parent.width
+            height: 1
+            color: Theme.neutral80
+        }
+    }
+
+    ClickArea {
+        id: tasksHover
+        anchors.fill: row
+        onActivated: tasksDialog.open()
     }
 
     Row {
@@ -71,17 +88,10 @@ Rectangle {
             last: true
             text: I18n.t("status_bar.other_tasks_tracker", { count: bar.counts.other })
         }
-
-        HoverHandler {
-            id: tasksHover
-            cursorShape: Qt.PointingHandCursor
-        }
-        TapHandler {
-            onTapped: tasksDialog.open()
-        }
     }
 
-    TasksDialog {
+    PopupLoader {
         id: tasksDialog
+        sourceComponent: TasksDialog {}
     }
 }

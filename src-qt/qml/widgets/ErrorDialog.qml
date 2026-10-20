@@ -27,28 +27,32 @@ Dialog {
         Layout.fillWidth: true
         spacing: 0
 
-        Row {
-            spacing: 0.4 * Theme.rem
+        // a <summary>
+        Item {
+            implicitWidth: summary.implicitWidth
+            implicitHeight: summary.implicitHeight
 
-            Text {
-                text: disclosure.expanded ? "▼" : "▶"
-                color: Theme.neutral05
-                font.pixelSize: 0.7 * Theme.rem
-                anchors.verticalCenter: parent.verticalCenter
-            }
-            Text {
-                text: disclosure.title
-                color: Theme.neutral05
-                font.family: Theme.font
-                font.pixelSize: 1.17 * Theme.rem
-                font.weight: Font.Bold
+            ClickArea {
+                onActivated: disclosure.expanded = !disclosure.expanded
             }
 
-            TapHandler {
-                onTapped: disclosure.expanded = !disclosure.expanded
-            }
-            HoverHandler {
-                cursorShape: Qt.PointingHandCursor
+            Row {
+                id: summary
+                spacing: 0.4 * Theme.rem
+
+                Text {
+                    text: disclosure.expanded ? "▼" : "▶"
+                    color: Theme.neutral05
+                    font.pixelSize: 0.7 * Theme.rem
+                    anchors.verticalCenter: parent.verticalCenter
+                }
+                Text {
+                    text: disclosure.title
+                    color: Theme.neutral05
+                    font.family: Theme.font
+                    font.pixelSize: 1.17 * Theme.rem
+                    font.weight: Font.Bold
+                }
             }
         }
 

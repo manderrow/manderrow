@@ -14,7 +14,7 @@ Rectangle {
     readonly property bool maximized: window.visibility === Window.Maximized || window.visibility === Window.FullScreen
 
     height: Theme.titlebarHeight
-    color: window.active ? Theme.neutral90 : Theme.neutral85
+    color: Theme.surface(window.active ? Theme.neutral90 : Theme.neutral85)
 
     function toggleMaximized() {
         if (Qt.platform.os === "osx")
@@ -41,6 +41,12 @@ Rectangle {
         grabPermissions: PointerHandler.CanTakeOverFromAnything
         onActiveChanged: if (active)
             bar.window.startSystemMove()
+    }
+    // right clicking it shows the window manager's menu, as for a native title bar
+    TapHandler {
+        acceptedButtons: Qt.RightButton
+        onPressedChanged: if (pressed)
+            Native.showWindowMenu(bar.window, point.scenePosition.x, point.scenePosition.y)
     }
 
     RowLayout {
@@ -86,15 +92,19 @@ Rectangle {
         width: 24 + Theme.rem
         height: parent.height
 
+        ClickArea {
+            id: hover
+            cursorShape: Qt.ArrowCursor
+            onActivated: control.clicked()
+        }
+
         Rectangle {
             anchors.fill: parent
             color: hover.hovered ? control.hoverColor : Theme.alpha(control.hoverColor, 0)
 
             Behavior on color {
-                ColorAnimation {
+                SmoothColorAnimation {
                     duration: 200
-                    easing.type: Easing.Bezier
-                    easing.bezierCurve: Theme.ease
                 }
             }
         }
@@ -116,15 +126,9 @@ Rectangle {
             }
         }
 
-        HoverHandler {
-            id: hover
-        }
-        TapHandler {
-            onTapped: control.clicked()
-        }
         Tip {
             text: control.tooltip
-            visible: hover.hovered
+            shown: hover.hovered
         }
     }
 

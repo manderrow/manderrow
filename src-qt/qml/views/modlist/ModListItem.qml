@@ -4,7 +4,7 @@ import Manderrow
 
 // A mod in a mod list, ported from ModListItem.tsx.
 Item {
-    id: item
+    id: modItem
 
     /// A mod listing (with `versions`) or an installed mod package (with `version`).
     required property var mod
@@ -27,9 +27,16 @@ Item {
     readonly property var displayVersion: Util.displayVersion(mod)
     readonly property var installed: installContext ? installContext.installedOf(mod) : undefined
     readonly property bool hot: hover.hovered
+    /// The buttons show while hovered or while the focus is within the item, as on the web.
+    readonly property bool revealed: hot || Ui.isWithin(Window.activeFocusItem, modItem)
     readonly property bool _selectorShown: selectable && (forceSelectorVisibility || selected || selectorHover.hovered || hot)
 
     implicitHeight: row.implicitHeight + 2
+    // a role="button" with tabIndex 0 on the web
+    activeFocusOnTab: true
+    Keys.onReturnPressed: modItem.focusToggled()
+    Keys.onEnterPressed: modItem.focusToggled()
+    Keys.onSpacePressed: modItem.focusToggled()
 
     HoverHandler {
         id: hover
@@ -38,36 +45,38 @@ Item {
     Rectangle {
         id: frame
         anchors.fill: parent
-        radius: item.hot || item.focused ? 6 : 0
-        color: item.hot ? (item.focused ? Theme.neutral70 : Theme.neutral80) : item.focused ? Theme.neutral80 : Theme.alpha(Theme.neutral80, 0)
+        radius: modItem.hot || modItem.focused ? 6 : 0
+        color: modItem.hot ? (modItem.focused ? Theme.neutral70 : Theme.neutral80) : modItem.focused ? Theme.neutral80 : Theme.alpha(Theme.neutral80, 0)
         border.width: 1
-        border.color: tap.pressed ? Theme.neutral50 : item.focused ? Theme.primary60 : item.hot ? Theme.neutral70 : Theme.alpha(Theme.neutral70, 0)
+        border.color: tap.pressed ? Theme.neutral50 : modItem.focused ? Theme.primary60 : modItem.hot ? Theme.neutral70 : Theme.alpha(Theme.neutral70, 0)
 
         Behavior on color {
-            ColorAnimation {
+            SmoothColorAnimation {
                 duration: 100
-                easing.type: Easing.Bezier
-                easing.bezierCurve: Theme.easeInOut
+                curve: Theme.easeInOut
             }
         }
         Behavior on border.color {
-            ColorAnimation {
+            SmoothColorAnimation {
                 duration: 100
-                easing.type: Easing.Bezier
-                easing.bezierCurve: Theme.easeInOut
+                curve: Theme.easeInOut
             }
         }
         Behavior on radius {
-            NumberAnimation {
+            SmoothNumberAnimation {
                 duration: 300
-                easing.type: Easing.Bezier
-                easing.bezierCurve: Theme.easeOut
+                curve: Theme.easeOut
             }
+        }
+
+        FocusRing {
+            target: modItem
+            radius: parent.radius
         }
 
         // the top border separating items
         Rectangle {
-            visible: !item.hot && !item.focused && !item.previousHot
+            visible: !modItem.hot && !modItem.focused && !modItem.previousHot
             width: parent.width
             height: 1
             color: Theme.neutral80
@@ -77,10 +86,10 @@ Item {
     TapHandler {
         id: tap
         onTapped: (eventPoint, button) => {
-            if ((tap.point.modifiers & Qt.ShiftModifier) && item.selectable)
-                item.shiftClicked();
+            if ((tap.point.modifiers & Qt.ShiftModifier) && modItem.selectable)
+                modItem.shiftClicked();
             else
-                item.focusToggled();
+                modItem.focusToggled();
         }
     }
     HoverHandler {
@@ -97,15 +106,14 @@ Item {
         // the bulk selection checkbox, which grows in on hover
         Item {
             id: selector
-            visible: item.selectable
+            visible: modItem.selectable
             Layout.fillHeight: true
-            Layout.preferredWidth: item._selectorShown ? 18 + Theme.rem : 0.5 * Theme.rem
+            Layout.preferredWidth: modItem._selectorShown ? 18 + Theme.rem : 0.5 * Theme.rem
 
             Behavior on Layout.preferredWidth {
-                NumberAnimation {
+                SmoothNumberAnimation {
                     duration: 100
-                    easing.type: Easing.Bezier
-                    easing.bezierCurve: Theme.easeInOut
+                    curve: Theme.easeInOut
                 }
             }
 
@@ -115,36 +123,36 @@ Item {
             }
             TapHandler {
                 id: selectorTap
+                // takes the press for itself, so that the item doesn't also open the mod
+                gesturePolicy: TapHandler.ReleaseWithinBounds
                 onTapped: (eventPoint, button) => {
                     if (selectorTap.point.modifiers & Qt.ShiftModifier)
-                        item.shiftClicked();
+                        modItem.shiftClicked();
                     else
-                        item.selectToggled();
+                        modItem.selectToggled();
                 }
             }
 
             Rectangle {
-                x: item._selectorShown ? 0.5 * Theme.rem : 0
+                x: modItem._selectorShown ? 0.5 * Theme.rem : 0
                 anchors.verticalCenter: parent.verticalCenter
-                width: item._selectorShown ? 18 : 0
-                height: item._selectorShown ? 18 : 0
+                width: modItem._selectorShown ? 18 : 0
+                height: modItem._selectorShown ? 18 : 0
                 radius: 2
                 color: "transparent"
-                border.width: item._selectorShown ? 2 : 0
-                border.color: item.selected || selectorHover.hovered ? Theme.neutral15 : Theme.neutral45
+                border.width: modItem._selectorShown ? 2 : 0
+                border.color: modItem.selected || selectorHover.hovered ? Theme.neutral15 : Theme.neutral45
 
                 Behavior on width {
-                    NumberAnimation {
+                    SmoothNumberAnimation {
                         duration: 100
-                        easing.type: Easing.Bezier
-                        easing.bezierCurve: Theme.easeInOut
+                        curve: Theme.easeInOut
                     }
                 }
                 Behavior on height {
-                    NumberAnimation {
+                    SmoothNumberAnimation {
                         duration: 100
-                        easing.type: Easing.Bezier
-                        easing.bezierCurve: Theme.easeInOut
+                        curve: Theme.easeInOut
                     }
                 }
 
@@ -152,7 +160,7 @@ Item {
                 CheckMark {
                     x: 2
                     anchors.verticalCenter: parent.verticalCenter
-                    checked: item.selected && item._selectorShown
+                    checked: modItem.selected && modItem._selectorShown
                     hideWhenUnchecked: true
                     size: Theme.rem
                     clip: false
@@ -166,7 +174,7 @@ Item {
 
             RowLayout {
                 id: content
-                x: item.selectable ? 0 : 0.5 * Theme.rem
+                x: modItem.selectable ? 0 : 0.5 * Theme.rem
                 y: 0.5 * Theme.rem
                 width: parent.width - x - 0.5 * Theme.rem
                 spacing: 0.75 * Theme.rem
@@ -177,7 +185,7 @@ Item {
                     Layout.preferredWidth: 64
                     Layout.preferredHeight: 64
                     radius: 6
-                    source: Util.getIconUrl(Util.getQualifiedModName(item.mod.owner, item.mod.name, item.displayVersion.version_number))
+                    source: Util.getIconUrl(Util.getQualifiedModName(modItem.mod.owner, modItem.mod.name, modItem.displayVersion.version_number))
                 }
 
                 ColumnLayout {
@@ -194,7 +202,7 @@ Item {
                             Layout.minimumWidth: Math.min(implicitWidth, 5 * Ui.ch)
                             Layout.preferredWidth: implicitWidth
                             Layout.fillWidth: false
-                            text: item.mod.name
+                            text: modItem.mod.name
                             elide: Text.ElideRight
                             color: Theme.neutral10
                             font.family: Theme.font
@@ -207,20 +215,20 @@ Item {
                             font.pixelSize: 0.75 * Theme.rem
                         }
                         Text {
-                            text: item.mod.owner
+                            text: modItem.mod.owner
                             color: Theme.neutral20
                             font.family: Theme.font
                             font.pixelSize: 0.9 * Theme.rem
                         }
                         Text {
-                            visible: item.isPackage
+                            visible: modItem.isPackage
                             text: "•"
                             color: Theme.neutral60
                             font.pixelSize: 0.75 * Theme.rem
                         }
                         Text {
-                            visible: item.isPackage
-                            text: item.isPackage ? item.mod.version.version_number : ""
+                            visible: modItem.isPackage
+                            text: modItem.isPackage ? modItem.mod.version.version_number : ""
                             color: Theme.neutral20
                             font.family: Theme.font
                             font.pixelSize: 0.9 * Theme.rem
@@ -234,13 +242,13 @@ Item {
                         spacing: 0.3 * Theme.rem
 
                         FaIcon {
-                            name: item.isPackage ? "regular:hardDrive" : "download"
+                            name: modItem.isPackage ? "regular:hardDrive" : "download"
                             size: 0.85 * Theme.rem
                             color: Theme.neutral30
                             anchors.verticalCenter: parent.verticalCenter
                         }
                         Text {
-                            text: item.isPackage ? Util.humanizeFileSize(item.mod.version.file_size) : Util.formatRounded(item.mod.versions.reduce((total, v) => total + v.downloads, 0))
+                            text: modItem.isPackage ? Util.humanizeFileSize(modItem.mod.version.file_size) : Util.formatRounded(modItem.mod.versions.reduce((total, v) => total + v.downloads, 0))
                             color: Theme.neutral30
                             font.family: Theme.font
                             font.pixelSize: 0.85 * Theme.rem
@@ -249,7 +257,7 @@ Item {
 
                     Text {
                         Layout.fillWidth: true
-                        text: item.displayVersion.description
+                        text: modItem.displayVersion.description
                         elide: Text.ElideRight
                         maximumLineCount: 1
                         color: Theme.neutral30
@@ -261,8 +269,8 @@ Item {
                 // install or uninstall, revealed on hover
                 Loader {
                     Layout.alignment: Qt.AlignVCenter
-                    active: item.installContext !== null
-                    sourceComponent: item.installed !== undefined ? uninstallButton : installButton
+                    active: modItem.installContext !== null
+                    sourceComponent: modItem.installed !== undefined ? uninstallButton : installButton
                 }
             }
         }
@@ -271,14 +279,13 @@ Item {
     Component {
         id: installButton
         InstallButton {
-            mod: item.mod
-            installContext: item.installContext
+            mod: modItem.mod
+            installContext: modItem.installContext
             fontSize: 1.5 * Theme.rem
             progressStyle: "circular"
             busyPlain: true
             // `visibility: hidden` in the web UI, which keeps the button's space
-            opacity: item.hot || busy ? 1 : 0
-            enabled: opacity > 0
+            opacity: modItem.revealed || busy ? 1 : 0
             btn.width: btn.height
             btn.horizontalPadding: 0.65 * fontSize
             btn.verticalPadding: 0.25 * fontSize
@@ -290,20 +297,19 @@ Item {
     Component {
         id: uninstallButton
         UninstallButton {
-            mod: item.installed
-            installContext: item.installContext
+            mod: modItem.installed
+            installContext: modItem.installContext
             fontSize: 1.5 * Theme.rem
             progressStyle: "circular"
             busyPlain: true
             // `visibility: hidden` in the web UI, which keeps the button's space
-            opacity: item.hot || busy ? 1 : 0
-            enabled: opacity > 0
+            opacity: modItem.revealed || busy ? 1 : 0
             btn.width: btn.height
             btn.horizontalPadding: 0.65 * fontSize
             btn.verticalPadding: 0.25 * fontSize
             iconName: "trash"
             tooltip: I18n.t("modlist.installed.uninstall_btn")
-            onUninstalled: item.uninstalled()
+            onUninstalled: modItem.uninstalled()
         }
     }
 }
