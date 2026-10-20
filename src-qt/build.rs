@@ -135,6 +135,15 @@ fn compile_assets(crate_dir: &Path, out_dir: &Path) {
         )
         .unwrap();
     }
+    for shader in compile_shaders(crate_dir, out_dir) {
+        writeln!(
+            qrc,
+            "    <file alias=\"shaders/{}\">{}</file>",
+            shader.file_name().unwrap().to_str().unwrap(),
+            shader.display()
+        )
+        .unwrap();
+    }
     let icon = crate_dir.join("icons/128x128@2x.png");
     writeln!(qrc, "    <file alias=\"icon.png\">{}</file>", icon.display()).unwrap();
     qrc.push_str("  </qresource>\n</RCC>\n");
@@ -142,7 +151,7 @@ fn compile_assets(crate_dir: &Path, out_dir: &Path) {
     let qrc_path = out_dir.join("assets.qrc");
     std::fs::write(&qrc_path, qrc).unwrap();
 
-    let mut command = Command::new(qt_libexec_dir().join("rcc"));
+    let mut command = Command::new(qt_dir("QT_HOST_LIBEXECS").join("rcc"));
     command
         .arg("--binary")
         .arg("--no-compress")
@@ -152,7 +161,36 @@ fn compile_assets(crate_dir: &Path, out_dir: &Path) {
     command.status().unwrap().exit_ok().unwrap();
 }
 
-fn qt_libexec_dir() -> PathBuf {
+/// Compiles the shaders for every graphics API Qt Quick may render with, as qt_add_shaders does.
+fn compile_shaders(crate_dir: &Path, out_dir: &Path) -> Vec<PathBuf> {
+    let shaders_dir = crate_dir.join("shaders");
+    println!("cargo::rerun-if-changed={}", shaders_dir.display());
+    let mut shaders = Vec::new();
+    collect_files(&shaders_dir, "frag", &mut shaders);
+    shaders.sort();
+
+    let qsb = qt_dir("QT_HOST_BINS").join("qsb");
+    let compiled_dir = out_dir.join("shaders");
+    std::fs::create_dir_all(&compiled_dir).unwrap();
+    shaders
+        .iter()
+        .map(|shader| {
+            let mut compiled = compiled_dir.join(shader.file_name().unwrap());
+            compiled.as_mut_os_string().push(".qsb");
+            Command::new(&qsb)
+                .args(["--glsl", "100 es,120,150", "--hlsl", "50", "--msl", "12", "-o"])
+                .arg(&compiled)
+                .arg(shader)
+                .status()
+                .unwrap()
+                .exit_ok()
+                .unwrap();
+            compiled
+        })
+        .collect()
+}
+
+fn qt_dir(key: &str) -> PathBuf {
     println!("cargo::rerun-if-env-changed=QMAKE");
     let qmake = match var_os("QMAKE") {
         Some(qmake) => vec![PathBuf::from(qmake)],
@@ -160,7 +198,7 @@ fn qt_libexec_dir() -> PathBuf {
     };
     for qmake in qmake {
         if let Ok(output) = Command::new(&qmake)
-            .args(["-query", "QT_HOST_LIBEXECS"])
+            .args(["-query", key])
             .output()
         {
             if output.status.success() {

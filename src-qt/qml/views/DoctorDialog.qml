@@ -15,10 +15,10 @@ Dialog {
         width: parent.width
         spacing: 0
 
-        Text {
+        SText {
             Layout.fillWidth: true
             Layout.bottomMargin: 0.25 * 1.5 * Theme.rem
-            horizontalAlignment: Text.AlignHCenter
+            horizontalAlignment: TextEdit.AlignHCenter
             text: "Uh oh!"
             color: Theme.neutral05
             font.family: Theme.font
@@ -26,9 +26,9 @@ Dialog {
             font.weight: Font.Bold
         }
 
-        Text {
+        SText {
             Layout.fillWidth: true
-            wrapMode: Text.Wrap
+            wrapMode: TextEdit.Wrap
             text: dialog.report ? I18n.t(dialog.report.message || `doctor.${dialog._key}.message`, dialog.report.message_args) : ""
             color: Theme.neutral05
             font.family: Theme.font

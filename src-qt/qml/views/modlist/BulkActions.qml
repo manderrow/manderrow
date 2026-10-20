@@ -1,6 +1,5 @@
 import QtQuick
 import QtQuick.Controls.Basic
-import QtQuick.Effects
 import QtQuick.Layouts
 import Manderrow
 
@@ -69,31 +68,25 @@ Item {
                     color: Theme.neutral80
                     border.color: Theme.neutral70
 
-                    Image {
+                    RoundedImage {
                         id: art
                         anchors.fill: parent
                         anchors.margins: 1
-                        source: Util.getIconUrl(Util.getQualifiedModName(card.modelData.owner, card.modelData.name, card.modelData.version))
-                        fillMode: Image.PreserveAspectCrop
-                        asynchronous: true
-                        visible: false
-                        layer.enabled: true
-                    }
-                    Rectangle {
-                        id: artMask
-                        anchors.fill: art
                         radius: card.radius - 1
-                        visible: false
-                        layer.enabled: true
+                        source: Util.getIconUrl(Util.getQualifiedModName(card.modelData.owner, card.modelData.name, card.modelData.version))
+                        // replaced by the blurred copy, through which it would show otherwise
+                        opacity: card.overflow ? 0 : 1
+                        mipmap: card.overflow
                     }
-                    MultiEffect {
+
+                    // backdrop-filter: blur(6px)
+                    ImageEffect {
+                        visible: card.overflow && art.status === Image.Ready
                         anchors.fill: art
-                        source: art
-                        maskEnabled: true
-                        maskSource: artMask
-                        blurEnabled: card.overflow
-                        blur: 1
-                        blurMax: 12
+                        image: art.image
+                        cornerRadius: art.radius
+                        blurRadius: 6
+                        blurFadesEdges: false
                     }
 
                     // the number of selected mods without a card
@@ -132,7 +125,7 @@ Item {
                 anchors.fill: parent
                 anchors.margins: 0.5 * Theme.rem
 
-                Text {
+                SText {
                     Layout.fillWidth: true
                     text: I18n.t("modlist.installed.multiselect_title")
                     color: Theme.neutral20
@@ -154,8 +147,8 @@ Item {
             Layout.rightMargin: Theme.rem
             clip: true
             boundsBehavior: Flickable.StopAtBounds
-            acceptedButtons: Qt.NoButton
             ScrollBar.vertical: AppScrollBar {}
+            WheelScroll {}
             model: bulk.mods.filter(id => Util.concatenateMod(id.owner, id.name, id.version).toLowerCase().includes(bulk.search.toLowerCase()))
 
             // the table's border, without a bottom edge
@@ -209,6 +202,10 @@ Item {
 
                     Row {
                         Layout.fillWidth: true
+                        // stays within its grid column when the panel is narrow
+                        Layout.minimumWidth: 0
+                        Layout.preferredHeight: implicitHeight
+                        clip: true
                         spacing: 0.25 * Theme.rem
 
                         component Part: Text {
@@ -240,7 +237,7 @@ Item {
                         }
                     }
 
-                    Text {
+                    SText {
                         Layout.minimumWidth: Math.min(implicitWidth, 4 * Theme.rem)
                         text: entry.mod ? Util.humanizeFileSize(entry.mod.version.file_size) : ""
                         color: Theme.neutral05
@@ -266,7 +263,7 @@ Item {
                 anchors.fill: parent
                 anchors.margins: 0.5 * Theme.rem
 
-                Text {
+                SText {
                     Layout.fillWidth: true
                     text: I18n.t(bulk.mods.length > 1 ? "modlist.installed.selected_count_plural" : "modlist.installed.selected_count_single", {
                         count: bulk.mods.length
@@ -281,7 +278,7 @@ Item {
                         name: "regular:hardDrive"
                         anchors.verticalCenter: parent.verticalCenter
                     }
-                    Text {
+                    SText {
                         text: Util.humanizeFileSize(bulk.totalSize)
                         color: Theme.neutral05
                         font.family: Theme.font

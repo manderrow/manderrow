@@ -29,6 +29,8 @@ ToolTip {
             from: 0
             to: 1
             duration: 100
+            easing.type: Easing.Bezier
+            easing.bezierCurve: Theme.ease
         }
     }
     exit: null
@@ -39,6 +41,8 @@ ToolTip {
         font.family: Theme.font
         font.pixelSize: 0.9 * Theme.rem
         font.weight: 320
+        // Qt rounds weights to the font's named instances otherwise
+        font.variableAxes: ({ "wght": 320 })
         wrapMode: Text.Wrap
         width: Math.min(implicitWidth, tip._maxWidth - 2 * tip.padding - 2)
     }

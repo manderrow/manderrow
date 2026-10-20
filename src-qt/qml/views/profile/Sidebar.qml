@@ -23,6 +23,30 @@ Rectangle {
     /// Whether the sidebar is collapsed to icons, which happens on narrow windows.
     readonly property bool mini: Theme.windowWidth <= 1200 && !open
     property bool creatingProfile: false
+    /// The editor for naming a new profile, while it shows.
+    property ProfileNameEditor _profileCreator: null
+    property bool _reopenProfileCreator: false
+
+    /// Shows the editor for naming a new profile. If it is already showing, its name is submitted
+    /// first, then it shows again for another, as creating files does in VS Code.
+    function createProfile() {
+        if (!creatingProfile) {
+            creatingProfile = true;
+        } else if (_profileCreator) {
+            _reopenProfileCreator = true;
+            _profileCreator.commit();
+        }
+    }
+
+    function _profileCreatorClosed() {
+        creatingProfile = false;
+        if (_reopenProfileCreator) {
+            _reopenProfileCreator = false;
+            // once the closed editor is gone
+            Qt.callLater(() => sidebar.creatingProfile = true);
+        }
+    }
+
     property var focusedConnection: null
 
     signal backClicked
@@ -152,12 +176,10 @@ Rectangle {
             Layout.preferredHeight: sidebar.mini ? actionBtns.implicitHeight + 0.5 * Theme.rem : Math.max(10 * Theme.rem, nav.implicitHeight + actionBtns.implicitHeight + 2 * 0.75 * Theme.rem + 0.35 * Theme.rem)
             clip: true
 
-            Image {
+            SharpImage {
                 visible: !sidebar.mini
                 anchors.fill: parent
                 source: Util.gameHeroUrl(sidebar.gameId)
-                fillMode: Image.PreserveAspectCrop
-                asynchronous: true
             }
 
             // darkens the top and bottom of the banner
@@ -310,6 +332,7 @@ Rectangle {
                 }
 
                 LaunchButton {
+                    objectName: "launchButton"
                     Layout.fillWidth: !sidebar.mini
                     Layout.alignment: Qt.AlignHCenter
                     mini: sidebar.mini
@@ -352,6 +375,8 @@ Rectangle {
                     font.family: Theme.font
                     font.pixelSize: 1.17 * Theme.rem
                     font.weight: 350
+                    // Qt rounds weights to the font's named instances otherwise
+                    font.variableAxes: ({ "wght": 350 })
                 }
 
                 component ProfilesActionButton: Btn {
@@ -366,7 +391,7 @@ Rectangle {
                 ProfilesActionButton {
                     iconName: "plus"
                     tooltip: I18n.t("profile.sidebar.create_profile_tooltip")
-                    onClicked: sidebar.creatingProfile = true
+                    onClicked: sidebar.createProfile()
                 }
                 ProfilesActionButton {
                     iconName: "fileImport"
@@ -431,6 +456,7 @@ Rectangle {
 
             ListView {
                 id: profileList
+                objectName: "profileList"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 Layout.topMargin: 0.5 * Theme.rem
@@ -439,7 +465,10 @@ Rectangle {
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
                 activeFocusOnTab: true
-                ScrollBar.vertical: AppScrollBar {}
+                ScrollBar.vertical: AppScrollBar {
+                    autoHide: true
+                }
+                WheelScroll {}
                 model: sidebar.listedProfiles
 
                 // the selection clears once focus leaves the list
@@ -454,12 +483,17 @@ Rectangle {
                     width: profileList.width
 
                     Loader {
+                        id: profileCreator
                         active: sidebar.creatingProfile
+                        // a Loader keeps the size of the item it unloads, so the column skips it
+                        visible: active
                         width: parent.width
+                        onItemChanged: sidebar._profileCreator = item
                         sourceComponent: ProfileNameEditor {
+                            objectName: "newProfileEditor"
                             initialValue: I18n.t("profile.default_profile_name")
                             submit: name => Api.createProfile(sidebar.gameId, name).then(() => Globals.refetchProfiles())
-                            onCancelled: sidebar.creatingProfile = false
+                            onClosed: sidebar._profileCreatorClosed()
                         }
                     }
 

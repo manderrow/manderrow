@@ -19,6 +19,13 @@ ApplicationWindow {
     font.family: Theme.font
     font.pixelSize: Theme.rem
 
+    // the screen's pixel ratio, for effects that work in device pixels
+    Binding {
+        target: Ui
+        property: "dpr"
+        value: appWindow.screen ? appWindow.screen.devicePixelRatio : 1
+    }
+
     onWidthChanged: {
         Theme.windowWidth = width;
         _trackGeometry();
@@ -121,13 +128,15 @@ ApplicationWindow {
             scriptTimer.start();
     }
 
-    /// Finds an item by its objectName, for development scripts.
-    function find(objectName, item) {
-        item = item || appWindow.contentItem;
-        if (item.objectName === objectName)
-            return item;
-        for (const child of item.children) {
-            const found = find(objectName, child);
+    /// Finds an item or popup by its objectName, for development scripts.
+    function find(objectName, object) {
+        object = object || appWindow.contentItem;
+        if (object.objectName === objectName)
+            return object;
+        // an item's data includes popups declared in it, which aren't among its children
+        const nested = object.data !== undefined ? object.data : object.contentItem ? [object.contentItem] : [];
+        for (let i = 0; i < nested.length; i++) {
+            const found = nested[i] ? find(objectName, nested[i]) : null;
             if (found)
                 return found;
         }
@@ -141,8 +150,8 @@ ApplicationWindow {
         interval: Number(Backend.devOption("script_delay") || 1500)
         onTriggered: {
             try {
-                const run = new Function("find", "Api", "ConsoleStore", "Globals", "Router", "Tasks", "Ui", Backend.devOption("script"));
-                run(appWindow.find, Api, ConsoleStore, Globals, Router, Tasks, Ui);
+                const run = new Function("find", "Api", "ConsoleStore", "Globals", "Native", "Router", "Tasks", "Ui", Backend.devOption("script"));
+                run(appWindow.find, Api, ConsoleStore, Globals, Native, Router, Tasks, Ui);
             } catch (e) {
                 console.error("Dev script failed:", e, e.stack);
             }
@@ -166,6 +175,20 @@ ApplicationWindow {
         font.pixelSize: Theme.rem
         Component.onCompleted: Ui.ch = advanceWidth("0")
         onFontChanged: Ui.ch = advanceWidth("0")
+    }
+
+    // As on the web, pressing anywhere outside the focused text input or text blurs it, which
+    // commits editors and clears selections. Qt only moves focus to items that take it.
+    Connections {
+        target: Native
+        function onPointerPressed(position) {
+            const item = appWindow.activeFocusItem;
+            if (!item || item.cursorPosition === undefined)
+                return;
+            const local = item.mapFromItem(null, position.x, position.y);
+            if (!item.contains(local))
+                item.focus = false;
+        }
     }
 
     Connections {

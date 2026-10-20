@@ -128,7 +128,8 @@ Item {
                     }
 
                     Row {
-                        Layout.topMargin: 0.5 * Theme.rem - 0.25 * Theme.rem
+                        // margin-top on top of the row gap
+                        Layout.topMargin: 0.5 * Theme.rem
                         spacing: Theme.rem
 
                         component MetaField: Row {
@@ -141,7 +142,7 @@ Item {
                                 color: Theme.neutral20
                                 anchors.verticalCenter: parent.verticalCenter
                             }
-                            Text {
+                            SText {
                                 text: parent.value
                                 color: Theme.neutral20
                                 font.family: Theme.font
@@ -223,18 +224,21 @@ Item {
             }
         }
 
-        ScrollView {
+        Flickable {
             id: scroll
+            objectName: "modViewScroll"
             Layout.fillWidth: true
             Layout.fillHeight: true
-            contentWidth: availableWidth
+            contentWidth: width
+            contentHeight: scrollContent.implicitHeight
+            boundsBehavior: Flickable.StopAtBounds
             clip: true
             ScrollBar.vertical: AppScrollBar {}
-            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-            Component.onCompleted: contentItem.acceptedButtons = Qt.NoButton
+            WheelScroll {}
 
             Item {
-                width: scroll.availableWidth
+                id: scrollContent
+                width: scroll.width
                 implicitHeight: tabContent.implicitHeight + 2 * Theme.rem
 
                 Loader {

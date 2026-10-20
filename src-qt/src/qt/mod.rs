@@ -42,6 +42,10 @@ pub fn run(app: AppHandle, instance: InstanceLock) -> anyhow::Result<()> {
     }
 
     bridge::manderrow_configure_before_app();
+    // Development hook: MANDERROW_DEV_QML_DEBUG=1 lets qmlprofiler and other QML tools attach.
+    if cfg!(debug_assertions) && std::env::var_os("MANDERROW_DEV_QML_DEBUG").is_some() {
+        bridge::manderrow_enable_qml_debugging();
+    }
     let mut qapp = QGuiApplication::new();
     bridge::manderrow_configure_app();
 

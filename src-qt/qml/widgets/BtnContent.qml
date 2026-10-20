@@ -8,7 +8,13 @@ Item {
     required property Btn btn
 
     implicitWidth: row.implicitWidth
-    implicitHeight: row.implicitHeight
+    // at least a line of text tall, like the line box around a web button's icon
+    implicitHeight: Math.max(row.implicitHeight, metrics.height)
+
+    FontMetrics {
+        id: metrics
+        font: content.btn.font
+    }
 
     Row {
         id: row
@@ -28,6 +34,8 @@ Item {
             Behavior on rotation {
                 NumberAnimation {
                     duration: 200
+                    easing.type: Easing.Bezier
+                    easing.bezierCurve: Theme.ease
                 }
             }
         }
@@ -42,6 +50,8 @@ Item {
             Behavior on color {
                 ColorAnimation {
                     duration: 100
+                    easing.type: Easing.Bezier
+                    easing.bezierCurve: Theme.ease
                 }
             }
         }

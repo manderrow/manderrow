@@ -6,6 +6,8 @@
 #include <QtGui/QGuiApplication>
 #include <QtGui/QIcon>
 #include <QtGui/QKeyEvent>
+#include <QtGui/QMouseEvent>
+#include <QtQml/QQmlDebuggingEnabler>
 #include <QtQuick/QQuickWindow>
 #include <QtQuickControls2/QQuickStyle>
 
@@ -37,9 +39,49 @@ bool Native::grabWindow(QObject* window, const QString& path) const
     return quickWindow != nullptr && quickWindow->grabWindow().save(path);
 }
 
+namespace {
+void sendMouse(QQuickWindow* window, QEvent::Type type, QPointF local, Qt::MouseButtons buttons)
+{
+    QMouseEvent event(type, local, local, window->mapToGlobal(local), Qt::LeftButton, buttons,
+                      QGuiApplication::keyboardModifiers());
+    QCoreApplication::sendEvent(window, &event);
+}
+} // namespace
+
+void Native::click(QObject* window, qreal x, qreal y) const
+{
+    auto* quickWindow = qobject_cast<QQuickWindow*>(window);
+    if (quickWindow == nullptr)
+        return;
+    sendMouse(quickWindow, QEvent::MouseMove, { x, y }, Qt::NoButton);
+    sendMouse(quickWindow, QEvent::MouseButtonPress, { x, y }, Qt::LeftButton);
+    sendMouse(quickWindow, QEvent::MouseButtonRelease, { x, y }, Qt::NoButton);
+}
+
+void Native::drag(QObject* window, qreal fromX, qreal fromY, qreal toX, qreal toY) const
+{
+    auto* quickWindow = qobject_cast<QQuickWindow*>(window);
+    if (quickWindow == nullptr)
+        return;
+    const QPointF from(fromX, fromY);
+    const QPointF to(toX, toY);
+    // the pointer arrives before it presses, as a real one does
+    sendMouse(quickWindow, QEvent::MouseMove, from, Qt::NoButton);
+    sendMouse(quickWindow, QEvent::MouseButtonPress, from, Qt::LeftButton);
+    constexpr int steps = 10;
+    for (int i = 1; i <= steps; ++i)
+        sendMouse(quickWindow, QEvent::MouseMove, from + (to - from) * i / steps, Qt::LeftButton);
+    sendMouse(quickWindow, QEvent::MouseButtonRelease, to, Qt::NoButton);
+}
+
 bool Native::eventFilter(QObject* watched, QEvent* event)
 {
     switch (event->type()) {
+    case QEvent::MouseButtonPress:
+        // The press reaches the window first, then each item it is delivered to.
+        if (qobject_cast<QQuickWindow*>(watched) != nullptr)
+            Q_EMIT pointerPressed(static_cast<QMouseEvent*>(event)->scenePosition());
+        break;
     case QEvent::KeyPress:
     case QEvent::KeyRelease:
         setModifiers(static_cast<QKeyEvent*>(event)->modifiers());
@@ -74,6 +116,11 @@ void manderrow_configure_before_app()
     QGuiApplication::setApplicationName(QStringLiteral("Manderrow"));
     QGuiApplication::setOrganizationName(QStringLiteral("Manderrow"));
     QGuiApplication::setDesktopFileName(QStringLiteral("io.github.manderrow"));
+}
+
+void manderrow_enable_qml_debugging()
+{
+    QQmlDebuggingEnabler::enableDebugging(true);
 }
 
 void manderrow_configure_app()

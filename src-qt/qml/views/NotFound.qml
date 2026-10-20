@@ -9,7 +9,7 @@ Item {
         y: Theme.rem
         spacing: 0
 
-        Text {
+        SText {
             Layout.alignment: Qt.AlignHCenter
             text: "404"
             color: Theme.neutral20
@@ -17,14 +17,14 @@ Item {
             font.pixelSize: 12 * Theme.rem
             font.weight: Font.ExtraLight
         }
-        Text {
+        SText {
             Layout.alignment: Qt.AlignHCenter
             text: Router.path
             color: Theme.neutral30
             font.family: Theme.font
             font.pixelSize: Theme.rem
         }
-        Text {
+        SText {
             Layout.alignment: Qt.AlignHCenter
             Layout.topMargin: 0.5 * Theme.rem
             Layout.bottomMargin: 0.5 * Theme.rem

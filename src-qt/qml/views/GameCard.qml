@@ -2,9 +2,13 @@ import QtQuick
 import QtQuick.Effects
 import Manderrow
 
-// A game in the card layout of the game selection screen. The cover glows through a blurred,
-// brightened copy of itself, and hovering reveals the game's name and actions.
-Item {
+// A game in the card layout of the game selection screen, from GameList.module.css. The cover
+// glows around its edge through a blurred, brightened copy of itself, and hovering reveals the
+// game's name and actions over a blurred cover.
+//
+// Many cards are created while scrolling, so a card is kept cheap: the cover is decoded once and
+// drawn three ways by ImageEffects, and the hover overlay is only created while it shows.
+FocusScope {
     id: card
 
     required property var game
@@ -13,149 +17,161 @@ Item {
     signal selected
 
     readonly property real inset: 5
-    readonly property bool hot: hover.hovered || actions.activeFocus
+    readonly property real radius: 4
+    // the card is a focus scope, so this includes focus on the overlay's buttons
+    readonly property bool hot: hover.hovered || activeFocus
 
-    // overflow: hidden with border-radius: 4px
-    layer.enabled: true
-    layer.effect: MultiEffect {
-        maskEnabled: true
-        maskSource: roundedMask
-    }
-
-    Rectangle {
-        id: roundedMask
-        width: card.width
-        height: card.height
-        radius: 4
-        visible: false
-        layer.enabled: true
-    }
+    activeFocusOnTab: true
 
     HoverHandler {
         id: hover
     }
 
-    Image {
+    // ::before: the cover with filter: blur(4px) brightness(1.9), clipped to the card's corners
+    ImageEffect {
+        id: glow
+        anchors.fill: parent
+        image: cover.image
+        cornerRadius: card.radius
+        blurRadius: 4
+        brightness: 1.9
+        opacity: 0.75
+
+        states: State {
+            name: "hot"
+            when: card.hot
+            PropertyChanges {
+                glow.brightness: 2
+                glow.opacity: 0.9
+            }
+        }
+        transitions: [
+            // the hover rule only transitions filter, so opacity changes at once on hover
+            Transition {
+                to: "hot"
+                NumberAnimation {
+                    property: "brightness"
+                    duration: 200
+                    easing.type: Easing.Bezier
+                    easing.bezierCurve: Theme.ease
+                }
+            },
+            Transition {
+                from: "hot"
+                NumberAnimation {
+                    property: "brightness"
+                    duration: 700
+                    easing.type: Easing.Bezier
+                    easing.bezierCurve: Theme.ease
+                }
+                NumberAnimation {
+                    property: "opacity"
+                    duration: 500
+                    easing.type: Easing.Bezier
+                    easing.bezierCurve: Theme.ease
+                }
+            }
+        ]
+    }
+
+    // the cover, inside the card's padding
+    RoundedImage {
         id: cover
         anchors.fill: parent
+        anchors.margins: card.inset
+        radius: card.radius
         source: Util.gameCoverUrl(card.game.thunderstoreId)
-
-        sourceSize: Qt.size(card.width, card.height)
-        fillMode: Image.PreserveAspectCrop
-        asynchronous: true
-        visible: false
-        layer.enabled: true
+        mipmap: true
     }
 
-    // ::before: filter: blur(4px) brightness(1.9); opacity: 0.75
-    MultiEffect {
-        anchors.fill: parent
-        source: cover
-        blurEnabled: true
-        blur: 1
-        blurMax: 8
-        brightness: card.hot ? 0.45 : 0.4
-        opacity: card.hot ? 0.9 : 0.75
-
-        Behavior on opacity {
-            NumberAnimation {
-                duration: card.hot ? 200 : 500
-            }
+    // the name and actions, revealed on hover, within the card's padding like the web UI's content
+    property real _overlayOpacity: hot ? 1 : 0
+    Behavior on _overlayOpacity {
+        NumberAnimation {
+            duration: 300
+            easing.type: Easing.Bezier
+            easing.bezierCurve: Theme.ease
         }
     }
 
-    Rectangle {
-        id: innerMask
-        anchors.fill: inner
-        radius: 4
-        visible: false
-        layer.enabled: true
-    }
-
-    Item {
-        id: inner
+    Loader {
         anchors.fill: parent
         anchors.margins: card.inset
-
-        MultiEffect {
-            anchors.fill: parent
-            source: ShaderEffectSource {
-                sourceItem: cover
-                sourceRect: Qt.rect(card.inset, card.inset, inner.width, inner.height)
-            }
-            maskEnabled: true
-            maskSource: innerMask
-            // the content's backdrop-filter: blur(4px) while hovered
-            blurEnabled: overlay.opacity > 0
-            blur: overlay.opacity
-            blurMax: 8
-        }
+        active: card.hot || card._overlayOpacity > 0
+        opacity: card._overlayOpacity
+        sourceComponent: overlay
     }
 
-    // the name and actions, revealed on hover
-    Item {
+    Component {
         id: overlay
-        anchors.fill: parent
-        opacity: card.hot ? 1 : 0
-
-        Behavior on opacity {
-            NumberAnimation {
-                duration: 300
-            }
-        }
-
-        Rectangle {
-            anchors.fill: parent
-            radius: 4
-            color: Qt.rgba(0, 0, 0, 0.25)
-        }
 
         Item {
-            id: content
-            anchors.fill: parent
-            anchors.margins: 0.75 * Theme.rem
-            layer.enabled: card.hot
-            layer.effect: MultiEffect {
-                shadowEnabled: true
-                shadowColor: Qt.rgba(0, 0, 0, 0.4)
-                shadowBlur: 0.5
-                shadowHorizontalOffset: 0
-                shadowVerticalOffset: 0
+            // backdrop-filter: blur(4px) over the cover
+            ImageEffect {
+                anchors.fill: parent
+                image: cover.image
+                cornerRadius: card.radius
+                blurRadius: 4
+                blurFadesEdges: false
             }
 
-            Btn {
-                id: favorite
-                anchors.right: parent.right
-                variant: "plain"
-                padAll: 0
-                fontSize: 1.5 * Theme.rem
-                iconName: "regular:star"
-                textColor: Theme.neutral20
-                activeBgColor: "transparent"
-                tooltip: I18n.t("game_select.fav_btn")
+            Rectangle {
+                anchors.fill: parent
+                radius: card.radius
+                color: Qt.rgba(0, 0, 0, 0.25)
             }
 
-            Text {
-                id: title
-                anchors.left: parent.left
-                anchors.right: favorite.left
-                anchors.rightMargin: 0.25 * Theme.rem
-                text: card.game.name
-                wrapMode: Text.Wrap
-                lineHeight: 1.1
-                color: Theme.neutral05
-                font.family: Theme.font
-                font.pixelSize: 1.15 * Theme.rem
-                font.weight: 850
-            }
+            Item {
+                anchors.fill: parent
+                anchors.margins: 0.75 * Theme.rem
+                // text-shadow: 0 0 8px rgb(0 0 0 / 0.4)
+                layer.enabled: true
+                layer.effect: MultiEffect {
+                    shadowEnabled: true
+                    shadowColor: Qt.rgba(0, 0, 0, 0.4)
+                    shadowBlur: 0.5
+                    shadowHorizontalOffset: 0
+                    shadowVerticalOffset: 0
+                }
 
-            GameActions {
-                id: actions
-                anchors.horizontalCenter: parent.horizontalCenter
-                // margin-block: auto below the title
-                y: Math.max(title.height + 1.15 * Theme.rem, (parent.height - height) / 2)
-                setDefault: card.setDefault
-                onSelected: card.selected()
+                Btn {
+                    id: favorite
+                    anchors.right: parent.right
+                    variant: "plain"
+                    padAll: 0
+                    fontSize: 1.5 * Theme.rem
+                    iconName: "regular:star"
+                    textColor: Theme.neutral20
+                    activeBgColor: "transparent"
+                    tooltip: I18n.t("game_select.fav_btn")
+                }
+
+                Text {
+                    id: title
+                    anchors.left: parent.left
+                    anchors.right: favorite.left
+                    anchors.rightMargin: 0.25 * Theme.rem
+                    text: card.game.name
+                    wrapMode: Text.Wrap
+                    lineHeight: 1.1 * 1.15 * Theme.rem
+                    lineHeightMode: Text.FixedHeight
+                    color: Theme.neutral05
+                    font.family: Theme.font
+                    font.pixelSize: 1.15 * Theme.rem
+                    font.weight: 850
+                    // Qt rounds weights to the font's named instances otherwise
+                    font.variableAxes: ({ "wght": 850 })
+                }
+
+                GameActions {
+                    objectName: "gameActions"
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    // margin-block: auto below the title's 1em margin
+                    readonly property real titleBottom: title.height + 1.15 * Theme.rem
+                    y: titleBottom + Math.max(0, (parent.height - titleBottom - height) / 2)
+                    setDefault: card.setDefault
+                    onSelected: card.selected()
+                }
             }
         }
     }

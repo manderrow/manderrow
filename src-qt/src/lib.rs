@@ -79,7 +79,10 @@ fn run_app() -> anyhow::Result<()> {
 pub fn main() -> anyhow::Result<()> {
     manderrow_paths::init().unwrap();
 
-    let mut args = lexopt::Parser::from_env();
+    // Qt reads its own arguments, of which QML tools pass this one in debug builds
+    let mut args = lexopt::Parser::from_args(std::env::args_os().skip(1).filter(|arg| {
+        !(cfg!(debug_assertions) && arg.to_string_lossy().starts_with("-qmljsdebugger="))
+    }));
 
     let mut relaunch = None::<u32>;
 

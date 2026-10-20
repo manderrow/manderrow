@@ -108,7 +108,7 @@ Item {
                                 Layout.topMargin: 0.5 * Theme.rem
                                 variant: "primary"
                                 text: I18n.t("profile.blank.create_profile_btn")
-                                onClicked: sidebar.creatingProfile = true
+                                onClicked: sidebar.createProfile()
                             }
                         }
                     }

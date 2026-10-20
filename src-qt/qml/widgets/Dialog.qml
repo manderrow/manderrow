@@ -31,24 +31,24 @@ Popup {
 
     // the backdrop: rgb(0 0 0 / 0.25) with blur(2px), below the title bar like the web UI's
     Overlay.modal: Item {
-        MultiEffect {
+        BackdropBlur {
             y: Theme.titlebarHeight
             width: parent.width
             height: parent.height - y
-            source: Ui.appContent
-            blurEnabled: true
-            blur: 1
-            blurMax: 4
-        }
-        Rectangle {
-            y: Theme.titlebarHeight
-            width: parent.width
-            height: parent.height - y
-            color: Qt.rgba(0, 0, 0, 0.25)
+            radius: 2
+            quality: BackdropBlur.Gaussian
+            tint: Qt.rgba(0, 0, 0, 0.25)
+
+            // the app behind isn't hovered or scrolled; pressing here closes the dialog
+            PopupInputBlocker {
+                blockPresses: false
+            }
         }
     }
 
     background: Item {
+        PopupInputBlocker {}
+
         RectangularShadow {
             visible: dialog.defaultStyle
             anchors.fill: bg
@@ -66,37 +66,46 @@ Popup {
         }
     }
 
-    // scrolls when the dialog is taller than the window
-    contentItem: Flickable {
-        implicitWidth: bodyItem.implicitWidth
-        implicitHeight: bodyItem.implicitHeight
-        contentWidth: width
-        contentHeight: bodyItem.implicitHeight
-        interactive: contentHeight > height
-        acceptedButtons: Qt.NoButton
-        boundsBehavior: Flickable.StopAtBounds
-        clip: interactive
-        ScrollBar.vertical: AppScrollBar {}
+    contentItem: Item {
+        implicitWidth: scroll.implicitWidth
+        implicitHeight: scroll.implicitHeight
 
-        Item {
-            id: bodyItem
-            width: parent.width
-            height: Math.max(implicitHeight, parent.height)
-            implicitWidth: childrenRect.width
-            implicitHeight: childrenRect.height
+        // scrolls when the dialog is taller than the window
+        Flickable {
+            id: scroll
+            anchors.fill: parent
+            implicitWidth: bodyItem.implicitWidth
+            implicitHeight: bodyItem.implicitHeight
+            contentWidth: width
+            contentHeight: bodyItem.implicitHeight
+            interactive: contentHeight > height
+            boundsBehavior: Flickable.StopAtBounds
+            clip: contentHeight > height
+            ScrollBar.vertical: AppScrollBar {}
+            WheelScroll {}
+
+            Item {
+                id: bodyItem
+                width: parent.width
+                height: Math.max(implicitHeight, parent.height)
+                implicitWidth: childrenRect.width
+                implicitHeight: childrenRect.height
+            }
         }
-    }
 
-    Btn {
-        visible: !dialog.hideCloseBtn
-        parent: dialog.background
-        anchors.top: parent.top
-        anchors.right: parent.right
-        variant: "plain"
-        iconName: "xmark"
-        fontSize: 1.5 * Theme.rem
-        padAll: 0.25 * fontSize
-        width: height
-        onClicked: dialog.close()
+        // in the dialog's corner, outside the padding, and over the body
+        Btn {
+            visible: !dialog.hideCloseBtn
+            anchors.top: parent.top
+            anchors.right: parent.right
+            anchors.topMargin: -dialog.topPadding
+            anchors.rightMargin: -dialog.rightPadding
+            variant: "plain"
+            iconName: "xmark"
+            fontSize: 1.5 * Theme.rem
+            padAll: 0.25 * fontSize
+            width: height
+            onClicked: dialog.close()
+        }
     }
 }

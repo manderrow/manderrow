@@ -75,7 +75,7 @@ Rectangle {
             submit: name => Api.overwriteProfileMetadata(item.profile.id, item._metadata({ name })).then(() => Globals.refetchProfiles(), e => Globals.refetchProfiles().then(() => {
                     throw e;
                 }))
-            onCancelled: item.renaming = false
+            onClosed: item.renaming = false
         }
     }
 
@@ -107,12 +107,16 @@ Rectangle {
             x: Theme.rem
             width: parent.width - 2 * Theme.rem
             anchors.verticalCenter: parent.verticalCenter
-            text: item.profile.name
+            // HTML collapses whitespace
+            text: item.profile.name.replace(/\s+/g, " ").trim()
             elide: Text.ElideRight
-            color: item.selected ? (item._hot ? Theme.primary70 : Theme.primary60) : Theme.neutral20
+            // .profileList__itemName sets its own color over the active item's primary color
+            color: Theme.neutral20
             font.family: Theme.font
             font.pixelSize: Theme.rem
             font.weight: item.selected ? 620 : Font.Normal
+            // Qt rounds weights to the font's named instances otherwise
+            font.variableAxes: ({ "wght": item.selected ? 620 : 400 })
         }
 
         TapHandler {
@@ -151,6 +155,8 @@ Rectangle {
         Behavior on opacity {
             NumberAnimation {
                 duration: 100
+                easing.type: Easing.Bezier
+                easing.bezierCurve: Theme.ease
             }
         }
 

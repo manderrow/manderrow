@@ -38,14 +38,15 @@ AbstractButton {
     readonly property bool active: enabled && (hovered || visualFocus || forceActive)
     readonly property color currentTextColor: active ? activeTextColor : textColor
 
-    /// Overrides both the horizontal and the vertical padding. (Setting `padding` has no effect,
-    /// since the horizontal and vertical padding take precedence over it.)
+    /// Overrides both the horizontal and the vertical padding, inside the border. (Setting
+    /// `padding` has no effect, since the horizontal and vertical padding take precedence over it.)
     property var padAll
 
     hoverEnabled: true
     focusPolicy: Qt.TabFocus
-    horizontalPadding: padAll !== undefined ? padAll : 1.5 * fontSize
-    verticalPadding: padAll !== undefined ? padAll : 0.35 * fontSize
+    // the border adds to the size, as it does on the web
+    horizontalPadding: (padAll !== undefined ? padAll : 1.5 * fontSize) + borderWidth
+    verticalPadding: (padAll !== undefined ? padAll : 0.35 * fontSize) + borderWidth
     spacing: 0.3 * fontSize
     opacity: enabled ? 1 : 0.5
     font.family: Theme.font
@@ -63,13 +64,15 @@ AbstractButton {
         bottomLeftRadius: control.leftRadius
         topRightRadius: control.rightRadius
         bottomRightRadius: control.rightRadius
-        color: control.active ? control.activeBgColor : control.bgColor
-        border.color: control.active ? control.activeBorderColor : control.borderColor
+        color: control.active ? Theme.fadeFrom(control.activeBgColor, control.bgColor) : Theme.fadeFrom(control.bgColor, control.activeBgColor)
+        border.color: control.active ? Theme.fadeFrom(control.activeBorderColor, control.borderColor) : Theme.fadeFrom(control.borderColor, control.activeBorderColor)
         border.width: control.borderWidth
 
         Behavior on color {
             ColorAnimation {
                 duration: 100
+                easing.type: Easing.Bezier
+                easing.bezierCurve: Theme.ease
             }
         }
 

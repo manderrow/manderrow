@@ -34,7 +34,8 @@ Dialog {
     Behavior on height {
         NumberAnimation {
             duration: 200
-            easing.type: Easing.InOutQuad
+            easing.type: Easing.Bezier
+            easing.bezierCurve: Theme.easeInOut
         }
     }
 
@@ -82,12 +83,12 @@ Dialog {
             }
         }
 
-        Text {
+        SText {
             Layout.fillWidth: true
             Layout.leftMargin: Theme.rem
             Layout.rightMargin: Theme.rem
             Layout.bottomMargin: 0.5 * Theme.rem
-            horizontalAlignment: Text.AlignHCenter
+            horizontalAlignment: TextEdit.AlignHCenter
             text: modal.currentStage ? modal.currentStage.title : ""
             color: Theme.neutral05
             font.family: Theme.font

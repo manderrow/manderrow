@@ -16,14 +16,15 @@ Rectangle {
     signal selected
 
     radius: hovered ? 5 : 0
-    color: hovered ? Qt.rgba(225 / 255, 225 / 255, 225 / 255, 0.1) : "transparent"
+    color: hovered ? Qt.rgba(225 / 255, 225 / 255, 225 / 255, 0.1) : Qt.rgba(225 / 255, 225 / 255, 225 / 255, 0)
     border.width: hovered ? 1 : 0
     border.color: Qt.rgba(215 / 255, 215 / 255, 215 / 255, 0.2)
 
     Behavior on color {
         ColorAnimation {
             duration: 200
-            easing.type: Easing.OutQuad
+            easing.type: Easing.Bezier
+            easing.bezierCurve: Theme.easeOut
         }
     }
 
@@ -63,6 +64,8 @@ Rectangle {
             font.family: Theme.font
             font.pixelSize: 1.15 * Theme.rem
             font.weight: 650
+            // Qt rounds weights to the font's named instances otherwise
+            font.variableAxes: ({ "wght": 650 })
         }
     }
 
@@ -78,6 +81,8 @@ Rectangle {
         Behavior on opacity {
             NumberAnimation {
                 duration: 200
+                easing.type: Easing.Bezier
+                easing.bezierCurve: Theme.ease
             }
         }
     }

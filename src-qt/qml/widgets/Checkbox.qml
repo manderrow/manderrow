@@ -6,34 +6,25 @@ Rectangle {
     id: box
 
     property bool checked: false
+    /// The font size, which sets the box's size.
     property real size: Theme.rem
 
     signal toggled(bool checked)
 
+    // .switchDefault: 1em wide with border-box sizing; its height is the icon's plus the border
     implicitWidth: size
-    implicitHeight: size
+    implicitHeight: size + 2
     radius: 2
-    color: checked ? Theme.primary40 : "transparent"
+    color: checked ? Theme.primary40 : Theme.alpha(Theme.primary40, 0)
     border.color: Theme.neutral60
     border.width: 1
 
-    Item {
-        anchors.centerIn: parent
-        width: icon.width * (box.checked ? 1 : 0)
-        height: icon.height
-        clip: true
-
-        Behavior on width {
-            NumberAnimation {
-                duration: 200
-            }
-        }
-
-        FaIcon {
-            id: icon
-            name: "check"
-            size: box.size * 0.8
-        }
+    // the icon sits at the start of the box, like in the web UI's flex container
+    CheckMark {
+        x: 1
+        y: 1
+        checked: box.checked
+        size: box.size
     }
 
     TapHandler {
