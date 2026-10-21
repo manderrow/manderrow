@@ -117,8 +117,15 @@ windows = { version = "0.61.0", features = [
 winsafe = { version = "0.0.25", features = ["kernel"] }
 
 [target.'cfg(not(windows))'.dependencies]
-libc = "0.2"
 rustix = { version = "1", features = ["event", "process"] }
+
+# window blur and the window menu, through the libwayland-client that Qt loads or X11
+[target.'cfg(all(unix, not(target_vendor = "apple")))'.dependencies]
+wayland-backend = { version = "0.3", features = ["client_system", "dlopen"] }
+wayland-client = "0.31"
+wayland-protocols = { version = "0.32", features = ["client", "staging"] }
+wayland-protocols-plasma = { version = "0.3", features = ["client"] }
+x11rb = "0.13"
 
 [profile.dev]
 lto = false

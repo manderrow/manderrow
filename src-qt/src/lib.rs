@@ -107,6 +107,12 @@ pub fn main() -> anyhow::Result<()> {
     windows_console::show_main_thread_panics();
 
     let _guard = slog_envlogger::init()?;
+    slog_scope::info!(
+        "Data is in {:?}, settings in {:?}, and the cache in {:?}",
+        manderrow_paths::local_data_dir(),
+        manderrow_paths::config_dir(),
+        manderrow_paths::cache_dir()
+    );
 
     if let Some(pid) = relaunch {
         slog_scope::with_logger(|log| {
