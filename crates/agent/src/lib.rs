@@ -1,8 +1,6 @@
 #![deny(unused_must_use)]
 #![feature(core_io_borrowed_buf)]
-#![feature(once_cell_try_insert)]
 #![feature(panic_backtrace_config)]
-#![feature(round_char_boundary)]
 
 mod externs;
 
@@ -109,7 +107,7 @@ impl ErrorBuffer {
         use std::fmt::Write;
 
         struct Writer<'a> {
-            buf: std::io::BorrowedCursor<'a>,
+            buf: std::io::BorrowedCursor<'a, u8>,
         }
 
         impl Write for Writer<'_> {

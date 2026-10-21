@@ -366,7 +366,7 @@ mod sys {
                         bad_output_dump(log, &self.stdout_buf);
                         return Err(anyhow!("Bad output from ps").into());
                     };
-                    let pid = u32::from_ascii(pid)
+                    let pid = u32::from_ascii_bytes(pid)
                         .context("Bad output from ps")
                         .inspect_err(|_| {
                             bad_output_dump(log, &self.stdout_buf);
