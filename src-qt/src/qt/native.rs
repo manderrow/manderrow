@@ -275,6 +275,18 @@ pub mod qobject {
         #[qinvokable]
         unsafe fn set_blur_behind(self: &Native, window: *mut QQuickWindow, enabled: bool) -> bool;
 
+        /// Tints the platform's parts of a window, like the acrylic backdrop on Windows, for a
+        /// dark or light theme. Returns whether the platform can: on Windows.
+        #[qinvokable]
+        unsafe fn set_dark_frame(self: &Native, window: *mut QQuickWindow, dark: bool) -> bool;
+
+        /// Hides the title bar of a window that has a native frame, keeping the rest of the
+        /// frame, so that the app can draw its own title bar. Call it before the window is
+        /// shown. Returns whether the platform can: on Windows, where a window keeps its resize
+        /// borders, shadow, snapping, and animations this way, which frameless windows lack.
+        #[qinvokable]
+        unsafe fn hide_title_bar(self: &Native, window: *mut QQuickWindow) -> bool;
+
         /// Shows the window manager's menu for a window, as right clicking a native title bar
         /// does, at a point in the window's coordinates. Call it when the right button is
         /// pressed. Returns whether the platform can: on Wayland, when Qt's private platform
@@ -529,6 +541,20 @@ impl qobject::Native {
         platform::set_blur_behind(Upcast::<QWindow>::upcast_pin(window), enabled)
     }
 
+    unsafe fn set_dark_frame(&self, window: *mut QQuickWindow, dark: bool) -> bool {
+        let Some(window) = (unsafe { pin_window(window) }) else {
+            return false;
+        };
+        platform::set_dark_frame(Upcast::<QWindow>::upcast_pin(window), dark)
+    }
+
+    unsafe fn hide_title_bar(&self, window: *mut QQuickWindow) -> bool {
+        let Some(window) = (unsafe { pin_window(window) }) else {
+            return false;
+        };
+        platform::hide_title_bar(Upcast::<QWindow>::upcast_pin(window))
+    }
+
     unsafe fn show_window_menu(&self, window: *mut QQuickWindow, x: f64, y: f64) -> bool {
         let Some(window) = (unsafe { pin_window(window) }) else {
             return false;
@@ -695,6 +721,14 @@ mod platform {
     use super::QWindow;
 
     pub fn set_blur_behind(_window: Pin<&mut QWindow>, _enabled: bool) -> bool {
+        false
+    }
+
+    pub fn set_dark_frame(_window: Pin<&mut QWindow>, _dark: bool) -> bool {
+        false
+    }
+
+    pub fn hide_title_bar(_window: Pin<&mut QWindow>) -> bool {
         false
     }
 

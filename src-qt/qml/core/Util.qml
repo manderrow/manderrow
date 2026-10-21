@@ -87,10 +87,21 @@ QtObject {
         return progress.completed / progress.total * 100;
     }
 
+    /// The source for an image on the web, which loads it with the backend's HTTP client, as
+    /// Qt's own TLS support varies by platform. Other sources are returned as they are.
+    function webImage(url) {
+        return String(url).startsWith("https://") ? "image://web/" + url : url;
+    }
+    /// Loads the web images of rich text as webImage does.
+    function webImagesInHtml(html) {
+        return html.replace(/(<img\b[^>]*\bsrc=")(https:\/\/)/g, "$1image://web/$2");
+    }
+
     // Thunderstore URLs
 
+    /// The source of a mod's icon.
     function getIconUrl(qualifiedModName) {
-        return `https://gcdn.thunderstore.io/live/repository/icons/${qualifiedModName}.png`;
+        return webImage(`https://gcdn.thunderstore.io/live/repository/icons/${qualifiedModName}.png`);
     }
     function getQualifiedModName(owner, name, version) {
         return `${owner}-${name}-${version}`;

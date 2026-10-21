@@ -57,7 +57,7 @@ Column {
 
     /// Wraps inline HTML with the styles rich text supports.
     function richText(html, lineHeight, size) {
-        return `<style>a { color: ${Theme.primary60}; text-decoration: none; } code { font-family: "${Theme.fontMonospace}"; background-color: ${Theme.neutral90}; color: ${Theme.neutral05}; font-size: ${Math.round(0.9 * rem)}px; } del { text-decoration: line-through; }</style>` + `<div style="line-height: ${Math.round(lineHeight * size)}px">${html}</div>`;
+        return `<style>a { color: ${Theme.primary60}; text-decoration: none; } code { font-family: "${Theme.fontMonospace}"; background-color: ${Theme.neutral90}; color: ${Theme.neutral05}; font-size: ${Math.round(0.9 * rem)}px; } del { text-decoration: line-through; }</style>` + `<div style="line-height: ${Math.round(lineHeight * size)}px">${Util.webImagesInHtml(html)}</div>`;
     }
 
     // Creates its blocks asynchronously, as long documents would otherwise take frames to create
@@ -180,7 +180,7 @@ Column {
 
                         Image {
                             id: img
-                            source: slot.block.src
+                            source: Util.webImage(slot.block.src)
                             asynchronous: true
                             fillMode: Image.PreserveAspectFit
                             // img { max-width: 100% }
