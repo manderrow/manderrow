@@ -19,8 +19,7 @@ jobs:
         include:
           - platform: 'ubuntu-22.04'
             target: 'x86_64-unknown-linux-gnu'
-          # Cross-compiled with cargo-xwin, which downloads the MSVC CRT and Windows SDK.
-          - platform: 'ubuntu-24.04'
+          - platform: 'windows-2025'
             target: 'x86_64-pc-windows-msvc'
           # Pinned, as the Xcode that the build selects must be installed on the runner.
           - platform: 'macos-26'
@@ -30,6 +29,10 @@ jobs:
             target: 'x86_64-apple-darwin'
 
     runs-on: ${{ matrix.platform }}
+    # The steps are written for bash, which is Git Bash on Windows.
+    defaults:
+      run:
+        shell: bash
     steps:
       - uses: actions/checkout@v6
 
@@ -38,16 +41,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libgl1-mesa-dev libxkbcommon-dev wine64-development-tools
-
-      # The MSVC STL that xwin downloads requires a newer Clang than Ubuntu's default. The agent is
-      # built with the GNU ABI, whose raw-dylib imports need MinGW's dlltool.
-      - name: Install cross-compilation dependencies
-        if: matrix.target == 'x86_64-pc-windows-msvc'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y clang-19 lld-19 llvm-19 binutils-mingw-w64-x86-64
-          echo /usr/lib/llvm-19/bin >> "$GITHUB_PATH"
-          pipx install cargo-xwin
 
       # Zig 0.15.2 cannot link against the SDK of Xcode 26.4 and later, whose libSystem.tbd lists
       # arm64e but not arm64, so even the build runner fails to link (ziglang/zig#31658).
@@ -64,51 +57,12 @@ jobs:
           modules: 'qtshadertools qtimageformats'
           cache: true
 
-      - name: Install Qt for Windows
-        if: matrix.target == 'x86_64-pc-windows-msvc'
-        uses: jurplel/install-qt-action@v4
-        with:
-          version: ${{ env.QT_VERSION }}
-          host: 'windows'
-          target: 'desktop'
-          arch: 'win64_msvc2022_64'
-          modules: 'qtimageformats'
-          dir: ${{ runner.temp }}/qt-windows
-          install-deps: 'false'
-          set-env: 'false'
-          cache: true
-
-      # Qt's tools must run on the host while the headers and libraries come from the Windows
-      # installation, so point a qmake for the host at the latter, as Qt's own cross builds do.
-      - name: Configure Qt for Windows
-        if: matrix.target == 'x86_64-pc-windows-msvc'
-        run: |
-          # install-qt-action does not expose its qtPath output, so find the installations directly.
-          qt_host="$QT_ROOT_DIR"
-          qt_target=$(echo "$RUNNER_TEMP"/qt-windows/Qt/*/msvc2022_64)
-          [ -n "$qt_host" ] && [ -d "$qt_target" ] || { echo "Qt not found: '$qt_host' '$qt_target'"; exit 1; }
-          cat > "$qt_target/bin/target_qt.conf" <<EOF
-          [Paths]
-          Prefix=$qt_target
-          HostPrefix=$qt_host
-          HostBinaries=bin
-          HostLibraries=lib
-          HostLibraryExecutables=libexec
-          EOF
-          cat > "$qt_target/bin/qmake" <<EOF
-          #!/bin/sh
-          exec '$qt_host/bin/qmake' -qtconf '$qt_target/bin/target_qt.conf' "\$@"
-          EOF
-          chmod +x "$qt_target/bin/qmake"
-          echo "QMAKE=$qt_target/bin/qmake" >> "$GITHUB_ENV"
-          # The host's rcc compresses with zstd, which Qt for Windows is built without.
-          echo "CXX_QT_AUTORCC_OPTIONS=--no-zstd" >> "$GITHUB_ENV"
-
       - name: Install Rust
         uses: dtolnay/rust-toolchain@nightly
 
       # rust-toolchain.toml pins the toolchain, so the targets must be added to that one. The agent
-      # is always built with the GNU ABI on Windows.
+      # is always built with the GNU ABI on Windows, whose raw-dylib imports use the runner's MinGW
+      # dlltool.
       - name: Add Rust targets
         run: rustup target add ${{ matrix.target }} ${{ matrix.target == 'x86_64-pc-windows-msvc' && 'x86_64-pc-windows-gnu' || '' }}
 
@@ -118,36 +72,41 @@ jobs:
             Linux-X64) host=x86_64-linux ;;
             macOS-ARM64) host=aarch64-macos ;;
             macOS-X64) host=x86_64-macos ;;
+            Windows-X64) host=x86_64-windows ;;
           esac
-          curl -fsSL "https://ziglang.org/download/$ZIG_VERSION/zig-$host-$ZIG_VERSION.tar.xz" | tar -xJ -C "$RUNNER_TEMP"
-          echo "$RUNNER_TEMP/zig-$host-$ZIG_VERSION" >> "$GITHUB_PATH"
+          zig="zig-$host-$ZIG_VERSION"
+          if [ '${{ runner.os }}' = Windows ]; then
+            # Zig is only published as a zip for Windows, which Git Bash's tar cannot extract.
+            curl -fsSL "https://ziglang.org/download/$ZIG_VERSION/$zig.zip" -o "$RUNNER_TEMP/$zig.zip"
+            7z x -bd -o"$RUNNER_TEMP" "$RUNNER_TEMP/$zig.zip" > /dev/null
+          else
+            curl -fsSL "https://ziglang.org/download/$ZIG_VERSION/$zig.tar.xz" | tar -xJ -C "$RUNNER_TEMP"
+          fi
+          echo "$RUNNER_TEMP/$zig" >> "$GITHUB_PATH"
 
-      # Downloading these from Microsoft takes several minutes.
-      - name: Cache MSVC CRT and Windows SDK
-        if: matrix.target == 'x86_64-pc-windows-msvc'
-        uses: actions/cache@v5
-        with:
-          path: ${{ runner.temp }}/cargo-xwin
-          key: cargo-xwin-${{ runner.os }}
+      # Git for Windows uses Schannel by default, the same TLS library as WinHTTP, so switch it to
+      # its bundled OpenSSL. Its CA bundle is only configured when it is installed with OpenSSL.
+      - name: Configure Git
+        if: runner.os == 'Windows'
+        run: |
+          ca_bundle="$(dirname "$(dirname "$(git --exec-path)")")/etc/ssl/certs/ca-bundle.crt"
+          [ -f "$ca_bundle" ] || { echo "Git's CA bundle not found: '$ca_bundle'"; exit 1; }
+          git config --global http.sslBackend openssl
+          git config --global http.sslCAInfo "$ca_bundle"
 
       - name: Build
         env:
-          XWIN_CACHE_DIR: ${{ runner.temp }}/cargo-xwin
           # git.pfaff.dev only accepts TLS 1.3, which libgit2 cannot negotiate through macOS's
-          # SecureTransport, so fetch git dependencies with git, whose curl can use LibreSSL instead.
-          CARGO_NET_GIT_FETCH_WITH_CLI: ${{ runner.os == 'macOS' }}
+          # SecureTransport or Windows' WinHTTP, so fetch git dependencies with git, whose curl can
+          # use LibreSSL or OpenSSL instead.
+          CARGO_NET_GIT_FETCH_WITH_CLI: ${{ runner.os != 'Linux' }}
           CURL_SSL_BACKEND: ${{ runner.os == 'macOS' && 'openssl' || '' }}
           # Qt's minimum, as the C++ code would otherwise only run on the runner's version of macOS
           MACOSX_DEPLOYMENT_TARGET: '13.0'
           # Qt 6.10's qYieldCpu() calls __yield() without including the header that Xcode 26's Clang
           # now requires for it, which Qt 6.11 fixes.
           CXXFLAGS_aarch64_apple_darwin: '-include arm_acle.h'
-        run: |
-          if [ '${{ matrix.target }}' = x86_64-pc-windows-msvc ]; then
-            cargo xwin build --release --manifest-path src-qt/Cargo.toml --target ${{ matrix.target }}
-          else
-            cargo build --release --manifest-path src-qt/Cargo.toml --target ${{ matrix.target }}
-          fi
+        run: cargo build --release --manifest-path src-qt/Cargo.toml --target ${{ matrix.target }}
 
       - name: Bundle
         run: |

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """Bundles the Windows build with everything it loads at runtime, as windeployqt does.
 
-windeployqt only runs on Windows, so this deploys builds cross-compiled from Linux instead. It copies
-the Qt plugins and QML modules that the app uses, then every library that those and the executable
-import from Qt or from Visual Studio's redistributable MSVC runtime.
+Unlike windeployqt, this also runs on Linux, so it deploys builds cross-compiled from there the same
+way as native ones. It copies the Qt plugins and QML modules that the app uses, then every library
+that those and the executable import from Qt or from Visual Studio's redistributable MSVC runtime.
 
-Usage: QMAKE=<Qt for Windows' qmake> bundle-windows.py <manderrow.exe> <output directory>
+Usage: [QMAKE=<Qt for Windows' qmake>] bundle-windows.py <manderrow.exe> <output directory>
 """
 
 import json
@@ -38,7 +38,7 @@ VS_CHANNEL = "https://aka.ms/vs/17/release/channel"
 
 
 def qmake_query(key: str) -> Path:
-    qmake = os.environ["QMAKE"]
+    qmake = os.environ.get("QMAKE", "qmake")
     output = subprocess.run([qmake, "-query", key], capture_output=True, text=True, check=True)
     return Path(output.stdout.strip())
 
@@ -94,7 +94,10 @@ def main():
     qt_bins = qmake_query("QT_INSTALL_BINS")
     qt_plugins = qmake_query("QT_INSTALL_PLUGINS")
     qt_qml = qmake_query("QT_INSTALL_QML")
-    qmlimportscanner = qmake_query("QT_HOST_LIBEXECS") / "qmlimportscanner"
+    # Found with which, for its .exe on Windows
+    qmlimportscanner = shutil.which("qmlimportscanner", path=str(qmake_query("QT_HOST_LIBEXECS")))
+    if qmlimportscanner is None:
+        sys.exit("qmlimportscanner not found")
 
     if out.exists():
         shutil.rmtree(out)
