@@ -101,6 +101,14 @@ pub fn set_blur_behind(window: Pin<&mut QWindow>, enabled: bool) -> bool {
     true
 }
 
+pub fn set_dark_frame(_window: Pin<&mut QWindow>, _dark: bool) -> bool {
+    false
+}
+
+pub fn hide_title_bar(_window: Pin<&mut QWindow>) -> bool {
+    false
+}
+
 pub fn show_window_menu(window: Pin<&mut QWindow>, x: f64, y: f64) -> bool {
     // SAFETY: the app's Wayland connection lives as long as the app
     let Some(wayland) = (unsafe { ffi::wayland_application().as_ref() }) else {

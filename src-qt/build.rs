@@ -106,7 +106,12 @@ fn build_qt(crate_dir: &Path) {
     }));
 
     // Native's platform services, which only build for their platforms
-    let mut bridges = vec!["src/qt/bridge.rs", "src/qt/native.rs", "src/qt/setup.rs"];
+    let mut bridges = vec![
+        "src/qt/bridge.rs",
+        "src/qt/native.rs",
+        "src/qt/setup.rs",
+        "src/qt/web_images.rs",
+    ];
     if var_os("CARGO_CFG_WINDOWS").is_some() {
         bridges.push("src/qt/native_win32.rs");
     } else if var_os("CARGO_CFG_UNIX").is_some()

@@ -9,13 +9,18 @@ ApplicationWindow {
     height: 576
     minimumWidth: 500
     minimumHeight: 400
-    visible: true
+    // shown once its frame is set up and its geometry restored
+    visible: false
     title: "Manderrow"
     // translucent, the window's regions each draw their own background
     color: Ui.translucent ? "transparent" : Theme.neutral85
     // macOS keeps its native window controls over the app's title bar, like Tauri's overlay
-    // title bar style. Elsewhere the app draws the whole frame.
-    flags: Qt.platform.os === "osx" ? Qt.Window | Qt.ExpandedClientAreaHint | Qt.NoTitleBarBackgroundHint : Qt.Window | Qt.FramelessWindowHint
+    // title bar style. Windows keeps the rest of its native frame, whose title bar Native hides,
+    // as frameless windows there can't be resized from outside, snapped, animated, or given a
+    // backdrop. Elsewhere the app draws the whole frame.
+    flags: Qt.platform.os === "osx" ? Qt.Window | Qt.ExpandedClientAreaHint | Qt.NoTitleBarBackgroundHint : Qt.platform.os === "windows" ? Qt.Window : Qt.Window | Qt.FramelessWindowHint
+    /// Whether the window has a native frame without its title bar, which resizes the window.
+    property bool _nativeFrame: false
 
     font.family: Theme.font
     font.pixelSize: Theme.rem
@@ -104,10 +109,20 @@ ApplicationWindow {
     Component.onCompleted: {
         Ui.window = appWindow;
         Ui.appContent = content;
-        // once the window exists on screen
-        Qt.callLater(() => Native.setBlurBehind(appWindow, appWindow._blurBehind));
+        if (Qt.platform.os === "windows") {
+            _nativeFrame = Native.hideTitleBar(appWindow);
+            if (!_nativeFrame)
+                flags = Qt.Window | Qt.FramelessWindowHint;
+        }
         Theme.windowWidth = width;
         _restoreState();
+        if (!visible)
+            show();
+        // once the window exists on screen
+        Qt.callLater(() => {
+            Native.setBlurBehind(appWindow, appWindow._blurBehind);
+            Native.setDarkFrame(appWindow, Theme.dark);
+        });
 
         Api.benchExitSplash();
         Api.getPreferredLocales().then(locales => I18n.detectLocale(locales));
@@ -194,6 +209,13 @@ ApplicationWindow {
     readonly property bool _blurBehind: Ui.translucent && _setting("windowBlur", true)
     on_BlurBehindChanged: Native.setBlurBehind(appWindow, _blurBehind)
     onVisibleChanged: Native.setBlurBehind(appWindow, _blurBehind)
+    // the acrylic backdrop's tint, on Windows
+    Connections {
+        target: Theme
+        function onDarkChanged() {
+            Native.setDarkFrame(appWindow, Theme.dark);
+        }
+    }
 
     // The title bar is outside the overlay of popups, which is above it: pressing it neither
     // closes popups nor is blocked by a modal one, so that the window can still be moved and
@@ -288,7 +310,7 @@ ApplicationWindow {
 
         ResizeHandles {
             window: appWindow
-            visible: Qt.platform.os !== "osx" && appWindow.visibility === Window.Windowed
+            visible: Qt.platform.os !== "osx" && !appWindow._nativeFrame && appWindow.visibility === Window.Windowed
         }
     }
 

@@ -7,10 +7,12 @@ mod native_unix;
 #[cfg(windows)]
 mod native_win32;
 mod setup;
+mod web_images;
 
 use std::sync::OnceLock;
 
 use anyhow::{bail, Context};
+use cxx_qt::casting::Upcast;
 use cxx_qt_lib::{QGuiApplication, QQmlApplicationEngine, QUrl};
 
 use crate::app::AppHandle;
@@ -61,11 +63,10 @@ pub fn run(app: AppHandle, instance: InstanceLock) -> anyhow::Result<()> {
     });
 
     let mut engine = QQmlApplicationEngine::new();
+    let mut engine_ref = engine.as_mut().context("Failed to create the QML engine")?;
+    web_images::add_web_image_provider(engine_ref.as_mut().upcast_pin());
     // Without a window, the app would run on unseen, with nothing to quit it.
-    if let Err(errors) = setup::load_root(
-        engine.as_mut().context("Failed to create the QML engine")?,
-        &QUrl::from(MAIN_QML),
-    ) {
+    if let Err(errors) = setup::load_root(engine_ref, &QUrl::from(MAIN_QML)) {
         bail!("Failed to load the user interface:\n{errors}");
     }
 
