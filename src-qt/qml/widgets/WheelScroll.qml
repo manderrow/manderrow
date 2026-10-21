@@ -2,8 +2,9 @@ import QtQuick
 import Manderrow
 
 // Scrolls a Flickable with the mouse wheel like the web UI did under WebKitGTK: each notch scrolls
-// viewport^(2/3) pixels (GTK's step), smoothly. Touchpads scroll by their pixel deltas. Place it
-// inside the Flickable; it takes over the Flickable's own wheel handling.
+// viewport^(2/3) pixels (GTK's step), smoothly. Touchpads scroll as far as they did there, and keep
+// scrolling for a moment after the fingers lift, slowing down, as WebKit's kinetic scrolling does.
+// Place it inside the Flickable; it takes over the Flickable's own wheel handling.
 //
 // The Flickable also becomes a panel that FocusNavigator scrolls with the keyboard, as browsers
 // scroll the focused or last clicked scroll container.
@@ -42,6 +43,7 @@ WheelHandler {
 
     /// Scrolls to a position along an axis, within the bounds.
     function scrollTo(position, animated, vertical = scroll.vertical) {
+        kinetic.stop();
         const [min, max] = bounds(vertical);
         const property = vertical ? "contentY" : "contentX";
         const destination = Math.max(min, Math.min(max, position));
@@ -78,11 +80,94 @@ WheelHandler {
         const sideways = !vertical && event.angleDelta.x === 0 && event.pixelDelta.x === 0;
         const pixels = vertical || sideways ? event.pixelDelta.y : event.pixelDelta.x;
         const angle = vertical || sideways ? event.angleDelta.y : event.angleDelta.x;
-        if (pixels !== 0 && event.device.type === PointerDevice.TouchPad) {
+        // Wayland's touchpad scrolls have phases, though Qt may not say they came from a touchpad.
+        const touchpad = event.device.type === PointerDevice.TouchPad || event.phase !== Qt.NoScrollPhase;
+        if (touchpad && _gtkTouchpad) {
+            if (event.phase === Qt.ScrollEnd) {
+                _fling();
+            } else if (angle !== 0) {
+                // WebKitGTK scrolls by GDK's deltas times 40 pixels (pixelsPerLineStep), and GDK's
+                // touchpad deltas are Wayland's axis values / 10, or X11's valuator values / their
+                // increment. Qt's angle deltas are those times 120, rather than the pixel deltas,
+                // which are Wayland's axis values themselves and which X11 doesn't have.
+                const delta = -angle / 3;
+                scrollBy(delta, false);
+                _record(delta);
+            }
+        } else if (pixels !== 0 && touchpad) {
             scrollBy(-pixels, false);
         } else if (angle !== 0) {
             const viewport = vertical ? flickable.height : flickable.width;
             scrollBy(-angle / 120 * Math.pow(Math.max(viewport, 1), 2 / 3), true);
+        }
+    }
+
+    // Kinetic scrolling, as in WebKit's ScrollAnimationKinetic: when the fingers lift, the content
+    // keeps moving at the touchpad's velocity over the last 150 ms, which decays by e^(-4t). A fling
+    // in the direction of one still going adds to its velocity. macOS does this itself, sending
+    // momentum events, and Windows does for precision touchpads.
+
+    /// Whether touchpads scroll as WebKitGTK did, on Linux and the BSDs.
+    readonly property bool _gtkTouchpad: Qt.platform.os !== "osx" && Qt.platform.os !== "windows"
+    readonly property real _friction: 4
+    /// The touchpad's recent scrolls along this axis, as [time in ms, delta] pairs.
+    property var _history: []
+    property real _flingStart: 0
+    property real _flingFrom: 0
+    property real _flingVelocity: 0
+    /// Where the fling last put the content, to notice anything else scrolling it.
+    property real _flingAt: 0
+    property string _flingProperty: "contentY"
+
+    function _record(delta) {
+        const now = Date.now();
+        const history = _history.filter(([time]) => now - time <= 150);
+        history.push([now, delta]);
+        _history = history;
+    }
+
+    function _fling() {
+        const now = Date.now();
+        const history = _history.filter(([time]) => now - time <= 150);
+        _history = [];
+        // the end of the gesture counts toward its duration, as WebKit adds it to the history
+        const span = history.length > 0 ? (now - history[0][0]) / 1000 : 0;
+        if (span <= 0)
+            return;
+        let velocity = history.reduce((sum, [, delta]) => sum + delta, 0) / span;
+        // what remains of the last fling's velocity, if it hadn't been stopped
+        const previous = _flingVelocity * Math.exp(-_friction * (now - _flingStart) / 1000);
+        if (previous !== 0 && Math.sign(previous) === Math.sign(velocity) && Math.abs(velocity) >= Math.abs(previous * 0.33)) {
+            const multiplier = (velocity - previous * 0.33) / (previous - previous * 0.33);
+            velocity += previous * Math.min(multiplier, 6);
+        }
+        _flingProperty = vertical ? "contentY" : "contentX";
+        _flingFrom = flickable[_flingProperty];
+        _flingAt = _flingFrom;
+        _flingVelocity = velocity;
+        _flingStart = now;
+        kinetic.restart();
+    }
+
+    readonly property FrameAnimation _kinetic: FrameAnimation {
+        id: kinetic
+
+        onTriggered: {
+            const f = scroll.flickable;
+            const property = scroll._flingProperty;
+            // something else scrolled the content
+            if (!f || Math.abs(f[property] - scroll._flingAt) > 0.5) {
+                stop();
+                return;
+            }
+            const decay = Math.exp(-scroll._friction * elapsedTime);
+            const [min, max] = scroll.bounds(property === "contentY");
+            const position = scroll._flingFrom + scroll._flingVelocity / scroll._friction * (1 - decay);
+            const clamped = Math.max(min, Math.min(max, position));
+            f[property] = clamped;
+            scroll._flingAt = f[property];
+            if (clamped !== position || Math.abs(scroll._flingVelocity * decay) < 1)
+                stop();
         }
     }
 

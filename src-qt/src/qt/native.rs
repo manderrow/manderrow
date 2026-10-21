@@ -269,9 +269,9 @@ pub mod qobject {
             y: f64,
         ) -> *mut QQuickItem;
 
-        /// Blurs what is behind a translucent window, where the platform can: on KDE Plasma,
-        /// through KWindowSystem when it is installed, and on Windows 11, with the acrylic
-        /// backdrop. Returns whether the platform can.
+        /// Blurs what is behind a translucent window, where the platform can: with Wayland
+        /// compositors that support ext-background-effect or KWin's blur, with KWin on X11, and
+        /// on Windows 11, with the acrylic backdrop. Returns whether the platform can.
         #[qinvokable]
         unsafe fn set_blur_behind(self: &Native, window: *mut QQuickWindow, enabled: bool) -> bool;
 
