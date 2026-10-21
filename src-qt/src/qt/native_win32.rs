@@ -116,6 +116,29 @@ pub fn set_blur_behind(window: Pin<&mut QWindow>, enabled: bool) -> bool {
     };
     // SAFETY: the window is the QWindow's
     _ = unsafe { DwmExtendFrameIntoClientArea(hwnd, &margins) };
+    if enabled && ok {
+        // The backdrop of a window that Qt Quick draws in only appears once the window is resized,
+        // as QWindowKit found too, so it is resized by a pixel, and back.
+        let mut rect = RECT::default();
+        // SAFETY: the window is the QWindow's
+        if unsafe { GetWindowRect(hwnd, &mut rect) }.is_ok() {
+            let (width, height) = (rect.right - rect.left, rect.bottom - rect.top);
+            for grow in [1, 0] {
+                // SAFETY: the window is the QWindow's
+                _ = unsafe {
+                    SetWindowPos(
+                        hwnd,
+                        None,
+                        0,
+                        0,
+                        width + grow,
+                        height + grow,
+                        SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE,
+                    )
+                };
+            }
+        }
+    }
     enabled == ok
 }
 
