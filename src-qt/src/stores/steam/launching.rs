@@ -106,7 +106,7 @@ pub async fn kill_steam(log: &slog::Logger) -> Result<()> {
 }
 
 pub fn generate_launch_options(mode: WrapperMode) -> Result<String> {
-    let bin = std::env::current_exe()
+    let bin = crate::util::launcher_path()
         .context("Failed to get current exe path")?
         .into_os_string()
         .into_string()
