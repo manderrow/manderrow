@@ -1,6 +1,6 @@
 //! Client is the game, server is the Manderrow app.
 #![deny(unused_must_use)]
-#![feature(type_changing_struct_update)]
+#![cfg_attr(feature = "doctor", feature(type_changing_struct_update))]
 
 pub mod client;
 #[cfg(feature = "doctor")]

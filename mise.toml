@@ -1,4 +1,4 @@
 [tools]
 just = "latest"
-rust = "nightly-2025-11-14"
+rust = "nightly-2026-10-21"
 zig = "0.15.2"

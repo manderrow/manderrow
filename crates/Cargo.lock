@@ -325,12 +325,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "lexopt"
-version = "0.3.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9fa0e2a1fcbe2f6be6c42e342259976206b383122fc152e872795338b5a3f3a7"
-
-[[package]]
 name = "libc"
 version = "0.2.175"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -371,7 +365,6 @@ dependencies = [
 name = "manderrow-args"
 version = "0.1.0"
 dependencies = [
- "lexopt",
  "thiserror",
 ]
 
@@ -440,7 +433,6 @@ dependencies = [
  "rkyv",
  "rkyv_intern",
  "serde",
- "serde_json",
  "smol_str",
  "strum",
  "thiserror",
@@ -584,9 +576,9 @@ checksum = "69cdb34c158ceb288df11e18b4bd39de994f6657d83847bdffdbd7f346754b0f"
 
 [[package]]
 name = "rancor"
-version = "0.1.0"
+version = "0.1.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "caf5f7161924b9d1cea0e4cabc97c372cea92b5f927fc13c6bca67157a0ad947"
+checksum = "9b534442d0fcdb55d66f373d9cac6d33b6293a2335bc2136dbd06ce0e87d2572"
 dependencies = [
  "ptr_meta",
 ]

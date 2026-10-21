@@ -41,7 +41,6 @@ comrak = { version = "0.56", default-features = false, features = ["shortcodes"]
 
 serde = { version = "=1.0.203", features = ["derive"] }
 serde_json = { version = "1", features = ["raw_value"] }
-serde_with = "3.11.0"
 serde_yaml = "0.9.34"
 simd-json = "=0.15"
 

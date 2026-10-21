@@ -1,7 +1,6 @@
 #![deny(unused_must_use)]
-#![feature(int_from_ascii)]
-#![feature(maybe_uninit_as_bytes)]
-#![feature(slice_split_once)]
+#![cfg_attr(target_os = "linux", feature(maybe_uninit_as_bytes))]
+#![cfg_attr(target_os = "macos", feature(int_from_ascii, slice_split_once))]
 
 pub mod wait_group;
 
