@@ -25,11 +25,19 @@ Rectangle {
     readonly property bool _menuOpen: menu.opened
     // the options also show while the focus is within the item, as on the web
     readonly property bool _hot: hover.hovered || _menuOpen || Ui.isWithin(Window.activeFocusItem, profileItem)
-    readonly property var _activeConnection: {
-        ConsoleStore.connectionsUpdate; // track
-        return ConsoleStore.connections[ConsoleStore.connectionsUpdate];
+    /// Whether a game launched from this profile is still connected or connecting.
+    readonly property bool _running: {
+        // read for the dependency on it, as the connections themselves notify nothing
+        if (ConsoleStore.connectionsUpdate === 0)
+            return false;
+        const connections = ConsoleStore.connections;
+        for (const id in connections) {
+            const connection = connections[id];
+            if (connection.profileId === profile.id && connection.status !== "disconnected")
+                return true;
+        }
+        return false;
     }
-    readonly property bool _running: !!_activeConnection && _activeConnection.status !== "disconnected" && _activeConnection.profileId === profile.id
 
     implicitHeight: renaming ? editorLoader.implicitHeight : name.implicitHeight
     // a link on the web
@@ -134,7 +142,6 @@ Rectangle {
             font.family: Theme.font
             font.pixelSize: Theme.rem
             font.weight: profileItem.selected ? 620 : Font.Normal
-            // Qt rounds weights to the font's named instances otherwise
             font.variableAxes: ({ "wght": profileItem.selected ? 620 : 400 })
         }
 
@@ -241,7 +248,8 @@ Rectangle {
                     visible: Native.shift
                     iconName: "trash-2"
                     tooltip: I18n.t("global.phrases.delete")
-                    onClicked: Api.deleteProfile(profileItem.profile.id).then(() => Globals.refetchProfiles(), e => Globals.refetchProfiles().then(() => Ui.window.reportError(e)))
+                    // leaves the profile first if it's being viewed, as deleting from the menu does
+                    onClicked: profileItem._delete().catch(e => Ui.window.reportError(e))
                 }
 
                 ContextMenu {

@@ -106,9 +106,22 @@ Rectangle {
                 property int dragFrom: -1
                 property int dragTo: -1
 
-                implicitWidth: Math.max(...rowWidths.map(w => w)) + 2 * 8 + 2 * 8
+                // the widest row, with its padding and the panel's
+                implicitWidth: Math.ceil(Math.max(0, ...search.sort.map(option => metrics.advanceWidth(columnLabel(option)) + 8 + metrics.advanceWidth(orderLabel(option))))) + 2 * 8 + 2 * 8
                 implicitHeight: search.sort.length * rowHeight + 2 * 8
-                property var rowWidths: [0]
+
+                FontMetrics {
+                    id: metrics
+                    font.family: Theme.font
+                    font.pixelSize: Theme.rem
+                }
+
+                function columnLabel(option) {
+                    return I18n.t(`global.mod_sort_column.${option.column}`);
+                }
+                function orderLabel(option) {
+                    return option.descending ? I18n.t("global.sort_order.descending") : I18n.t("global.sort_order.ascending");
+                }
 
                 function displayIndex(index) {
                     if (dragFrom < 0 || index === dragFrom)
@@ -147,12 +160,6 @@ Rectangle {
                             }
                         }
 
-                        Component.onCompleted: {
-                            const widths = sortOptions.rowWidths.slice();
-                            widths[index] = optionRow.implicitWidth;
-                            sortOptions.rowWidths = widths;
-                        }
-
                         HoverHandler {
                             cursorShape: option.dragging ? Qt.ClosedHandCursor : Qt.OpenHandCursor
                         }
@@ -184,20 +191,19 @@ Rectangle {
                         }
 
                         Row {
-                            id: optionRow
                             x: 8
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: 8
 
                             Text {
-                                text: I18n.t(`global.mod_sort_column.${option.modelData.column}`)
+                                text: sortOptions.columnLabel(option.modelData)
                                 color: Theme.neutral05
                                 font.family: Theme.font
                                 font.pixelSize: Theme.rem
                             }
 
                             Text {
-                                text: option.modelData.descending ? I18n.t("global.sort_order.descending") : I18n.t("global.sort_order.ascending")
+                                text: sortOptions.orderLabel(option.modelData)
                                 color: Theme.neutral05
                                 font.family: Theme.font
                                 font.pixelSize: Theme.rem

@@ -9,7 +9,6 @@ use futures_util::stream::FuturesOrdered;
 use futures_util::StreamExt as _;
 use manderrow_paths::local_data_dir;
 use manderrow_types::mods::{ModAndVersion, ModId, ModMetadata, ModSpec, ModVersion};
-use manderrow_types::util::serde::IgnoredAny;
 use packed_semver::Version;
 use parking_lot::Mutex;
 use slog::{debug, error};

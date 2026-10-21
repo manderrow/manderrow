@@ -266,6 +266,7 @@ Rectangle {
                         font.family: Theme.font
                         font.pixelSize: 1.25 * Theme.rem
                         font.weight: Font.Light
+                        font.variableAxes: ({ "wght": Font.Light })
                     }
                 }
 
@@ -297,6 +298,7 @@ Rectangle {
                     font.family: Theme.font
                     font.pixelSize: Theme.rem
                     font.weight: Font.Medium
+                    font.variableAxes: ({ "wght": Font.Medium })
                 }
             }
 

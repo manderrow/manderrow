@@ -48,6 +48,7 @@ Dialog {
             font.family: Theme.font
             font.pixelSize: 1.5 * Theme.rem
             font.weight: Font.Bold
+            font.variableAxes: ({ "wght": Font.Bold })
         }
 
         SText {

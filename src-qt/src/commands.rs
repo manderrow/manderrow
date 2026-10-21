@@ -153,10 +153,6 @@ pub async fn dispatch(
                     .await,
             )
         }
-        "count_mod_index" => {
-            let a = args!(args, { game: &'a str, query: &'a str });
-            json(mod_index::commands::count_mod_index(a.game, a.query).await)
-        }
         "query_mod_index" => {
             let a = args!(args, {
                 game: &'a str,

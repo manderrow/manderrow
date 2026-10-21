@@ -12,7 +12,7 @@ use std::{
     sync::{atomic::AtomicU64, LazyLock},
 };
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::{anyhow, Result};
 use futures_util::FutureExt;
 use crate::app::AppHandle;
 use tokio::{
@@ -21,8 +21,6 @@ use tokio::{
 };
 
 pub use types::*;
-
-const EVENT_TARGET: &str = "main";
 
 pub struct TaskBuilder {
     id: Id,
@@ -65,8 +63,7 @@ struct OwnedTaskHandleInner<'a> {
 
 impl Id {
     fn emit<T: TaskEventBody>(self, app: &AppHandle, event: T) -> crate::app::Result<()> {
-        app.emit_to(
-            EVENT_TARGET,
+        app.emit(
             T::NAME,
             TaskEvent {
                 id: self,

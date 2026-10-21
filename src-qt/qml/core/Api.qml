@@ -19,30 +19,42 @@ QtObject {
             delete api._pending[callId];
             if (pending === undefined)
                 return;
-            const value = payload === "" ? undefined : JSON.parse(payload);
+            let value;
+            try {
+                value = payload === "" ? undefined : JSON.parse(payload);
+            } catch (e) {
+                // such as from a corrupt file passed through as-is, which shouldn't leave the call
+                // pending forever
+                pending.reject(e);
+                return;
+            }
             if (ok)
                 pending.resolve(value);
             else
                 pending.reject(value);
         }
 
-        function onBackendEvent(name, payload) {
-            const value = JSON.parse(payload);
-            if (name === "channel") {
-                const channel = api._channels[value.id];
-                if (channel !== undefined)
-                    channel(value.payload);
-                return;
-            }
-            const listeners = api._listeners[name];
-            if (listeners === undefined)
-                return;
-            for (const listener of listeners.slice()) {
-                try {
-                    listener(value);
-                } catch (e) {
-                    console.error(`Error in ${name} listener:`, e, e.stack);
-                }
+        function onBackendEvents(events) {
+            for (const event of JSON.parse(events))
+                api._dispatch(event.name, event.payload);
+        }
+    }
+
+    function _dispatch(name, value) {
+        if (name === "channel") {
+            const channel = _channels[value.id];
+            if (channel !== undefined)
+                channel(value.payload);
+            return;
+        }
+        const listeners = _listeners[name];
+        if (listeners === undefined)
+            return;
+        for (const listener of listeners.slice()) {
+            try {
+                listener(value);
+            } catch (e) {
+                console.error(`Error in ${name} listener:`, e, e.stack);
             }
         }
     }
@@ -162,9 +174,6 @@ QtObject {
 
     function fetchModIndex(game, refresh, listener) {
         return invokeWithListener(listener, taskId => invoke("fetch_mod_index", { game, refresh, taskId }));
-    }
-    function countModIndex(game, query) {
-        return invoke("count_mod_index", { game, query });
     }
     function queryModIndex(game, query, sort, skip, limit) {
         return invoke("query_mod_index", { game, query, sort, skip, limit });

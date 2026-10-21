@@ -52,6 +52,7 @@ Dialog {
                     font.family: Theme.font
                     font.pixelSize: 1.17 * Theme.rem
                     font.weight: Font.Bold
+                    font.variableAxes: ({ "wght": Font.Bold })
                 }
             }
         }
@@ -112,6 +113,7 @@ Dialog {
                 text: I18n.t("error.title")
                 font.pixelSize: 1.5 * Theme.rem
                 font.weight: Font.Bold
+                font.variableAxes: ({ "wght": Font.Bold })
             }
             Paragraph {
                 text: I18n.t("error.deescalation_msg")

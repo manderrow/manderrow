@@ -233,6 +233,7 @@ Item {
                             font.family: Theme.font
                             font.pixelSize: Theme.rem
                             font.weight: Font.Medium
+                            font.variableAxes: ({ "wght": Font.Medium })
                         }
                         Text {
                             text: "•"

@@ -14,7 +14,6 @@ use crate::app::AppHandle;
 pub use manderrow_ipc::*;
 use triomphe::Arc;
 
-pub const EVENT_TARGET: &str = "main";
 pub const EVENT_NAME: &str = "ipc_message";
 
 #[derive(
@@ -223,8 +222,8 @@ impl IpcState {
                                     }
                                     _ => {}
                                 }
-                                if let Err(e) = app.emit_to(EVENT_TARGET, "ipc_closed", id) {
-                                    error!(log, "Failed to emit ipc_closed event to {}: {}", EVENT_TARGET, e; "conn_id" => id.0);
+                                if let Err(e) = app.emit("ipc_closed", id) {
+                                    error!(log, "Failed to emit ipc_closed event: {}", e; "conn_id" => id.0);
                                 }
                             };
                             match msg {
@@ -332,8 +331,8 @@ impl IpcState {
                                         }
                                     }
 
-                                    if let Err(e) = app.emit_to(EVENT_TARGET, EVENT_NAME, IdentifiedC2SMessage { conn_id: id, msg: &msg }) {
-                                        error!(log, "Failed to emit ipc_message event to {}: {}", EVENT_TARGET, e; "conn_id" => id, "rx" => rx);
+                                    if let Err(e) = app.emit(EVENT_NAME, IdentifiedC2SMessage { conn_id: id, msg: &msg }) {
+                                        error!(log, "Failed to emit ipc_message event: {}", e; "conn_id" => id, "rx" => rx);
                                     }
 
                                     if started_but_already_dead {
@@ -348,8 +347,8 @@ impl IpcState {
                                     };
                                     connections.write().remove(&id);
                                     rx_to_id.remove(&rx);
-                                    if let Err(e) = app.emit_to(EVENT_TARGET, "ipc_closed", id) {
-                                        error!(log, "Failed to emit ipc_closed event to {}: {}", EVENT_TARGET, e; "conn_id" => id, "rx" => rx);
+                                    if let Err(e) = app.emit("ipc_closed", id) {
+                                        error!(log, "Failed to emit ipc_closed event: {}", e; "conn_id" => id, "rx" => rx);
                                     }
                                 }
                             }
@@ -431,11 +430,7 @@ impl IpcState {
                         return;
                     }
                 };
-                _ = app.emit_to(
-                    EVENT_TARGET,
-                    EVENT_NAME,
-                    IdentifiedC2SMessage { conn_id, msg: &msg },
-                );
+                _ = app.emit(EVENT_NAME, IdentifiedC2SMessage { conn_id, msg: &msg });
                 if let C2SMessage::Connect { s2c_tx } = msg {
                     if let Err(e) = mgmt_tx.lock().send(&ManagementEvent::ExternalRegistration {
                         id: conn_id,
@@ -480,19 +475,14 @@ pub struct InProcessIpc {
 
 impl InProcessIpc {
     pub async fn send(&self, message: C2SMessage) -> Result<()> {
-        let app = self.app.clone();
-        let conn_id = self.conn_id;
-        Ok(tokio::task::spawn_blocking(move || {
-            app.emit_to(
-                EVENT_TARGET,
-                EVENT_NAME,
-                IdentifiedC2SMessage {
-                    conn_id,
-                    msg: &message,
-                },
-            )
-        })
-        .await??)
+        self.app.emit(
+            EVENT_NAME,
+            IdentifiedC2SMessage {
+                conn_id: self.conn_id,
+                msg: &message,
+            },
+        )?;
+        Ok(())
     }
 
     pub async fn recv(&mut self) -> Result<S2CMessage> {

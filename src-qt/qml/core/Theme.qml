@@ -17,6 +17,9 @@ QtObject {
     /// The root font size. The web UI shrank it to 12px on narrow windows.
     readonly property real rem: windowWidth <= 700 ? 12 : 16
 
+    /// A variable font. Qt registers only its default instance on some platforms, such as with
+    /// fontconfig, and only applies other weights through its axis: set `font.variableAxes` to
+    /// `({ "wght": weight })` along with `font.weight`, which fallback fonts use.
     readonly property string font: "Inter"
     readonly property string fontMonospace: "Source Code Pro"
 

@@ -79,6 +79,7 @@ Item {
                 font.family: Theme.font
                 font.pixelSize: link.fontSize
                 font.weight: link.fontWeight
+                font.variableAxes: ({ "wght": link.fontWeight })
                 anchors.verticalCenter: parent.verticalCenter
             }
             Icon {
@@ -294,6 +295,7 @@ Item {
                 spacing: 0.25 * Theme.rem
 
                 SelectDropdown {
+                    objectName: "versionSelect"
                     Layout.fillWidth: true
                     Layout.maximumWidth: 8 * Theme.rem
                     Layout.fillHeight: true

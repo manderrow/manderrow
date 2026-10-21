@@ -92,8 +92,15 @@ Item {
     }
 
     onFetcherChanged: requery()
-    onQueryChanged: requery()
+    // searched once typing pauses, rather than for every keystroke
+    onQueryChanged: queryDebounce.restart()
     onSortChanged: requery()
+
+    Timer {
+        id: queryDebounce
+        interval: 150
+        onTriggered: modList.requery()
+    }
 
     onQueriedChanged: {
         rows.clear();
@@ -142,8 +149,7 @@ Item {
             const start = modList.mods.length;
             // appended in place: the rows already loaded keep their mods, so they aren't updated
             modList.mods.push(...pageMods);
-            for (let i = 0; i < pageMods.length; i++)
-                rows.append({ i: start + i });
+            rows.append(pageMods.map((_, i) => ({ i: start + i })));
             // keep loading until the list is filled
             Qt.callLater(list.maybeLoadMore);
         }, e => {

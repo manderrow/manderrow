@@ -82,6 +82,7 @@ Item {
                             font.family: Theme.font
                             font.pixelSize: 2 * Theme.rem
                             font.weight: Font.Bold
+                            font.variableAxes: ({ "wght": Font.Bold })
                         }
                     }
 

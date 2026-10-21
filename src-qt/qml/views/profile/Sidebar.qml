@@ -111,6 +111,10 @@ Rectangle {
     // expanded over the content on narrow windows, it hides the content beneath
     color: open ? Theme.neutral90 : Theme.surface(Theme.neutral90)
 
+    // Rectangles let the pointer through, which the expanded mini sidebar must not do to the
+    // content beneath it. Declared first, this is below the sidebar's own controls.
+    PopupInputBlocker {}
+
     // border-right
     Rectangle {
         anchors.right: parent.right
@@ -135,7 +139,9 @@ Rectangle {
         visible: Theme.windowWidth <= 1200
         z: sidebar.open ? -1 : 1
         variant: "plain"
-        radius: 0
+        // a pill, or a tab rounded away from the sidebar while it's expanded
+        leftRadius: sidebar.open ? 0 : radius
+        rightRadius: sidebar.open ? 0.75 * fontSize : radius
         fontSize: 1.5 * Theme.rem
         iconName: "chevrons-right"
         iconRotation: sidebar.open ? 180 : 0
@@ -149,17 +155,15 @@ Rectangle {
         y: (sidebar.height - height) / 2
         onClicked: sidebar.open = !sidebar.open
 
-        // the tab's border, open on the sidebar's side
+        // the tab's border, which reaches under the sidebar so that it is open on that side
         Rectangle {
             visible: sidebar.open
             anchors.fill: parent
             anchors.leftMargin: -radius
             color: "transparent"
-            radius: 0.75 * Theme.rem
+            radius: expandBtn.rightRadius
             border.color: Theme.neutral70
-            z: -1
         }
-        background.clip: false
     }
 
     // The sidebar's padding is left by each part that has any, so that the parts that reach its
@@ -256,6 +260,7 @@ Rectangle {
                     font.family: Theme.font
                     font.pixelSize: 1.75 * Theme.rem
                     font.weight: Font.Light
+                    font.variableAxes: ({ "wght": Font.Light })
                     style: Text.Raised
                     styleColor: Qt.rgba(0, 0, 0, 0.25)
                 }
@@ -377,7 +382,6 @@ Rectangle {
                     font.family: Theme.font
                     font.pixelSize: 1.17 * Theme.rem
                     font.weight: 350
-                    // Qt rounds weights to the font's named instances otherwise
                     font.variableAxes: ({ "wght": 350 })
                 }
 

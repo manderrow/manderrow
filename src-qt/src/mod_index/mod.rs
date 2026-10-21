@@ -308,6 +308,8 @@ pub async fn read_mod_index(game: &str) -> Result<ModIndexReadGuard> {
         .await)
 }
 
+/// Counts the mods that match a query. `query_mod_index` counts them as well, for the app.
+#[cfg(test)]
 pub fn count_mod_index<'a>(mod_index: &'a ModIndexReadGuard, query: &str) -> Result<usize> {
     let log = slog_scope::logger();
 
@@ -346,6 +348,10 @@ pub fn query_mod_index<'a>(
 
     let start = Instant::now();
 
+    // the total downloads of each mod, summed once rather than in every comparison
+    let sum_downloads = sort
+        .iter()
+        .any(|o| matches!(o.column, SortColumn::Downloads));
     let mut buf = Vec::new();
 
     for mi in mod_index.chunks.iter() {
@@ -353,7 +359,15 @@ pub fn query_mod_index<'a>(
             mi.mods()
                 .iter()
                 .filter_map(|m| score_mod(&log, query, m))
-                .filter(|&(_, score)| search::should_include(score)),
+                .filter(|&(_, score)| search::should_include(score))
+                .map(|(m, score)| {
+                    let downloads = if sum_downloads {
+                        m.versions.iter().map(|v| u64::from(v.downloads)).sum()
+                    } else {
+                        0
+                    };
+                    (m, score, downloads)
+                }),
         );
     }
 
@@ -362,22 +376,14 @@ pub fn query_mod_index<'a>(
     let start = now;
 
     if !sort.is_empty() {
-        buf.sort_unstable_by(|(m1, score1), (m2, score2)| {
+        buf.sort_unstable_by(|(m1, score1, downloads1), (m2, score2, downloads2)| {
             let mut ordering = std::cmp::Ordering::Equal;
             for &SortOption { column, descending } in sort {
                 ordering = match column {
                     SortColumn::Relevance => score1.cmp(score2),
                     SortColumn::Name => m1.name.cmp(&m2.name),
                     SortColumn::Owner => m1.owner.cmp(&m2.owner),
-                    SortColumn::Downloads => {
-                        let sum_downloads = |m: &ArchivedModRef| {
-                            m.versions
-                                .iter()
-                                .map(|v| u64::from(v.downloads))
-                                .sum::<u64>()
-                        };
-                        sum_downloads(m1).cmp(&sum_downloads(m2))
-                    }
+                    SortColumn::Downloads => downloads1.cmp(downloads2),
                     SortColumn::Size => {
                         let latest_size =
                             |m: &ArchivedModRef| m.versions.first().map(|v| v.file_size);
@@ -402,7 +408,7 @@ pub fn query_mod_index<'a>(
         "Queried mod index ({:?} collecting, {:?} sorting)", elapsed_collecting, elapsed_sorting
     );
 
-    Ok(buf)
+    Ok(buf.into_iter().map(|(m, score, _)| (m, score)).collect())
 }
 
 fn score_mod<'a, 'b>(

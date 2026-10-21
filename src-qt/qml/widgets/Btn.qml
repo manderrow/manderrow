@@ -56,6 +56,7 @@ AbstractButton {
     font.family: Theme.font
     font.pixelSize: fontSize
     font.weight: fontWeight
+    font.variableAxes: ({ "wght": fontWeight })
 
     HoverHandler {
         cursorShape: control.enabled ? Qt.PointingHandCursor : Qt.ForbiddenCursor

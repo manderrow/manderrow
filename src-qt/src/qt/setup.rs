@@ -116,8 +116,12 @@ pub fn configure_app() {
     for font in [
         "Inter-Variable.ttf",
         "Inter-Italic-Variable.ttf",
-        "SourceCodePro-Variable.ttf",
-        "SourceCodePro-Italic-Variable.ttf",
+        // Static instances, as Qt's fontconfig backend only registers a variable font's default
+        // instance, which for Source Code Pro is ExtraLight, under a family name of its own.
+        "SourceCodePro-Regular.ttf",
+        "SourceCodePro-Bold.ttf",
+        "SourceCodePro-Italic.ttf",
+        "SourceCodePro-BoldItalic.ttf",
         "ManderrowIcons.ttf",
     ] {
         ffi::QFontDatabase::add_application_font(&QString::from(&format!(":/assets/fonts/{font}")));

@@ -66,11 +66,6 @@ impl AppHandle {
         Ok(())
     }
 
-    /// Kept for parity with Tauri's API. There is only one window, so the target is ignored.
-    pub fn emit_to<S: serde::Serialize>(&self, _target: &str, event: &str, payload: S) -> Result<()> {
-        self.emit(event, payload)
-    }
-
     pub fn state<T: ManagedState>(&self) -> State<'_, T> {
         State(T::get(self))
     }

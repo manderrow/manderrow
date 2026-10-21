@@ -23,8 +23,8 @@ ListView {
             if (option.secondary !== undefined)
                 widest = Math.max(widest, secondaryMetrics.advanceWidth(option.secondary));
         }
-        // padding, check icon, and spacing
-        return Math.ceil(widest + 2 * 0.5 * fontSize + 0.875 * fontSize + 0.5 * fontSize) + 1;
+        // padding, check icon, and spacing, and the scroll bar's gutter beside the options
+        return Math.ceil(widest + 2 * 0.5 * fontSize + 0.875 * fontSize + 0.5 * fontSize) + 1 + bar.gutter;
     }
     implicitHeight: Math.min(contentHeight, maxHeight)
     model: options
@@ -49,6 +49,7 @@ ListView {
         font.family: Theme.font
         font.pixelSize: list.fontSize
         font.weight: 600
+        font.variableAxes: ({ "wght": 600 })
     }
     FontMetrics {
         id: secondaryMetrics
@@ -114,6 +115,7 @@ ListView {
                     font.family: Theme.font
                     font.pixelSize: list.fontSize
                     font.weight: option.modelData.secondary !== undefined ? 600 : Font.Normal
+                    font.variableAxes: ({ "wght": option.modelData.secondary !== undefined ? 600 : Font.Normal })
                 }
 
                 Text {
