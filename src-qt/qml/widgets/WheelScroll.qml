@@ -80,12 +80,8 @@ WheelHandler {
         const sideways = !vertical && event.angleDelta.x === 0 && event.pixelDelta.x === 0;
         const pixels = vertical || sideways ? event.pixelDelta.y : event.pixelDelta.x;
         const angle = vertical || sideways ? event.angleDelta.y : event.angleDelta.x;
-        // Qt doesn't say Wayland's touchpad scrolls came from a touchpad, but gives them phases, and
-        // pixel deltas of about 1/12 of their angle deltas. Wheels have no pixel deltas, though they
-        // keep a phase after Qt misses the end of a touchpad scroll, which it drops if the pointer
-        // has left the window.
-        const fingers = event.phase !== Qt.NoScrollPhase && Math.abs(angle - 12 * pixels) <= 18;
-        const touchpad = event.device.type === PointerDevice.TouchPad || fingers;
+        const touchpad = _gtkTouchpad ? _fromTouchpad(event, pixels, angle) : pixels !== 0 && event.device.type === PointerDevice.TouchPad;
+        console.debug(log, "wheel event from", event.device.name, "type", event.device.type, "phase", event.phase, "angle", angle, "pixels", pixels, "touchpad", touchpad);
         if (touchpad && _gtkTouchpad) {
             if (event.phase === Qt.ScrollEnd) {
                 _fling();
@@ -113,6 +109,37 @@ WheelHandler {
 
     /// Whether touchpads scroll as WebKitGTK did, on Linux and the BSDs.
     readonly property bool _gtkTouchpad: Qt.platform.os !== "osx" && Qt.platform.os !== "windows"
+    /// When the last of a touchpad's scrolls came, in ms.
+    property real _touchpadAt: 0
+
+    /// Whether a wheel event on Linux came from a touchpad, which Qt doesn't say on Wayland, and
+    /// says of some mice on X11. Anything else is a wheel, so that a mouse never loses its animation.
+    function _fromTouchpad(event, pixels, angle) {
+        const now = Date.now();
+        // a scroll that comes within one of the touchpad's frames of its last one
+        const ongoing = now - _touchpadAt < 100;
+        const touchpad =
+            // Wayland gives touchpads (and other continuous scrollers) pixel deltas, but never wheels,
+            // as X11 does touchpads whose driver isn't libinput
+            pixels !== 0
+            // Wayland's touchpad scrolls begin and end, with phases between, which wheels also have
+            // after Qt misses a touchpad scroll's end (if the pointer had left the window). A
+            // touchpad's smallest scrolls round to no pixels, but come amid its others.
+            || event.phase === Qt.ScrollBegin || event.phase === Qt.ScrollEnd
+            || (event.phase === Qt.ScrollUpdate && ongoing)
+            // X11's touchpads with libinput, which scroll by fractions of a notch, unlike the mice
+            // that Qt takes for touchpads, such as those whose driver is evdev
+            || (event.device.type === PointerDevice.TouchPad && (angle % 120 !== 0 || ongoing));
+        if (touchpad)
+            _touchpadAt = now;
+        return touchpad;
+    }
+
+    readonly property LoggingCategory _log: LoggingCategory {
+        id: log
+        name: "manderrow.scroll"
+        defaultLogLevel: LoggingCategory.Warning
+    }
     readonly property real _friction: 4
     /// The touchpad's recent scrolls along this axis, as [time in ms, delta] pairs.
     property var _history: []
