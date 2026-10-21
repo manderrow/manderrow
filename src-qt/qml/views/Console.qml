@@ -147,7 +147,16 @@ Item {
 
                         Flow {
                             Layout.fillWidth: true
-                            Layout.maximumWidth: implicitWidth
+                            // the toggles' width in one row, as the Flow's implicit width is
+                            // that of the rows it last wrapped them into, which would keep it narrow
+                            Layout.maximumWidth: {
+                                let width = -spacing;
+                                for (const child of children) {
+                                    if (child.implicitWidth > 0)
+                                        width += child.implicitWidth + spacing;
+                                }
+                                return Math.max(width, 0);
+                            }
                             spacing: 0.25 * Theme.rem
 
                             Repeater {
@@ -201,7 +210,7 @@ Item {
                     readonly property bool connected: !!consoleView.connection && consoleView.connection.status === "connected"
 
                     SText {
-                        Layout.alignment: Qt.AlignRight
+                        Layout.alignment: Qt.AlignHCenter
                         bottomPadding: 0.25 * Theme.rem
                         text: status.live ? I18n.t("console.live_log") : I18n.t("console.log_created_at")
                         color: Theme.neutral30
@@ -210,7 +219,7 @@ Item {
 
                     Row {
                         visible: status.live
-                        Layout.alignment: Qt.AlignRight
+                        Layout.alignment: Qt.AlignLeft
                         spacing: 0.25 * Theme.rem
 
                         // radial-gradient(45px 45px 45deg, circle cover, ...)
@@ -263,7 +272,7 @@ Item {
 
                     SText {
                         visible: !status.live
-                        Layout.alignment: Qt.AlignRight
+                        Layout.alignment: Qt.AlignLeft
                         text: consoleView.connection ? Util.formatDateTime(consoleView.connection.createdTime) : ""
                     }
                 }

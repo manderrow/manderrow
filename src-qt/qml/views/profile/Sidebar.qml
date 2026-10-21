@@ -18,10 +18,13 @@ Rectangle {
     property var profileId
     /// The profiles of this game, keyed by id.
     property var profiles: ({})
-    /// Whether the mini sidebar is expanded.
+    /// Whether the window is narrow, so that the sidebar is a mini one.
+    readonly property bool narrow: Theme.windowWidth <= 1200
+    /// Whether the mini sidebar is expanded, which narrow windows remember while they are wide.
     property bool open: false
+    readonly property bool expanded: narrow && open
     /// Whether the sidebar is collapsed to icons, which happens on narrow windows.
-    readonly property bool mini: Theme.windowWidth <= 1200 && !open
+    readonly property bool mini: narrow && !open
     property bool creatingProfile: false
     /// The editor for naming a new profile, while it shows.
     property ProfileNameEditor _profileCreator: null
@@ -109,7 +112,7 @@ Rectangle {
 
     width: mini ? miniWidth : fullWidth
     // expanded over the content on narrow windows, it hides the content beneath
-    color: open ? Theme.neutral90 : Theme.surface(Theme.neutral90)
+    color: expanded ? Theme.neutral90 : Theme.surface(Theme.neutral90)
 
     // Rectangles let the pointer through, which the expanded mini sidebar must not do to the
     // content beneath it. Declared first, this is below the sidebar's own controls.
@@ -126,7 +129,7 @@ Rectangle {
 
     // the expanded mini sidebar floats over the content with a shadow
     RectangularShadow {
-        visible: sidebar.open
+        visible: sidebar.expanded
         anchors.fill: parent
         blur: 1.5 * Theme.rem
         color: Qt.rgba(0, 0, 0, 0.5)
@@ -136,28 +139,28 @@ Rectangle {
     // the toggle for the mini sidebar, a tab on the sidebar's edge while it's expanded
     Btn {
         id: expandBtn
-        visible: Theme.windowWidth <= 1200
-        z: sidebar.open ? -1 : 1
+        visible: sidebar.narrow
+        z: sidebar.expanded ? -1 : 1
         variant: "plain"
         // a pill, or a tab rounded away from the sidebar while it's expanded
-        leftRadius: sidebar.open ? 0 : radius
-        rightRadius: sidebar.open ? 0.75 * fontSize : radius
+        leftRadius: sidebar.expanded ? 0 : radius
+        rightRadius: sidebar.expanded ? 0.75 * fontSize : radius
         fontSize: 1.5 * Theme.rem
         iconName: "chevrons-right"
-        iconRotation: sidebar.open ? 180 : 0
+        iconRotation: sidebar.expanded ? 180 : 0
         horizontalPadding: 0.35 * fontSize
-        verticalPadding: (sidebar.open ? 1 : 0.75) * fontSize
+        verticalPadding: (sidebar.expanded ? 1 : 0.75) * fontSize
         textColor: Theme.neutral20
         activeTextColor: Theme.primary55
-        activeBgColor: sidebar.open ? Theme.neutral90 : Theme.neutral80
-        bgColor: sidebar.open ? Theme.neutral90 : "transparent"
-        x: sidebar.open ? sidebar.width - 1 : (sidebar.width - width) / 2
+        activeBgColor: sidebar.expanded ? Theme.neutral90 : Theme.neutral80
+        bgColor: sidebar.expanded ? Theme.neutral90 : "transparent"
+        x: sidebar.expanded ? sidebar.width - 1 : (sidebar.width - width) / 2
         y: (sidebar.height - height) / 2
         onClicked: sidebar.open = !sidebar.open
 
         // the tab's border, which reaches under the sidebar so that it is open on that side
         Rectangle {
-            visible: sidebar.open
+            visible: sidebar.expanded
             anchors.fill: parent
             anchors.leftMargin: -radius
             color: "transparent"
