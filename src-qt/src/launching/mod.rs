@@ -53,8 +53,7 @@ pub async fn launch_profile(
             record: &slog::Record<'_>,
             _values: &slog::OwnedKVList,
         ) -> Result<Self::Ok, Self::Err> {
-            _ = self.app.emit_to(
-                crate::ipc::EVENT_TARGET,
+            _ = self.app.emit(
                 crate::ipc::EVENT_NAME,
                 IdentifiedC2SMessage {
                     conn_id: self.conn_id,

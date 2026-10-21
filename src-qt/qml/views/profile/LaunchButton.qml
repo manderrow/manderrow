@@ -144,6 +144,8 @@ AbstractButton {
             anchors.margins: launch.borderWidth
             preferredRendererType: Shape.CurveRenderer
             opacity: launch._glintOpacity
+            // no need to fill the shape while it is hidden
+            visible: opacity > 0
 
             ShapePath {
                 id: glintPath

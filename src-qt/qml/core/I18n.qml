@@ -48,25 +48,16 @@ QtObject {
         return resolveTemplate(value, args);
     }
 
-    /// Picks the best supported locale for the user's preferences.
+    /// Picks the supported locale for the most preferred language that has one, in the preferred
+    /// region if there is one for it.
     function detectLocale(preferredLocales) {
-        let finalLocale;
         for (const preferred of preferredLocales) {
             const lang = preferred.slice(0, 2);
-            let found = false;
-            for (const candidate of rawLocales) {
-                if (!candidate.startsWith(lang))
-                    continue;
-                finalLocale = candidate;
-                if (candidate === preferred) {
-                    found = true;
-                    break;
-                }
+            const candidates = rawLocales.filter(candidate => candidate.startsWith(lang));
+            if (candidates.length !== 0) {
+                locale = candidates.includes(preferred) ? preferred : candidates[0];
+                return;
             }
-            if (found)
-                break;
         }
-        if (finalLocale !== undefined)
-            locale = finalLocale;
     }
 }

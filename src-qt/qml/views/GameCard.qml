@@ -154,7 +154,6 @@ FocusScope {
                     font.family: Theme.font
                     font.pixelSize: 1.15 * Theme.rem
                     font.weight: 850
-                    // Qt rounds weights to the font's named instances otherwise
                     font.variableAxes: ({ "wght": 850 })
                 }
 

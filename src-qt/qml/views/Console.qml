@@ -26,7 +26,8 @@ Item {
     /// The lines of the connection's log that the levels and the search show.
     SortFilterProxyModel {
         id: shownLines
-        model: consoleView.connection ? consoleView.connection.events : null
+        // the proxy warns about a null model
+        model: consoleView.connection ? consoleView.connection.events : noLines
         filters: [
             FunctionFilter {
                 component Line: QtObject {
@@ -41,6 +42,10 @@ Item {
                 }
             }
         ]
+    }
+
+    ListModel {
+        id: noLines
     }
 
     // the filter reads these, which the model doesn't watch
@@ -186,25 +191,26 @@ Item {
                     }
                 }
 
-                // whether the log is live, or when it was created
-                Column {
+                // whether the log is live, or when it was created, at the end of the header
+                ColumnLayout {
                     id: status
-                    Layout.alignment: Qt.AlignTop
+                    Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
                     Layout.bottomMargin: 0.5 * Theme.rem
+                    spacing: 0
                     readonly property bool live: !consoleView.connection || consoleView.connection.status !== "disconnected"
                     readonly property bool connected: !!consoleView.connection && consoleView.connection.status === "connected"
 
                     SText {
-                        anchors.horizontalCenter: parent.horizontalCenter
+                        Layout.alignment: Qt.AlignRight
                         bottomPadding: 0.25 * Theme.rem
                         text: status.live ? I18n.t("console.live_log") : I18n.t("console.log_created_at")
                         color: Theme.neutral30
-                        font.family: Theme.font
                         font.pixelSize: 0.75 * Theme.rem
                     }
 
                     Row {
                         visible: status.live
+                        Layout.alignment: Qt.AlignRight
                         spacing: 0.25 * Theme.rem
 
                         // radial-gradient(45px 45px 45deg, circle cover, ...)
@@ -257,10 +263,8 @@ Item {
 
                     SText {
                         visible: !status.live
+                        Layout.alignment: Qt.AlignRight
                         text: consoleView.connection ? Util.formatDateTime(consoleView.connection.createdTime) : ""
-                        color: Theme.neutral05
-                        font.family: Theme.font
-                        font.pixelSize: Theme.rem
                     }
                 }
             }
@@ -327,8 +331,8 @@ Item {
                 x: log.leftMargin
                 text: consoleView.connection ? I18n.t("console.launching_log_placeholder") : I18n.t("console.game_not_running")
                 color: Theme.neutral20
-                font.family: Theme.font
-                font.pixelSize: Theme.rem
+                font.family: Theme.fontMonospace
+                font.pixelSize: log.fontSize
             }
 
             delegate: Item {

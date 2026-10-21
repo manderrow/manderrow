@@ -52,13 +52,13 @@ Item {
         progress: root._progressTask ? root._progressTask.progress : root.progress
         refresh: () => root.load(true)
         fetcher: {
-            root.loadedGeneration; // track
             if (root.loadedGeneration === 0)
                 return null;
             const perPage = 50;
-            return (game, query, sort) => Api.countModIndex(game, query).then(count => ({
-                        count,
-                        mods: page => Api.queryModIndex(game, query, sort, page * perPage, perPage).then(result => result.mods),
+            // the first page comes with the count, which spares searching the mod index twice
+            return (game, query, sort) => Api.queryModIndex(game, query, sort, 0, perPage).then(first => ({
+                        count: first.count,
+                        mods: page => page === 0 ? first.mods : Api.queryModIndex(game, query, sort, page * perPage, perPage).then(result => result.mods),
                         get: id => Api.getFromModIndex(game, [id]).then(mods => mods[0])
                     }));
         }

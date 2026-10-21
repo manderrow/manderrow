@@ -48,9 +48,11 @@ pub mod qobject {
         #[qsignal]
         fn invoke_finished(self: Pin<&mut Backend>, call_id: i32, ok: bool, payload: QString);
 
-        /// An event emitted by the backend, with a JSON payload.
+        /// Events emitted by the backend, as a JSON array of `{ name, payload }` objects in the
+        /// order they were emitted. Events are batched, so that a flood of them, such as a game's
+        /// log, doesn't cost the UI thread a signal for each one.
         #[qsignal]
-        fn backend_event(self: Pin<&mut Backend>, name: QString, payload: QString);
+        fn backend_events(self: Pin<&mut Backend>, events: QString);
     }
 
     impl cxx_qt::Threading for Backend {}
@@ -58,24 +60,103 @@ pub mod qobject {
 }
 
 use core::pin::Pin;
+use std::sync::Arc;
 
-use cxx_qt::{CxxQtType, Threading};
+use cxx_qt::{CxxQtThread, CxxQtType, Threading};
 use cxx_qt_lib::QString;
+use parking_lot::Mutex;
 
 use crate::CommandError;
 
 #[derive(Default)]
 pub struct BackendRust {
     next_call_id: i32,
+    outbox: Option<Arc<Outbox>>,
+}
+
+/// Something to deliver to the frontend.
+enum Delivery {
+    Event {
+        name: String,
+        payload: String,
+    },
+    Finished {
+        call_id: i32,
+        ok: bool,
+        payload: String,
+    },
+}
+
+/// Delivers events and command results to the frontend in the order they were sent, with
+/// everything sent before the UI thread gets to it delivered at once.
+struct Outbox {
+    thread: CxxQtThread<qobject::Backend>,
+    queue: Mutex<Vec<Delivery>>,
+}
+
+impl Outbox {
+    fn send(self: &Arc<Self>, delivery: Delivery) {
+        let mut queue = self.queue.lock();
+        let first = queue.is_empty();
+        queue.push(delivery);
+        drop(queue);
+        // a delivery is already on its way otherwise, which will take this one along
+        if first {
+            let outbox = self.clone();
+            // fails only once the Backend has been destroyed, when there is nothing left to notify
+            _ = self.thread.queue(move |backend| outbox.deliver(backend));
+        }
+    }
+
+    fn deliver(&self, mut backend: Pin<&mut qobject::Backend>) {
+        let deliveries = std::mem::take(&mut *self.queue.lock());
+        let mut events = String::new();
+        let flush = |backend: Pin<&mut qobject::Backend>, events: &mut String| {
+            if !events.is_empty() {
+                events.push(']');
+                backend.backend_events(QString::from(&*events));
+                events.clear();
+            }
+        };
+        for delivery in deliveries {
+            match delivery {
+                Delivery::Event { name, payload } => {
+                    events.push(if events.is_empty() { '[' } else { ',' });
+                    events.push_str(r#"{"name":"#);
+                    events.push_str(&serde_json::to_string(&name).unwrap());
+                    events.push_str(r#","payload":"#);
+                    // serialized by `AppHandle::emit`
+                    events.push_str(&payload);
+                    events.push('}');
+                }
+                Delivery::Finished {
+                    call_id,
+                    ok,
+                    payload,
+                } => {
+                    flush(backend.as_mut(), &mut events);
+                    backend
+                        .as_mut()
+                        .invoke_finished(call_id, ok, QString::from(&payload));
+                }
+            }
+        }
+        flush(backend, &mut events);
+    }
 }
 
 impl cxx_qt::Initialize for qobject::Backend {
-    fn initialize(self: Pin<&mut Self>) {
-        let thread = self.qt_thread();
+    fn initialize(mut self: Pin<&mut Self>) {
+        let outbox = Arc::new(Outbox {
+            thread: self.qt_thread(),
+            queue: Mutex::new(Vec::new()),
+        });
+        self.as_mut().rust_mut().outbox = Some(outbox.clone());
         super::app().set_event_sink(Box::new(move |name, payload| {
-            let name = QString::from(name);
-            // fails only once the Backend has been destroyed, when there is nothing left to notify
-            _ = thread.queue(move |backend| backend.backend_event(name, QString::from(&payload)));
+            outbox.send(Delivery::Event {
+                name: name.to_owned(),
+                payload,
+            });
         }));
     }
 }
@@ -85,7 +166,7 @@ impl qobject::Backend {
         let call_id = self.next_call_id;
         self.as_mut().rust_mut().next_call_id = call_id.wrapping_add(1);
 
-        let thread = self.qt_thread();
+        let outbox = self.outbox.clone().expect("Backend is initialized");
         let command = command.to_string();
         let args = args.to_string();
         super::runtime().spawn(async move {
@@ -103,8 +184,10 @@ impl qobject::Backend {
                     (false, serde_json::to_string(&e).unwrap())
                 }
             };
-            _ = thread.queue(move |backend| {
-                backend.invoke_finished(call_id, ok, QString::from(&payload))
+            outbox.send(Delivery::Finished {
+                call_id,
+                ok,
+                payload,
             });
         });
         call_id

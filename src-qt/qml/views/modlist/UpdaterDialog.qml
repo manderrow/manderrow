@@ -41,6 +41,7 @@ Dialog {
             font.family: Theme.font
             font.pixelSize: 1.5 * Theme.rem
             font.weight: Font.Medium
+            font.variableAxes: ({ "wght": Font.Medium })
         }
 
         Rectangle {
@@ -164,6 +165,7 @@ Dialog {
                                     font.family: Theme.font
                                     font.pixelSize: 0.9 * Theme.rem
                                     font.weight: Font.Medium
+                                    font.variableAxes: ({ "wght": Font.Medium })
                                 }
                                 Text {
                                     Layout.fillWidth: true
@@ -200,6 +202,7 @@ Dialog {
                                     font.family: Theme.font
                                     font.pixelSize: 0.9 * Theme.rem
                                     font.weight: Font.DemiBold
+                                    font.variableAxes: ({ "wght": Font.DemiBold })
                                 }
                             }
                         }

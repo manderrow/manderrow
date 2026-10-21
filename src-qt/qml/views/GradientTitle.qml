@@ -19,7 +19,6 @@ Item {
         font.family: Theme.font
         font.pixelSize: title.fontSize
         font.weight: 650
-        // Qt rounds weights to the font's named instances otherwise
         font.variableAxes: ({ "wght": 650 })
     }
 

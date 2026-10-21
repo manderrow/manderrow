@@ -22,6 +22,7 @@ Dialog {
             font.family: Theme.font
             font.pixelSize: 1.5 * Theme.rem
             font.weight: Font.Bold
+            font.variableAxes: ({ "wght": Font.Bold })
             bottomPadding: 0.5 * Theme.rem
         }
         Rectangle {
@@ -131,6 +132,7 @@ Dialog {
                         font.family: Theme.font
                         font.pixelSize: Theme.rem
                         font.weight: Font.Bold
+                        font.variableAxes: ({ "wght": Font.Bold })
                         width: Math.min(implicitWidth, list.width - 2 * Theme.rem)
                         wrapMode: TextEdit.WrapAnywhere
                     }

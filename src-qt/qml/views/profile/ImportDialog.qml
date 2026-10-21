@@ -110,6 +110,7 @@ MultistageModal {
                     font.family: Theme.font
                     font.pixelSize: 1.5 * Theme.rem
                     font.weight: Font.Bold
+                    font.variableAxes: ({ "wght": Font.Bold })
                 }
             }
 
@@ -139,6 +140,7 @@ MultistageModal {
                         font.family: Theme.font
                         font.pixelSize: 1.17 * Theme.rem
                         font.weight: Font.Bold
+                        font.variableAxes: ({ "wght": Font.Bold })
                     }
                     component Item_: Text {
                         Layout.fillWidth: true

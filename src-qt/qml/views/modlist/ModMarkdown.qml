@@ -46,8 +46,13 @@ Item {
     /// What is shown, which is loaded again whenever it changes. Different mods can have the same
     /// version number.
     readonly property string _key: mod ? [mod.owner, mod.name, _version, endpoint].join("/") : ""
-    on_KeyChanged: load()
-    Component.onCompleted: load()
+    property bool _completed: false
+    on_KeyChanged: if (_completed)
+        load()
+    Component.onCompleted: {
+        _completed = true;
+        load();
+    }
 
     Item {
         id: status

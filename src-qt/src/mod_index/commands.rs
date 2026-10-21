@@ -29,12 +29,6 @@ fn map_to_json<T: serde::Serialize>(buf: &mut Vec<u8>, it: impl Iterator<Item = 
     }
 }
 
-pub async fn count_mod_index(game: &str, query: &str) -> Result<usize, CommandError> {
-    let mod_index = read_mod_index(game).await?;
-
-    Ok(super::count_mod_index(&mod_index, query)?)
-}
-
 pub async fn query_mod_index(
     game: &str,
     query: &str,

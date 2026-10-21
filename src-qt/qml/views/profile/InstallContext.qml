@@ -9,6 +9,14 @@ QtObject {
     property string profileId
     /// The installed mod packages.
     property var installed: []
+    /// The installed packages keyed by owner and name, which every mod in a list looks itself up
+    /// in.
+    readonly property var _installedById: {
+        const out = {};
+        for (const pkg of installed)
+            out[`${pkg.owner}/${pkg.name}`] = pkg;
+        return out;
+    }
     property int _generation: 0
 
     function refetchInstalled() {
@@ -21,7 +29,7 @@ QtObject {
     }
 
     function getInstalled(owner, name) {
-        return installed.find(pkg => pkg.owner === owner && pkg.name === name);
+        return _installedById[`${owner}/${name}`];
     }
 
     /// The installed package of a mod, or the mod itself if it is a package.

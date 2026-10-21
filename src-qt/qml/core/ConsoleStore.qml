@@ -25,8 +25,11 @@ QtObject {
             /// The distinct type labels and scopes in `events`, which size the log's columns.
             property var typeLabels: []
             property var scopes: []
+            /// Rows waiting to be appended to `events` together.
+            property var pendingRows: []
 
             function clear() {
+                pendingRows = [];
                 events.clear();
             }
 
@@ -36,9 +39,10 @@ QtObject {
         }
     }
 
+    /// Reading this in a binding makes it depend on the connections, unlike reading
+    /// `connections`, which is modified in place.
     function connectionIds() {
-        connectionsUpdate; // track
-        return Object.keys(connections).map(Number);
+        return connectionsUpdate === 0 ? [] : Object.keys(connections).map(Number);
     }
 
     function _add(connId, profileId) {
@@ -126,7 +130,7 @@ QtObject {
             break;
         case "Exit":
             row.type = "EXIT";
-            row.message = event.code ? String(event.code) : "Unknown exit code";
+            row.message = event.code !== null && event.code !== undefined ? String(event.code) : "Unknown exit code";
             break;
         case "Crash":
             row.type = row.dataType = "CRASH";
@@ -162,7 +166,26 @@ QtObject {
             conn.typeLabels = conn.typeLabels.concat([row.type]);
         if (row.scope !== "" && !conn.scopes.includes(row.scope))
             conn.scopes = conn.scopes.concat([row.scope]);
-        conn.events.append(row);
+        // A game can log thousands of lines at once, which the log lays out far faster when
+        // they are appended together than one by one.
+        if (conn.pendingRows.length === 0) {
+            _connsWithPendingRows.push(conn);
+            Qt.callLater(_appendPendingRows);
+        }
+        conn.pendingRows.push(row);
+    }
+
+    property var _connsWithPendingRows: []
+
+    function _appendPendingRows() {
+        const conns = _connsWithPendingRows;
+        _connsWithPendingRows = [];
+        for (const conn of conns) {
+            const rows = conn.pendingRows;
+            conn.pendingRows = [];
+            if (rows.length !== 0)
+                conn.events.append(rows);
+        }
     }
 
     function init() {

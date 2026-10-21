@@ -123,6 +123,7 @@ Item {
             font.family: Theme.font
             font.pixelSize: 2.5 * 1.5 * Theme.rem
             font.weight: Font.DemiBold
+            font.variableAxes: ({ "wght": Font.DemiBold })
         }
 
         Text {

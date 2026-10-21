@@ -21,6 +21,7 @@ Item {
             font.family: Theme.font
             font.pixelSize: 12 * Theme.rem
             font.weight: Font.ExtraLight
+            font.variableAxes: ({ "wght": Font.ExtraLight })
         }
         SText {
             Layout.alignment: Qt.AlignHCenter

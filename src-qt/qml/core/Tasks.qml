@@ -60,8 +60,9 @@ QtObject {
         if (task === undefined)
             return;
         const i = task.listeners.indexOf(listener);
-        if (i !== -1)
-            task.listeners.splice(i, 1);
+        if (i === -1)
+            return;
+        task.listeners.splice(i, 1);
         // adjust so that if removed during iteration, subsequent listeners are not skipped
         if (task.listenerIndex >= i)
             task.listenerIndex--;
@@ -106,6 +107,9 @@ QtObject {
             const dependency = payload.dependency;
             task.dependencies = task.dependencies.concat([dependency]);
             if (task.metadata.kind === "Aggregate") {
+                // what this dependency has added to the aggregate's progress, which its next
+                // progress replaces, so that each update is constant time however many there are
+                let counted = initProgress();
                 tasks.registerTaskListener(dependency, function handler(event) {
                     if (event.event === "created") {
                         if (event.metadata.progress_unit !== task.metadata.progress_unit) {
@@ -113,16 +117,12 @@ QtObject {
                             tasks.unregisterTaskListener(dependency, handler);
                         }
                     } else if (event.event === "progress") {
-                        let completed = 0;
-                        let total = 0;
-                        for (const id of task.dependencies) {
-                            const subTask = tasks._tasks[id];
-                            if (subTask === undefined)
-                                continue;
-                            completed += subTask.progress.completed;
-                            total += subTask.progress.total;
-                        }
-                        task.progress = { completed, total };
+                        const progress = event.progress;
+                        task.progress = {
+                            completed: task.progress.completed + progress.completed - counted.completed,
+                            total: task.progress.total + progress.total - counted.total
+                        };
+                        counted = { completed: progress.completed, total: progress.total };
                     }
                 });
             }

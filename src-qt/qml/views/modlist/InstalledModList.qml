@@ -18,8 +18,13 @@ Item {
     /// Looks for updates to the installed mods. With `refresh`, the mod index is refetched first.
     function checkUpdates(refresh) {
         const generation = ++_updatesGeneration;
-        updatesLoading = true;
         const installed = installContext.installed;
+        if (installed.length === 0) {
+            updates = [];
+            updatesLoading = false;
+            return Promise.resolve();
+        }
+        updatesLoading = true;
         return Api.fetchModIndex(game, refresh, event => {
             // the component may have been destroyed by the time this runs
             if (root && event.event === "progress")
@@ -60,6 +65,7 @@ Item {
             font.family: Theme.font
             font.pixelSize: 1.5 * Theme.rem
             font.weight: Font.Bold
+            font.variableAxes: ({ "wght": Font.Bold })
         }
         Text {
             Layout.alignment: Qt.AlignHCenter
