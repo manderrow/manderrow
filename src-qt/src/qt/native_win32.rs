@@ -17,7 +17,7 @@ mod ffi {
     }
 }
 
-use core::ffi::c_void;
+use core::ffi::{c_char, c_int, c_void};
 use core::pin::Pin;
 
 use windows::core::BOOL;
@@ -32,14 +32,47 @@ use windows::Win32::UI::HiDpi::{GetDpiForWindow, GetSystemMetricsForDpi};
 use windows::Win32::UI::Shell::{DefSubclassProc, RemoveWindowSubclass, SetWindowSubclass};
 use windows::Win32::UI::WindowsAndMessaging::{
     EnableMenuItem, GetSystemMenu, GetWindowLongPtrW, GetWindowRect, IsZoomed, PostMessageW,
-    SetMenuDefaultItem, SetWindowPos, TrackPopupMenu, GWL_STYLE, HTCLIENT, HTTOP, HTTOPLEFT,
-    HTTOPRIGHT, MF_BYCOMMAND, MF_ENABLED, MF_GRAYED, NCCALCSIZE_PARAMS, SC_CLOSE, SC_MAXIMIZE,
-    SC_MINIMIZE, SC_MOVE, SC_RESTORE, SC_SIZE, SM_CXPADDEDBORDER, SM_CYSIZEFRAME, SWP_FRAMECHANGED,
-    SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSIZE, SWP_NOZORDER, TPM_RETURNCMD,
-    TPM_RIGHTBUTTON, WM_NCCALCSIZE, WM_NCDESTROY, WM_NCHITTEST, WM_SYSCOMMAND, WS_THICKFRAME,
+    SetMenuDefaultItem, SetWindowLongPtrW, SetWindowPos, TrackPopupMenu, GWL_STYLE, HTCLIENT,
+    HTTOP, HTTOPLEFT, HTTOPRIGHT, MF_BYCOMMAND, MF_ENABLED, MF_GRAYED, NCCALCSIZE_PARAMS, SC_CLOSE,
+    SC_MAXIMIZE, SC_MINIMIZE, SC_MOVE, SC_RESTORE, SC_SIZE, SM_CXPADDEDBORDER, SM_CYSIZEFRAME,
+    STYLESTRUCT, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSIZE,
+    SWP_NOZORDER, TPM_RETURNCMD, TPM_RIGHTBUTTON, WM_NCCALCSIZE, WM_NCDESTROY, WM_NCHITTEST,
+    WM_STYLECHANGING, WM_SYSCOMMAND, WS_SYSMENU, WS_THICKFRAME,
 };
 
 use ffi::QWindow;
+
+// The C runtime's copy of the environment, which is the one Qt reads, and which
+// `std::env::set_var` doesn't change
+unsafe extern "C" {
+    fn _putenv_s(name: *const c_char, value: *const c_char) -> c_int;
+}
+
+/// Configuration that must happen before the `QGuiApplication` is created.
+pub fn configure_before_app() {
+    // Qt Quick draws with Direct3D into a DirectComposition visual beneath the window's GDI
+    // redirection surface, which nothing draws in. With a backdrop, DWM composes that surface over
+    // the visual, which hides the backdrop behind black, and behind white where the window was
+    // first shown. Windows made without the surface have only the visual, over the backdrop. Only
+    // Direct3D can draw into them, which Qt Quick uses unless it is told otherwise.
+    let var = |name| std::env::var_os(name).filter(|value| !value.is_empty());
+    let direct3d = var("QSG_RHI_BACKEND").is_none_or(|backend| {
+        !matches!(
+            backend.to_str(),
+            Some("gl" | "gles2" | "opengl" | "vulkan" | "null")
+        )
+    });
+    let rhi = var("QT_QUICK_BACKEND").is_none_or(|backend| backend == "rhi");
+    if direct3d && rhi && var("QT_QPA_DISABLE_REDIRECTION_SURFACE").is_none() {
+        // SAFETY: the strings are NUL-terminated, and the C runtime locks its environment
+        unsafe {
+            _putenv_s(
+                c"QT_QPA_DISABLE_REDIRECTION_SURFACE".as_ptr(),
+                c"1".as_ptr(),
+            )
+        };
+    }
+}
 
 fn hwnd(window: &QWindow) -> HWND {
     HWND(usize::from(window.win_id()) as *mut c_void)
@@ -68,6 +101,8 @@ pub fn set_blur_behind(window: Pin<&mut QWindow>, enabled: bool) -> bool {
     // The acrylic backdrop is drawn behind the window, and shows through the client area where the
     // frame is extended into it. Elsewhere, and before Windows 11, which has no backdrops, the
     // client area is transparent rather than blurred, as Qt makes windows with an alpha channel.
+    // The frame is extended from the left side alone, by more than any window's width: extended
+    // from the top, it brings back the title bar's accent color, when Windows is set to show it.
     let backdrop = if enabled {
         DWMSBT_TRANSIENTWINDOW
     } else {
@@ -75,12 +110,9 @@ pub fn set_blur_behind(window: Pin<&mut QWindow>, enabled: bool) -> bool {
     };
     // SAFETY: the window is the QWindow's, and the value is a DWM_SYSTEMBACKDROP_TYPE
     let ok = unsafe { set_attribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, backdrop) };
-    let extent = if enabled && ok { -1 } else { 0 };
     let margins = MARGINS {
-        cxLeftWidth: extent,
-        cxRightWidth: extent,
-        cyTopHeight: extent,
-        cyBottomHeight: extent,
+        cxLeftWidth: if enabled && ok { 0x10000 } else { 0 },
+        ..MARGINS::default()
     };
     // SAFETY: the window is the QWindow's
     _ = unsafe { DwmExtendFrameIntoClientArea(hwnd, &margins) };
@@ -110,6 +142,12 @@ pub fn hide_title_bar(window: Pin<&mut QWindow>) -> bool {
         if !SetWindowSubclass(hwnd, Some(frame_subclass), FRAME_SUBCLASS, 0).as_bool() {
             return false;
         }
+        // Windows draws the title bar's buttons where the frame is extended into the client area,
+        // where they show through the app's own when the window is translucent, unless the window
+        // has no system menu. The menu, once made, is kept for the app to show, though.
+        _ = GetSystemMenu(hwnd, false);
+        let style = GetWindowLongPtrW(hwnd, GWL_STYLE);
+        SetWindowLongPtrW(hwnd, GWL_STYLE, style & !(WS_SYSMENU.0 as isize));
         // recalculates the client area with the subclass
         _ = SetWindowPos(
             hwnd,
@@ -127,6 +165,18 @@ pub fn hide_title_bar(window: Pin<&mut QWindow>) -> bool {
         );
     }
     true
+}
+
+/// The undocumented message with which the taskbar asks a window to show its system menu, at a
+/// point on the screen. The window answers it itself, as Windows may not without WS_SYSMENU.
+const WM_POPUPSYSTEMMENU: u32 = 0x313;
+
+/// The point on the screen of a mouse message, whose coordinates are signed 16-bit numbers.
+fn screen_point(lparam: LPARAM) -> POINT {
+    POINT {
+        x: i32::from(lparam.0 as u16 as i16),
+        y: i32::from((lparam.0 >> 16) as u16 as i16),
+    }
 }
 
 /// The thickness of the window's resize borders, as Windows sizes them.
@@ -182,9 +232,7 @@ unsafe extern "system" fn frame_subclass(
                 if GetWindowRect(hwnd, &mut rect).is_err() {
                     return hit;
                 }
-                // the screen coordinates of the point, which are signed 16-bit numbers
-                let x = i32::from(lparam.0 as u16 as i16);
-                let y = i32::from((lparam.0 >> 16) as u16 as i16);
+                let POINT { x, y } = screen_point(lparam);
                 let border = resize_border(hwnd);
                 if y >= rect.top + border {
                     hit
@@ -195,6 +243,16 @@ unsafe extern "system" fn frame_subclass(
                 } else {
                     LRESULT(HTTOP as isize)
                 }
+            }
+            // Qt and others change the style when the window enters and leaves full screen
+            WM_STYLECHANGING if wparam.0 as i32 == GWL_STYLE.0 => {
+                let styles = &mut *(lparam.0 as *mut STYLESTRUCT);
+                styles.styleNew &= !WS_SYSMENU.0;
+                DefSubclassProc(hwnd, message, wparam, lparam)
+            }
+            WM_POPUPSYSTEMMENU => {
+                track_window_menu(hwnd, screen_point(lparam));
+                LRESULT(0)
             }
             WM_NCDESTROY => {
                 _ = RemoveWindowSubclass(hwnd, Some(frame_subclass), FRAME_SUBCLASS);
@@ -208,7 +266,25 @@ unsafe extern "system" fn frame_subclass(
 pub fn show_window_menu(window: Pin<&mut QWindow>, x: f64, y: f64) -> bool {
     let hwnd = hwnd(&window);
     let scale = window.device_pixel_ratio();
-    // SAFETY: the window is the QWindow's, which outlives the menu, which is modal
+    let mut point = POINT {
+        x: (x * scale) as i32,
+        y: (y * scale) as i32,
+    };
+    // SAFETY: the window is the QWindow's
+    unsafe {
+        _ = ClientToScreen(hwnd, &mut point);
+        track_window_menu(hwnd, point)
+    }
+}
+
+/// Shows the window's system menu at a point on the screen, and carries out the command chosen
+/// from it, if any. Returns whether the window has the menu.
+///
+/// # Safety
+///
+/// The window must be valid. It outlives the menu, which is modal.
+unsafe fn track_window_menu(hwnd: HWND, point: POINT) -> bool {
+    // SAFETY: the window is valid
     unsafe {
         let menu = GetSystemMenu(hwnd, false);
         if menu.is_invalid() {
@@ -230,11 +306,6 @@ pub fn show_window_menu(window: Pin<&mut QWindow>, x: f64, y: f64) -> bool {
         enable(SC_MINIMIZE, true);
         enable(SC_CLOSE, true);
         _ = SetMenuDefaultItem(menu, SC_CLOSE, 0);
-        let mut point = POINT {
-            x: (x * scale) as i32,
-            y: (y * scale) as i32,
-        };
-        _ = ClientToScreen(hwnd, &mut point);
         let command = TrackPopupMenu(
             menu,
             TPM_RETURNCMD | TPM_RIGHTBUTTON,
