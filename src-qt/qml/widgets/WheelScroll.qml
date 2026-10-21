@@ -80,8 +80,12 @@ WheelHandler {
         const sideways = !vertical && event.angleDelta.x === 0 && event.pixelDelta.x === 0;
         const pixels = vertical || sideways ? event.pixelDelta.y : event.pixelDelta.x;
         const angle = vertical || sideways ? event.angleDelta.y : event.angleDelta.x;
-        // Wayland's touchpad scrolls have phases, though Qt may not say they came from a touchpad.
-        const touchpad = event.device.type === PointerDevice.TouchPad || event.phase !== Qt.NoScrollPhase;
+        // Qt doesn't say Wayland's touchpad scrolls came from a touchpad, but gives them phases, and
+        // pixel deltas of about 1/12 of their angle deltas. Wheels have no pixel deltas, though they
+        // keep a phase after Qt misses the end of a touchpad scroll, which it drops if the pointer
+        // has left the window.
+        const fingers = event.phase !== Qt.NoScrollPhase && Math.abs(angle - 12 * pixels) <= 18;
+        const touchpad = event.device.type === PointerDevice.TouchPad || fingers;
         if (touchpad && _gtkTouchpad) {
             if (event.phase === Qt.ScrollEnd) {
                 _fling();
