@@ -1,0 +1,80 @@
+<!--
+  The Windows installer, which installs the bundle that scripts/bundle-windows.py produces. The
+  installer lets the user choose where to install the app and which shortcuts to create, and the
+  same can be set for unattended installs with msiexec's properties, for example:
+
+    msiexec /i manderrow.msi /qn INSTALLFOLDER="D:\Apps\Manderrow" ADDLOCAL=Main,StartMenuShortcut
+
+  Build with WiX 6 and its UI extension:
+
+    wix build -arch x64 -ext WixToolset.UI.wixext -d Version=<x.y.z> -bindpath Bundle=<bundle>
+      src-qt/windows/manderrow.wxs -o manderrow.msi
+-->
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
+  <!-- The UpgradeCode identifies the app across versions, so it must never change. -->
+  <Package
+    Name="Manderrow"
+    Manufacturer="Manderrow"
+    Version="$(var.Version)"
+    UpgradeCode="FC751B81-1ACB-4422-B7CB-6DE53A32B1D1"
+    Scope="perMachine"
+  >
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+
+    <Icon Id="manderrow.ico" SourceFile="$(sys.SOURCEFILEDIR)..\icons\icon.ico" />
+    <Property Id="ARPPRODUCTICON" Value="manderrow.ico" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="INSTALLFOLDER" Name="Manderrow" />
+    </StandardDirectory>
+
+    <ComponentGroup Id="Bundle" Directory="INSTALLFOLDER">
+      <Files Include="!(bindpath.Bundle)\**" />
+    </ComponentGroup>
+
+    <Feature
+      Id="Main"
+      Title="Manderrow"
+      Description="The Manderrow app."
+      AllowAbsent="no"
+      ConfigurableDirectory="INSTALLFOLDER"
+      Display="expand"
+    >
+      <ComponentGroupRef Id="Bundle" />
+
+      <Feature Id="StartMenuShortcut" Title="Start Menu shortcut" Description="Adds Manderrow to the Start Menu.">
+        <Component Id="StartMenuShortcut" Directory="ProgramMenuFolder">
+          <Shortcut
+            Id="StartMenuShortcut"
+            Name="Manderrow"
+            Target="[INSTALLFOLDER]manderrow.exe"
+            WorkingDirectory="INSTALLFOLDER"
+            Icon="manderrow.ico"
+          />
+          <RegistryValue Root="HKCU" Key="Software\Manderrow" Name="StartMenuShortcut" Type="integer" Value="1" KeyPath="yes" />
+        </Component>
+      </Feature>
+
+      <Feature Id="DesktopShortcut" Title="Desktop shortcut" Description="Adds Manderrow to the desktop.">
+        <Component Id="DesktopShortcut" Directory="DesktopFolder">
+          <Shortcut
+            Id="DesktopShortcut"
+            Name="Manderrow"
+            Target="[INSTALLFOLDER]manderrow.exe"
+            WorkingDirectory="INSTALLFOLDER"
+            Icon="manderrow.ico"
+          />
+          <RegistryValue Root="HKCU" Key="Software\Manderrow" Name="DesktopShortcut" Type="integer" Value="1" KeyPath="yes" />
+        </Component>
+      </Feature>
+    </Feature>
+
+    <!-- WixUI_FeatureTree's dialogs, without its license agreement -->
+    <UI>
+      <ui:WixUI Id="WixUI_FeatureTree" />
+      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="CustomizeDlg" Order="2" Condition="NOT Installed" />
+      <Publish Dialog="CustomizeDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" Order="2" Condition="NOT Installed" />
+    </UI>
+  </Package>
+</Wix>

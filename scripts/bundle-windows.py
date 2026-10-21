@@ -24,7 +24,8 @@ ROOT = Path(__file__).resolve().parent.parent
 # The plugins that Qt loads at runtime, by directory, or None for all of a directory's plugins
 PLUGINS = {
     "platforms": ["qwindows"],
-    "imageformats": None,
+    # The formats of mod icons and of images in mods' descriptions
+    "imageformats": ["qgif", "qjpeg", "qsvg", "qwebp"],
     "iconengines": None,
     "networkinformation": None,
     # OpenSSL is not bundled, so only the backends that use the system's TLS

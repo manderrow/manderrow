@@ -10,6 +10,9 @@ permissions:
 env:
   QT_VERSION: '6.10.*'
   ZIG_VERSION: '0.15.2'
+  LINUXDEPLOY_VERSION: '1-alpha-20251107-1'
+  # WiX 7 requires accepting the Open Source Maintenance Fee EULA.
+  WIX_VERSION: '6.0.2'
 
 jobs:
   build:
@@ -40,7 +43,26 @@ jobs:
         if: matrix.target == 'x86_64-unknown-linux-gnu'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgl1-mesa-dev libxkbcommon-dev wine64-development-tools
+          # The libraries after wine's are those of Qt's xcb plugin, which linuxdeploy bundles.
+          sudo apt-get install -y libgl1-mesa-dev libxkbcommon-dev wine64-development-tools \
+            libxcb-cursor0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-render-util0 libxcb-shape0 \
+            libxkbcommon-x11-0
+
+      - name: Install linuxdeploy
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        run: |
+          dir="$RUNNER_TEMP/linuxdeploy"
+          mkdir -p "$dir"
+          curl -fsSL -o "$dir/linuxdeploy" \
+            "https://github.com/linuxdeploy/linuxdeploy/releases/download/$LINUXDEPLOY_VERSION/linuxdeploy-x86_64.AppImage"
+          chmod +x "$dir/linuxdeploy"
+          echo "$dir" >> "$GITHUB_PATH"
+
+      - name: Install WiX
+        if: runner.os == 'Windows'
+        run: |
+          dotnet tool install --global wix --version "$WIX_VERSION"
+          echo "$USERPROFILE\.dotnet\tools" >> "$GITHUB_PATH"
 
       # Zig 0.15.2 cannot link against the SDK of Xcode 26.4 and later, whose libSystem.tbd lists
       # arm64e but not arm64, so even the build runner fails to link (ziglang/zig#31658).
@@ -108,20 +130,43 @@ jobs:
           CXXFLAGS_aarch64_apple_darwin: '-include arm_acle.h'
         run: cargo build --release --manifest-path src-qt/Cargo.toml --target ${{ matrix.target }}
 
+      # The build uses Qt's private API (in qmlcachegen's generated code), so it only runs with the
+      # exact version of Qt it was built with, which must be bundled.
       - name: Bundle
         run: |
           release='src-qt/target/${{ matrix.target }}/release'
           bundle="$RUNNER_TEMP/manderrow"
-          if [ '${{ matrix.target }}' = x86_64-pc-windows-msvc ]; then
-            python3 -I scripts/bundle-windows.py "$release/manderrow.exe" "$bundle"
-          else
-            # TODO: bundle Qt with the app (macdeployqt, linuxdeploy), as on Windows.
-            mkdir -p "$bundle"
-            cp "$release/manderrow" agent/zig-out/libmanderrow_agent "$bundle"
-          fi
+          mkdir -p "$bundle"
+          # MSI versions must be numeric, so without any pre-release suffix
+          version="$(sed -n 's/^version = "\([0-9.]*\).*"$/\1/p' src-qt/Cargo.toml | head -n 1)"
+          case '${{ matrix.target }}' in
+            x86_64-pc-windows-msvc)
+              # The bundle is also uploaded by itself, as the portable version.
+              python3 -I scripts/bundle-windows.py "$release/manderrow.exe" "$RUNNER_TEMP/portable"
+              wix extension add --global "WixToolset.UI.wixext/$WIX_VERSION"
+              wix build -arch x64 -ext WixToolset.UI.wixext -d Version="$version" \
+                -bindpath Bundle="$RUNNER_TEMP/portable" src-qt/windows/manderrow.wxs \
+                -o "$bundle/Manderrow-$version-x64.msi"
+              ;;
+            x86_64-unknown-linux-gnu)
+              python3 -I scripts/bundle-linux.py "$release/manderrow" "$bundle/Manderrow-$version-x86_64.AppImage"
+              ;;
+            *)
+              # TODO: bundle Qt with the app (macdeployqt), as on Windows and Linux.
+              cp "$release/manderrow" agent/zig-out/libmanderrow_agent "$bundle"
+              ;;
+          esac
 
       # TODO: publish installers to the release, as tauri-action did.
       - uses: actions/upload-artifact@v7
         with:
           name: manderrow-${{ matrix.target }}
           path: ${{ runner.temp }}/manderrow
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v7
+        if: matrix.target == 'x86_64-pc-windows-msvc'
+        with:
+          name: manderrow-${{ matrix.target }}-portable
+          path: ${{ runner.temp }}/portable
+          if-no-files-found: error

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Manderrow
+Comment=A mod manager for Thunderstore games
+Exec=manderrow
+Icon=manderrow
+Categories=Game;Utility;
+Terminal=false
