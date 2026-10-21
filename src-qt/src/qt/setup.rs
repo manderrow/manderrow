@@ -90,6 +90,8 @@ pub fn configure_before_app() {
     // windows can be made translucent, which Qt only allows for windows created with an alpha
     // channel
     ffi::QQuickWindow::set_default_alpha_buffer(true);
+    #[cfg(windows)]
+    super::native_win32::configure_before_app();
     ffi::QCoreApplication::set_application_name(&QString::from("Manderrow"));
     ffi::QCoreApplication::set_organization_name(&QString::from("Manderrow"));
     cxx_qt_lib::QGuiApplication::set_desktop_file_name(&QString::from("io.github.manderrow"));
