@@ -23,23 +23,20 @@ use core::pin::Pin;
 use windows::core::{s, w, BOOL};
 use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, POINT, RECT, WPARAM};
 use windows::Win32::Graphics::Dwm::{
-    DwmExtendFrameIntoClientArea, DwmSetWindowAttribute, DWMSBT_MAINWINDOW, DWMSBT_NONE,
-    DWMSBT_TRANSIENTWINDOW, DWMWA_SYSTEMBACKDROP_TYPE, DWMWA_USE_IMMERSIVE_DARK_MODE,
-    DWMWINDOWATTRIBUTE,
+    DwmEnableBlurBehindWindow, DwmSetWindowAttribute, DWMWA_USE_IMMERSIVE_DARK_MODE,
+    DWMWINDOWATTRIBUTE, DWM_BB_BLURREGION, DWM_BB_ENABLE, DWM_BLURBEHIND,
 };
-use windows::Win32::Graphics::Gdi::ClientToScreen;
+use windows::Win32::Graphics::Gdi::{ClientToScreen, CreateRectRgn, DeleteObject};
 use windows::Win32::System::LibraryLoader::{GetModuleHandleW, GetProcAddress};
-use windows::Win32::UI::Controls::MARGINS;
 use windows::Win32::UI::HiDpi::{GetDpiForWindow, GetSystemMetricsForDpi};
 use windows::Win32::UI::Shell::{DefSubclassProc, RemoveWindowSubclass, SetWindowSubclass};
 use windows::Win32::UI::WindowsAndMessaging::{
     EnableMenuItem, GetSystemMenu, GetWindowLongPtrW, GetWindowRect, IsZoomed, PostMessageW,
-    SetMenuDefaultItem, SetWindowLongPtrW, SetWindowPos, TrackPopupMenu, GWL_STYLE, HTCLIENT,
-    HTTOP, HTTOPLEFT, HTTOPRIGHT, MF_BYCOMMAND, MF_ENABLED, MF_GRAYED, NCCALCSIZE_PARAMS, SC_CLOSE,
-    SC_MAXIMIZE, SC_MINIMIZE, SC_MOVE, SC_RESTORE, SC_SIZE, SM_CXPADDEDBORDER, SM_CYSIZEFRAME,
-    STYLESTRUCT, SWP_FRAMECHANGED, SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSIZE,
-    SWP_NOZORDER, TPM_RETURNCMD, TPM_RIGHTBUTTON, WM_NCCALCSIZE, WM_NCDESTROY, WM_NCHITTEST,
-    WM_STYLECHANGING, WM_SYSCOMMAND, WS_SYSMENU, WS_THICKFRAME,
+    SetMenuDefaultItem, SetWindowPos, TrackPopupMenu, GWL_STYLE, HTCLIENT, HTTOP, HTTOPLEFT,
+    HTTOPRIGHT, MF_BYCOMMAND, MF_ENABLED, MF_GRAYED, NCCALCSIZE_PARAMS, SC_CLOSE, SC_MAXIMIZE,
+    SC_MINIMIZE, SC_MOVE, SC_RESTORE, SC_SIZE, SM_CXPADDEDBORDER, SM_CYSIZEFRAME, SWP_FRAMECHANGED,
+    SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOOWNERZORDER, SWP_NOSIZE, SWP_NOZORDER, TPM_RETURNCMD,
+    TPM_RIGHTBUTTON, WM_NCCALCSIZE, WM_NCDESTROY, WM_NCHITTEST, WM_SYSCOMMAND, WS_THICKFRAME,
 };
 
 use ffi::QWindow;
@@ -53,10 +50,9 @@ unsafe extern "C" {
 /// Configuration that must happen before the `QGuiApplication` is created.
 pub fn configure_before_app() {
     // Qt Quick draws with Direct3D into a DirectComposition visual, over the window's GDI
-    // redirection surface, which nothing draws in. With a backdrop, DWM shows that surface as
-    // opaque black, and white where the window was first shown, rather than the backdrop. Only
-    // Direct3D can draw into windows made without the surface, which Qt Quick uses unless it is
-    // told otherwise.
+    // redirection surface, which nothing draws in. Blurred, the window shows that surface as
+    // opaque black, and white where the window was first shown. Only Direct3D can draw into
+    // windows made without the surface, which Qt Quick uses unless it is told otherwise.
     let var = |name| std::env::var_os(name).filter(|value| !value.is_empty());
     let direct3d = var("QSG_RHI_BACKEND").is_none_or(|backend| {
         !matches!(
@@ -98,67 +94,39 @@ unsafe fn set_attribute<T>(hwnd: HWND, attribute: DWMWINDOWATTRIBUTE, value: T) 
     }
 }
 
-/// How the window's background is blurred on Windows, which MANDERROW_DEV_WINDOWS_BLUR picks
-/// while the methods are being compared: "acrylic" (the default), "mica", or "blur".
-#[derive(Clone, Copy, PartialEq, Eq)]
-enum BlurMethod {
-    /// The acrylic backdrop, tinted by Windows' light or dark theme
-    Acrylic,
-    /// The Mica backdrop, which is tinted by the desktop's wallpaper, not what is behind the window
-    Mica,
-    /// A plain blur, without a tint, through the undocumented accent policy of Windows 10 and 11
-    Blur,
-}
-
-fn blur_method() -> BlurMethod {
-    match std::env::var("MANDERROW_DEV_WINDOWS_BLUR").as_deref() {
-        Ok("mica") => BlurMethod::Mica,
-        Ok("blur") => BlurMethod::Blur,
-        _ => BlurMethod::Acrylic,
-    }
-}
-
 pub fn set_blur_behind(window: Pin<&mut QWindow>, enabled: bool) -> bool {
     let hwnd = hwnd(&window);
-    let method = blur_method();
-    // The backdrops are drawn behind the window, and show through the client area where the
-    // frame is extended into it. Elsewhere, and before Windows 11, which has no backdrops, the
-    // client area is transparent rather than blurred, as Qt makes windows with an alpha channel.
-    // The frame is extended from the left side alone, by more than any window's width: extended
-    // from the top, it brings back the title bar's accent color, when Windows is set to show it.
-    let backdrop = match (enabled, method) {
-        (true, BlurMethod::Acrylic) => DWMSBT_TRANSIENTWINDOW,
-        (true, BlurMethod::Mica) => DWMSBT_MAINWINDOW,
-        _ => DWMSBT_NONE,
-    };
-    // SAFETY: the window is the QWindow's, and the value is a DWM_SYSTEMBACKDROP_TYPE
-    let backdrop_set = unsafe { set_attribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, backdrop) };
+    // Behind what Qt Quick draws, Windows 11's documented backdrops only show their fallback
+    // color, so the window is blurred with the acrylic accent of Windows' own shell, as Zed's
+    // GPUI, which draws the same way, does. Its tint is all but transparent, leaving the app's.
+    // It replaces the blur behind the window that Qt asks for, which only lets the window's
+    // transparent parts show through, and which is asked for again once the accent is gone.
     // SAFETY: the window is the QWindow's
-    let accent_set = unsafe { set_accent_blur(hwnd, enabled && method == BlurMethod::Blur) };
-    let extended = enabled && method != BlurMethod::Blur && backdrop_set;
-    let margins = MARGINS {
-        cxLeftWidth: if extended { 0x10000 } else { 0 },
-        ..MARGINS::default()
-    };
-    // SAFETY: the window is the QWindow's
-    _ = unsafe { DwmExtendFrameIntoClientArea(hwnd, &margins) };
-    match method {
-        BlurMethod::Blur => enabled == accent_set,
-        _ => enabled == backdrop_set,
+    unsafe {
+        if enabled {
+            _ = set_blur_behind_region(hwnd, false);
+            set_accent(hwnd, ACCENT_ENABLE_ACRYLICBLURBEHIND)
+        } else {
+            set_accent(hwnd, ACCENT_DISABLED) && set_blur_behind_region(hwnd, true)
+        }
     }
 }
 
-/// Blurs what is behind the window, or stops, with the accent policy that Windows' own shell
-/// uses, through a function of user32 that is not in its import library. Returns whether it could.
+const ACCENT_DISABLED: u32 = 0;
+const ACCENT_ENABLE_ACRYLICBLURBEHIND: u32 = 4;
+
+/// Sets the window's accent, through a function of user32 that is undocumented, and not in its
+/// import library, but has been there since Windows 10. Returns whether it could.
 ///
 /// # Safety
 ///
 /// The window must be valid.
-unsafe fn set_accent_blur(hwnd: HWND, enabled: bool) -> bool {
+unsafe fn set_accent(hwnd: HWND, state: u32) -> bool {
     #[repr(C)]
     struct AccentPolicy {
         state: u32,
         flags: u32,
+        /// The tint, as 0xAABBGGRR, which mustn't be fully transparent
         gradient_color: u32,
         animation_id: u32,
     }
@@ -171,11 +139,9 @@ unsafe fn set_accent_blur(hwnd: HWND, enabled: bool) -> bool {
     type SetWindowCompositionAttribute =
         unsafe extern "system" fn(HWND, *mut CompositionAttributeData) -> BOOL;
     const WCA_ACCENT_POLICY: u32 = 19;
-    const ACCENT_DISABLED: u32 = 0;
-    const ACCENT_ENABLE_BLURBEHIND: u32 = 3;
 
     // SAFETY: user32 is loaded for as long as the app has windows, and the function has this
-    // signature in Windows 10 and 11
+    // signature since Windows 10
     unsafe {
         let Ok(user32) = GetModuleHandleW(w!("user32.dll")) else {
             return false;
@@ -185,13 +151,9 @@ unsafe fn set_accent_blur(hwnd: HWND, enabled: bool) -> bool {
         };
         let function: SetWindowCompositionAttribute = core::mem::transmute(function);
         let mut policy = AccentPolicy {
-            state: if enabled {
-                ACCENT_ENABLE_BLURBEHIND
-            } else {
-                ACCENT_DISABLED
-            },
+            state,
             flags: 0,
-            gradient_color: 0,
+            gradient_color: 0x0100_0000,
             animation_id: 0,
         };
         let mut data = CompositionAttributeData {
@@ -200,6 +162,38 @@ unsafe fn set_accent_blur(hwnd: HWND, enabled: bool) -> bool {
             size: size_of::<AccentPolicy>(),
         };
         function(hwnd, &mut data).as_bool()
+    }
+}
+
+/// Turns on or off the blur behind the window with an empty region, which, as Qt asks for it, only
+/// lets the window's transparent parts show what is behind it.
+///
+/// # Safety
+///
+/// The window must be valid.
+unsafe fn set_blur_behind_region(hwnd: HWND, enabled: bool) -> bool {
+    // SAFETY: the window is valid, and the region is deleted once DWM has copied it
+    unsafe {
+        let region = if enabled {
+            CreateRectRgn(0, 0, -1, -1)
+        } else {
+            Default::default()
+        };
+        let blur = DWM_BLURBEHIND {
+            dwFlags: if enabled {
+                DWM_BB_ENABLE | DWM_BB_BLURREGION
+            } else {
+                DWM_BB_ENABLE
+            },
+            fEnable: enabled.into(),
+            hRgnBlur: region,
+            fTransitionOnMaximized: false.into(),
+        };
+        let ok = DwmEnableBlurBehindWindow(hwnd, &blur).is_ok();
+        if !region.is_invalid() {
+            _ = DeleteObject(region.into());
+        }
+        ok
     }
 }
 
@@ -226,12 +220,6 @@ pub fn hide_title_bar(window: Pin<&mut QWindow>) -> bool {
         if !SetWindowSubclass(hwnd, Some(frame_subclass), FRAME_SUBCLASS, 0).as_bool() {
             return false;
         }
-        // Windows draws the title bar's buttons where the frame is extended into the client area,
-        // where they show through the app's own when the window is translucent, unless the window
-        // has no system menu. The menu, once made, is kept for the app to show, though.
-        _ = GetSystemMenu(hwnd, false);
-        let style = GetWindowLongPtrW(hwnd, GWL_STYLE);
-        SetWindowLongPtrW(hwnd, GWL_STYLE, style & !(WS_SYSMENU.0 as isize));
         // recalculates the client area with the subclass
         _ = SetWindowPos(
             hwnd,
@@ -249,18 +237,6 @@ pub fn hide_title_bar(window: Pin<&mut QWindow>) -> bool {
         );
     }
     true
-}
-
-/// The undocumented message with which the taskbar asks a window to show its system menu, at a
-/// point on the screen. The window answers it itself, as Windows may not without WS_SYSMENU.
-const WM_POPUPSYSTEMMENU: u32 = 0x313;
-
-/// The point on the screen of a mouse message, whose coordinates are signed 16-bit numbers.
-fn screen_point(lparam: LPARAM) -> POINT {
-    POINT {
-        x: i32::from(lparam.0 as u16 as i16),
-        y: i32::from((lparam.0 >> 16) as u16 as i16),
-    }
 }
 
 /// The thickness of the window's resize borders, as Windows sizes them.
@@ -316,7 +292,9 @@ unsafe extern "system" fn frame_subclass(
                 if GetWindowRect(hwnd, &mut rect).is_err() {
                     return hit;
                 }
-                let POINT { x, y } = screen_point(lparam);
+                // the screen coordinates of the point, which are signed 16-bit numbers
+                let x = i32::from(lparam.0 as u16 as i16);
+                let y = i32::from((lparam.0 >> 16) as u16 as i16);
                 let border = resize_border(hwnd);
                 if y >= rect.top + border {
                     hit
@@ -327,16 +305,6 @@ unsafe extern "system" fn frame_subclass(
                 } else {
                     LRESULT(HTTOP as isize)
                 }
-            }
-            // Qt and others change the style when the window enters and leaves full screen
-            WM_STYLECHANGING if wparam.0 as i32 == GWL_STYLE.0 => {
-                let styles = &mut *(lparam.0 as *mut STYLESTRUCT);
-                styles.styleNew &= !WS_SYSMENU.0;
-                DefSubclassProc(hwnd, message, wparam, lparam)
-            }
-            WM_POPUPSYSTEMMENU => {
-                track_window_menu(hwnd, screen_point(lparam));
-                LRESULT(0)
             }
             WM_NCDESTROY => {
                 _ = RemoveWindowSubclass(hwnd, Some(frame_subclass), FRAME_SUBCLASS);
@@ -350,25 +318,7 @@ unsafe extern "system" fn frame_subclass(
 pub fn show_window_menu(window: Pin<&mut QWindow>, x: f64, y: f64) -> bool {
     let hwnd = hwnd(&window);
     let scale = window.device_pixel_ratio();
-    let mut point = POINT {
-        x: (x * scale) as i32,
-        y: (y * scale) as i32,
-    };
-    // SAFETY: the window is the QWindow's
-    unsafe {
-        _ = ClientToScreen(hwnd, &mut point);
-        track_window_menu(hwnd, point)
-    }
-}
-
-/// Shows the window's system menu at a point on the screen, and carries out the command chosen
-/// from it, if any. Returns whether the window has the menu.
-///
-/// # Safety
-///
-/// The window must be valid. It outlives the menu, which is modal.
-unsafe fn track_window_menu(hwnd: HWND, point: POINT) -> bool {
-    // SAFETY: the window is valid
+    // SAFETY: the window is the QWindow's, which outlives the menu, which is modal
     unsafe {
         let menu = GetSystemMenu(hwnd, false);
         if menu.is_invalid() {
@@ -390,6 +340,11 @@ unsafe fn track_window_menu(hwnd: HWND, point: POINT) -> bool {
         enable(SC_MINIMIZE, true);
         enable(SC_CLOSE, true);
         _ = SetMenuDefaultItem(menu, SC_CLOSE, 0);
+        let mut point = POINT {
+            x: (x * scale) as i32,
+            y: (y * scale) as i32,
+        };
+        _ = ClientToScreen(hwnd, &mut point);
         let command = TrackPopupMenu(
             menu,
             TPM_RETURNCMD | TPM_RIGHTBUTTON,

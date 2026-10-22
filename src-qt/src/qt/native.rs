@@ -271,11 +271,11 @@ pub mod qobject {
 
         /// Blurs what is behind a translucent window, where the platform can: with Wayland
         /// compositors that support ext-background-effect or KWin's blur, with KWin on X11, and
-        /// on Windows 11, with the acrylic backdrop. Returns whether the platform can.
+        /// on Windows 10 and 11, with an acrylic blur. Returns whether the platform can.
         #[qinvokable]
         unsafe fn set_blur_behind(self: &Native, window: *mut QQuickWindow, enabled: bool) -> bool;
 
-        /// Tints the platform's parts of a window, like the acrylic backdrop on Windows, for a
+        /// Tints the platform's parts of a window, like its border on Windows, for a
         /// dark or light theme. Returns whether the platform can: on Windows.
         #[qinvokable]
         unsafe fn set_dark_frame(self: &Native, window: *mut QQuickWindow, dark: bool) -> bool;
