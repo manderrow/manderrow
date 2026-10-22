@@ -12,6 +12,8 @@ pub mod qobject {
     }
 
     unsafe extern "C++" {
+        include!("cxx-qt-lib/qcolor.h");
+        type QColor = cxx_qt_lib::QColor;
         include!("cxx-qt-lib/qimage.h");
         type QImage = cxx_qt_lib::QImage;
         include!("cxx-qt-lib/qpointf.h");
@@ -102,6 +104,15 @@ pub mod qobject {
 
         #[rust_name = "call_with_bool"]
         fn callWithBool(function: &QJSValue, argument: bool) -> bool;
+
+        #[rust_name = "hover_link"]
+        fn hoverLink(
+            edit: &QQuickItem,
+            position: i32,
+            href: &QString,
+            link_color: &QColor,
+            hover_color: &QColor,
+        );
     }
 
     unsafe extern "C++" {
@@ -299,6 +310,20 @@ pub mod qobject {
             y: f64,
         ) -> bool;
 
+        /// Shows the link with `href` at a position in a rich text TextEdit as hovered, as a
+        /// browser styles `a:hover`: underlined, and in `hover_color` where it is in
+        /// `link_color`. The link shown as hovered before in it goes back to how it was. An empty
+        /// `href` shows none as hovered.
+        #[qinvokable]
+        unsafe fn hover_link(
+            self: &Native,
+            edit: *mut QQuickItem,
+            position: i32,
+            href: &QString,
+            link_color: &QColor,
+            hover_color: &QColor,
+        );
+
         /// Takes over moving the focus with Tab and Shift+Tab in every window: `handler(forward)`
         /// is called before the key reaches any item, and the key goes no further if it returns
         /// true.
@@ -334,8 +359,8 @@ use cxx::UniquePtr;
 use cxx_qt::casting::{Downcast, Upcast};
 use cxx_qt::CxxQtType;
 use cxx_qt_lib::{
-    KeyboardModifier, KeyboardModifiers, MouseButton, MouseButtons, QFlag, QFlags, QPointF,
-    QString, QUrl,
+    KeyboardModifier, KeyboardModifiers, MouseButton, MouseButtons, QColor, QFlag, QFlags,
+    QPointF, QString, QUrl,
 };
 
 use qobject::{
@@ -560,6 +585,20 @@ impl qobject::Native {
             return false;
         };
         platform::show_window_menu(Upcast::<QWindow>::upcast_pin(window), x, y)
+    }
+
+    unsafe fn hover_link(
+        &self,
+        edit: *mut QQuickItem,
+        position: i32,
+        href: &QString,
+        link_color: &QColor,
+        hover_color: &QColor,
+    ) {
+        // SAFETY: QML passes a live item or null
+        if let Some(edit) = unsafe { edit.as_ref() } {
+            qobject::hover_link(edit, position, href, link_color, hover_color);
+        }
     }
 
     fn set_tab_handler(self: Pin<&mut Self>, handler: &QJSValue) {
