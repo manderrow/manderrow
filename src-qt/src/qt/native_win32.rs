@@ -50,9 +50,10 @@ unsafe extern "C" {
 /// Configuration that must happen before the `QGuiApplication` is created.
 pub fn configure_before_app() {
     // Qt Quick draws with Direct3D into a DirectComposition visual, over the window's GDI
-    // redirection surface, which nothing draws in. Blurred, the window shows that surface as
-    // opaque black, and white where the window was first shown. Only Direct3D can draw into
-    // windows made without the surface, which Qt Quick uses unless it is told otherwise.
+    // redirection surface, which nothing draws in, and which can come between the visual and a
+    // blur behind the window, as a white box where the window was first shown. Windows made
+    // without the surface, as Zed's GPUI makes them, have only the visual. Only Direct3D can
+    // draw into them, which Qt Quick uses unless it is told otherwise.
     let var = |name| std::env::var_os(name).filter(|value| !value.is_empty());
     let direct3d = var("QSG_RHI_BACKEND").is_none_or(|backend| {
         !matches!(
@@ -96,11 +97,13 @@ unsafe fn set_attribute<T>(hwnd: HWND, attribute: DWMWINDOWATTRIBUTE, value: T) 
 
 pub fn set_blur_behind(window: Pin<&mut QWindow>, enabled: bool) -> bool {
     let hwnd = hwnd(&window);
-    // Behind what Qt Quick draws, Windows 11's documented backdrops only show their fallback
-    // color, so the window is blurred with the acrylic accent of Windows' own shell, as Zed's
-    // GPUI, which draws the same way, does. Its tint is all but transparent, leaving the app's.
-    // It replaces the blur behind the window that Qt asks for, which only lets the window's
-    // transparent parts show through, and which is asked for again once the accent is gone.
+    // The window is blurred with the acrylic accent of Windows' own shell, as Zed's GPUI, which
+    // draws the same way, blurs its windows. Unlike Windows 11's documented backdrops, its tint
+    // can be all but transparent, leaving the app's own, as on Linux, and it needs neither
+    // Windows 11 22H2 nor the frame to be extended into the client area, where Windows would draw
+    // its title bar buttons. With transparency effects off, or energy saver on, Windows draws it
+    // black. It replaces the blur behind the window that Qt asks for, which only lets the
+    // window's transparent parts show through, and which is asked for again once it is gone.
     // SAFETY: the window is the QWindow's
     unsafe {
         if enabled {
