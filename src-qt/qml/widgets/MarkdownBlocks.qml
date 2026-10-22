@@ -20,6 +20,15 @@ Column {
     property Progress progress: Progress {}
     /// Whether every block has been created.
     readonly property bool ready: progress.pending === 0
+    /// How far the blocks reach to the right, past their width where they can't wrap to fit.
+    readonly property real overflowWidth: {
+        let right = width;
+        for (let i = 0; i < children.length; i++) {
+            if (children[i].overflowWidth !== undefined)
+                right = Math.max(right, children[i].overflowWidth);
+        }
+        return right;
+    }
 
     // .markdown's font size depends on the window width
     readonly property real baseSize: Theme.windowWidth < 32 * 16 ? 12 : Theme.windowWidth < 48 * 16 ? 15 : 16
@@ -80,10 +89,12 @@ Column {
         property string html
         property real size: root.rem
         property real lineHeight: 1.35
+        readonly property real overflowWidth: Math.max(width, contentWidth)
 
         width: parent ? parent.width : 0
         textFormat: TextEdit.RichText
-        wrapMode: TextEdit.Wrap
+        // only between words, as on the web: a word too long for the line overflows it
+        wrapMode: TextEdit.WordWrap
         // selected, its links opened, and its cursor set by Markdown's SelectionArea
         readOnly: true
         selectByMouse: false
@@ -107,6 +118,7 @@ Column {
             readonly property var previous: index > 0 ? root.margins(root.blocks[index - 1], index - 1) : ({ bottom: 0 })
             // adjacent vertical margins collapse, as in CSS
             readonly property real topGap: Math.max(0, margin.top - previous.bottom)
+            readonly property real overflowWidth: loader.item && loader.item.overflowWidth !== undefined ? loader.x + loader.item.overflowWidth : width
 
             width: root.width
             height: topGap + (loader.item ? loader.item.height : 0) + margin.bottom
@@ -145,6 +157,8 @@ Column {
                 Component {
                     id: heading
                     Item {
+                        readonly property real overflowWidth: headingText.overflowWidth
+
                         width: parent.width
                         height: headingText.height + (slot.block.level === 1 ? 1 : 0)
 
@@ -233,6 +247,8 @@ Column {
                 Component {
                     id: quote
                     Item {
+                        readonly property real overflowWidth: quoteBlocks.item ? Math.max(width, quoteBlocks.x + quoteBlocks.item.overflowWidth) : width
+
                         width: parent.width
                         height: quoteBlocks.height + 2 * 0.5 * root.baseSize
 
@@ -259,9 +275,12 @@ Column {
                 Component {
                     id: alert
                     Column {
+                        readonly property real overflowWidth: Math.max(width, alertTitle.width, alertBlocks.item ? alertBlocks.item.overflowWidth : 0)
+
                         width: parent.width
 
                         Row {
+                            id: alertTitle
                             spacing: 0.5 * root.rem
                             bottomPadding: 0.75 * root.rem
 
@@ -280,6 +299,7 @@ Column {
                             }
                         }
                         BlocksLoader {
+                            id: alertBlocks
                             width: parent.width
                             Component.onCompleted: setSource("MarkdownBlocks.qml", {
                                 blocks: slot.block.children,
@@ -292,6 +312,15 @@ Column {
                 Component {
                     id: list
                     Column {
+                        readonly property real overflowWidth: {
+                            let right = width;
+                            for (let i = 0; i < children.length; i++) {
+                                if (children[i].overflowWidth !== undefined)
+                                    right = Math.max(right, children[i].overflowWidth);
+                            }
+                            return right;
+                        }
+
                         width: parent.width
 
                         Repeater {
@@ -302,6 +331,7 @@ Column {
 
                                 required property var modelData
                                 required property int index
+                                readonly property real overflowWidth: itemBlocks.item ? itemBlocks.x + itemBlocks.item.overflowWidth : width
 
                                 width: parent.width
                                 // li { margin-left: 1.5em; margin-bottom: 0.25em }
@@ -343,14 +373,19 @@ Column {
 
                 Component {
                     id: table
-                    // Qt's rich text sizes table columns itself, so the table is rendered as HTML
+                    // Qt's rich text sizes table columns itself, as browsers do, so the table is
+                    // rendered as HTML. It is as wide as its content, or narrower with its cells
+                    // wrapped, and it scrolls once they can't wrap any narrower.
                     HorizontalScrollView {
+                        id: tableScroller
                         width: parent.width
-                        contentWidth: tableText.width
+                        contentWidth: Math.max(tableText.width, tableText.contentWidth)
                         contentHeight: tableText.height
 
                         TextEdit {
                             id: tableText
+                            width: Math.min(implicitWidth, tableScroller.width)
+                            wrapMode: TextEdit.WordWrap
                             textFormat: TextEdit.RichText
                             readOnly: true
                             selectByMouse: false

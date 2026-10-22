@@ -71,6 +71,12 @@ QtObject {
         return (sizeBytes / Math.pow(1000, i)).toFixed(1) + (space ? " " : "") + _byteUnits[i];
     }
 
+    /// The width of the widest word of some text in a FontMetrics' font: the narrowest the text
+    /// can wrap to, its min-content width on the web.
+    function longestWordWidth(metrics, text) {
+        return Math.ceil(Math.max(0, ...text.split(/\s+/).map(word => metrics.advanceWidth(word))));
+    }
+
     function escapeHtml(s) {
         return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
     }

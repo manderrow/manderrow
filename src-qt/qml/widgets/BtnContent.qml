@@ -10,7 +10,14 @@ Item {
     /// property of a type that instantiates it (6.11 can).
     required property AbstractButton btn
 
-    implicitWidth: row.implicitWidth
+    /// The width taken by the icon and the space after it.
+    readonly property real _iconWidth: icon.visible ? icon.width + row.spacing : 0
+    /// Its width with the label wrapped as narrow as it goes, if the Btn wraps it.
+    readonly property real minimumWidth: !btn.wrapText ? implicitWidth : _iconWidth + Util.longestWordWidth(metrics, btn.text)
+
+    // unwrapped, so that the label's wrapping doesn't narrow it, and rounded up, so that layouts,
+    // which round widths to whole pixels, don't wrap it for want of a fraction of one
+    implicitWidth: btn.wrapText ? Math.ceil(_iconWidth + label.implicitWidth) : row.implicitWidth
     // at least a line of text tall, like the line box around a web button's icon
     implicitHeight: Math.max(row.implicitHeight, metrics.height)
 
@@ -27,6 +34,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
 
         Icon {
+            id: icon
             name: content.btn.iconName
             filled: content.btn.iconFilled
             visible: content.btn.iconName !== ""
@@ -43,6 +51,11 @@ Item {
         }
 
         Text {
+            id: label
+            // the label wraps to the space beside the icon, but no narrower than its longest word
+            width: content.btn.wrapText ? Math.max(Math.min(Math.ceil(implicitWidth), content.width - content._iconWidth), content.minimumWidth - content._iconWidth) : implicitWidth
+            wrapMode: content.btn.wrapText ? Text.WordWrap : Text.NoWrap
+            horizontalAlignment: Text.AlignHCenter
             text: content.btn.text
             visible: content.btn.text !== ""
             font: content.btn.font

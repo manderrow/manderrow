@@ -4,8 +4,9 @@ import Manderrow
 
 // CSS's `overflow-x: auto`: scrolls its content sideways when it is wider than this. The scroll
 // bar is below the content rather than over it, and only takes up space while there is something
-// to scroll. Vertical wheels pass through to whatever scrolls this, as they do on the web, unless
-// Shift is held, which turns them sideways.
+// to scroll. Vertical wheels pass through to whatever scrolls this up and down, as they do on the
+// web, unless Shift is held, which turns them sideways. With nothing around it that scrolls up and
+// down, they scroll it sideways without Shift.
 Item {
     id: scroller
 
@@ -16,6 +17,16 @@ Item {
     readonly property alias scrollBar: bar
 
     implicitHeight: flick.height + (bar.scrollable ? bar.height : 0)
+
+    /// The nearest Flickable around this, which vertical wheels scroll when they can.
+    readonly property Flickable _outer: {
+        let item = parent;
+        while (item && item.contentY === undefined)
+            item = item.parent;
+        return item;
+    }
+    /// Whether anything around this scrolls up and down.
+    readonly property bool _outerScrolls: _outer !== null && _outer.visibleArea.heightRatio < 1
 
     Flickable {
         id: flick
@@ -38,7 +49,7 @@ Item {
             target: null
             enabled: wheel.enabled
             orientation: Qt.Vertical
-            acceptedModifiers: Qt.ShiftModifier
+            acceptedModifiers: scroller._outerScrolls ? Qt.ShiftModifier : Qt.KeyboardModifierMask
             acceptedDevices: wheel.acceptedDevices
             onWheel: event => wheel.scrollFor(event)
         }

@@ -101,14 +101,19 @@ Item {
                 });
         }
 
+        // their labels wrap when the line is short of space, as on the web
         trailingControls: Component {
             Item {
+                readonly property real minimumWidth: root.updates.length > 0 ? updatesBtn.minimumWidth : checkBtn.minimumWidth
+
                 implicitWidth: root.updates.length > 0 ? updatesBtn.implicitWidth : checkBtn.implicitWidth
                 implicitHeight: root.updates.length > 0 ? updatesBtn.implicitHeight : checkBtn.implicitHeight
 
                 AsyncButton {
                     id: checkBtn
                     visible: root.updates.length === 0
+                    width: parent.width
+                    btn.wrapText: true
                     variant: "ghost"
                     iconName: "refresh-cw"
                     text: I18n.t("modlist.installed.check_updates_btn")
@@ -121,6 +126,8 @@ Item {
                 Btn {
                     id: updatesBtn
                     visible: root.updates.length > 0
+                    width: parent.width
+                    wrapText: true
                     variant: "primary"
                     iconName: "circle-arrow-up"
                     iconFilled: true

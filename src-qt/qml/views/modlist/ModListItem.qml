@@ -193,9 +193,11 @@ Item {
             }
         }
 
+        // overflow: hidden
         Item {
             Layout.fillWidth: true
             implicitHeight: content.implicitHeight + Theme.rem
+            clip: true
 
             RowLayout {
                 id: content
@@ -213,20 +215,27 @@ Item {
                     source: Util.getIconUrl(Util.getQualifiedModName(modItem.mod.owner, modItem.mod.name, modItem.displayVersion.version_number))
                 }
 
+                // min-width: 0: the name and the rest of its line overflow it, toward the button,
+                // rather than pushing the button out, once the name can't shrink any more
                 ColumnLayout {
                     Layout.fillWidth: true
+                    Layout.minimumWidth: 0
                     Layout.alignment: Qt.AlignTop
                     spacing: 0.35 * Theme.rem
 
                     RowLayout {
                         Layout.fillWidth: true
+                        Layout.minimumWidth: 0
                         spacing: 0.35 * Theme.rem
 
                         // takes its natural width, shrinking to 5ch only when the row is too narrow
+                        // (a layout's items that don't fill it are never narrower than preferred).
+                        // Layouts round widths to whole pixels, so its width is rounded up, or it
+                        // would be elided for want of a fraction of one.
                         Text {
-                            Layout.minimumWidth: Math.min(implicitWidth, 5 * Ui.ch)
-                            Layout.preferredWidth: implicitWidth
-                            Layout.fillWidth: false
+                            Layout.fillWidth: true
+                            Layout.minimumWidth: Math.min(Math.ceil(implicitWidth), 5 * Ui.ch)
+                            Layout.maximumWidth: Math.ceil(implicitWidth)
                             text: modItem.mod.name
                             elide: Text.ElideRight
                             color: Theme.neutral10
