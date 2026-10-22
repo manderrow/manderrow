@@ -41,6 +41,14 @@
             qtimageformats
             qtsvg
           ]);
+
+          agentZigDeps = pkgs.zig_0_15.fetchDeps {
+            pname = "manderrow-agent";
+            version = "0.0.0";
+            src = ./agent;
+            fetchAll = true;
+            hash = "sha256-dDinP1UoR1SgH4asItyun4gsCFVUNCVOQlt3fKH3JPQ=";
+          };
         in
         {
           default = rustPlatform.buildRustPackage {
@@ -78,11 +86,15 @@
             # so we have to override it again
             preBuild = ''
               export QMAKE="${qtEnv}/bin/qmake"
+
+              export ZIG_GLOBAL_CACHE_DIR="$PWD/zig-global-cache"
+              export ZIG_LOCAL_CACHE_DIR="$PWD/zig-local-cache"
+              mkdir -p "$ZIG_GLOBAL_CACHE_DIR"
+              cp -r ${agentZigDeps} "$ZIG_GLOBAL_CACHE_DIR/p"
+              chmod -R u+w "$ZIG_GLOBAL_CACHE_DIR/p"
             '';
 
             XDG_CACHE_HOME = "xdg-cache";
-            ZIG_GLOBAL_CACHE_DIR = "zig-global-cache";
-            ZIG_LOCAL_CACHE_DIR = "zig-local-cache";
 
             # zig tries to replace cargo
             dontUseZigConfigure = true;
