@@ -209,7 +209,7 @@ ApplicationWindow {
     readonly property bool _blurBehind: Ui.translucent && _setting("windowBlur", true)
     on_BlurBehindChanged: Native.setBlurBehind(appWindow, _blurBehind)
     onVisibleChanged: Native.setBlurBehind(appWindow, _blurBehind)
-    // the acrylic backdrop's tint, on Windows
+    // the native frame's colors, on Windows
     Connections {
         target: Theme
         function onDarkChanged() {
