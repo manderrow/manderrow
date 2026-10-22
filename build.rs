@@ -341,7 +341,6 @@ fn zig_build(
     ));
     command.args(args);
     command.status().unwrap().exit_ok().unwrap();
-    // panic!("{:?}",command);
 
     out_dir
 }
