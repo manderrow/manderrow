@@ -182,7 +182,7 @@ fn createLib(
                 rust_target,
                 "--manifest-path",
             });
-            cargo_build.addFileArg(b.path("../crates/Cargo.toml"));
+            cargo_build.addFileArg(b.path("../Cargo.toml"));
             if (wine) {
                 cargo_build.addArgs(&.{ "--features", "unix-on-wine" });
             }
@@ -193,7 +193,7 @@ fn createLib(
             cargo_build.has_side_effects = true;
 
             lib.step.dependOn(&cargo_build.step);
-            lib.addObjectFile(b.path(b.fmt("../crates/target/{s}/{s}/{s}", .{
+            lib.addObjectFile(b.path(b.fmt("../target/{s}/{s}/{s}", .{
                 rust_target,
                 switch (optimize) {
                     .Debug => "debug",

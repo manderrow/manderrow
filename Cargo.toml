@@ -1,8 +1,14 @@
+[workspace]
+resolver = "2"
+members = [".", "crates/*"]
+
+[workspace.package]
+authors = ["Jack Huang", "Michael Pfaff"]
+
 [package]
 name = "manderrow"
 version = "0.1.0"
 description = "A mod manager for Thunderstore games"
-authors = ["Jack Huang", "Michael Pfaff"]
 edition = "2021"
 
 [lib]
@@ -22,13 +28,13 @@ search-sublime_fuzzy = ["sublime_fuzzy"]
 cxx-qt-build = { version = "0.10", features = ["link_qt_object_files"] }
 
 [dependencies]
-manderrow-args = { path = "../crates/args" }
-manderrow-ipc = { path = "../crates/ipc", features = ["doctor", "serde", "slog"] }
-manderrow-macros = { path = "../crates/macros" }
-manderrow-paths = { path = "../crates/paths" }
-manderrow-process-util = { path = "../crates/process-util" }
-manderrow-types = { path = "../crates/types" }
-packed-semver = { path = "../crates/packed-semver" }
+manderrow-args = { path = "./crates/args" }
+manderrow-ipc = { path = "./crates/ipc", features = ["doctor", "serde", "slog"] }
+manderrow-macros = { path = "./crates/macros" }
+manderrow-paths = { path = "./crates/paths" }
+manderrow-process-util = { path = "./crates/process-util" }
+manderrow-types = { path = "./crates/types" }
+packed-semver = { path = "./crates/packed-semver" }
 
 # ui
 cxx = "1"

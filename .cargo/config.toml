@@ -1,5 +1,5 @@
 [target.x86_64-unknown-linux-gnu]
-# Rust already links with its bundled lld, but qt-build-utils only sees -fuse-ld in RUSTFLAGS. When
-# the system ld is GNU bfd, it otherwise switches to gold, which resolves archives in command-line
-# order and so cannot find cxx-qt's initializers.
-rustflags = ["-Clink-arg=-fuse-ld=lld"]
+rustflags = ["-Clink-arg=-fuse-ld=mold"]
+
+[build]
+incremental = false
