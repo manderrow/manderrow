@@ -4,7 +4,8 @@ import Manderrow
 // Selects text across the TextEdits in an item, as a browser selects across a page's paragraphs:
 // dragging from one to another selects everything between them, and Ctrl+C copies it. Ctrl+A
 // selects all of it, a double click a word, and a triple click a whole block. Links in the text
-// open when clicked. Dragging past the edge of the view around it scrolls it.
+// open when clicked, and are underlined and lightened while hovered, as on the web. Dragging past
+// the edge of the view around it scrolls it.
 //
 // It selects the read-only TextEdits whose `selectByMouse` is off, which leaves their presses, and
 // their cursor, to it. Declare it after the content, over it: it is only over the text, so that
@@ -16,6 +17,9 @@ MouseArea {
     required property Item content
     /// Put between the text of each block when they are copied.
     property string separator: "\n\n"
+    /// The color of the links in the text, which hovering one turns into `hoveredLinkColor`.
+    property color linkColor: Theme.primary60
+    property color hoveredLinkColor: Theme.primary65
 
     /// The TextEdits being selected, in reading order.
     property list<TextEdit> _items
@@ -29,6 +33,8 @@ MouseArea {
     property string _link: ""
     /// The link under the pointer while hovering.
     property string _hoveredLink: ""
+    /// The TextEdit whose link is styled as hovered.
+    property TextEdit _hoveredEdit: null
     /// The size of the content when the TextEdits were collected, which changes as its blocks are
     /// created and its images load.
     property size _collectedSize
@@ -113,6 +119,19 @@ MouseArea {
         });
     }
 
+    /// Styles the link under a point in scene coordinates as hovered, and no other.
+    function _hover(scenePoint) {
+        const item = _itemAt(scenePoint);
+        const local = item ? item.mapFromItem(null, scenePoint.x, scenePoint.y) : null;
+        const link = item ? item.linkAt(local.x, local.y) : "";
+        if (_hoveredEdit && _hoveredEdit !== item)
+            Native.hoverLink(_hoveredEdit, -1, "", linkColor, hoveredLinkColor);
+        if (link !== "" || (item && item === _hoveredEdit))
+            Native.hoverLink(item, item.positionAt(local.x, local.y), link, linkColor, hoveredLinkColor);
+        _hoveredEdit = link !== "" ? item : null;
+        _hoveredLink = link;
+    }
+
     function clear() {
         _anchor = null;
         _focus = null;
@@ -176,13 +195,9 @@ MouseArea {
     }
 
     onPositionChanged: mouse => {
-        if (!pressed) {
-            const scenePoint = mapToItem(null, mouse.x, mouse.y);
-            const item = _itemAt(scenePoint);
-            const local = item ? item.mapFromItem(null, scenePoint.x, scenePoint.y) : null;
-            _hoveredLink = item ? item.linkAt(local.x, local.y) : "";
+        _hover(mapToItem(null, mouse.x, mouse.y));
+        if (!pressed)
             return;
-        }
         if (!_dragged && Math.hypot(mouse.x - _pressPoint.x, mouse.y - _pressPoint.y) < Qt.styleHints.startDragDistance)
             return;
         _dragged = true;
@@ -192,7 +207,7 @@ MouseArea {
         _apply();
     }
 
-    onExited: _hoveredLink = ""
+    onExited: _hover(Qt.point(-Infinity, -Infinity))
     onReleased: {
         if (!_dragged && _link !== "")
             Util.openUrl(_link);
