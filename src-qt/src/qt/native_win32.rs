@@ -20,13 +20,15 @@ mod ffi {
 use core::ffi::{c_char, c_int, c_void};
 use core::pin::Pin;
 
-use windows::core::BOOL;
+use windows::core::{s, w, BOOL};
 use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, POINT, RECT, WPARAM};
 use windows::Win32::Graphics::Dwm::{
-    DwmExtendFrameIntoClientArea, DwmSetWindowAttribute, DWMSBT_NONE, DWMSBT_TRANSIENTWINDOW,
-    DWMWA_SYSTEMBACKDROP_TYPE, DWMWA_USE_IMMERSIVE_DARK_MODE, DWMWINDOWATTRIBUTE,
+    DwmExtendFrameIntoClientArea, DwmSetWindowAttribute, DWMSBT_MAINWINDOW, DWMSBT_NONE,
+    DWMSBT_TRANSIENTWINDOW, DWMWA_SYSTEMBACKDROP_TYPE, DWMWA_USE_IMMERSIVE_DARK_MODE,
+    DWMWINDOWATTRIBUTE,
 };
 use windows::Win32::Graphics::Gdi::ClientToScreen;
+use windows::Win32::System::LibraryLoader::{GetModuleHandleW, GetProcAddress};
 use windows::Win32::UI::Controls::MARGINS;
 use windows::Win32::UI::HiDpi::{GetDpiForWindow, GetSystemMetricsForDpi};
 use windows::Win32::UI::Shell::{DefSubclassProc, RemoveWindowSubclass, SetWindowSubclass};
@@ -50,11 +52,11 @@ unsafe extern "C" {
 
 /// Configuration that must happen before the `QGuiApplication` is created.
 pub fn configure_before_app() {
-    // Qt Quick draws with Direct3D into a DirectComposition visual beneath the window's GDI
-    // redirection surface, which nothing draws in. With a backdrop, DWM composes that surface over
-    // the visual, which hides the backdrop behind black, and behind white where the window was
-    // first shown. Windows made without the surface have only the visual, over the backdrop. Only
-    // Direct3D can draw into them, which Qt Quick uses unless it is told otherwise.
+    // Qt Quick draws with Direct3D into a DirectComposition visual, over the window's GDI
+    // redirection surface, which nothing draws in. With a backdrop, DWM shows that surface as
+    // opaque black, and white where the window was first shown, rather than the backdrop. Only
+    // Direct3D can draw into windows made without the surface, which Qt Quick uses unless it is
+    // told otherwise.
     let var = |name| std::env::var_os(name).filter(|value| !value.is_empty());
     let direct3d = var("QSG_RHI_BACKEND").is_none_or(|backend| {
         !matches!(
@@ -96,50 +98,109 @@ unsafe fn set_attribute<T>(hwnd: HWND, attribute: DWMWINDOWATTRIBUTE, value: T) 
     }
 }
 
+/// How the window's background is blurred on Windows, which MANDERROW_DEV_WINDOWS_BLUR picks
+/// while the methods are being compared: "acrylic" (the default), "mica", or "blur".
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum BlurMethod {
+    /// The acrylic backdrop, tinted by Windows' light or dark theme
+    Acrylic,
+    /// The Mica backdrop, which is tinted by the desktop's wallpaper, not what is behind the window
+    Mica,
+    /// A plain blur, without a tint, through the undocumented accent policy of Windows 10 and 11
+    Blur,
+}
+
+fn blur_method() -> BlurMethod {
+    match std::env::var("MANDERROW_DEV_WINDOWS_BLUR").as_deref() {
+        Ok("mica") => BlurMethod::Mica,
+        Ok("blur") => BlurMethod::Blur,
+        _ => BlurMethod::Acrylic,
+    }
+}
+
 pub fn set_blur_behind(window: Pin<&mut QWindow>, enabled: bool) -> bool {
     let hwnd = hwnd(&window);
-    // The acrylic backdrop is drawn behind the window, and shows through the client area where the
+    let method = blur_method();
+    // The backdrops are drawn behind the window, and show through the client area where the
     // frame is extended into it. Elsewhere, and before Windows 11, which has no backdrops, the
     // client area is transparent rather than blurred, as Qt makes windows with an alpha channel.
     // The frame is extended from the left side alone, by more than any window's width: extended
     // from the top, it brings back the title bar's accent color, when Windows is set to show it.
-    let backdrop = if enabled {
-        DWMSBT_TRANSIENTWINDOW
-    } else {
-        DWMSBT_NONE
+    let backdrop = match (enabled, method) {
+        (true, BlurMethod::Acrylic) => DWMSBT_TRANSIENTWINDOW,
+        (true, BlurMethod::Mica) => DWMSBT_MAINWINDOW,
+        _ => DWMSBT_NONE,
     };
     // SAFETY: the window is the QWindow's, and the value is a DWM_SYSTEMBACKDROP_TYPE
-    let ok = unsafe { set_attribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, backdrop) };
+    let backdrop_set = unsafe { set_attribute(hwnd, DWMWA_SYSTEMBACKDROP_TYPE, backdrop) };
+    // SAFETY: the window is the QWindow's
+    let accent_set = unsafe { set_accent_blur(hwnd, enabled && method == BlurMethod::Blur) };
+    let extended = enabled && method != BlurMethod::Blur && backdrop_set;
     let margins = MARGINS {
-        cxLeftWidth: if enabled && ok { 0x10000 } else { 0 },
+        cxLeftWidth: if extended { 0x10000 } else { 0 },
         ..MARGINS::default()
     };
     // SAFETY: the window is the QWindow's
     _ = unsafe { DwmExtendFrameIntoClientArea(hwnd, &margins) };
-    if enabled && ok {
-        // The backdrop of a window that Qt Quick draws in only appears once the window is resized,
-        // as QWindowKit found too, so it is resized by a pixel, and back.
-        let mut rect = RECT::default();
-        // SAFETY: the window is the QWindow's
-        if unsafe { GetWindowRect(hwnd, &mut rect) }.is_ok() {
-            let (width, height) = (rect.right - rect.left, rect.bottom - rect.top);
-            for grow in [1, 0] {
-                // SAFETY: the window is the QWindow's
-                _ = unsafe {
-                    SetWindowPos(
-                        hwnd,
-                        None,
-                        0,
-                        0,
-                        width + grow,
-                        height + grow,
-                        SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE,
-                    )
-                };
-            }
-        }
+    match method {
+        BlurMethod::Blur => enabled == accent_set,
+        _ => enabled == backdrop_set,
     }
-    enabled == ok
+}
+
+/// Blurs what is behind the window, or stops, with the accent policy that Windows' own shell
+/// uses, through a function of user32 that is not in its import library. Returns whether it could.
+///
+/// # Safety
+///
+/// The window must be valid.
+unsafe fn set_accent_blur(hwnd: HWND, enabled: bool) -> bool {
+    #[repr(C)]
+    struct AccentPolicy {
+        state: u32,
+        flags: u32,
+        gradient_color: u32,
+        animation_id: u32,
+    }
+    #[repr(C)]
+    struct CompositionAttributeData {
+        attribute: u32,
+        data: *mut c_void,
+        size: usize,
+    }
+    type SetWindowCompositionAttribute =
+        unsafe extern "system" fn(HWND, *mut CompositionAttributeData) -> BOOL;
+    const WCA_ACCENT_POLICY: u32 = 19;
+    const ACCENT_DISABLED: u32 = 0;
+    const ACCENT_ENABLE_BLURBEHIND: u32 = 3;
+
+    // SAFETY: user32 is loaded for as long as the app has windows, and the function has this
+    // signature in Windows 10 and 11
+    unsafe {
+        let Ok(user32) = GetModuleHandleW(w!("user32.dll")) else {
+            return false;
+        };
+        let Some(function) = GetProcAddress(user32, s!("SetWindowCompositionAttribute")) else {
+            return false;
+        };
+        let function: SetWindowCompositionAttribute = core::mem::transmute(function);
+        let mut policy = AccentPolicy {
+            state: if enabled {
+                ACCENT_ENABLE_BLURBEHIND
+            } else {
+                ACCENT_DISABLED
+            },
+            flags: 0,
+            gradient_color: 0,
+            animation_id: 0,
+        };
+        let mut data = CompositionAttributeData {
+            attribute: WCA_ACCENT_POLICY,
+            data: (&raw mut policy).cast(),
+            size: size_of::<AccentPolicy>(),
+        };
+        function(hwnd, &mut data).as_bool()
+    }
 }
 
 pub fn set_dark_frame(window: Pin<&mut QWindow>, dark: bool) -> bool {
