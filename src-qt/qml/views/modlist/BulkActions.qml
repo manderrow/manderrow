@@ -7,6 +7,9 @@ import Manderrow
 Item {
     id: bulk
 
+    // overflow: hidden
+    clip: true
+
     /// `[{ owner, name, version }]`
     property var mods: []
     property var installContext
@@ -26,6 +29,42 @@ Item {
         const mod = installedMod(id);
         return total + (mod && mod.version.file_size ? mod.version.file_size : 0);
     }, 0)
+
+    // The table's rows are no narrower than their widest name, owner, version, and size, as in the
+    // web UI's grid of them, whose columns are sized to what is in them. Its rows aren't all
+    // created at once, so they're measured in the fonts of a row's parts.
+    readonly property real rowPadding: 0.35 * Theme.rem
+    readonly property real columnGap: Theme.rem
+    readonly property real partGap: 0.25 * Theme.rem
+    FontMetrics {
+        id: partMetrics
+        font.family: Theme.font
+        font.pixelSize: Theme.rem
+    }
+    FontMetrics {
+        id: lowPartMetrics
+        font.family: Theme.font
+        font.pixelSize: 0.85 * Theme.rem
+    }
+    FontMetrics {
+        id: separatorMetrics
+        font.pixelSize: 0.85 * Theme.rem
+    }
+    /// The selected mods matching the search, which the table shows.
+    readonly property var shownMods: mods.filter(id => Util.concatenateMod(id.owner, id.name, id.version).toLowerCase().includes(search.toLowerCase()))
+    readonly property real minimumRowWidth: {
+        let parts = 0;
+        let size = 0;
+        for (const id of shownMods) {
+            const mod = installedMod(id);
+            if (!mod)
+                continue;
+            parts = Math.max(parts, Math.ceil(partMetrics.advanceWidth(mod.name)) + Math.ceil(lowPartMetrics.advanceWidth(mod.owner)) + Math.ceil(lowPartMetrics.advanceWidth(mod.version.version_number)) + 2 * Math.ceil(separatorMetrics.advanceWidth("•")) + 4 * partGap);
+            size = Math.max(size, Math.ceil(partMetrics.advanceWidth(Util.humanizeFileSize(mod.version.file_size))) + 1);
+        }
+        // the remove buttons are as wide as two of the font's ems: an icon and half that each side
+        return 2 * rowPadding + 2 * Theme.rem + 2 * columnGap + parts + size;
+    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -125,12 +164,25 @@ Item {
                 anchors.fill: parent
                 anchors.margins: 0.5 * Theme.rem
 
+                // wraps rather than running under the search field when the header is narrow
                 SText {
+                    id: title
                     Layout.fillWidth: true
+                    Layout.maximumWidth: Math.ceil(implicitWidth)
+                    Layout.minimumWidth: Util.longestWordWidth(titleMetrics, text)
+                    wrapMode: TextEdit.WordWrap
                     text: I18n.t("modlist.installed.multiselect_title")
                     color: Theme.neutral20
                     font.family: Theme.font
                     font.pixelSize: 1.5 * Theme.rem
+
+                    FontMetrics {
+                        id: titleMetrics
+                        font: title.font
+                    }
+                }
+                Item {
+                    Layout.fillWidth: true
                 }
                 Field {
                     placeholderText: I18n.t("global.phrases.search")
@@ -139,116 +191,125 @@ Item {
             }
         }
 
-        // the table of selected mods
-        ListView {
-            id: table
+        // the table of selected mods, which scrolls (overflow: auto), sideways too when its rows are
+        // wider than it
+        ScrollArea {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.rightMargin: Theme.rem
-            clip: true
-            boundsBehavior: Flickable.StopAtBounds
-            ScrollBar.vertical: AppScrollBar {
-                id: tableBar
-            }
-            WheelScroll {}
-            // one stop in the Tab order, whose items the arrow keys move between
-            FocusGroup {
-                view: table
-            }
-            model: bulk.mods.filter(id => Util.concatenateMod(id.owner, id.name, id.version).toLowerCase().includes(bulk.search.toLowerCase()))
+            flickable: table
 
-            // the table's border, without a bottom edge
-            Rectangle {
-                parent: table
-                anchors.fill: parent
-                anchors.bottomMargin: -1
-                color: "transparent"
-                border.color: bulk.bulkBorder
-                z: 1
-            }
+            ListView {
+                id: table
 
-            delegate: Rectangle {
-                id: entry
+                // padding-right: 1em, before the scroll bar
+                readonly property real tableWidth: width - Theme.rem
+                readonly property real rowWidth: Math.max(tableWidth, bulk.minimumRowWidth)
 
-                required property var modelData
-                required property int index
-                readonly property var mod: bulk.installedMod(modelData)
-
-                width: table.width - tableBar.gutter
-                implicitHeight: entryRow.implicitHeight + 2 * 0.35 * Theme.rem + 1
-                color: entryHover.hovered ? Theme.neutral75 : index % 2 === 1 ? Theme.neutral80 : "transparent"
-
-                HoverHandler {
-                    id: entryHover
+                contentWidth: Math.max(width, rowWidth)
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
+                // one stop in the Tab order, whose items the arrow keys move between
+                FocusGroup {
+                    view: table
                 }
+                model: bulk.shownMods
+
+                // the table's border, without a bottom edge, which its rows reach past when they're
+                // wider than it
                 Rectangle {
-                    anchors.bottom: parent.bottom
-                    width: parent.width
-                    height: 1
-                    color: bulk.bulkBorder
+                    parent: table
+                    x: -table.contentX
+                    width: table.tableWidth
+                    height: table.height + 1
+                    color: "transparent"
+                    border.color: bulk.bulkBorder
+                    z: 1
                 }
 
-                RowLayout {
-                    id: entryRow
-                    anchors.fill: parent
-                    anchors.margins: 0.35 * Theme.rem
-                    anchors.bottomMargin: 0.35 * Theme.rem + 1
-                    spacing: Theme.rem
+                delegate: Rectangle {
+                    id: entry
 
-                    Btn {
-                        variant: "plain"
-                        iconName: "x"
-                        horizontalPadding: 0.5 * fontSize
-                        verticalPadding: 0.25 * fontSize
-                        activeBgColor: "transparent"
-                        activeTextColor: Theme.danger5
-                        tooltip: I18n.t("global.phrases.remove")
-                        onClicked: bulk.removeRequested(entry.mod)
+                    required property var modelData
+                    required property int index
+                    readonly property var mod: bulk.installedMod(modelData)
+
+                    width: table.rowWidth
+                    implicitHeight: entryRow.implicitHeight + 2 * bulk.rowPadding + 1
+                    color: entryHover.hovered ? Theme.neutral75 : index % 2 === 1 ? Theme.neutral80 : "transparent"
+
+                    HoverHandler {
+                        id: entryHover
+                    }
+                    Rectangle {
+                        anchors.bottom: parent.bottom
+                        width: parent.width
+                        height: 1
+                        color: bulk.bulkBorder
                     }
 
-                    Row {
-                        Layout.fillWidth: true
-                        // stays within its grid column when the panel is narrow
-                        Layout.minimumWidth: 0
-                        Layout.preferredHeight: implicitHeight
-                        clip: true
-                        spacing: 0.25 * Theme.rem
+                    RowLayout {
+                        id: entryRow
+                        anchors.fill: parent
+                        anchors.margins: bulk.rowPadding
+                        anchors.bottomMargin: bulk.rowPadding + 1
+                        spacing: bulk.columnGap
 
-                        component Part: Text {
-                            property bool low: false
-                            color: low ? Theme.neutral35 : Theme.neutral05
+                        Btn {
+                            variant: "plain"
+                            iconName: "x"
+                            horizontalPadding: 0.5 * fontSize
+                            verticalPadding: 0.25 * fontSize
+                            activeBgColor: "transparent"
+                            activeTextColor: Theme.danger5
+                            tooltip: I18n.t("global.phrases.remove")
+                            onClicked: bulk.removeRequested(entry.mod)
+                        }
+
+                        Row {
+                            Layout.fillWidth: true
+                            // the rows are as wide as the widest of these, but these are measured
+                            // apart from them, so they're kept within the row anyway
+                            Layout.minimumWidth: 0
+                            Layout.preferredHeight: implicitHeight
+                            clip: true
+                            spacing: bulk.partGap
+
+                            component Part: Text {
+                                property bool low: false
+                                color: low ? Theme.neutral35 : Theme.neutral05
+                                font.family: Theme.font
+                                font.pixelSize: low ? 0.85 * Theme.rem : Theme.rem
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+                            component Separator: Text {
+                                text: "•"
+                                color: Theme.neutral65
+                                font.pixelSize: 0.85 * Theme.rem
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                            Part {
+                                text: entry.mod ? entry.mod.name : ""
+                            }
+                            Separator {}
+                            Part {
+                                low: true
+                                text: entry.mod ? entry.mod.owner : ""
+                            }
+                            Separator {}
+                            Part {
+                                low: true
+                                text: entry.mod ? entry.mod.version.version_number : ""
+                            }
+                        }
+
+                        SText {
+                            Layout.minimumWidth: Math.min(implicitWidth, 4 * Theme.rem)
+                            text: entry.mod ? Util.humanizeFileSize(entry.mod.version.file_size) : ""
+                            color: Theme.neutral05
                             font.family: Theme.font
-                            font.pixelSize: low ? 0.85 * Theme.rem : Theme.rem
-                            anchors.verticalCenter: parent.verticalCenter
+                            font.pixelSize: Theme.rem
                         }
-                        component Separator: Text {
-                            text: "•"
-                            color: Theme.neutral65
-                            font.pixelSize: 0.85 * Theme.rem
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-
-                        Part {
-                            text: entry.mod ? entry.mod.name : ""
-                        }
-                        Separator {}
-                        Part {
-                            low: true
-                            text: entry.mod ? entry.mod.owner : ""
-                        }
-                        Separator {}
-                        Part {
-                            low: true
-                            text: entry.mod ? entry.mod.version.version_number : ""
-                        }
-                    }
-
-                    SText {
-                        Layout.minimumWidth: Math.min(implicitWidth, 4 * Theme.rem)
-                        text: entry.mod ? Util.humanizeFileSize(entry.mod.version.file_size) : ""
-                        color: Theme.neutral05
-                        font.family: Theme.font
-                        font.pixelSize: Theme.rem
                     }
                 }
             }
@@ -269,14 +330,23 @@ Item {
                 anchors.fill: parent
                 anchors.margins: 0.5 * Theme.rem
 
+                // wraps rather than running under the size when the row is narrow
                 SText {
+                    id: count
                     Layout.fillWidth: true
+                    Layout.minimumWidth: Util.longestWordWidth(countMetrics, text)
+                    wrapMode: TextEdit.WordWrap
                     text: I18n.t(bulk.mods.length > 1 ? "modlist.installed.selected_count_plural" : "modlist.installed.selected_count_single", {
                         count: bulk.mods.length
                     })
                     color: Theme.neutral05
                     font.family: Theme.font
                     font.pixelSize: Theme.rem
+
+                    FontMetrics {
+                        id: countMetrics
+                        font: count.font
+                    }
                 }
                 Row {
                     spacing: 0.3 * Theme.rem

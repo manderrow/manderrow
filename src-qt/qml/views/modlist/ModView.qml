@@ -1,11 +1,16 @@
 import QtQuick
-import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import Manderrow
 
 // The details of the focused mod, ported from ModView.tsx.
+//
+// When it is narrow, its parts overflow as the web UI's do: they keep the widths of what they
+// can't wrap, like the mod's name, and what overflows the view is cut off at its edge (overflow:
+// hidden), except where the web UI scrolls instead, in the tabs and the content below them.
 Item {
     id: view
+
+    clip: true
 
     /// A mod listing or an installed mod package.
     required property var mod
@@ -100,15 +105,19 @@ Item {
             Layout.rightMargin: Theme.rem
             spacing: 0
 
+            // grid-template-columns: minmax(min-content, 100%) 1fr. Its columns are no narrower than
+            // what is in them, which overflows the view when it is narrower than that, rather than
+            // widening the rest of it.
             GridLayout {
                 Layout.fillWidth: true
+                Layout.minimumWidth: 0
                 Layout.bottomMargin: 0.75 * Theme.rem
                 columns: 2
                 rowSpacing: 0.25 * Theme.rem
                 columnSpacing: 0.5 * Theme.rem
 
+                // width: min-content
                 MetaLink {
-                    Layout.fillWidth: true
                     text: view.mod.name
                     url: Util.getModUrl(view.gameId, view.mod.owner, view.mod.name)
                     fontSize: 1.5 * Theme.rem
@@ -125,8 +134,11 @@ Item {
                     onClicked: view.closeRequested()
                 }
 
+                // takes the column's free space, which a layout of items that don't fill it
+                // otherwise wouldn't, leaving the grid narrower than the view
                 ColumnLayout {
                     Layout.fillWidth: true
+                    Layout.maximumWidth: Number.POSITIVE_INFINITY
                     spacing: 0.25 * Theme.rem
 
                     MetaLink {
@@ -230,31 +242,41 @@ Item {
             }
         }
 
-        Flickable {
-            id: scroll
-            objectName: "modViewScroll"
+        // overflow: auto: the content wraps to the view's width, and scrolls sideways to reach what
+        // doesn't fit in it, like a long word or a dependency's name
+        ScrollArea {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            contentWidth: width
-            contentHeight: scrollContent.implicitHeight
-            boundsBehavior: Flickable.StopAtBounds
-            clip: true
-            ScrollBar.vertical: AppScrollBar {
-                id: scrollBar
-            }
-            WheelScroll {}
+            flickable: scroll
 
-            Item {
-                id: scrollContent
-                width: scroll.width
-                implicitHeight: tabContent.implicitHeight + 2 * Theme.rem
+            Flickable {
+                id: scroll
+                objectName: "modViewScroll"
+                contentWidth: width + overflow
+                contentHeight: scrollContent.implicitHeight
+                boundsBehavior: Flickable.StopAtBounds
+                clip: true
 
-                Loader {
-                    id: tabContent
-                    y: Theme.rem
-                    // padding-right: 0.75em, beside the scroll bar
-                    width: parent.width - 0.75 * Theme.rem - scrollBar.gutter
-                    sourceComponent: tabs.currentId === "dependencies" ? dependenciesTab : markdownTab
+                /// How far the content reaches past the view.
+                property real overflow: 0
+                // measured once the content has been laid out at a new width, so that where it
+                // reached at the old one doesn't show a horizontal scroll bar for a moment
+                Binding on overflow {
+                    value: tabContent.item ? Math.max(0, tabContent.item.overflowWidth - scrollContent.width) : 0
+                    delayed: true
+                }
+
+                Item {
+                    id: scrollContent
+                    width: scroll.width
+                    implicitHeight: tabContent.implicitHeight + 2 * Theme.rem
+
+                    Loader {
+                        id: tabContent
+                        y: Theme.rem
+                        width: parent.width
+                        sourceComponent: tabs.currentId === "dependencies" ? dependenciesTab : markdownTab
+                    }
                 }
             }
         }
@@ -262,6 +284,8 @@ Item {
         Component {
             id: markdownTab
             ModMarkdown {
+                // .markdown { padding-right: 0.75em }
+                rightPadding: 0.75 * Theme.rem
                 mod: view.mod
                 selectedVersion: view.selectedVersion ? view.selectedVersion.version_number : undefined
                 endpoint: tabs.currentId === "changelog" ? "changelog" : "readme"
@@ -275,7 +299,8 @@ Item {
             }
         }
 
-        // the install, version, and uninstall controls
+        // the install, version, and uninstall controls, which keep their min-content widths, as
+        // flex items do, and are cut off at the view's edge when they don't fit
         Item {
             Layout.fillWidth: true
             Layout.rightMargin: Theme.rem
@@ -297,6 +322,7 @@ Item {
                 SelectDropdown {
                     objectName: "versionSelect"
                     Layout.fillWidth: true
+                    Layout.minimumWidth: implicitWidth
                     Layout.maximumWidth: 8 * Theme.rem
                     Layout.fillHeight: true
                     options: view.versionOptions("")
@@ -314,6 +340,7 @@ Item {
                 // installs the latest version, as in the web UI
                 InstallButton {
                     Layout.fillWidth: true
+                    Layout.minimumWidth: implicitWidth
                     mod: view.mod
                     installContext: view.installContext
                     text: I18n.t("modlist.online.install_btn")
@@ -333,10 +360,15 @@ Item {
                 width: parent.width
                 spacing: 0.75 * Theme.rem
 
+                // width: 100%, shrinking alike, with the label wrapped once it doesn't fit, and
+                // stretched to the row's height
                 Dropdown {
                     Layout.fillWidth: true
+                    Layout.fillHeight: true
                     Layout.preferredWidth: 1
+                    Layout.minimumWidth: trigger.minimumWidth
                     label: I18n.t("modlist.installed.change_version_btn")
+                    trigger.wrapText: true
                     fillToTriggerWidth: true
                     panelPadding: 0.5 * Theme.rem
 
@@ -379,7 +411,9 @@ Item {
 
                 UninstallButton {
                     Layout.fillWidth: true
+                    Layout.fillHeight: true
                     Layout.preferredWidth: 1
+                    Layout.minimumWidth: implicitWidth
                     mod: view.installed || view.mod
                     installContext: view.installContext
                     text: I18n.t("modlist.installed.uninstall_btn")

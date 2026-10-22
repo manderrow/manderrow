@@ -9,6 +9,10 @@ Item {
     property var selectedVersion
     /// "readme" or "changelog"
     property string endpoint: "readme"
+    /// Space on the Markdown's right, which the messages shown in its place don't leave.
+    property real rightPadding: 0
+    /// How far the Markdown reaches to the right, past this where some of it can't wrap to fit.
+    readonly property real overflowWidth: markdown.visible ? markdown.overflowWidth : width
 
     property var result: undefined
     property var error: null
@@ -82,7 +86,7 @@ Item {
     Markdown {
         id: markdown
         visible: root._hasMarkdown && ready
-        width: parent.width
+        width: parent.width - root.rightPadding
         source: root._hasMarkdown ? root.result.markdown : ""
     }
 }

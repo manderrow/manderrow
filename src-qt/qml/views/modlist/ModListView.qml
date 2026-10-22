@@ -254,18 +254,36 @@ Item {
                 onProfileSortOrderEdited: order => modList.profileSortOrder = order
             }
 
+            // display: flex. Its messages and trailing controls shrink as flex items do, with their
+            // words wrapped, rather than widening the list's column.
             RowLayout {
                 Layout.fillWidth: true
                 spacing: 8
 
-                Text {
-                    visible: modList.isLoading || modList.queriedLoading
+                // as wide as its text, or narrower, wrapped, when the line is short of space.
+                // Layouts round widths to whole pixels, so its width is rounded up, or it would
+                // wrap for want of a fraction of one.
+                component LineText: Text {
+                    id: lineText
+                    Layout.fillWidth: true
+                    Layout.maximumWidth: Math.ceil(implicitWidth)
+                    Layout.minimumWidth: Util.longestWordWidth(lineMetrics, text)
                     Layout.topMargin: 8
                     Layout.bottomMargin: 8
-                    text: I18n.t("modlist.fetching_msg")
+                    wrapMode: Text.WordWrap
                     color: Theme.neutral05
                     font.family: Theme.font
                     font.pixelSize: Theme.rem
+
+                    FontMetrics {
+                        id: lineMetrics
+                        font: lineText.font
+                    }
+                }
+
+                LineText {
+                    visible: modList.isLoading || modList.queriedLoading
+                    text: I18n.t("modlist.fetching_msg")
                 }
                 ProgressBar {
                     visible: modList.isLoading || modList.queriedLoading
@@ -281,16 +299,11 @@ Item {
                     reset: () => Promise.resolve(modList.refresh()).then(() => modList.requery())
                 }
 
-                Text {
+                LineText {
                     visible: !modList.isLoading && !modList.queriedLoading && modList.queriedError === null && modList.queried !== null
-                    Layout.topMargin: 8
-                    Layout.bottomMargin: 8
                     text: I18n.t("modlist.discovered_msg", {
                         count: Util.formatNumber(modList.queried ? modList.queried.count : 0)
                     })
-                    color: Theme.neutral05
-                    font.family: Theme.font
-                    font.pixelSize: Theme.rem
                 }
                 AsyncButton {
                     visible: !modList.isLoading && !modList.queriedLoading && modList.queriedError === null && modList.queried !== null
@@ -302,12 +315,19 @@ Item {
                     action: () => modList.refresh()
                 }
 
+                // margin-left: auto
                 Item {
                     Layout.fillWidth: true
-                }
+                    Layout.minimumWidth: trailing.item && trailing.item.minimumWidth !== undefined ? trailing.item.minimumWidth : trailing.implicitWidth
+                    Layout.preferredWidth: Math.ceil(trailing.implicitWidth)
+                    implicitHeight: trailing.implicitHeight
 
-                Loader {
-                    sourceComponent: modList.trailingControls
+                    Loader {
+                        id: trailing
+                        anchors.right: parent.right
+                        width: Math.min(implicitWidth, parent.width)
+                        sourceComponent: modList.trailingControls
+                    }
                 }
             }
 
@@ -431,21 +451,27 @@ Item {
                     }
                 }
 
+                // as wide as its text, or as the column, with its text wrapped
                 ColumnLayout {
                     visible: modList.focusedMod === null && !(modList.multiselect && modList.selectedMods.length !== 0)
                     anchors.centerIn: parent
                     anchors.verticalCenterOffset: -1.5 * Theme.rem
+                    width: Math.min(Math.ceil(implicitWidth), parent.width)
                     spacing: 0.25 * 1.5 * Theme.rem
 
                     Text {
-                        Layout.alignment: Qt.AlignHCenter
+                        Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignHCenter
+                        wrapMode: Text.WordWrap
                         text: I18n.t("modlist.modview.no_mod_selected_title")
                         color: Theme.neutral20
                         font.family: Theme.font
                         font.pixelSize: 1.5 * Theme.rem
                     }
                     Text {
-                        Layout.alignment: Qt.AlignHCenter
+                        Layout.fillWidth: true
+                        horizontalAlignment: Text.AlignHCenter
+                        wrapMode: Text.WordWrap
                         text: I18n.t("modlist.modview.no_mod_selected_subtitle")
                         color: Theme.neutral30
                         font.family: Theme.font

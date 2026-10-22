@@ -9,6 +9,18 @@ Item {
     property string gameId
     /// Dependency strings like "Owner-Name-1.2.3", or undefined while loading.
     property var dependencies
+    /// How far the dependencies reach to the right: past its width when their names and versions
+    /// don't fit beside each other, as each keeps the width of its longest word, as on the web.
+    readonly property real overflowWidth: {
+        let right = width;
+        if (column.visible) {
+            for (let i = 0; i < column.children.length; i++) {
+                if (column.children[i].contentRight !== undefined)
+                    right = Math.max(right, column.children[i].contentRight);
+            }
+        }
+        return right;
+    }
 
     implicitHeight: dependencies === undefined || dependencies.length === 0 ? message.implicitHeight : column.implicitHeight
 
@@ -37,6 +49,8 @@ Item {
 
                 required property string modelData
                 readonly property var parts: modelData.split("-")
+                /// Where its content ends, which is past its edge when the content doesn't fit.
+                readonly property real contentRight: row.x + versionText.x + versionText.width
 
                 width: column.width
                 height: row.implicitHeight + Theme.rem
@@ -74,26 +88,42 @@ Item {
                         }
                     }
 
+                    // no narrower than its longest word, past which the row overflows
                     Column {
                         Layout.fillWidth: true
+                        // (rounded up, as layouts round widths to whole pixels)
+                        Layout.minimumWidth: Math.ceil(Math.max(nameText.implicitWidth, externalIcon.width, ownerText.implicitWidth))
+                        Layout.preferredWidth: Math.ceil(Math.max(nameText.implicitWidth + nameLine.spacing + externalIcon.width, ownerText.implicitWidth))
 
-                        Row {
+                        // the icon wraps below the name when they don't fit beside each other
+                        Flow {
+                            id: nameLine
+                            width: parent.width
                             spacing: 0.3 * Theme.rem
 
                             Text {
+                                id: nameText
                                 text: dependency.parts[1]
                                 color: Theme.neutral15
                                 font.family: Theme.font
                                 font.pixelSize: Theme.rem
                             }
-                            Icon {
-                                name: "external-link"
-                                size: 0.9 * Theme.rem
-                                color: Theme.neutral30
-                                anchors.verticalCenter: parent.verticalCenter
+                            // centered on the name's line
+                            Item {
+                                width: externalIcon.width
+                                height: nameText.height
+
+                                Icon {
+                                    id: externalIcon
+                                    name: "external-link"
+                                    size: 0.9 * Theme.rem
+                                    color: Theme.neutral30
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
                             }
                         }
                         Text {
+                            id: ownerText
                             text: dependency.parts[0]
                             color: Theme.neutral30
                             font.family: Theme.font
@@ -102,6 +132,7 @@ Item {
                     }
 
                     Text {
+                        id: versionText
                         text: dependency.parts[2]
                         color: Theme.neutral20
                         font.family: Theme.font

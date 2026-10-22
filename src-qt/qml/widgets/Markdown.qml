@@ -12,6 +12,9 @@ Item {
     property string source
     /// Whether every block has been created.
     readonly property bool ready: blocks.ready
+    /// How far its content reaches to the right: past its width where something can't wrap to fit
+    /// in it, like a long word, which a view around it can scroll to, as browsers do.
+    readonly property real overflowWidth: blocks.overflowWidth
 
     implicitHeight: blocks.height
 

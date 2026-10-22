@@ -21,6 +21,12 @@ AbstractButton {
     property bool tooltipHideArrow: false
     /// Shows the hover style regardless of the pointer, e.g. while a menu it opened is open.
     property bool forceActive: false
+    /// Wraps the label between its words when the button is narrower than it, as web buttons do.
+    property bool wrapText: false
+    /// Its min-content width: the narrowest it can be without its content overflowing it, with its
+    /// label wrapped if it wraps. Browsers keep buttons in flex and grid layouts this wide, so
+    /// layouts that stand in for those should too.
+    readonly property real minimumWidth: leftPadding + rightPadding + (!contentItem ? 0 : contentItem.minimumWidth !== undefined ? contentItem.minimumWidth : contentItem.implicitWidth)
 
     property color bgColor: variant === "primary" ? Theme.primary40 : variant === "default" ? Theme.neutral80 : "transparent"
     property color activeBgColor: variant === "primary" ? Theme.primary50 : Theme.neutral70

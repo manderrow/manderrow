@@ -43,6 +43,8 @@ Item {
 
     implicitWidth: errorIndicator.item ? (errorIndicator.item as Item).implicitWidth : button.implicitWidth
     implicitHeight: errorIndicator.item ? (errorIndicator.item as Item).implicitHeight : button.implicitHeight
+    /// Its min-content width, with the button's label wrapped if it wraps. See Btn.minimumWidth.
+    readonly property real minimumWidth: errorIndicator.item ? implicitWidth : button.minimumWidth
 
     function run() {
         _busy = true;
@@ -89,6 +91,7 @@ Item {
         contentItem: Item {
             implicitWidth: circular.item ? circular.implicitWidth : bar.item ? bar.implicitWidth : label.implicitWidth
             implicitHeight: circular.item ? circular.implicitHeight : label.implicitHeight
+            readonly property real minimumWidth: circular.item || bar.item ? implicitWidth : label.minimumWidth
 
             BtnContent {
                 id: label

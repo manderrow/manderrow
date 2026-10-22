@@ -17,8 +17,9 @@ ScrollBar {
     property bool autoHide: false
     property Item hoverArea: parent
 
-    /// Whether there is anything to scroll.
-    readonly property bool scrollable: size < 1.0
+    /// Whether there is anything to scroll. A view that hasn't been given a size yet has a size of
+    /// 0, but nothing to scroll.
+    readonly property bool scrollable: size > 0 && size < 1.0
     /// The space beside the content that the bar takes up while there is something to scroll: its
     /// width, or its height for a horizontal bar, when hovered.
     readonly property real gutter: scrollable ? (thin ? 6 : 10) + 2 * padding : 0
