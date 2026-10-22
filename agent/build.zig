@@ -193,7 +193,7 @@ fn createLib(
             cargo_build.has_side_effects = true;
 
             lib.step.dependOn(&cargo_build.step);
-            lib.addObjectFile(b.path(b.fmt("../target/{s}/{s}/{s}", .{
+            const rust_lib_path = b.fmt("{s}/{s}/{s}", .{
                 rust_target,
                 switch (optimize) {
                     .Debug => "debug",
@@ -203,7 +203,11 @@ fn createLib(
                     .msvc => "manderrow_agent_rs.lib",
                     else => "libmanderrow_agent_rs.a",
                 },
-            })));
+            });
+            lib.addObjectFile(if (b.graph.env_map.get("CARGO_TARGET_DIR")) |cargo_target_dir|
+                .{ .cwd_relative = b.pathJoin(&.{ cargo_target_dir, rust_lib_path }) }
+            else
+                b.path(b.fmt("../target/{s}", .{rust_lib_path})));
         },
         .winelib => {
             lib_mod.addImport("dlfcn", dep.module("proxy"));
