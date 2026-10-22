@@ -16,8 +16,8 @@ ApplicationWindow {
     color: Ui.translucent ? "transparent" : Theme.neutral85
     // macOS keeps its native window controls over the app's title bar, like Tauri's overlay
     // title bar style. Windows keeps the rest of its native frame, whose title bar Native hides,
-    // as frameless windows there can't be resized from outside, snapped, animated, or given a
-    // backdrop. Elsewhere the app draws the whole frame.
+    // as frameless windows there can't be resized from outside, snapped, or animated. Elsewhere
+    // the app draws the whole frame.
     flags: Qt.platform.os === "osx" ? Qt.Window | Qt.ExpandedClientAreaHint | Qt.NoTitleBarBackgroundHint : Qt.platform.os === "windows" ? Qt.Window : Qt.Window | Qt.FramelessWindowHint
     /// Whether the window has a native frame without its title bar, which resizes the window.
     property bool _nativeFrame: false
