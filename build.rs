@@ -16,17 +16,16 @@ struct Env<'a> {
 }
 
 fn main() {
-    let mut root_dir = PathBuf::from(var_os("CARGO_MANIFEST_DIR").unwrap());
-    assert!(root_dir.pop());
+    let root_dir = PathBuf::from(var_os("CARGO_MANIFEST_DIR").unwrap());
     let crates_dir = root_dir.join("crates");
 
     println!(
         "cargo::rerun-if-changed={:?}",
-        crates_dir.join("Cargo.toml")
+        root_dir.join("Cargo.toml")
     );
     println!(
         "cargo::rerun-if-changed={:?}",
-        crates_dir.join("Cargo.lock")
+        root_dir.join("Cargo.lock")
     );
     println!(
         "cargo::rerun-if-changed={:?}",
@@ -88,9 +87,8 @@ fn main() {
         &to_path,
     );
 
-    let crate_dir = PathBuf::from(var_os("CARGO_MANIFEST_DIR").unwrap());
-    build_qt(&crate_dir);
-    compile_assets(&crate_dir, &out_dir);
+    build_qt(&root_dir);
+    compile_assets(&root_dir, &out_dir);
 }
 
 fn build_qt(crate_dir: &Path) {
@@ -311,7 +309,7 @@ fn zig_build(
     // Cargo passes this build script for the app's target, nor the app's target directory, whose
     // lock this build holds.
     command.env_remove("CARGO_ENCODED_RUSTFLAGS");
-    command.env_remove("CARGO_TARGET_DIR");
+    command.env("CARGO_TARGET_DIR", out_dir.join("target"));
     command.current_dir(dir);
     command.arg("build");
 
@@ -343,6 +341,7 @@ fn zig_build(
     ));
     command.args(args);
     command.status().unwrap().exit_ok().unwrap();
+    // panic!("{:?}",command);
 
     out_dir
 }
