@@ -11,7 +11,9 @@ Dialog {
     height: (Ui.window ? Ui.window.height : 600) * 0.75
 
     ColumnLayout {
-        anchors.fill: parent
+        // not anchored to the body, whose implicit size is that of its children
+        width: parent.width
+        height: dialog.availableHeight
         spacing: 0
 
         SText {

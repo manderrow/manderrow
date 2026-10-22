@@ -100,8 +100,10 @@ Popup {
 
             Item {
                 id: bodyItem
-                width: parent.width
-                height: Math.max(implicitHeight, parent.height)
+                // the Flickable's own size, as the parent is its content item, which is sized to
+                // the body
+                width: scroll.width
+                height: Math.max(implicitHeight, scroll.height)
                 implicitWidth: childrenRect.width
                 implicitHeight: childrenRect.height
             }
