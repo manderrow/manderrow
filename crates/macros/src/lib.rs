@@ -46,6 +46,8 @@ struct Field {
     section: Ident,
     default: Expr,
     input: Ident,
+    /// The values that a `select` input offers
+    options: Option<Vec<Ident>>,
     ref_by_ty: Type,
     ref_by_fn: Path,
 }
@@ -67,6 +69,19 @@ fn expect_attribute<T>(ident: &Ident, name: &str, attribute: Option<(Span, T)>) 
             ident.span(),
             format!("Missing required attribute `{name}`"),
         )),
+    }
+}
+
+struct OptionsAttrArgs(Vec<Ident>);
+
+impl Parse for OptionsAttrArgs {
+    fn parse(input: syn::parse::ParseStream) -> Result<Self> {
+        Ok(Self(
+            input
+                .parse_terminated(Ident::parse, Token![,])?
+                .into_iter()
+                .collect(),
+        ))
     }
 }
 
@@ -98,6 +113,7 @@ pub fn settings(args: TokenStream, input: TokenStream) -> TokenStream {
             let mut section = None;
             let mut default = None;
             let mut input = None;
+            let mut options = None;
             let mut ref_by = None;
 
             for attr in field.attrs {
@@ -118,6 +134,9 @@ pub fn settings(args: TokenStream, input: TokenStream) -> TokenStream {
                     Some(ident) if ident == "input" => {
                         input = Some(try_parse_attribute(input, attr)?);
                     }
+                    Some(ident) if ident == "options" => {
+                        options = Some(try_parse_attribute(options, attr)?);
+                    }
                     Some(ident) if ident == "ref_by" => {
                         ref_by = Some(try_parse_attribute(ref_by, attr)?);
                     }
@@ -128,12 +147,21 @@ pub fn settings(args: TokenStream, input: TokenStream) -> TokenStream {
             }
 
             let RefByAttrArgs(ref_by_ty, ref_by_fn) = expect_attribute(&ident, "ref_by", ref_by)?;
+            let input: Ident = expect_attribute(&ident, "input", input)?;
+            let options = options.map(|(_, OptionsAttrArgs(options))| options);
+            if (input == "select") != options.is_some() {
+                return Err(Error::new(
+                    input.span(),
+                    "The `options` attribute is required by `select` inputs, and only by them",
+                ));
+            }
 
             Ok(Field {
                 ty: field.ty,
                 section: expect_attribute(&ident, "section", section)?,
                 default: expect_attribute(&ident, "default", default)?,
-                input: expect_attribute(&ident, "input", input)?,
+                input,
+                options,
                 ref_by_ty,
                 ref_by_fn,
                 ident,
@@ -179,10 +207,14 @@ pub fn settings(args: TokenStream, input: TokenStream) -> TokenStream {
                 "settings": fields.iter()
                     .filter(|field| field.section == *section)
                     .map(|field| {
-                        json!({
+                        let mut setting = json!({
                             "key": cruet::to_camel_case(&field.ident.to_string()),
                             "input": field.input.to_string(),
-                        })
+                        });
+                        if let Some(options) = &field.options {
+                            setting["options"] = options.iter().map(Ident::to_string).collect();
+                        }
+                        setting
                     })
                     .collect::<Vec<_>>(),
             })

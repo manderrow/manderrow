@@ -368,3 +368,8 @@ pub fn show_window_menu(window: Pin<&mut QWindow>, x: f64, y: f64) -> bool {
     }
     true
 }
+
+pub fn tiled_edges(_window: Pin<&mut QWindow>) -> i32 {
+    // Snap Layouts don't tell windows that they are snapped
+    0
+}

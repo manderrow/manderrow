@@ -31,10 +31,12 @@ fn read() -> anyhow::Result<Option<Settings>> {
         window_translucent,
         window_opacity,
         window_blur,
+        theme,
     } = simd_json::from_slice::<SettingsOnDisk>(&mut bytes)?;
     Ok(Some(Settings {
         default_game,
         open_console_on_launch,
+        theme,
         window_translucent,
         window_opacity,
         window_blur,
@@ -48,6 +50,7 @@ async fn write(
         window_translucent,
         window_opacity,
         window_blur,
+        theme,
     }: &Settings,
 ) -> anyhow::Result<()> {
     let settings = SettingsOnDisk {
@@ -56,6 +59,7 @@ async fn write(
         window_translucent,
         window_opacity,
         window_blur,
+        theme,
     };
     tokio::task::spawn_blocking(move || {
         let path = get_path();
@@ -107,6 +111,16 @@ enum Change<T> {
     Override(T),
 }
 
+/// The app's color scheme.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+#[serde(rename_all = "lowercase")]
+pub enum Theme {
+    /// Follows the system's color scheme.
+    Auto,
+    Dark,
+    Light,
+}
+
 #[manderrow_macros::settings(sections = [general, appearance, launching])]
 struct Settings {
     #[section(general)]
@@ -114,6 +128,14 @@ struct Settings {
     #[input(game_select)]
     #[ref_by(Option<&'a String>, Option::as_ref)]
     default_game: Option<String>,
+
+    /// Overrides the system's color scheme.
+    #[section(appearance)]
+    #[default(Theme::Auto)]
+    #[input(select)]
+    #[options(auto, dark, light)]
+    #[ref_by(Theme, Theme::clone)]
+    theme: Theme,
 
     /// Shows the desktop through the window's background.
     #[section(appearance)]
@@ -161,4 +183,7 @@ pub struct SettingsOnDisk {
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     window_blur: Option<bool>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    theme: Option<Theme>,
 }

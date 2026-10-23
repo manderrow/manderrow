@@ -6,10 +6,13 @@ import Manderrow
 QtObject {
     id: theme
 
-    /// Follows the system color scheme, like `prefers-color-scheme` did. The `theme` dev option
-    /// overrides it.
+    /// The color scheme: "auto", "dark", or "light", from the theme setting, which the `theme` dev
+    /// option overrides. Until the settings load, it is "auto".
     readonly property string _forced: Backend.devOption("theme")
-    readonly property bool dark: _forced !== "" ? _forced === "dark" : Qt.styleHints.colorScheme === Qt.ColorScheme.Dark
+    readonly property string scheme: _forced !== "" ? _forced : Globals.settings ? Globals.settings.theme.value : "auto"
+    /// Follows the system color scheme, like `prefers-color-scheme` did, unless the theme setting
+    /// picks one.
+    readonly property bool dark: scheme === "auto" ? Qt.styleHints.colorScheme === Qt.ColorScheme.Dark : scheme === "dark"
 
     /// The width of the window, which drives the responsive breakpoints.
     property real windowWidth: 1024

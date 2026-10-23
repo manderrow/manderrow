@@ -242,10 +242,18 @@
     },
     "settings": {
       "defaultGame": "Default game",
+      "theme": "Theme",
       "windowTranslucent": "Translucent window",
       "windowOpacity": "Window opacity",
       "windowBlur": "Blur behind window",
       "openConsoleOnLaunch": "Open console on launch?"
+    },
+    "options": {
+      "theme": {
+        "auto": "Auto",
+        "dark": "Dark",
+        "light": "Light"
+      }
     }
   },
 
