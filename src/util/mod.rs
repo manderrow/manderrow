@@ -1,4 +1,5 @@
 pub mod http;
+pub mod http_cache;
 mod progress;
 pub mod search;
 

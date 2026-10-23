@@ -91,6 +91,8 @@ uuid = { version = "1.11.0", features = ["serde"] }
 dirs = "6"
 fs4 = { version = "0.13.1", default-features = false, features = ["tokio"] }
 interprocess = "2.2"
+# the browser's HTTP caching rules, for the web resources that the UI loads
+http-cache-semantics = { version = "2.1.0", default-features = false, features = ["reqwest"] }
 get-locale = { git = "https://git.pfaff.dev/michael/get-locale.rs", version = "0.1.0" }
 reqwest = { version = "0.12.12", features = ["stream"] }
 tempfile = "3.14.0"

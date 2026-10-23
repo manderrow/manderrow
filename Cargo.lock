@@ -1222,6 +1222,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "http-cache-semantics"
+version = "2.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "92baf25cf0b8c9246baecf3a444546360a97b569168fdf92563ee6a47829920c"
+dependencies = [
+ "http",
+ "reqwest",
+ "time",
+]
+
+[[package]]
 name = "httparse"
 version = "1.10.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1689,6 +1700,7 @@ dependencies = [
  "futures-util",
  "get-locale",
  "hashbrown 0.15.5",
+ "http-cache-semantics",
  "interprocess",
  "itertools",
  "lexopt",
