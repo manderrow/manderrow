@@ -9,9 +9,10 @@ use std::sync::LazyLock;
 
 use comrak::nodes::{AlertType, ListType, Node, NodeValue, TableAlignment};
 
-/// Images are only loaded from these origins, as enforced by the content security policy of the
-/// web frontend this replaced.
-const ALLOWED_IMAGE_PREFIXES: &[&str] = &["https://gcdn.thunderstore.io/", "data:"];
+/// Images are only loaded from these schemes, which are all that the `web` image provider and
+/// Image load. They come from any origin, as badges like shields.io's do, which the web frontend
+/// this replaced also loaded.
+const ALLOWED_IMAGE_PREFIXES: &[&str] = &["https://", "data:"];
 
 fn is_allowed_image(src: &str) -> bool {
     ALLOWED_IMAGE_PREFIXES
@@ -342,14 +343,17 @@ mod tests {
     }
 
     #[test]
-    fn strips_scripts_and_foreign_images() {
+    fn strips_scripts_and_insecure_images() {
         let out = json(
-            "<script>alert(1)</script>\n\n![x](https://evil.example/x.png)\n\n\
-             ![y](https://gcdn.thunderstore.io/live/y.png)\n\ntext <img src=\"https://evil.example/z.png\">",
+            "<script>alert(1)</script>\n\n![x](http://insecure.example/x.png)\n\n\
+             ![y](https://gcdn.thunderstore.io/live/y.png)\n\ntext <img src=\"file:///etc/z.png\"> \
+             [![badge](https://img.shields.io/badge/a-b-green)](https://example.com)",
         );
         assert!(!out.contains("script"), "{out}");
-        assert!(!out.contains("evil.example"), "{out}");
+        assert!(!out.contains("insecure.example"), "{out}");
+        assert!(!out.contains("file:"), "{out}");
         assert!(out.contains(r#""type":"image","src":"https://gcdn.thunderstore.io/live/y.png""#), "{out}");
+        assert!(out.contains(r#"src=\"https://img.shields.io/badge/a-b-green\""#), "{out}");
     }
 
     #[test]

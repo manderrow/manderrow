@@ -167,7 +167,7 @@ pub async fn get_bep_in_ex_path(
         // TODO: communicate via IPC
         None,
         log,
-        &Reqwest(reqwest::Client::new()),
+        &Reqwest::new()?,
         format!("BepInEx"),
         &url,
         cache,
@@ -290,7 +290,7 @@ pub async fn emit_instructions(
                 fetch_resource_cached_by_hash_at_path(
                     app,
                     log,
-                    &Reqwest(reqwest::Client::new()),
+                    &Reqwest::new()?,
                     format!("UnityDoorstop debug info"),
                     &pdb.url,
                     pdb.hash,
@@ -308,7 +308,7 @@ pub async fn emit_instructions(
             fetch_resource_cached_by_hash_at_path(
                 app,
                 log,
-                &Reqwest(reqwest::Client::new()),
+                &Reqwest::new()?,
                 format!("UnityDoorstop"),
                 &url,
                 hash,

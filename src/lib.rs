@@ -47,6 +47,24 @@ use lexopt::ValueExt;
 #[derive(Clone)]
 struct Reqwest(reqwest::Client);
 
+/// The user agent of the app's requests, which some servers require one of, as Wikimedia's do for
+/// the images that READMEs show from them.
+const USER_AGENT: &str = concat!(
+    "Manderrow/",
+    env!("CARGO_PKG_VERSION"),
+    " (+https://github.com/manderrow/manderrow)"
+);
+
+impl Reqwest {
+    /// A client for the app's requests.
+    fn new() -> reqwest::Result<Self> {
+        reqwest::Client::builder()
+            .user_agent(USER_AGENT)
+            .build()
+            .map(Self)
+    }
+}
+
 impl Deref for Reqwest {
     type Target = reqwest::Client;
 
@@ -64,10 +82,7 @@ fn run_app() -> anyhow::Result<()> {
     // Backend state is created inside the runtime, since parts of it spawn tasks.
     let _runtime = qt::runtime().enter();
 
-    let app = app::AppHandle::new(
-        Reqwest(reqwest::Client::builder().build()?),
-        settings::try_read(),
-    );
+    let app = app::AppHandle::new(Reqwest::new()?, settings::try_read());
     app.set_ipc_state(IpcState::new(app.clone(), slog_scope::logger()));
 
     qt::run(app, instance)

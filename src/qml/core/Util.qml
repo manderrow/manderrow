@@ -95,12 +95,40 @@ QtObject {
 
     /// The source for an image on the web, which loads it with the backend's HTTP client, as
     /// Qt's own TLS support varies by platform. Other sources are returned as they are.
-    function webImage(url) {
-        return String(url).startsWith("https://") ? "image://web/" + url : url;
+    ///
+    /// Given the display's pixel ratio, a vector image is drawn sharply at it rather than scaled
+    /// up, though it is still sized as it would be without it. Rich text sizes images by their
+    /// pixels, so only give it to rich text for an image that has a width or height of its own.
+    function webImage(url, dpr) {
+        if (!String(url).startsWith("https://"))
+            return url;
+        return dpr > 1 ? `image://web/${dpr}x/${url}` : "image://web/" + url;
     }
-    /// Loads the web images of rich text as webImage does.
-    function webImagesInHtml(html) {
-        return html.replace(/(<img\b[^>]*\bsrc=")(https:\/\/)/g, "$1image://web/$2");
+    /// The minimum height of shields.io's badges, which is their known height in the style most
+    /// use, so that the space for them is kept while they load, as the web UI's style did.
+    readonly property real badgeHeight: 28
+    function isBadge(url) {
+        return String(url).includes("img.shields.io");
+    }
+    /// Loads the web images of rich text as webImage does, and sizes them as the web UI's style
+    /// did: no wider than the text, which is `img { max-width: 100% }`, and badges at their
+    /// height. `maxWidth` sets their maximum width in pixels instead, for where rich text takes a
+    /// percentage of the wrong width, as in a table's cells.
+    function webImagesInHtml(html, dpr, maxWidth) {
+        const maxWidthStyle = maxWidth !== undefined ? `${Math.max(0, Math.floor(maxWidth))}px` : "100%";
+        return html.replace(/<img\b[^>]*>/g, tag => {
+            // the sanitizer has removed any style of its own
+            tag = tag.replace(/^<img\b/, `<img style="max-width: ${maxWidthStyle}"`);
+            const src = /\bsrc="([^"]*)"/.exec(tag);
+            if (!src)
+                return tag;
+            let sized = /\b(?:width|height)="/.test(tag);
+            if (!sized && isBadge(src[1])) {
+                tag = tag.replace(/^<img\b/, `<img height="${badgeHeight}"`);
+                sized = true;
+            }
+            return tag.replace(src[0], () => `src="${webImage(src[1], sized ? dpr : 1)}"`);
+        });
     }
 
     // Thunderstore URLs
