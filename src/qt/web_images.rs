@@ -1,7 +1,8 @@
 //! The `web` image provider, which loads `image://web/<https URL>` with the backend's HTTP client
 //! rather than Qt's. Qt's TLS comes from plugins that vary by platform and installation: on
 //! Windows, it prefers whichever OpenSSL it finds on the PATH, then Schannel. The backend's client
-//! is the one that already fetches the mod index, so images load wherever the index does.
+//! is the one that already fetches the mod index, so images load wherever the index does. Images
+//! are cached on disk by HTTP's rules, as the browser that the web UI ran in did.
 
 #[cxx_qt::bridge]
 mod ffi {
@@ -93,14 +94,15 @@ mod ffi {
 use core::pin::Pin;
 
 use anyhow::ensure;
+use bytes::Bytes;
 use cxx_qt::casting::Upcast;
 use cxx_qt::{CxxQtThread, CxxQtType, Threading};
 use cxx_qt_lib::{
     AspectRatioMode, QImage, QQmlEngine, QQmlImageProviderBase, QSize, QString, TransformationMode,
 };
-use tokio::sync::Semaphore;
 use tokio::task::AbortHandle;
 
+use crate::util::http_cache;
 use crate::Reqwest;
 
 use ffi::{QQuickImageResponse, QQuickTextureFactory, WebImageProvider, WebImageResponse};
@@ -115,10 +117,6 @@ unsafe impl Upcast<QQmlImageProviderBase> for WebImageProvider {
         unsafe { ffi::downcast_web_image_provider(base) }
     }
 }
-
-/// Fetches at a time, so that scrolling through a long list of mods doesn't open a connection for
-/// every icon it passes.
-static PERMITS: Semaphore = Semaphore::const_new(8);
 
 /// Larger images are not loaded.
 const MAX_SIZE: usize = 32 << 20;
@@ -217,7 +215,7 @@ impl ffi::WebImageResponse {
     }
 
     /// Decodes the fetched image, or records why it couldn't be fetched, and finishes.
-    fn finish(mut self: Pin<&mut Self>, result: Result<Vec<u8>, String>) {
+    fn finish(mut self: Pin<&mut Self>, result: Result<Bytes, String>) {
         let decoded = result.and_then(|data| {
             QImage::from_data(&data, None).ok_or_else(|| "The image couldn't be decoded".to_owned())
         });
@@ -275,7 +273,7 @@ impl ffi::WebImageResponse {
 struct Delivery(Option<CxxQtThread<WebImageResponse>>);
 
 impl Delivery {
-    fn finish(mut self, result: Result<Vec<u8>, String>) {
+    fn finish(mut self, result: Result<Bytes, String>) {
         if let Some(thread) = self.0.take() {
             // fails only once the response has been destroyed, when there is nothing to finish
             _ = thread.queue(move |response| response.finish(result));
@@ -291,23 +289,8 @@ impl Drop for Delivery {
     }
 }
 
-async fn fetch(url: &str) -> anyhow::Result<Vec<u8>> {
+async fn fetch(url: &str) -> anyhow::Result<Bytes> {
     let url = reqwest::Url::parse(url)?;
     ensure!(url.scheme() == "https", "Only HTTPS images are loaded");
-    let _permit = PERMITS.acquire().await?;
-    let mut response = super::app()
-        .state::<Reqwest>()
-        .get(url)
-        .send()
-        .await?
-        .error_for_status()?;
-    let mut data = Vec::new();
-    while let Some(chunk) = response.chunk().await? {
-        ensure!(
-            data.len() + chunk.len() <= MAX_SIZE,
-            "The image is too large"
-        );
-        data.extend_from_slice(&chunk);
-    }
-    Ok(data)
+    http_cache::get(&super::app().state::<Reqwest>(), &url, MAX_SIZE).await
 }
