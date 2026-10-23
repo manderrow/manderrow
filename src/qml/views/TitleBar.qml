@@ -12,6 +12,12 @@ Rectangle {
     property string profileName: ""
 
     readonly property bool maximized: window.visibility === Window.Maximized || window.visibility === Window.FullScreen
+    /// The edges of the window that the window manager has tiled, from Native.tiledEdges.
+    property int tiledEdges: 0
+    /// Whether a tiling window manager has tiled the window, which then has no use for the
+    /// minimize and maximize buttons. Other window managers may tile every edge of a maximized
+    /// window, or only some of the window, as when it is snapped to half of the screen.
+    readonly property bool tiled: (tiledEdges & 15) === 15 && !maximized
 
     height: Theme.titlebarHeight
     color: Theme.surface(window.active ? Theme.neutral90 : Theme.neutral85)
@@ -21,6 +27,18 @@ Rectangle {
             window.visibility === Window.FullScreen ? window.showNormal() : window.showFullScreen();
         else
             maximized ? window.showNormal() : window.showMaximized();
+    }
+
+    function updateTiling() {
+        tiledEdges = Native.tiledEdges(window);
+    }
+
+    Component.onCompleted: updateTiling()
+    Connections {
+        target: Native
+        function onWindowConfigured() {
+            bar.updateTiling();
+        }
     }
 
     Rectangle {
@@ -36,9 +54,11 @@ Rectangle {
         gesturePolicy: TapHandler.DragThreshold
         onDoubleTapped: bar.toggleMaximized()
     }
+    // It doesn't take over from items, so that the buttons in the bar keep their presses and are
+    // clicked.
     DragHandler {
         target: null
-        grabPermissions: PointerHandler.CanTakeOverFromAnything
+        grabPermissions: PointerHandler.CanTakeOverFromAnything & ~PointerHandler.CanTakeOverFromItems
         onActiveChanged: if (active)
             bar.window.startSystemMove()
     }
@@ -50,6 +70,7 @@ Rectangle {
     }
 
     RowLayout {
+        id: brand
         anchors.left: parent.left
         anchors.leftMargin: 0.4 * Theme.rem
         anchors.verticalCenter: parent.verticalCenter
@@ -67,6 +88,24 @@ Rectangle {
             color: Theme.neutral20
             font.family: Theme.font
             font.pixelSize: 0.85 * Theme.rem
+        }
+    }
+
+    TitleBarActions {
+        id: actions
+        objectName: "titleBarActions"
+        x: brand.x + brand.width + Theme.rem
+        y: 3
+        width: Math.max(0, Math.min(implicitWidth, controls.x - Theme.rem - x))
+        height: parent.height - 2 * y
+
+        // TitleBarButtons and TitleBarDropdowns, in order
+
+        TitleBarButton {
+            text: I18n.t("settings.title")
+            iconName: "settings"
+            onClicked: if (Router.route !== "settings")
+                Router.navigate("/settings")
         }
     }
 
@@ -133,15 +172,18 @@ Rectangle {
     }
 
     Row {
+        id: controls
         anchors.right: parent.right
         height: parent.height
 
         ControlButton {
+            visible: !bar.tiled
             tooltip: I18n.t("titlebar.minimize_btn")
             path: "M19 13H5v-2h14z"
             onClicked: bar.window.showMinimized()
         }
         ControlButton {
+            visible: !bar.tiled
             tooltip: bar.maximized ? I18n.t("titlebar.restore_btn") : I18n.t("titlebar.maximize_btn")
             path: bar.maximized ? "M4 8h4V4h12v12h-4v4H4zm12 0v6h2V6h-8v2zM6 12v6h8v-6z" : "M4 4h16v16H4zm2 4v10h12V8z"
             onClicked: bar.toggleMaximized()

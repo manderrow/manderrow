@@ -19,12 +19,14 @@ Rectangle {
     border.color: Theme.neutral60
     border.width: 1
 
-    // the icon sits at the start of the box, like in the web UI's flex container
+    // the check fills the box inside its border
     CheckMark {
-        x: 1
-        y: 1
+        x: box.border.width
+        y: box.border.width
+        width: box.width - 2 * box.border.width
+        height: box.height - 2 * box.border.width
         checked: box.checked
-        size: box.size
+        fill: true
     }
 
     TapHandler {

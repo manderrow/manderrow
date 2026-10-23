@@ -164,7 +164,7 @@ Item {
 
                         Loader {
                             // .option__input stretches the dropdown to the reset button's height
-                            Layout.fillHeight: option.modelData.input === "game_select"
+                            Layout.fillHeight: option.modelData.input === "game_select" || option.modelData.input === "select"
                             sourceComponent: {
                                 switch (option.modelData.input) {
                                 case "toggle":
@@ -173,6 +173,8 @@ Item {
                                     return textInput;
                                 case "game_select":
                                     return gameSelectInput;
+                                case "select":
+                                    return selectInput;
                                 case "percent":
                                     return percentInput;
                                 default:
@@ -232,6 +234,20 @@ Item {
                                             font.pixelSize: Theme.rem
                                             text: "100%"
                                         }
+                                    }
+                                }
+                            }
+                            Component {
+                                id: selectInput
+                                SelectDropdown {
+                                    options: option.modelData.options.map(value => ({
+                                                label: I18n.t(`settings.options.${option.modelData.key}.${value}`),
+                                                value: value,
+                                                selected: option.value.value === value
+                                            }))
+                                    onChanged: (value, selected) => {
+                                        if (selected)
+                                            page.update(option.modelData.key, { override: value });
                                     }
                                 }
                             }

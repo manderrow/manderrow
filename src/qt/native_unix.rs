@@ -44,6 +44,8 @@ mod ffi {
             window: Pin<&mut QWindow>,
             name: *const c_char,
         ) -> *mut wl_proxy;
+        #[rust_name = "wayland_tiled_edges"]
+        fn waylandTiledEdges(window: &QWindow) -> i32;
     }
 }
 
@@ -397,6 +399,11 @@ pub fn set_dark_frame(_window: Pin<&mut QWindow>, _dark: bool) -> bool {
 
 pub fn hide_title_bar(_window: Pin<&mut QWindow>) -> bool {
     false
+}
+
+pub fn tiled_edges(window: Pin<&mut QWindow>) -> i32 {
+    // X11 has no standard property for it
+    ffi::wayland_tiled_edges(&window)
 }
 
 pub fn show_window_menu(window: Pin<&mut QWindow>, x: f64, y: f64) -> bool {

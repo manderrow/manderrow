@@ -181,13 +181,16 @@ Item {
                     }
                 }
 
-                // the check is revealed like the Checkbox's, and hidden at once when unchecked
+                // the check is revealed like the Checkbox's, and hidden at once when unchecked. It
+                // fills the box inside its border.
                 CheckMark {
-                    x: 2
-                    anchors.verticalCenter: parent.verticalCenter
+                    x: parent.border.width
+                    y: parent.border.width
+                    width: Math.max(0, parent.width - 2 * parent.border.width)
+                    height: Math.max(0, parent.height - 2 * parent.border.width)
                     checked: modItem.selected && modItem._selectorShown
                     hideWhenUnchecked: true
-                    size: Theme.rem
+                    fill: true
                     clip: false
                 }
             }

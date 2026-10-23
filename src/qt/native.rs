@@ -76,6 +76,8 @@ pub mod qobject {
         MouseMove = 5,
         KeyPress = 6,
         KeyRelease = 7,
+        WindowStateChange = 105,
+        Expose = 206,
         ApplicationStateChange = 214,
     }
 
@@ -310,6 +312,15 @@ pub mod qobject {
             y: f64,
         ) -> bool;
 
+        /// The edges of a window that the window manager has tiled, as bits: 1 for the left, 2
+        /// for the right, 4 for the top, and 8 for the bottom. Tiling window managers tile every
+        /// edge of the windows they tile, and others may tile some, as for a window snapped to
+        /// half of the screen, or all, as for a maximized one. It changes as `window_configured`
+        /// is emitted. The platform tells it on Wayland, with compositors that support xdg-shell
+        /// 2, when Qt's private platform headers were available to the build. Elsewhere it is 0.
+        #[qinvokable]
+        unsafe fn tiled_edges(self: &Native, window: *mut QQuickWindow) -> i32;
+
         /// Shows the link with `href` at a position in a rich text TextEdit as hovered, as a
         /// browser styles `a:hover`: underlined, and in `hover_color` where it is in
         /// `link_color`. The link shown as hovered before in it goes back to how it was. An empty
@@ -348,6 +359,12 @@ pub mod qobject {
         /// A key was pressed in a window, before it is delivered to the focused item.
         #[qsignal]
         fn key_pressed(self: Pin<&mut Native>, key: i32);
+
+        /// The window manager may have changed the state of a window, such as by tiling it: a
+        /// window was exposed or changed its state, as Qt does whenever the window manager
+        /// configures one, such as a Wayland compositor with xdg_toplevel's configure event.
+        #[qsignal]
+        fn window_configured(self: Pin<&mut Native>);
     }
 
     impl cxx_qt::Initialize for Native {}
@@ -587,6 +604,13 @@ impl qobject::Native {
         platform::show_window_menu(Upcast::<QWindow>::upcast_pin(window), x, y)
     }
 
+    unsafe fn tiled_edges(&self, window: *mut QQuickWindow) -> i32 {
+        let Some(window) = (unsafe { pin_window(window) }) else {
+            return 0;
+        };
+        platform::tiled_edges(Upcast::<QWindow>::upcast_pin(window))
+    }
+
     unsafe fn hover_link(
         &self,
         edit: *mut QQuickItem,
@@ -652,6 +676,9 @@ impl qobject::Native {
                 if let Some(key) = event.downcast::<QKeyEvent>() {
                     self.set_modifiers(key.modifiers());
                 }
+            }
+            QEventType::Expose | QEventType::WindowStateChange if to_window => {
+                self.window_configured();
             }
             // Key releases are not delivered while the app is in the background.
             QEventType::ApplicationStateChange => {
@@ -773,5 +800,9 @@ mod platform {
 
     pub fn show_window_menu(_window: Pin<&mut QWindow>, _x: f64, _y: f64) -> bool {
         false
+    }
+
+    pub fn tiled_edges(_window: Pin<&mut QWindow>) -> i32 {
+        0
     }
 }
