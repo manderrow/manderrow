@@ -151,9 +151,11 @@ jobs:
             x86_64-unknown-linux-gnu)
               python3 -I scripts/bundle-linux.py "$release/manderrow" "$bundle/Manderrow-$version-x86_64.AppImage"
               ;;
-            *)
-              # TODO: bundle Qt with the app (macdeployqt), as on Windows and Linux.
-              cp "$release/manderrow" agent/zig-out/libmanderrow_agent "$bundle"
+            aarch64-apple-darwin)
+              python3 -I scripts/bundle-macos.py "$release/manderrow" "$version" "$bundle/Manderrow-$version-arm64.dmg"
+              ;;
+            x86_64-apple-darwin)
+              python3 -I scripts/bundle-macos.py "$release/manderrow" "$version" "$bundle/Manderrow-$version-x86_64.dmg"
               ;;
           esac
 
