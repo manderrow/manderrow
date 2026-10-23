@@ -14,10 +14,11 @@ ApplicationWindow {
     title: "Manderrow"
     // translucent, the window's regions each draw their own background
     color: Ui.translucent ? "transparent" : Theme.neutral85
-    // macOS keeps its native window controls over the app's title bar, like Tauri's overlay
-    // title bar style. Windows keeps the rest of its native frame, whose title bar Native hides,
-    // as frameless windows there can't be resized from outside, snapped, or animated. Elsewhere
-    // the app draws the whole frame.
+    // macOS and Windows keep the rest of their native frames, whose title bars Native hides, as
+    // frameless windows there can't be resized from outside, snapped, or animated. On macOS, the
+    // app's title bar takes the place of the native one, under which the window's content
+    // reaches, and the native window buttons are placed in it, like Tauri's overlay title bar
+    // style. Elsewhere the app draws the whole frame.
     flags: Qt.platform.os === "osx" ? Qt.Window | Qt.ExpandedClientAreaHint | Qt.NoTitleBarBackgroundHint : Qt.platform.os === "windows" ? Qt.Window : Qt.Window | Qt.FramelessWindowHint
     /// Whether the window has a native frame without its title bar, which resizes the window.
     property bool _nativeFrame: false
@@ -109,11 +110,10 @@ ApplicationWindow {
     Component.onCompleted: {
         Ui.window = appWindow;
         Ui.appContent = content;
-        if (Qt.platform.os === "windows") {
+        if (Qt.platform.os === "windows" || Qt.platform.os === "osx")
             _nativeFrame = Native.hideTitleBar(appWindow);
-            if (!_nativeFrame)
-                flags = Qt.Window | Qt.FramelessWindowHint;
-        }
+        if (Qt.platform.os === "windows" && !_nativeFrame)
+            flags = Qt.Window | Qt.FramelessWindowHint;
         Theme.windowWidth = width;
         _restoreState();
         if (!visible)
@@ -209,7 +209,7 @@ ApplicationWindow {
     readonly property bool _blurBehind: Ui.translucent && _setting("windowBlur", true)
     on_BlurBehindChanged: Native.setBlurBehind(appWindow, _blurBehind)
     onVisibleChanged: Native.setBlurBehind(appWindow, _blurBehind)
-    // the native frame's colors, on Windows
+    // the native frame's colors, on Windows and macOS
     Connections {
         target: Theme
         function onDarkChanged() {

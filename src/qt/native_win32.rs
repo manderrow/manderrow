@@ -373,3 +373,8 @@ pub fn tiled_edges(_window: Pin<&mut QWindow>) -> i32 {
     // Snap Layouts don't tell windows that they are snapped
     0
 }
+
+pub fn place_window_buttons(_window: Pin<&mut QWindow>, _bar_height: f64) -> f64 {
+    // the app draws its own buttons
+    0.0
+}

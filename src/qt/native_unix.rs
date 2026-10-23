@@ -427,3 +427,8 @@ pub fn show_window_menu(window: Pin<&mut QWindow>, x: f64, y: f64) -> bool {
     })
     .unwrap_or(false)
 }
+
+pub fn place_window_buttons(_window: Pin<&mut QWindow>, _bar_height: f64) -> f64 {
+    // the app draws the whole frame
+    0.0
+}

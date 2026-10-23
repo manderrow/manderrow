@@ -135,6 +135,29 @@ wayland-protocols = { version = "0.32", features = ["client", "staging"] }
 wayland-protocols-plasma = { version = "0.3", features = ["client"] }
 x11rb = "0.13"
 
+# window blur and the title bar's buttons, through AppKit
+[target.'cfg(target_vendor = "apple")'.dependencies]
+block2 = "0.6"
+objc2 = "0.6"
+objc2-app-kit = { version = "0.3", default-features = false, features = [
+    "std",
+    "NSAppearance",
+    "NSButton",
+    "NSColor",
+    "NSControl",
+    "NSGraphics",
+    "NSResponder",
+    "NSView",
+    "NSWindow",
+] }
+objc2-foundation = { version = "0.3", default-features = false, features = [
+    "std",
+    "block2",
+    "NSNotification",
+    "NSOperation",
+    "NSString",
+] }
+
 [profile.dev]
 lto = false
 opt-level = 0

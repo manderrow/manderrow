@@ -283,20 +283,23 @@ pub mod qobject {
         ) -> *mut QQuickItem;
 
         /// Blurs what is behind a translucent window, where the platform can: with Wayland
-        /// compositors that support ext-background-effect or KWin's blur, with KWin on X11, and
-        /// on Windows 10 and 11, with an acrylic blur. Returns whether the platform can.
+        /// compositors that support ext-background-effect or KWin's blur, with KWin on X11, on
+        /// Windows 10 and 11, with an acrylic blur, and on macOS, once the window is shown.
+        /// Returns whether the platform can.
         #[qinvokable]
         unsafe fn set_blur_behind(self: &Native, window: *mut QQuickWindow, enabled: bool) -> bool;
 
         /// Tints the platform's parts of a window, like its border on Windows, for a
-        /// dark or light theme. Returns whether the platform can: on Windows.
+        /// dark or light theme. Returns whether the platform can: on Windows and macOS.
         #[qinvokable]
         unsafe fn set_dark_frame(self: &Native, window: *mut QQuickWindow, dark: bool) -> bool;
 
         /// Hides the title bar of a window that has a native frame, keeping the rest of the
         /// frame, so that the app can draw its own title bar. Call it before the window is
         /// shown. Returns whether the platform can: on Windows, where a window keeps its resize
-        /// borders, shadow, snapping, and animations this way, which frameless windows lack.
+        /// borders, shadow, snapping, and animations this way, which frameless windows lack, and
+        /// on macOS, where the window keeps its buttons, which `place_window_buttons` places, and
+        /// must have the `ExpandedClientAreaHint` and `NoTitleBarBackgroundHint` flags.
         #[qinvokable]
         unsafe fn hide_title_bar(self: &Native, window: *mut QQuickWindow) -> bool;
 
@@ -320,6 +323,18 @@ pub mod qobject {
         /// 2, when Qt's private platform headers were available to the build. Elsewhere it is 0.
         #[qinvokable]
         unsafe fn tiled_edges(self: &Native, window: *mut QQuickWindow) -> i32;
+
+        /// Places the buttons of a window's native title bar in the app's title bar, which is
+        /// `bar_height` tall at the top of the window, centered in its height, and keeps them
+        /// there. Returns how much of the bar they take from its left edge, with space after
+        /// them, or 0 if the window has no such buttons there: on macOS, in full screen, and on
+        /// other platforms.
+        #[qinvokable]
+        unsafe fn place_window_buttons(
+            self: &Native,
+            window: *mut QQuickWindow,
+            bar_height: f64,
+        ) -> f64;
 
         /// Shows the link with `href` at a position in a rich text TextEdit as hovered, as a
         /// browser styles `a:hover`: underlined, and in `hover_color` where it is in
@@ -611,6 +626,13 @@ impl qobject::Native {
         platform::tiled_edges(Upcast::<QWindow>::upcast_pin(window))
     }
 
+    unsafe fn place_window_buttons(&self, window: *mut QQuickWindow, bar_height: f64) -> f64 {
+        let Some(window) = (unsafe { pin_window(window) }) else {
+            return 0.0;
+        };
+        platform::place_window_buttons(Upcast::<QWindow>::upcast_pin(window), bar_height)
+    }
+
     unsafe fn hover_link(
         &self,
         edit: *mut QQuickItem,
@@ -775,12 +797,14 @@ fn hit_test<'a>(item: &'a QQuickItem, scene_pos: &QPointF) -> Option<&'a QQuickI
     (inside && (draws || takes_input(item))).then_some(item)
 }
 
+#[cfg(target_vendor = "apple")]
+use super::native_macos as platform;
 #[cfg(all(unix, not(target_vendor = "apple")))]
 use super::native_unix as platform;
 #[cfg(windows)]
 use super::native_win32 as platform;
 
-#[cfg(not(any(windows, all(unix, not(target_vendor = "apple")))))]
+#[cfg(not(any(windows, unix)))]
 mod platform {
     use core::pin::Pin;
 
@@ -804,5 +828,9 @@ mod platform {
 
     pub fn tiled_edges(_window: Pin<&mut QWindow>) -> i32 {
         0
+    }
+
+    pub fn place_window_buttons(_window: Pin<&mut QWindow>, _bar_height: f64) -> f64 {
+        0.0
     }
 }
