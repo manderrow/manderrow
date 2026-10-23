@@ -18,6 +18,9 @@ Rectangle {
     /// minimize and maximize buttons. Other window managers may tile every edge of a maximized
     /// window, or only some of the window, as when it is snapped to half of the screen.
     readonly property bool tiled: (tiledEdges & 15) === 15 && !maximized
+    /// How much of the bar the native window buttons take from its left edge, from
+    /// Native.placeWindowButtons, on macOS, where the native buttons replace the app's.
+    property real windowButtonsWidth: 0
 
     height: Theme.titlebarHeight
     color: Theme.surface(window.active ? Theme.neutral90 : Theme.neutral85)
@@ -29,15 +32,16 @@ Rectangle {
             maximized ? window.showNormal() : window.showMaximized();
     }
 
-    function updateTiling() {
+    function updateFrame() {
         tiledEdges = Native.tiledEdges(window);
+        windowButtonsWidth = Native.placeWindowButtons(window, height);
     }
 
-    Component.onCompleted: updateTiling()
+    Component.onCompleted: updateFrame()
     Connections {
         target: Native
         function onWindowConfigured() {
-            bar.updateTiling();
+            bar.updateFrame();
         }
     }
 
@@ -72,7 +76,7 @@ Rectangle {
     RowLayout {
         id: brand
         anchors.left: parent.left
-        anchors.leftMargin: 0.4 * Theme.rem
+        anchors.leftMargin: bar.windowButtonsWidth > 0 ? bar.windowButtonsWidth : 0.4 * Theme.rem
         anchors.verticalCenter: parent.verticalCenter
         spacing: 0.4 * Theme.rem
 
@@ -96,7 +100,7 @@ Rectangle {
         objectName: "titleBarActions"
         x: brand.x + brand.width + Theme.rem
         y: 3
-        width: Math.max(0, Math.min(implicitWidth, controls.x - Theme.rem - x))
+        width: Math.max(0, Math.min(implicitWidth, (controls.visible ? controls.x : bar.width) - Theme.rem - x))
         height: parent.height - 2 * y
 
         // TitleBarButtons and TitleBarDropdowns, in order
@@ -175,6 +179,8 @@ Rectangle {
         id: controls
         anchors.right: parent.right
         height: parent.height
+        // macOS has its own, at the left
+        visible: Qt.platform.os !== "osx"
 
         ControlButton {
             visible: !bar.tiled

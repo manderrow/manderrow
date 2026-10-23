@@ -113,9 +113,9 @@ fn build_qt(crate_dir: &Path) {
     ];
     if var_os("CARGO_CFG_WINDOWS").is_some() {
         bridges.push("src/qt/native_win32.rs");
-    } else if var_os("CARGO_CFG_UNIX").is_some()
-        && var_os("CARGO_CFG_TARGET_VENDOR").is_none_or(|vendor| vendor != "apple")
-    {
+    } else if var_os("CARGO_CFG_TARGET_VENDOR").is_some_and(|vendor| vendor == "apple") {
+        bridges.push("src/qt/native_macos.rs");
+    } else if var_os("CARGO_CFG_UNIX").is_some() {
         bridges.push("src/qt/native_unix.rs");
     }
 

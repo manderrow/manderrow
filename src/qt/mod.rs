@@ -2,6 +2,8 @@
 
 mod bridge;
 mod native;
+#[cfg(target_vendor = "apple")]
+mod native_macos;
 #[cfg(all(unix, not(target_vendor = "apple")))]
 mod native_unix;
 #[cfg(windows)]
