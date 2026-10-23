@@ -1,6 +1,6 @@
 import { TextLineStream } from "@std/streams";
 
-import type { Game, StorePlatformMetadata } from "../../../src/types.d.ts";
+import type { Game, StorePlatformMetadata } from "./types.d.ts";
 
 import existingGames, { gamesJsonPath } from "./games.ts";
 import {

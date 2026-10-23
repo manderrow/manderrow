@@ -36,7 +36,7 @@ pub mod qobject {
         include!(<QtGui/QMouseEvent>);
         type QMouseEvent;
 
-        include!("manderrow/cpp/qt.h");
+        include!("manderrow/src/cpp/qt.h");
         type QClipboard;
         type QEvent;
         type QJSValue;

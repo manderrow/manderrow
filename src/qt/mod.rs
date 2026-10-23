@@ -24,7 +24,7 @@ static RUNTIME: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
 /// Compiled by the build script from the `assets` directory.
 static ASSETS: &[u8] = include_bytes!(concat!(env!("OUT_DIR"), "/assets.rcc"));
 
-const MAIN_QML: &str = "qrc:/qt/qml/Manderrow/qml/Main.qml";
+const MAIN_QML: &str = "qrc:/qt/qml/Manderrow/src/qml/Main.qml";
 
 fn app() -> &'static AppHandle {
     APP.get().expect("app is not initialized")

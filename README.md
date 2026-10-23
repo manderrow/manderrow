@@ -48,9 +48,9 @@ just build  # build a release build
 just test   # run the tests
 ```
 
-The app lives in `src-qt`: the backend is in `src-qt/src`, the bridge to the UI in `src-qt/src/qt`, and the UI in `src-qt/qml`.
+The backend is in `src`, the bridge to the UI in `src/qt`, and the UI in `src/qml`.
 
-The UI's icons are [Lucide](https://lucide.dev/) icons, generated into a font, `src-qt/assets/fonts/ManderrowIcons.ttf`, and its index, `src-qt/qml/core/Icons.qml`, by `just icons` with [Deno](https://deno.com/). To add one, add its name to `scripts/icons/main.ts` and run it again.
+The UI's icons are [Lucide](https://lucide.dev/) icons, generated into a font, `assets/fonts/ManderrowIcons.ttf`, and its index, `src/qml/core/Icons.qml`, by `just icons` with [Deno](https://deno.com/). To add one, add its name to `scripts/icons/main.ts` and run it again.
 
 Debug builds accept some options for developing and testing the UI, as `MANDERROW_DEV_<NAME>` environment variables:
 
@@ -69,7 +69,7 @@ For example, to screenshot the settings page without a display:
 ```sh
 MANDERROW_DEV_ROUTE=/settings MANDERROW_DEV_SCREENSHOT=settings.png \
   QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=rhi QSG_RHI_BACKEND=opengl \
-  cargo run --manifest-path src-qt/Cargo.toml
+  cargo run
 ```
 
 ## Contributing

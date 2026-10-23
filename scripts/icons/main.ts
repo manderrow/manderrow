@@ -1,5 +1,5 @@
 // Generates the icons the UI draws from Lucide's outlined SVG font: a font of them,
-// src-qt/assets/fonts/ManderrowIcons.ttf, and src-qt/qml/core/Icons.qml, which maps their names to
+// assets/fonts/ManderrowIcons.ttf, and src/qml/core/Icons.qml, which maps their names to
 // its characters. They are a font so that Qt Quick draws them as it does text, as sharply.
 //
 // To add an icon, add its Lucide name to NAMES and run `just icons`.
@@ -60,9 +60,9 @@ const FAMILY = "Manderrow Icons";
 
 const scriptDir = path.dirname(path.fromFileUrl(import.meta.url));
 const packageDir = path.join(scriptDir, "node_modules", "lucide-static");
-const srcQtDir = path.join(scriptDir, "..", "..", "src-qt");
-const qmlPath = path.join(srcQtDir, "qml", "core", "Icons.qml");
-const fontPath = path.join(srcQtDir, "assets", "fonts", "ManderrowIcons.ttf");
+const rootDir = path.join(scriptDir, "..", "..");
+const qmlPath = path.join(rootDir, "src", "qml", "core", "Icons.qml");
+const fontPath = path.join(rootDir, "assets", "fonts", "ManderrowIcons.ttf");
 
 const font = await Deno.readTextFile(
   path.join(packageDir, "font", "lucide.svg"),

@@ -33,7 +33,7 @@ export default async function scrapeDownloads() {
   );
   sorted.sort(([a, _], [b, __]) => a.localeCompare(b));
   Deno.writeFile(
-    projectRootDir + "/src-tauri/src/games/gameModDownloads.json",
+    projectRootDir + "/src/games/gameModDownloads.json",
     textEncoder.encode(JSON.stringify(Object.fromEntries(sorted), null, 2)),
   );
 }

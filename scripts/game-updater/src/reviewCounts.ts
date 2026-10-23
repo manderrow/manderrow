@@ -65,5 +65,5 @@ export async function scrapeSteam() {
 
   const gameJSON = JSON.stringify(gameFinal, null, 2);
 
-  await Deno.writeFile(projectRootDir + "/src-tauri/src/games/gameReviews.json", textEncoder.encode(gameJSON));
+  await Deno.writeFile(projectRootDir + "/src/games/gameReviews.json", textEncoder.encode(gameJSON));
 }

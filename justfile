@@ -4,36 +4,31 @@ export RUST_BACKTRACE := "1"
 export RUST_LOG := "debug"
 
 run *ARGS:
-	cargo run --manifest-path src-qt/Cargo.toml {{ARGS}}
+	cargo run {{ARGS}}
 
 build *ARGS:
-	cargo build --release --manifest-path src-qt/Cargo.toml {{ARGS}}
+	cargo build --release {{ARGS}}
 
 fmt:
-	cargo fmt --manifest-path crates/Cargo.toml --all
-	cargo fmt --manifest-path src-qt/Cargo.toml
+	cargo fmt --all
 	zig fmt agent
 
 clean:
-	cargo clean --manifest-path crates/Cargo.toml
-	cargo clean --manifest-path src-qt/Cargo.toml
+	cargo clean
 	rm -vrf agent/.zig-cache
 	rm -vrf agent/zig-out
 
 test:
-	cargo test --manifest-path crates/Cargo.toml
-	cargo test --manifest-path src-qt/Cargo.toml
+	cargo test --workspace
 
 update:
-	cargo update --manifest-path crates/Cargo.toml --verbose
-	cargo update --manifest-path src-qt/Cargo.toml --verbose
+	cargo update --verbose
 
 check:
-	cargo check --manifest-path crates/Cargo.toml
-	cargo check --manifest-path src-qt/Cargo.toml
+	cargo check --workspace
 
 run-script BIN *ARGS:
-	cargo run --manifest-path crates/Cargo.toml --bin {{BIN}} -- {{ARGS}}
+	cargo run --bin {{BIN}} -- {{ARGS}}
 
 [working-directory: 'scripts/game-updater']
 add-games:

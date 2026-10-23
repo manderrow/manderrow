@@ -92,9 +92,10 @@ fn main() {
 }
 
 fn build_qt(crate_dir: &Path) {
-    println!("cargo::rerun-if-changed={}", crate_dir.join("qml").display());
+    let qml_dir = crate_dir.join("src").join("qml");
+    println!("cargo::rerun-if-changed={}", qml_dir.display());
     let mut qml_files = Vec::new();
-    collect_files(&crate_dir.join("qml"), "qml", &mut qml_files);
+    collect_files(&qml_dir, "qml", &mut qml_files);
     qml_files.sort();
 
     let module = QmlModule::new("Manderrow").qml_files(qml_files.iter().map(|path| {
@@ -189,7 +190,7 @@ fn compile_assets(crate_dir: &Path, out_dir: &Path) {
 
 /// Compiles the shaders for every graphics API Qt Quick may render with, as qt_add_shaders does.
 fn compile_shaders(crate_dir: &Path, out_dir: &Path) -> Vec<PathBuf> {
-    let shaders_dir = crate_dir.join("shaders");
+    let shaders_dir = crate_dir.join("src").join("shaders");
     println!("cargo::rerun-if-changed={}", shaders_dir.display());
     let mut shaders = Vec::new();
     collect_files(&shaders_dir, "frag", &mut shaders);

@@ -128,24 +128,24 @@ jobs:
           # Qt 6.10's qYieldCpu() calls __yield() without including the header that Xcode 26's Clang
           # now requires for it, which Qt 6.11 fixes.
           CXXFLAGS_aarch64_apple_darwin: '-include arm_acle.h'
-        run: cargo build --release --manifest-path src-qt/Cargo.toml --target ${{ matrix.target }}
+        run: cargo build --release --target ${{ matrix.target }}
 
       # The build uses Qt's private API (in qmlcachegen's generated code), so it only runs with the
       # exact version of Qt it was built with, which must be bundled.
       - name: Bundle
         run: |
-          release='src-qt/target/${{ matrix.target }}/release'
+          release='target/${{ matrix.target }}/release'
           bundle="$RUNNER_TEMP/manderrow"
           mkdir -p "$bundle"
           # MSI versions must be numeric, so without any pre-release suffix
-          version="$(sed -n 's/^version = "\([0-9.]*\).*"$/\1/p' src-qt/Cargo.toml | head -n 1)"
+          version="$(sed -n 's/^version = "\([0-9.]*\).*"$/\1/p' Cargo.toml | head -n 1)"
           case '${{ matrix.target }}' in
             x86_64-pc-windows-msvc)
               # The bundle is also uploaded by itself, as the portable version.
               python3 -I scripts/bundle-windows.py "$release/manderrow.exe" "$RUNNER_TEMP/portable"
               wix extension add --global "WixToolset.UI.wixext/$WIX_VERSION"
               wix build -arch x64 -ext WixToolset.UI.wixext -d Version="$version" \
-                -bindpath Bundle="$RUNNER_TEMP/portable" src-qt/windows/manderrow.wxs \
+                -bindpath Bundle="$RUNNER_TEMP/portable" src/platforms/windows/manderrow.wxs \
                 -o "$bundle/Manderrow-$version-x64.msi"
               ;;
             x86_64-unknown-linux-gnu)
