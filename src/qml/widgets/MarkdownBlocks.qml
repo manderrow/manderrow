@@ -64,9 +64,10 @@ Column {
         }
     }
 
-    /// Wraps inline HTML with the styles rich text supports.
-    function richText(html, lineHeight, size) {
-        return `<style>a { color: ${Theme.primary60}; text-decoration: none; } code { font-family: "${Theme.fontMonospace}"; background-color: ${Theme.neutral90}; color: ${Theme.neutral05}; font-size: ${Math.round(0.9 * rem)}px; } del { text-decoration: line-through; }</style>` + `<div style="line-height: ${Math.round(lineHeight * size)}px">${Util.webImagesInHtml(html)}</div>`;
+    /// Wraps inline HTML with the styles rich text supports. `imageMaxWidth` is as for
+    /// Util.webImagesInHtml.
+    function richText(html, lineHeight, size, imageMaxWidth) {
+        return `<style>a { color: ${Theme.primary60}; text-decoration: none; } code { font-family: "${Theme.fontMonospace}"; background-color: ${Theme.neutral90}; color: ${Theme.neutral05}; font-size: ${Math.round(0.9 * rem)}px; } del { text-decoration: line-through; }</style>` + `<div style="line-height: ${Math.round(lineHeight * size)}px">${Util.webImagesInHtml(html, Ui.dpr, imageMaxWidth)}</div>`;
     }
 
     // Creates its blocks asynchronously, as long documents would otherwise take frames to create
@@ -189,18 +190,24 @@ Column {
                 Component {
                     id: image
                     Item {
+                        // a badge keeps its height while it loads
+                        readonly property real minHeight: Util.isBadge(slot.block.src) ? Util.badgeHeight : 0
+
                         width: parent.width
-                        height: img.status === Image.Ready ? img.height : 0
+                        height: img.status === Image.Ready ? img.height : minHeight
 
                         Image {
                             id: img
-                            source: Util.webImage(slot.block.src)
+                            source: Util.webImage(slot.block.src, Ui.dpr)
                             asynchronous: true
                             fillMode: Image.PreserveAspectFit
+                            readonly property real aspect: implicitHeight > 0 ? implicitWidth / implicitHeight : 0
+                            // min-height scales an image without a width of its own up, keeping its
+                            // aspect ratio
+                            readonly property real naturalWidth: slot.block.width ? slot.block.width : Math.max(implicitWidth, parent.minHeight * aspect)
                             // img { max-width: 100% }
-                            readonly property real naturalWidth: slot.block.width ? slot.block.width : implicitWidth
                             width: Math.min(naturalWidth, parent.width)
-                            height: implicitWidth > 0 ? width * implicitHeight / implicitWidth : 0
+                            height: aspect > 0 ? Math.max(width / aspect, parent.minHeight) : 0
                             x: slot.block.centered ? (parent.width - width) / 2 : 0
 
                             // a link around the image
@@ -395,7 +402,8 @@ Column {
                             font.pixelSize: root.baseSize
                             text: {
                                 const block = slot.block;
-                                let html = `<table style="border-collapse: collapse; border-color: ${Theme.neutral50}" border="1" cellspacing="0" cellpadding="${Math.round(0.35 * root.baseSize)}">`;
+                                const padding = Math.round(0.35 * root.baseSize);
+                                let html = `<table style="border-collapse: collapse; border-color: ${Theme.neutral50}" border="1" cellspacing="0" cellpadding="${padding}">`;
                                 for (const row of block.rows) {
                                     html += "<tr>";
                                     row.cells.forEach((cell, i) => {
@@ -405,7 +413,14 @@ Column {
                                     });
                                     html += "</tr>";
                                 }
-                                return root.richText(html + "</table>", 1.25, root.baseSize);
+                                // Rich text takes an image's percentage width of the whole table
+                                // rather than of its cell, so each column's images get an equal
+                                // share of the width instead, inside the table's border and the
+                                // cells' padding and borders, as browsers shrink a row of images
+                                // to fit.
+                                const columns = Math.max(1, block.alignments.length);
+                                const imageMaxWidth = (tableScroller.width - 1) / columns - 2 * padding - 2;
+                                return root.richText(html + "</table>", 1.25, root.baseSize, imageMaxWidth);
                             }
                         }
                     }
