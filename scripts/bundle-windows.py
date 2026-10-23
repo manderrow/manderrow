@@ -114,7 +114,7 @@ def main():
     # directory, so only each module's own files are copied.
     modules = json.loads(
         subprocess.run(
-            [qmlimportscanner, "-rootPath", ROOT / "src-qt" / "qml", "-importPath", qt_qml],
+            [qmlimportscanner, "-rootPath", ROOT / "src" / "qml", "-importPath", qt_qml],
             capture_output=True,
             text=True,
             check=True,

@@ -1,3 +1,4 @@
 .qmlls.ini
 target
 .direnv
+__pycache__

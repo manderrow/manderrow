@@ -16,6 +16,15 @@
 
       forAllSystems = f:
         nixpkgs.lib.genAttrs systems (system: f system);
+
+      # Cargo settings for Nix builds only, as environment variables override .cargo/config.toml.
+      cargoEnv = pkgs: {
+        # Links with mold rather than lld. The flag must be in RUSTFLAGS for qt-build-utils to see it.
+        "CARGO_TARGET_${pkgs.stdenv.hostPlatform.rust.cargoEnvVarTarget}_RUSTFLAGS" =
+          "-Clink-arg=-fuse-ld=mold";
+        # sccache cannot cache incremental builds
+        CARGO_INCREMENTAL = "0";
+      };
     in
     {
       packages = forAllSystems (system:
@@ -51,7 +60,7 @@
           };
         in
         {
-          default = rustPlatform.buildRustPackage {
+          default = rustPlatform.buildRustPackage (cargoEnv pkgs // {
             pname = "manderrow";
             version = "0.1.0";
             src = ./.;
@@ -110,7 +119,7 @@
               mainProgram = "manderrow";
               platforms = platforms.linux;
             };
-          };
+          });
         });
 
       devShells = forAllSystems (system:
@@ -133,7 +142,7 @@
           ]);
         in
         {
-          default = pkgs.mkShell {
+          default = pkgs.mkShell (cargoEnv pkgs // {
             inputsFrom = [ self.packages.${system}.default ];
 
             packages = [
@@ -151,7 +160,7 @@
               export QMAKE="${qtEnv}/bin/qmake"
               export RUSTC_WRAPPER="${pkgs.sccache}/bin/sccache"
             '';
-          };
+          });
         });
     };
 }

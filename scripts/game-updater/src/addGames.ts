@@ -1,4 +1,4 @@
-import type { Game, StorePlatformMetadata } from "../../../src/types.d.ts";
+import type { Game, StorePlatformMetadata } from "./types.d.ts";
 
 import existingGames, { gamesJson, gamesJsonPath } from "./games.ts";
 import {

@@ -66,7 +66,7 @@ mod ffi {
 
     #[namespace = "manderrow"]
     unsafe extern "C++" {
-        include!("manderrow/cpp/qt.h");
+        include!("manderrow/src/cpp/qt.h");
 
         #[rust_name = "load_root"]
         fn loadRoot(engine: Pin<&mut QQmlApplicationEngine>, url: &QUrl) -> QString;

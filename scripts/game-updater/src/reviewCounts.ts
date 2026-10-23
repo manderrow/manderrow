@@ -60,5 +60,5 @@ export async function scrapeSteam() {
 
   const gameJSON = JSON.stringify(gameFinal, null, 2);
 
-  await Bun.write(projectRootDir + "/src-tauri/src/games/gameReviews.json", gameJSON);
+  await Bun.write(projectRootDir + "/src/games/gameReviews.json", gameJSON);
 }

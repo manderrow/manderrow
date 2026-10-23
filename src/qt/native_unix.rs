@@ -6,7 +6,7 @@
 #[cxx_qt::bridge]
 mod ffi {
     unsafe extern "C++" {
-        include!("manderrow/cpp/unix.h");
+        include!("manderrow/src/cpp/unix.h");
         include!("cxx-qt-lib/qstring.h");
         type QString = cxx_qt_lib::QString;
         type QGuiApplication;

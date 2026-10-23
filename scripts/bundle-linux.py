@@ -78,7 +78,7 @@ def main():
         # directory, so only each module's own files are copied.
         modules = json.loads(
             subprocess.run(
-                [qmlimportscanner, "-rootPath", ROOT / "src-qt" / "qml", "-importPath", qt_qml],
+                [qmlimportscanner, "-rootPath", ROOT / "src" / "qml", "-importPath", qt_qml],
                 capture_output=True,
                 text=True,
                 check=True,
@@ -102,8 +102,8 @@ def main():
                 "linuxdeploy",
                 "--appdir", appdir,
                 *(f"--deploy-deps-only={library}" for library in qt_libraries),
-                "--desktop-file", ROOT / "src-qt" / "linux" / "manderrow.desktop",
-                "--icon-file", ROOT / "src-qt" / "icons" / "128x128@2x.png",
+                "--desktop-file", ROOT / "src" / "platforms" / "linux" / "manderrow.desktop",
+                "--icon-file", ROOT / "icons" / "128x128@2x.png",
                 "--icon-filename", "manderrow",
                 "--output", "appimage",
             ],

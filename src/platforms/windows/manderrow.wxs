@@ -8,7 +8,7 @@
   Build with WiX 6 and its UI extension:
 
     wix build -arch x64 -ext WixToolset.UI.wixext -d Version=<x.y.z> -bindpath Bundle=<bundle>
-      src-qt/windows/manderrow.wxs -o manderrow.msi
+      src/platforms/windows/manderrow.wxs -o manderrow.msi
 -->
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs" xmlns:ui="http://wixtoolset.org/schemas/v4/wxs/ui">
   <!-- The UpgradeCode identifies the app across versions, so it must never change. -->
