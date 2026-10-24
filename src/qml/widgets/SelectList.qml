@@ -6,6 +6,9 @@ import Manderrow
 //
 // Each option is `{ label, value, selected }`, with an optional `secondary` line of text shown
 // below the label.
+//
+// It is one stop in the Tab order, entered at the selected option, and the arrow keys move between
+// its options, as in a listbox.
 ListView {
     id: list
 
@@ -13,6 +16,8 @@ ListView {
     property real fontSize: Theme.rem
     property real itemPadding: 0.3 * fontSize
     property real maxHeight: Infinity
+    /// Where the list was scrolled to show the selected option in its middle.
+    property real _centeredY: NaN
 
     signal changed(var value, bool selected)
 
@@ -30,14 +35,24 @@ ListView {
     model: options
     clip: true
     boundsBehavior: Flickable.StopAtBounds
-    // the arrow keys move the focus between the options, as in the panels they show in
+    // FocusNavigator moves the focus between the options
     keyNavigationEnabled: false
-    Keys.onUpPressed: event => event.accepted = Ui.focusNavigator.moveFocusWithin(list, false)
-    Keys.onDownPressed: event => event.accepted = Ui.focusNavigator.moveFocusWithin(list, true)
+    Accessible.role: Accessible.List
     ScrollBar.vertical: AppScrollBar {
         id: bar
     }
     WheelScroll {}
+    FocusGroup {
+        id: group
+        view: list
+    }
+    // The selected option shows in the middle of the list, which keeps it there as it takes its
+    // size, unless it has scrolled since.
+    Component.onCompleted: Qt.callLater(scrollToSelected)
+    onHeightChanged: {
+        if (contentY === _centeredY)
+            scrollToSelected();
+    }
 
     FontMetrics {
         id: metrics
@@ -57,13 +72,23 @@ ListView {
         font.pixelSize: 0.8 * Theme.rem
     }
 
+    /// Scrolls the selected option into the middle of the list, and makes it where Tab enters
+    /// the list. Returns it, or the first option if none is selected.
     function scrollToSelected() {
-        for (let i = 0; i < options.length; i++) {
-            if (options[i].selected) {
-                positionViewAtIndex(i, ListView.Center);
-                return;
-            }
-        }
+        const index = options.findIndex(option => option.selected);
+        if (index >= 0)
+            positionViewAtIndex(index, ListView.Center);
+        forceLayout();
+        _centeredY = contentY;
+        const item = itemAtIndex(Math.max(index, 0));
+        if (item)
+            group.current = item;
+        return item;
+    }
+
+    /// Where the focus goes when a Dropdown showing the list opens: the selected option.
+    function initialFocusItem() {
+        return scrollToSelected();
     }
 
     delegate: Rectangle {
@@ -74,9 +99,16 @@ ListView {
 
         width: list.width - bar.gutter
         implicitHeight: row.implicitHeight + 2 * list.itemPadding
-        color: hover.hovered || activeFocus ? Theme.neutral70 : "transparent"
-        // tabIndex 0 on the web
+        // only while the focus shows, as with the pointer it would also highlight the selected
+        // option, which a list takes the focus at
+        color: hover.hovered || (activeFocus && Ui.focusVisible) ? Theme.neutral70 : "transparent"
         activeFocusOnTab: true
+        Accessible.role: Accessible.ListItem
+        Accessible.name: modelData.label
+        Accessible.description: modelData.secondary || ""
+        Accessible.selectable: true
+        Accessible.selected: !!modelData.selected
+        Accessible.onPressAction: select()
 
         function select() {
             list.changed(modelData.value, !modelData.selected);

@@ -213,6 +213,14 @@ pub mod qobject {
             buttons: MouseButtons,
             modifiers: KeyboardModifiers,
         ) -> UniquePtr<QMouseEvent>;
+
+        #[rust_name = "qkeyevent_new"]
+        fn make_unique(
+            event_type: QEventType,
+            key: i32,
+            modifiers: KeyboardModifiers,
+            text: &QString,
+        ) -> UniquePtr<QKeyEvent>;
     }
 
     #[namespace = "rust::cxxqt1"]
@@ -269,6 +277,17 @@ pub mod qobject {
             from_y: f64,
             to_x: f64,
             to_y: f64,
+        );
+
+        /// Presses and releases a key in a window, as the keyboard would, with `modifiers` (a
+        /// `Qt.KeyboardModifiers` value) held, typing `text`. For development scripts.
+        #[qinvokable]
+        unsafe fn key(
+            self: &Native,
+            window: *mut QQuickWindow,
+            key: i32,
+            modifiers: i32,
+            text: &QString,
         );
 
         /// The topmost item at a point of a window, in scene coordinates, that is drawn or takes
@@ -572,6 +591,25 @@ impl qobject::Native {
         );
     }
 
+    unsafe fn key(&self, window: *mut QQuickWindow, key: i32, modifiers: i32, text: &QString) {
+        let Some(mut window) = (unsafe { pin_window(window) }) else {
+            return;
+        };
+        let modifiers = KeyboardModifiers::from_int(modifiers as _);
+        for event_type in [QEventType::KeyPress, QEventType::KeyRelease] {
+            let mut event = qobject::qkeyevent_new(event_type, key, modifiers, text);
+            // SAFETY: the window and the event live for the call, which delivers the event right
+            // away
+            unsafe {
+                let receiver: *mut QObject =
+                    Upcast::<QObject>::upcast_pin(window.as_mut()).get_unchecked_mut();
+                let event: *mut QEvent =
+                    Upcast::<QEvent>::upcast_pin(event.pin_mut()).get_unchecked_mut();
+                qobject::QCoreApplication::send_event(receiver, event);
+            }
+        }
+    }
+
     unsafe fn item_at(&self, window: *mut QQuickWindow, x: f64, y: f64) -> *mut QQuickItem {
         // SAFETY: QML passes a window that it holds, and the items of its scene live while it
         // is handled
@@ -773,6 +811,12 @@ fn takes_input(item: &QQuickItem) -> bool {
 
 fn hit_test<'a>(item: &'a QQuickItem, scene_pos: &QPointF) -> Option<&'a QQuickItem> {
     if !item.is_visible() {
+        return None;
+    }
+    // Shadows reach past what casts them, but like CSS's box-shadow, they are never what the
+    // pointer is over.
+    // SAFETY: the class name is a C string
+    if unsafe { item.inherits(c"QQuickRectangularShadow".as_ptr()) } {
         return None;
     }
     let inside = item.contains(&item.map_from_scene(scene_pos));

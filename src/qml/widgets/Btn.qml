@@ -51,6 +51,8 @@ AbstractButton {
 
     hoverEnabled: true
     focusPolicy: Qt.TabFocus
+    // an icon's tooltip names it
+    Accessible.name: text !== "" ? text : tooltip
     // Enter presses buttons on the web, as well as Space
     Keys.onReturnPressed: control.clicked()
     Keys.onEnterPressed: control.clicked()
@@ -98,9 +100,10 @@ AbstractButton {
         btn: control
     }
 
+    // shown while focused from the keyboard too, as corvu's tooltips were
     Tip {
         text: control.tooltip
         hideArrow: control.tooltipHideArrow
-        shown: control.hovered
+        shown: control.hovered || (control.activeFocus && Ui.focusVisible)
     }
 }

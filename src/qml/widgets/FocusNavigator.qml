@@ -15,10 +15,11 @@ import Manderrow
 //   once it can't scroll any further that way.
 // - Pressing outside the focused item takes the focus away from it, as clicking elsewhere does on
 //   the web. Tab then moves on from where the pointer was pressed, and the arrow keys move on
-//   from an item pressed in a FocusGroup.
+//   from an item pressed in a FocusGroup. Pressing the title bar leaves the focus in a popup,
+//   which stays open.
 // - Focus moved by the keyboard scrolls the newly focused item into view.
 // - `moveFocusWithin` moves the focus through all of a small group's controls, as the arrow keys
-//   do in menus and tab lists.
+//   do in tab lists.
 // - `Ui.focusVisible` tracks whether focus should be shown, as by `:focus-visible`. FocusRing
 //   uses it.
 //
@@ -45,6 +46,18 @@ QtObject {
         while (layer.parent && layer.parent.parent)
             layer = layer.parent;
         return layer;
+    }
+
+    /// The popup that an item is in, as the item that holds the popup's contents in the overlay,
+    /// or null if the item is in the window's content.
+    function _popupOf(item) {
+        const layer = _layerOf(item);
+        if (layer === _layerOf(home))
+            return null;
+        let popup = item;
+        while (popup.parent && popup.parent !== layer)
+            popup = popup.parent;
+        return popup;
     }
 
     /// The innermost scrolling panel around an item.
@@ -94,7 +107,8 @@ QtObject {
         scrollIntoView(item);
     }
 
-    /// Moves the focus on with Tab, or back with Shift+Tab. Returns whether it moved.
+    /// Moves the focus on with Tab, or back with Shift+Tab. Returns whether it handled the key:
+    /// whether it moved the focus, or kept it where it is, as nothing else can take it.
     function moveTab(forward) {
         const focused = window.activeFocusItem;
         // editable text takes Tab itself
@@ -117,8 +131,11 @@ QtObject {
         // the focus chain is a cycle through the window, or through a popup
         for (let i = 0; i < 10000; i++) {
             next = next.nextItemInFocusChain(forward);
-            if (!next || next === from)
+            if (!next)
                 return false;
+            // back where it started, with nothing else to take the focus, which stays
+            if (next === from)
+                return true;
             const group = groupOf(next);
             if (!group)
                 break;
@@ -322,6 +339,11 @@ QtObject {
 
         function onPointerPressed(position) {
             Ui.focusVisible = false;
+            const focused = navigator.window.activeFocusItem;
+            // the overlay of popups doesn't take presses on the title bar, which leave popups open,
+            // and so leave the focus in them too
+            if (!Ui.belowTitleBar.contains(position) && focused && navigator._layerOf(focused) !== navigator._layerOf(navigator.home))
+                return;
             const pressed = Native.itemAt(navigator.window, position.x, position.y);
             navigator.startItem = pressed;
             navigator.scroller = pressed ? navigator.scrollerOf(pressed) : null;
@@ -330,13 +352,19 @@ QtObject {
             if (item)
                 group.current = item;
 
-            // pressing elsewhere takes the focus away, which also commits text being edited
-            const focused = navigator.window.activeFocusItem;
+            // pressing elsewhere takes the focus away, which also commits text being edited.
+            // Pressing outside a popup takes it out of the popup, which closes without giving it
+            // back to what had it before.
             if (focused && focused !== navigator.home && !(pressed && Ui.isWithin(pressed, focused))) {
-                focused.focus = false;
-                const now = navigator.window.activeFocusItem;
-                if (!now || now === navigator.window.contentItem)
+                const popup = navigator._popupOf(focused);
+                if (popup && !(pressed && Ui.isWithin(pressed, popup))) {
                     navigator.home.forceActiveFocus();
+                } else {
+                    focused.focus = false;
+                    const now = navigator.window.activeFocusItem;
+                    if (!now || now === navigator.window.contentItem)
+                        navigator.home.forceActiveFocus();
+                }
             }
         }
 
