@@ -1,7 +1,9 @@
 name: 'build'
 
 on:
+  # Without types, every release event triggers it, such as editing or deleting one.
   release:
+    types: [published]
   workflow_dispatch:
 
 permissions:
