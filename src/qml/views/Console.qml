@@ -293,9 +293,12 @@ Item {
             bottomMargin: Theme.rem
             boundsBehavior: Flickable.StopAtBounds
             ScrollBar.vertical: AppScrollBar {
+                id: logBar
                 policy: ScrollBar.AlwaysOn
             }
-            WheelScroll {}
+            WheelScroll {
+                id: logScroll
+            }
             model: shownLines
 
             readonly property real fontSize: 0.9 * Theme.rem
@@ -329,13 +332,24 @@ Item {
                 font.italic: true
             }
 
-            // stay scrolled to the bottom unless the user has scrolled up
+            // stay scrolled to the bottom unless the user has scrolled up. Only the user's scrolling
+            // decides it, not the view's own changes to contentY, as when it opens at the top.
+            // WheelScroll does all of their scrolling but the scroll bar's, and it isn't the view's
+            // own movement, which `moving` is of.
             property bool userScrolling: false
-            onMovementEnded: userScrolling = contentHeight - height > contentY + 4
-            onContentYChanged: if (moving || dragging || flicking)
-                userScrolling = contentHeight - height > contentY + 4
+            /// Where the content is scrolled to the bottom. It starts at originY, not 0: ListView
+            /// moves it as it estimates the size of the lines it hasn't laid out from those it has.
+            readonly property real bottomY: Math.max(originY - topMargin, originY + contentHeight + bottomMargin - height)
+            function scrollToBottom() {
+                // lays out the last lines, which the bottom's position depends on, though it leaves
+                // out the bottom margin
+                positionViewAtEnd();
+                contentY = bottomY;
+            }
+            onContentYChanged: if (logScroll.scrolling || logBar.pressed)
+                userScrolling = contentY < bottomY - 4
             onCountChanged: if (!userScrolling)
-                Qt.callLater(positionViewAtEnd)
+                Qt.callLater(scrollToBottom)
 
             SText {
                 visible: !consoleView.connection || consoleView.connection.events.count === 0
