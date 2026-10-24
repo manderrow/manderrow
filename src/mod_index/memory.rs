@@ -1,13 +1,66 @@
 use std::ptr::NonNull;
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use rkyv::util::AlignedVec;
 use rkyv::vec::ArchivedVec;
 
 use manderrow_types::mods::ArchivedModRef;
 
-#[derive(Default)]
+/// A game's mod index, in the chunks that Thunderstore serves it in. It can't be changed once it's
+/// created, only replaced, so what is worked out from it holds for as long as its id is the same.
 pub struct MemoryModIndex {
-    pub chunks: Vec<MemoryModIndexChunk>,
+    id: u64,
+    chunks: Vec<MemoryModIndexChunk>,
+}
+
+/// Where a mod is in a [`MemoryModIndex`].
+#[derive(Clone, Copy)]
+pub struct ModPosition {
+    chunk: u32,
+    index: u32,
+}
+
+impl MemoryModIndex {
+    pub fn new(chunks: Vec<MemoryModIndexChunk>) -> Self {
+        static NEXT_ID: AtomicU64 = AtomicU64::new(0);
+        Self {
+            id: NEXT_ID.fetch_add(1, Ordering::Relaxed),
+            chunks,
+        }
+    }
+
+    /// Identifies this index among all that have been created.
+    pub fn id(&self) -> u64 {
+        self.id
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.chunks.is_empty()
+    }
+
+    /// Every mod in the index, with its position.
+    pub fn mods(&self) -> impl Iterator<Item = (ModPosition, &ArchivedModRef<'_>)> {
+        self.chunks.iter().enumerate().flat_map(|(chunk, mi)| {
+            mi.mods().iter().enumerate().map(move |(index, m)| {
+                let position = ModPosition {
+                    chunk: chunk as u32,
+                    index: index as u32,
+                };
+                (position, m)
+            })
+        })
+    }
+
+    /// The mod at a position in this index.
+    pub fn get(&self, position: ModPosition) -> &ArchivedModRef<'_> {
+        &self.chunks[position.chunk as usize].mods()[position.index as usize]
+    }
+}
+
+impl Default for MemoryModIndex {
+    fn default() -> Self {
+        Self::new(Vec::new())
+    }
 }
 
 pub struct MemoryModIndexChunk {

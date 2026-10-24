@@ -99,10 +99,25 @@ QtObject {
     /// Given the display's pixel ratio, a vector image is drawn sharply at it rather than scaled
     /// up, though it is still sized as it would be without it. Rich text sizes images by their
     /// pixels, so only give it to rich text for an image that has a width or height of its own.
-    function webImage(url, dpr) {
+    ///
+    /// Given `maxWidth`, in device pixels, a wider image is decoded at that width, though it is
+    /// still sized as it would be without it, for an image that is shown no wider. Decoded, an
+    /// image takes 4 bytes for each pixel.
+    function webImage(url, dpr, maxWidth) {
         if (!String(url).startsWith("https://"))
             return url;
-        return dpr > 1 ? `image://web/${dpr}x/${url}` : "image://web/" + url;
+        let options = "";
+        if (dpr > 1)
+            options += `${dpr}x/`;
+        if (maxWidth > 0)
+            options += `${Math.ceil(maxWidth)}w/`;
+        return "image://web/" + options + url;
+    }
+    /// The width, in device pixels, to decode images that are shown no wider than `width` at, for
+    /// webImage's `maxWidth`. It is rounded up, so that it only changes now and then as `width`
+    /// does, which loads the images again.
+    function imageDecodeWidth(width, dpr) {
+        return Math.ceil(width * dpr / 128) * 128;
     }
     /// The minimum height of shields.io's badges, which is their known height in the style most
     /// use, so that the space for them is kept while they load, as the web UI's style did.
@@ -114,7 +129,11 @@ QtObject {
     /// did: no wider than the text, which is `img { max-width: 100% }`, and badges at their
     /// height. `maxWidth` sets their maximum width in pixels instead, for where rich text takes a
     /// percentage of the wrong width, as in a table's cells.
-    function webImagesInHtml(html, dpr, maxWidth) {
+    ///
+    /// `decodeWidth` is webImage's `maxWidth` for the images, which must be no less than the
+    /// text's width, or `maxWidth`, in device pixels: rich text sizes an image by its pixels, though
+    /// no wider than its maximum width.
+    function webImagesInHtml(html, dpr, maxWidth, decodeWidth) {
         const maxWidthStyle = maxWidth !== undefined ? `${Math.max(0, Math.floor(maxWidth))}px` : "100%";
         return html.replace(/<img\b[^>]*>/g, tag => {
             // the sanitizer has removed any style of its own
@@ -127,7 +146,7 @@ QtObject {
                 tag = tag.replace(/^<img\b/, `<img height="${badgeHeight}"`);
                 sized = true;
             }
-            return tag.replace(src[0], () => `src="${webImage(src[1], sized ? dpr : 1)}"`);
+            return tag.replace(src[0], () => `src="${webImage(src[1], sized ? dpr : 1, decodeWidth)}"`);
         });
     }
 

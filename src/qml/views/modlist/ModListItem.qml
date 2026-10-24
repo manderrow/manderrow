@@ -6,7 +6,8 @@ import Manderrow
 Item {
     id: modItem
 
-    /// A mod listing (with `versions`) or an installed mod package (with `version`).
+    /// A mod summary from the mod index (with `versions` and `total_downloads`) or an installed mod
+    /// package (with `version`).
     required property var mod
     property var installContext: null
     /// Whether this mod is shown in the mod view.
@@ -286,7 +287,7 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                         }
                         Text {
-                            text: modItem.isPackage ? Util.humanizeFileSize(modItem.mod.version.file_size) : Util.formatRounded(modItem.mod.versions.reduce((total, v) => total + v.downloads, 0))
+                            text: modItem.isPackage ? Util.humanizeFileSize(modItem.mod.version.file_size) : Util.formatRounded(modItem.mod.total_downloads)
                             color: Theme.neutral30
                             font.family: Theme.font
                             font.pixelSize: 0.85 * Theme.rem

@@ -175,11 +175,19 @@ QtObject {
     function fetchModIndex(game, refresh, listener) {
         return invokeWithListener(listener, taskId => invoke("fetch_mod_index", { game, refresh, taskId }));
     }
+    /// Resolves to `{ count, mods }`, where `mods` are summaries of the mods: each has only its
+    /// latest version in `versions`, and the downloads of all of them in `total_downloads`.
+    /// `getFromModIndex` returns mods with all of their versions.
     function queryModIndex(game, query, sort, skip, limit) {
         return invoke("query_mod_index", { game, query, sort, skip, limit });
     }
     function getFromModIndex(game, modIds) {
         return invoke("get_from_mod_index", { game, modIds });
+    }
+    /// `installed` is `[{ owner, name, version }]`, with each mod's installed version number.
+    /// Resolves to summaries, as queryModIndex's, of the mods whose latest version is another.
+    function getModUpdates(game, installed) {
+        return invoke("get_mod_updates", { game, installed });
     }
     function fetchModMarkdown(owner, name, version, endpoint, listener) {
         return invokeWithListener(listener, taskId => invoke("thunderstore_fetch_mod_markdown", { owner, name, version, endpoint, taskId }));

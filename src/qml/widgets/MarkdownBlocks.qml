@@ -64,10 +64,10 @@ Column {
         }
     }
 
-    /// Wraps inline HTML with the styles rich text supports. `imageMaxWidth` is as for
-    /// Util.webImagesInHtml.
-    function richText(html, lineHeight, size, imageMaxWidth) {
-        return `<style>a { color: ${Theme.primary60}; text-decoration: none; } code { font-family: "${Theme.fontMonospace}"; background-color: ${Theme.neutral90}; color: ${Theme.neutral05}; font-size: ${Math.round(0.9 * rem)}px; } del { text-decoration: line-through; }</style>` + `<div style="line-height: ${Math.round(lineHeight * size)}px">${Util.webImagesInHtml(html, Ui.dpr, imageMaxWidth)}</div>`;
+    /// Wraps inline HTML with the styles rich text supports. `imageMaxWidth` and
+    /// `imageDecodeWidth` are as `maxWidth` and `decodeWidth` are for Util.webImagesInHtml.
+    function richText(html, lineHeight, size, imageMaxWidth, imageDecodeWidth) {
+        return `<style>a { color: ${Theme.primary60}; text-decoration: none; } code { font-family: "${Theme.fontMonospace}"; background-color: ${Theme.neutral90}; color: ${Theme.neutral05}; font-size: ${Math.round(0.9 * rem)}px; } del { text-decoration: line-through; }</style>` + `<div style="line-height: ${Math.round(lineHeight * size)}px">${Util.webImagesInHtml(html, Ui.dpr, imageMaxWidth, imageDecodeWidth)}</div>`;
     }
 
     // Creates its blocks asynchronously, as long documents would otherwise take frames to create
@@ -90,9 +90,13 @@ Column {
         property string html
         property real size: root.rem
         property real lineHeight: 1.35
+        /// The width, in device pixels, that its images are decoded at, at most. It only grows, as
+        /// setting the text again leaves their space empty while they load again.
+        property real imageDecodeWidth: Util.imageDecodeWidth(width, Ui.dpr)
         readonly property real overflowWidth: Math.max(width, contentWidth)
 
         width: parent ? parent.width : 0
+        onWidthChanged: imageDecodeWidth = Math.max(imageDecodeWidth, Util.imageDecodeWidth(width, Ui.dpr))
         textFormat: TextEdit.RichText
         // only between words, as on the web: a word too long for the line overflows it
         wrapMode: TextEdit.WordWrap
@@ -103,7 +107,7 @@ Column {
         color: root.textColor
         font.family: Theme.font
         font.pixelSize: size
-        text: root.richText(html, lineHeight, size)
+        text: root.richText(html, lineHeight, size, undefined, imageDecodeWidth)
     }
 
     Repeater {
@@ -194,11 +198,13 @@ Column {
                         readonly property real minHeight: Util.isBadge(slot.block.src) ? Util.badgeHeight : 0
 
                         width: parent.width
-                        height: img.status === Image.Ready ? img.height : minHeight
+                        // its size is kept while it reloads at another width
+                        height: img.aspect > 0 ? img.height : minHeight
 
                         Image {
                             id: img
-                            source: Util.webImage(slot.block.src, Ui.dpr)
+                            // decoded no wider than it is shown
+                            source: parent.width > 0 ? Util.webImage(slot.block.src, Ui.dpr, Util.imageDecodeWidth(parent.width, Ui.dpr)) : ""
                             asynchronous: true
                             fillMode: Image.PreserveAspectFit
                             readonly property real aspect: implicitHeight > 0 ? implicitWidth / implicitHeight : 0
@@ -420,7 +426,7 @@ Column {
                                 // to fit.
                                 const columns = Math.max(1, block.alignments.length);
                                 const imageMaxWidth = (tableScroller.width - 1) / columns - 2 * padding - 2;
-                                return root.richText(html + "</table>", 1.25, root.baseSize, imageMaxWidth);
+                                return root.richText(html + "</table>", 1.25, root.baseSize, imageMaxWidth, Util.imageDecodeWidth(imageMaxWidth, Ui.dpr));
                             }
                         }
                     }

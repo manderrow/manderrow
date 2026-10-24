@@ -12,6 +12,7 @@ mod setup;
 mod web_images;
 
 use std::sync::OnceLock;
+use std::time::Duration;
 
 use anyhow::{bail, Context};
 use cxx_qt::casting::Upcast;
@@ -70,6 +71,18 @@ pub fn run(app: AppHandle, instance: InstanceLock) -> anyhow::Result<()> {
     // Without a window, the app would run on unseen, with nothing to quit it.
     if let Err(errors) = setup::load_root(engine_ref, &QUrl::from(MAIN_QML)) {
         bail!("Failed to load the user interface:\n{errors}");
+    }
+
+    // Qt frees memory all over, as views close and images leave its caches, so its heap is trimmed
+    // every so often rather than after any one of those. A trim takes about a millisecond.
+    if cfg!(all(target_os = "linux", target_env = "gnu")) {
+        runtime().spawn(async {
+            let mut interval = tokio::time::interval(Duration::from_secs(10));
+            loop {
+                interval.tick().await;
+                crate::util::trim_native_heap();
+            }
+        });
     }
 
     let code = qapp

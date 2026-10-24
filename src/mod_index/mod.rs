@@ -3,7 +3,7 @@ mod memory;
 pub mod thunderstore;
 
 use std::collections::HashMap;
-use std::sync::LazyLock;
+use std::sync::{Arc, LazyLock};
 use std::time::Instant;
 
 use anyhow::{Context as _, Result};
@@ -26,7 +26,7 @@ use crate::util::search::{Score, SortOption};
 use crate::util::{search, Progress};
 use crate::Reqwest;
 
-use memory::{MemoryModIndex, MemoryModIndexChunk};
+use memory::{MemoryModIndex, MemoryModIndexChunk, ModPosition};
 
 const MAX_CHUNKS_IN_FLIGHT: usize = 4;
 
@@ -64,7 +64,7 @@ pub async fn fetch_mod_index(
         || mod_index
             .data
             .try_read()
-            .map(|data| data.chunks.is_empty())
+            .map(|data| data.is_empty())
             .unwrap_or(true)
     {
         TaskBuilder::with_id(task_id.unwrap_or_else(tasks::allocate_task), format!("Fetch mod index for {}", game.id))
@@ -254,7 +254,7 @@ pub async fn fetch_mod_index(
                     _ = progress_updater => unreachable!(),
                     r = new_mod_index => r?,
                 };
-                *mod_index.data.write().await = MemoryModIndex { chunks: new_mod_index };
+                *mod_index.data.write().await = MemoryModIndex::new(new_mod_index);
                 // the index replaced, if any
                 crate::util::release_freed_memory();
 
@@ -273,7 +273,7 @@ pub async fn fetch_mod_index(
     }
 }
 
-#[derive(Clone, Copy, serde::Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 #[repr(u8)]
 pub enum SortColumn {
@@ -318,16 +318,10 @@ pub fn count_mod_index<'a>(mod_index: &'a ModIndexReadGuard, query: &str) -> Res
     let start = Instant::now();
 
     let count = mod_index
-        .chunks
-        .iter()
-        .map(|mi| {
-            mi.mods()
-                .iter()
-                .filter_map(|m| score_mod(&log, query, m))
-                .filter(|&(_, score)| search::should_include(score))
-                .count()
-        })
-        .sum();
+        .mods()
+        .filter_map(|(_, m)| score_mod(&log, query, m))
+        .filter(|&(_, score)| search::should_include(score))
+        .count();
 
     let elapsed_counting = Instant::now() - start;
 
@@ -336,12 +330,47 @@ pub fn count_mod_index<'a>(mod_index: &'a ModIndexReadGuard, query: &str) -> Res
     Ok(count)
 }
 
+/// The mods that match a query, in order, by their positions in the mod index.
+pub type QueryResults = Arc<[(ModPosition, Score)]>;
+
 /// `sort` must not include the same [`SortColumn`] more than once.
-pub fn query_mod_index<'a>(
-    mod_index: &'a ModIndexReadGuard,
+///
+/// The results of the last query are kept, as its pages are asked for one at a time, which would
+/// otherwise search and sort the whole index again for each. They are only reused for the same
+/// index, query, and sort, which must be all that they depend on.
+pub fn query_mod_index(
+    mod_index: &ModIndexReadGuard,
     query: &str,
     sort: &[SortOption<SortColumn>],
-) -> Result<Vec<(&'a ArchivedModRef<'a>, Score)>> {
+) -> Result<QueryResults> {
+    struct LastQuery {
+        index_id: u64,
+        query: String,
+        sort: Vec<SortOption<SortColumn>>,
+        results: QueryResults,
+    }
+    static LAST_QUERY: parking_lot::Mutex<Option<LastQuery>> = parking_lot::const_mutex(None);
+
+    if let Some(last) = &*LAST_QUERY.lock() {
+        if last.index_id == mod_index.id() && last.query == query && last.sort == sort {
+            return Ok(last.results.clone());
+        }
+    }
+    let results = search_mod_index(mod_index, query, sort);
+    *LAST_QUERY.lock() = Some(LastQuery {
+        index_id: mod_index.id(),
+        query: query.to_owned(),
+        sort: sort.to_vec(),
+        results: results.clone(),
+    });
+    Ok(results)
+}
+
+fn search_mod_index(
+    mod_index: &MemoryModIndex,
+    query: &str,
+    sort: &[SortOption<SortColumn>],
+) -> QueryResults {
     let log = slog_scope::logger();
 
     trace!(log, "Querying mod index");
@@ -354,21 +383,19 @@ pub fn query_mod_index<'a>(
         .any(|o| matches!(o.column, SortColumn::Downloads));
     let mut buf = Vec::new();
 
-    for mi in mod_index.chunks.iter() {
-        buf.extend(
-            mi.mods()
-                .iter()
-                .filter_map(|m| score_mod(&log, query, m))
-                .filter(|&(_, score)| search::should_include(score))
-                .map(|(m, score)| {
-                    let downloads = if sum_downloads {
-                        m.versions.iter().map(|v| u64::from(v.downloads)).sum()
-                    } else {
-                        0
-                    };
-                    (m, score, downloads)
-                }),
-        );
+    for (position, m) in mod_index.mods() {
+        let Some((m, score)) = score_mod(&log, query, m) else {
+            continue;
+        };
+        if !search::should_include(score) {
+            continue;
+        }
+        let downloads = if sum_downloads {
+            m.versions.iter().map(|v| u64::from(v.downloads)).sum()
+        } else {
+            0
+        };
+        buf.push((position, m, score, downloads));
     }
 
     let now = Instant::now();
@@ -376,7 +403,7 @@ pub fn query_mod_index<'a>(
     let start = now;
 
     if !sort.is_empty() {
-        buf.sort_unstable_by(|(m1, score1, downloads1), (m2, score2, downloads2)| {
+        buf.sort_unstable_by(|(_, m1, score1, downloads1), (_, m2, score2, downloads2)| {
             let mut ordering = std::cmp::Ordering::Equal;
             for &SortOption { column, descending } in sort {
                 ordering = match column {
@@ -408,7 +435,9 @@ pub fn query_mod_index<'a>(
         "Queried mod index ({:?} collecting, {:?} sorting)", elapsed_collecting, elapsed_sorting
     );
 
-    Ok(buf.into_iter().map(|(m, score, _)| (m, score)).collect())
+    buf.into_iter()
+        .map(|(position, _, score, _)| (position, score))
+        .collect()
 }
 
 fn score_mod<'a, 'b>(
@@ -455,10 +484,8 @@ pub async fn get_from_mod_index<'a>(
     let mut results = vec![None; mod_ids.len()];
 
     mod_index
-        .chunks
-        .iter()
-        .flat_map(|mi| mi.mods().iter())
-        .for_each(|m| {
+        .mods()
+        .for_each(|(_, m)| {
             if let Some(&i) = mod_ids_idx.get(&ModId {
                 owner: InternedString(&*m.owner),
                 name: InternedString(&*m.name),
@@ -478,14 +505,12 @@ pub async fn get_one_from_mod_index<'a>(
 
     debug!(log, "Getting one mod from mod index");
 
-    let m = mod_index.chunks.iter().find_map(|mi| {
-        mi.mods().iter().find(|m| {
-            mod_id
-                == ModId {
-                    owner: InternedString(&*m.owner),
-                    name: InternedString(&*m.name),
-                }
-        })
+    let m = mod_index.mods().map(|(_, m)| m).find(|m| {
+        mod_id
+            == ModId {
+                owner: InternedString(&*m.owner),
+                name: InternedString(&*m.name),
+            }
     });
 
     Ok(m)
@@ -585,7 +610,10 @@ mod tests {
                 descending: true,
             }],
         )
-        .unwrap();
+        .unwrap()
+        .iter()
+        .map(|&(position, score)| (mod_index.get(position), score))
+        .collect::<Vec<_>>();
         assert_eq!(mods.len(), mod_count);
         for ((m, _), &id) in mods.iter().zip(top_expected) {
             assert_eq!((&*m.owner, &*m.name), id, "{}", TopResults(&mods));

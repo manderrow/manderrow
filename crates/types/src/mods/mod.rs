@@ -53,6 +53,38 @@ impl<'a> serde::Serialize for ArchivedModRef<'a> {
     }
 }
 
+impl<'a> ArchivedModRef<'a> {
+    /// The mod as a list of mods shows it, serialized like the mod but with only its latest version
+    /// in `versions`, and the downloads of all of its versions in `total_downloads`. Most of a mod's
+    /// size is in its older versions.
+    pub fn summary(&self) -> ModSummary<'_, 'a> {
+        ModSummary(self)
+    }
+}
+
+pub struct ModSummary<'a, 'b>(&'a ArchivedModRef<'b>);
+
+impl serde::Serialize for ModSummary<'_, '_> {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let m = self.0;
+        let mut ser = serializer.serialize_map(None)?;
+        m.metadata
+            .serialize(serde::__private::ser::FlatMapSerializer(&mut ser))?;
+        ser.serialize_entry("versions", &m.versions[..m.versions.len().min(1)])?;
+        ser.serialize_entry(
+            "total_downloads",
+            &m.versions
+                .iter()
+                .map(|v| v.downloads.to_native())
+                .sum::<u64>(),
+        )?;
+        ser.end()
+    }
+}
+
 #[derive(Debug, Clone, serde::Deserialize, serde::Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ModMetadata<'a> {

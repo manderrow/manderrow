@@ -15,6 +15,21 @@ pub fn release_freed_memory() {
     unsafe { libmimalloc_sys::mi_collect(true) }
 }
 
+/// Returns the memory that Qt and the other native libraries have freed to the OS. They allocate
+/// from glibc's allocator, which by itself only returns what is at the end of its heaps, and keeps
+/// what is freed between memory still in use, such as the images of a mod's README after it's
+/// closed. The system allocators of Windows and macOS return such memory by themselves.
+pub fn trim_native_heap() {
+    #[cfg(all(target_os = "linux", target_env = "gnu"))]
+    {
+        unsafe extern "C" {
+            fn malloc_trim(pad: usize) -> std::ffi::c_int;
+        }
+        // SAFETY: this takes no pointers, and only returns memory that is no longer allocated
+        unsafe { malloc_trim(0) };
+    }
+}
+
 pub trait IoErrorKindExt {
     fn is_not_found(&self) -> bool;
 }
