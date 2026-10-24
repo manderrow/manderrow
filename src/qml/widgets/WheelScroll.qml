@@ -20,6 +20,10 @@ WheelHandler {
         return item;
     }
     readonly property bool vertical: orientation === Qt.Vertical
+    /// Whether this is scrolling the Flickable, which the Flickable's `moving` doesn't say, as that
+    /// is only of its own movement, for telling the user's scrolling from the view's own changes.
+    readonly property bool scrolling: animation.running || kinetic.running || _jumping
+    property bool _jumping: false
     property real _destination: 0
 
     target: null
@@ -55,7 +59,9 @@ WheelHandler {
         } else {
             if (animation.running && animation.property === property)
                 animation.stop();
+            _jumping = true;
             flickable[property] = destination;
+            _jumping = false;
         }
     }
 

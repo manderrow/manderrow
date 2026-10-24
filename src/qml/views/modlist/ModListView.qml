@@ -109,6 +109,8 @@ Item {
         mods.length = 0;
         _nextPage = 0;
         _end = false;
+        // a page still loading is of the last results, and is dropped when it comes
+        _pageLoading = false;
         loadMore();
         updateFocusedMod();
     }
@@ -353,8 +355,11 @@ Item {
                 visible: modList.queriedError === null
                 model: rows
 
+                // the content starts at originY, not 0: ListView moves it as it estimates the size
+                // of the rows it hasn't laid out from those it has, which rows of fractional heights
+                // keep doing in one direction
                 function maybeLoadMore() {
-                    if (contentY + height > contentHeight - 200)
+                    if (contentY - originY + height > contentHeight - 200)
                         modList.loadMore();
                 }
                 onContentYChanged: maybeLoadMore()
