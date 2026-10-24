@@ -50,6 +50,7 @@ Dropdown {
                     textColor: Theme.neutral20
                     activeTextColor: Theme.neutral10
                     text: entry.modelData.label || ""
+                    Accessible.role: Accessible.MenuItem
                     onClicked: {
                         menu.close();
                         if (entry.modelData.action)

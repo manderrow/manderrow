@@ -372,22 +372,32 @@ Item {
                     fillToTriggerWidth: true
                     panelPadding: 0.5 * Theme.rem
 
+                    // the list of versions gives up its height when the window has too little room
+                    // for the panel, so that the search and the Apply button still show
                     ColumnLayout {
                         spacing: 0
 
+                        // typing searches the versions as soon as the panel opens
+                        function initialFocusItem() {
+                            return versionSearchField;
+                        }
+
                         Field {
+                            id: versionSearchField
                             Layout.fillWidth: true
                             Layout.leftMargin: 0.5 * Theme.rem
                             Layout.rightMargin: 0.5 * Theme.rem
                             Layout.bottomMargin: 0.5 * Theme.rem
                             placeholderText: I18n.t("modlist.installed.search_version_placeholder")
+                            Accessible.searchEdit: true
                             text: view.versionSearch
                             onTextEdited: view.versionSearch = text
                         }
 
                         SelectList {
                             Layout.fillWidth: true
-                            Layout.preferredHeight: Math.min(contentHeight, 20 * Theme.rem)
+                            Layout.fillHeight: true
+                            maxHeight: 20 * Theme.rem
                             options: view.versionOptions(view.versionSearch)
                             fontSize: 0.9 * Theme.rem
                             itemPadding: 0.25 * 0.9 * Theme.rem

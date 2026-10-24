@@ -12,6 +12,8 @@ Dropdown {
     property string fallback
     property real optionFontSize: Theme.rem
     property real optionPadding: 0.3 * optionFontSize
+    // max-height: 50dvh
+    panelMaxHeight: Ui.window ? Ui.window.height * 0.5 : 400
 
     signal changed(var value, bool selected)
 
@@ -29,6 +31,5 @@ Dropdown {
         fontSize: root.optionFontSize
         itemPadding: root.optionPadding
         onChanged: (value, selected) => root.changed(value, selected)
-        Component.onCompleted: Qt.callLater(scrollToSelected)
     }
 }
