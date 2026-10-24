@@ -20,6 +20,12 @@ ApplicationWindow {
     // reaches, and the native window buttons are placed in it, like Tauri's overlay title bar
     // style. Elsewhere the app draws the whole frame.
     flags: Qt.platform.os === "osx" ? Qt.Window | Qt.ExpandedClientAreaHint | Qt.NoTitleBarBackgroundHint : Qt.platform.os === "windows" ? Qt.Window : Qt.Window | Qt.FramelessWindowHint
+    // The content would otherwise be padded to the window's safe area, which on macOS is below the
+    // native title bar, leaving the app's title bar below it instead of in its place.
+    topPadding: 0
+    leftPadding: 0
+    rightPadding: 0
+    bottomPadding: 0
     /// Whether the window has a native frame without its title bar, which resizes the window.
     property bool _nativeFrame: false
 
