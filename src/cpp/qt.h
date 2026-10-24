@@ -2,7 +2,8 @@
 #define MANDERROW_QT_H
 
 // What the Rust bindings to Qt need but cxx can't express: names at namespace scope for the
-// types nested in Qt's classes, and calls that pass a QList or a QJSValue by value.
+// types nested in Qt's classes, and calls that pass a QList, a QJSValue, or another of Qt's
+// values by value.
 
 #include <memory>
 
@@ -15,6 +16,7 @@
 #include <QtGui/QTextBlock>
 #include <QtGui/QTextCursor>
 #include <QtGui/QTextDocument>
+#include <QtGui/QTextTable>
 #include <QtQml/QJSValue>
 #include <QtQml/QQmlApplicationEngine>
 #include <QtQml/QQmlError>
@@ -28,10 +30,21 @@ using QClipboardMode = QClipboard::Mode;
 using QQuickItemFlag = QQuickItem::Flag;
 using QQuickItemFlags = QQuickItem::Flags;
 using QQuickItemList = QList<QQuickItem*>;
+using QTextCursorMoveMode = QTextCursor::MoveMode;
 
 inline std::unique_ptr<QQuickItemList> childItems(const QQuickItem& item)
 {
     return std::make_unique<QQuickItemList>(item.childItems());
+}
+
+inline std::unique_ptr<QTextTableCell> cellAt(const QTextTable& table, int row, int column)
+{
+    return std::make_unique<QTextTableCell>(table.cellAt(row, column));
+}
+
+inline std::unique_ptr<QTextCharFormat> charFormat(const QTextCursor& cursor)
+{
+    return std::make_unique<QTextCharFormat>(cursor.charFormat());
 }
 
 /// Calls a function with a boolean, and returns its result as a boolean.

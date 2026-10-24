@@ -8,6 +8,7 @@ mod native_macos;
 mod native_unix;
 #[cfg(windows)]
 mod native_win32;
+mod rich_text;
 mod setup;
 mod web_images;
 

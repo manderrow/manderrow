@@ -108,6 +108,7 @@ fn build_qt(crate_dir: &Path) {
     let mut bridges = vec![
         "src/qt/bridge.rs",
         "src/qt/native.rs",
+        "src/qt/rich_text.rs",
         "src/qt/setup.rs",
         "src/qt/web_images.rs",
     ];

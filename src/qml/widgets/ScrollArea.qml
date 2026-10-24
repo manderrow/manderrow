@@ -17,6 +17,9 @@ Item {
 
     /// The Flickable to scroll, declared inside the area.
     required property Flickable flickable
+    /// Whether Tab stops at the Flickable while it can scroll, as browsers stop at a scrolling
+    /// box, so that the keyboard can reach it to scroll it even with nothing to focus in it.
+    property bool focusable: false
 
     property real _verticalGutter: 0
     property real _horizontalGutter: 0
@@ -38,6 +41,17 @@ Item {
         target: area.flickable
         property: "height"
         value: area.height - area._horizontalGutter
+    }
+    Binding {
+        target: area.flickable
+        property: "activeFocusOnTab"
+        value: area.focusable && (upDown.canScroll(0, true) || sideways.canScroll(0, false))
+    }
+
+    // over the Flickable, inside the scroll bars
+    FocusRing {
+        target: area.flickable
+        anchors.fill: area.flickable
     }
 
     // attached to the Flickable, but kept here, outside it
