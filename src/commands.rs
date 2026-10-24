@@ -171,6 +171,14 @@ pub async fn dispatch(
             });
             raw(mod_index::commands::get_from_mod_index(a.game, a.mod_ids).await)
         }
+        "get_mod_updates" => {
+            let a = args!(args, {
+                game: &'a str,
+                #[serde(borrow)]
+                installed: Vec<mod_index::commands::InstalledVersion<'a>>,
+            });
+            raw(mod_index::commands::get_mod_updates(a.game, a.installed).await)
+        }
         "thunderstore_fetch_mod_markdown" => {
             let a = args!(args, {
                 owner: &'a str,

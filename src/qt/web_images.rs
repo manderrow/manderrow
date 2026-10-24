@@ -4,8 +4,13 @@
 //! is the one that already fetches the mod index, so images load wherever the index does. Images
 //! are cached on disk by HTTP's rules, as the browser that the web UI ran in did.
 //!
-//! `image://web/<scale>x/<https URL>` draws a vector image at `scale` times its size, for a display
-//! with that pixel ratio, while it is still sized as it would be without it.
+//! Options can come before the URL, each followed by a `/`:
+//!
+//! - `<scale>x` draws a vector image at `scale` times its size, for a display with that pixel
+//!   ratio, while it is still sized as it would be without it.
+//! - `<width>w` decodes an image that is wider than `width` pixels at that width, while it is still
+//!   sized as it would be without it, for an image that is shown no wider than that. A photo takes
+//!   4 bytes for each of its pixels once it is decoded, which for large ones is several megabytes.
 
 #[cxx_qt::bridge]
 mod ffi {
@@ -268,6 +273,8 @@ pub struct WebImageResponseRust {
     requested_height: i32,
     /// How many times its size a vector image is drawn at.
     scale: f64,
+    /// The width that a wider image is decoded at, or zero for its own.
+    max_width: i32,
     image: QImage,
     /// The size that the image is shown at, which a vector image's may be drawn at a multiple of.
     size: QSize,
@@ -312,14 +319,22 @@ impl ffi::WebImageResponse {
         let mut rust = self.as_mut().rust_mut();
         rust.requested_width = requested_size.width().max(0);
         rust.requested_height = requested_size.height().max(0);
-        let (scale, url) = match url.split_once("x/") {
-            Some((scale, url)) if !scale.starts_with("https:") => (
-                scale.parse::<f64>().unwrap_or(1.0).clamp(1.0, 4.0),
-                url.to_owned(),
-            ),
-            _ => (1.0, url),
-        };
-        rust.scale = scale;
+        rust.scale = 1.0;
+        let mut url = url.as_str();
+        while !url.starts_with("https:") {
+            let Some((option, rest)) = url.split_once('/') else {
+                break;
+            };
+            if let Some(scale) = option.strip_suffix('x') {
+                rust.scale = scale.parse::<f64>().unwrap_or(1.0).clamp(1.0, 4.0);
+            } else if let Some(width) = option.strip_suffix('w') {
+                rust.max_width = width.parse::<i32>().unwrap_or(0).max(0);
+            } else {
+                break;
+            }
+            url = rest;
+        }
+        let url = url.to_owned();
         let delivery = Delivery(Some(self.qt_thread()));
         let task = super::runtime().spawn(async move {
             let result = fetch(&url).await.map_err(|e| {
@@ -333,9 +348,10 @@ impl ffi::WebImageResponse {
 
     /// Decodes the fetched image, or records why it couldn't be fetched, and finishes.
     fn finish(mut self: Pin<&mut Self>, result: Result<Bytes, String>) {
-        let scale = self.scale;
+        let (scale, max_width) = (self.scale, self.max_width);
         let decoded = result.and_then(|data| {
-            decode(&data, scale).ok_or_else(|| "The image couldn't be decoded".to_owned())
+            decode(&data, scale, max_width)
+                .ok_or_else(|| "The image couldn't be decoded".to_owned())
         });
         match decoded {
             Ok((image, size)) => {
@@ -417,19 +433,27 @@ impl ffi::SizedTextureFactory {
 
 /// Decodes an image, and returns it with its size. A vector image, which has no pixels of its
 /// own, is drawn at `scale` times its size, so that it is sharp on a display with that pixel
-/// ratio, while its size is still the one before that.
-fn decode(data: &[u8], scale: f64) -> Option<(QImage, QSize)> {
+/// ratio, and an image wider than `max_width`, unless that is zero, is decoded at that width, while
+/// its size is still the one before either.
+fn decode(data: &[u8], scale: f64, max_width: i32) -> Option<(QImage, QSize)> {
     let mut buffer = ffi::buffer_new();
     buffer.pin_mut().set_data(&QByteArray::from(data));
     // SAFETY: the buffer outlives the reader, which is dropped first. The reader opens it.
     let mut reader = unsafe { ffi::image_reader_new(buffer.as_mut_ptr()) };
     let size = reader.size();
     let vector = matches!(reader.format().as_slice(), b"svg" | b"svgz");
-    if scale != 1.0 && vector && size.is_valid() {
-        let scaled = |n: i32| (f64::from(n) * scale).round() as i32;
-        reader
-            .pin_mut()
-            .set_scaled_size(&QSize::new(scaled(size.width()), scaled(size.height())));
+    if size.is_valid() {
+        let (width, height) = (f64::from(size.width()), f64::from(size.height()));
+        let mut scaled = if vector { scale } else { 1.0 };
+        if max_width > 0 && width * scaled > f64::from(max_width) {
+            scaled = f64::from(max_width) / width;
+        }
+        if scaled != 1.0 {
+            let scaled = |n: f64| ((n * scaled).round() as i32).max(1);
+            reader
+                .pin_mut()
+                .set_scaled_size(&QSize::new(scaled(width), scaled(height)));
+        }
     }
     let image = reader.pin_mut().read();
     drop(reader);

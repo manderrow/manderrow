@@ -6,7 +6,8 @@ import Manderrow
 AsyncButton {
     id: button
 
-    /// A mod listing (the latest version is installed) or a package (its version is installed).
+    /// A mod listing or summary (the latest version is installed) or a package (its version is
+    /// installed).
     required property var mod
     required property var installContext
 
@@ -17,6 +18,8 @@ AsyncButton {
     action: listener => {
         const mod = button.mod;
         const metadata = Util.removeProperty(mod, mod.versions !== undefined ? "versions" : "version");
+        // a summary's, which isn't part of the metadata
+        delete metadata.total_downloads;
         const version = mod.versions !== undefined ? mod.versions[0] : mod.version;
         let foundDownloadTask = false;
         return Api.installProfileMod(button.installContext.profileId, metadata, version, event => {

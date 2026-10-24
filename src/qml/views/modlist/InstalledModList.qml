@@ -29,10 +29,13 @@ Item {
             // the component may have been destroyed by the time this runs
             if (root && event.event === "progress")
                 root.checkUpdatesProgress = event.progress;
-        }).then(() => Api.getFromModIndex(game, installed.map(mod => ({ owner: mod.owner, name: mod.name })))).then(latest => {
+        }).then(() => Api.getModUpdates(game, installed.map(mod => ({ owner: mod.owner, name: mod.name, version: mod.version.version_number })))).then(newMods => {
             if (!root || generation !== root._updatesGeneration)
                 return;
-            root.updates = latest.map((mod, i) => ({ newMod: mod, oldVersionNumber: installed[i].version.version_number })).filter(update => update.newMod.versions[0].version_number !== update.oldVersionNumber);
+            const installedVersions = {};
+            for (const mod of installed)
+                installedVersions[`${mod.owner}/${mod.name}`] = mod.version.version_number;
+            root.updates = newMods.map(newMod => ({ newMod, oldVersionNumber: installedVersions[`${newMod.owner}/${newMod.name}`] }));
             root.updatesLoading = false;
         }, e => {
             if (!root)

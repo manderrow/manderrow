@@ -5,7 +5,7 @@ use backend_sublime_fuzzy as backend;
 
 pub use backend::*;
 
-#[derive(Clone, Copy, serde::Deserialize)]
+#[derive(Clone, Copy, PartialEq, Eq, serde::Deserialize)]
 pub struct SortOption<C> {
     pub column: C,
     pub descending: bool,

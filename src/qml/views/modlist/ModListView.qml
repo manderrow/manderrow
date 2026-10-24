@@ -104,7 +104,9 @@ Item {
 
     onQueriedChanged: {
         rows.clear();
-        mods = [];
+        // emptied in place: the rows just removed are only destroyed later, and replacing the
+        // array would update them meanwhile, with no mod left at their index
+        mods.length = 0;
         _nextPage = 0;
         _end = false;
         loadMore();
