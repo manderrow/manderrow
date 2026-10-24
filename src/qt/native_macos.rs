@@ -17,11 +17,14 @@ mod ffi {
 use core::cell::{Cell, RefCell};
 use core::pin::Pin;
 use core::ptr::NonNull;
+use std::ffi::CString;
 use std::rc::Rc;
 
 use block2::RcBlock;
+use objc2::encode::Encode;
 use objc2::rc::{Retained, Weak};
-use objc2::runtime::{NSObjectProtocol, ProtocolObject};
+use objc2::runtime::{AnyClass, AnyObject, Bool, Imp, NSObjectProtocol, ProtocolObject, Sel};
+use objc2::{ffi as objc, sel};
 use objc2_app_kit::{
     NSAppearance, NSAppearanceCustomization, NSAppearanceNameAqua, NSAppearanceNameDarkAqua,
     NSButton, NSColor, NSTitlebarSeparatorStyle, NSView, NSWindow, NSWindowButton,
@@ -32,12 +35,17 @@ use objc2_foundation::{NSNotification, NSNotificationCenter};
 
 use ffi::QWindow;
 
-/// The NSWindow that holds a QWindow, which Qt makes along with the QWindow's platform window.
-fn ns_window(window: &QWindow) -> Option<Retained<NSWindow>> {
+/// The NSView of a QWindow, which is Qt's, and the content view of the NSWindow that holds it.
+fn ns_view(window: &QWindow) -> Option<Retained<NSView>> {
     // which creates the platform window if the QWindow has none yet
     let view = usize::from(window.win_id()) as *mut NSView;
     // SAFETY: a QWindow's id is its NSView on macOS, which lives as long as the QWindow
-    unsafe { Retained::retain(view) }?.window()
+    unsafe { Retained::retain(view) }
+}
+
+/// The NSWindow that holds a QWindow, which Qt makes along with the QWindow's platform window.
+fn ns_window(window: &QWindow) -> Option<Retained<NSWindow>> {
+    ns_view(window)?.window()
 }
 
 /// How far the blur behind a window spreads, in points.
@@ -92,7 +100,10 @@ pub fn set_dark_frame(window: Pin<&mut QWindow>, dark: bool) -> bool {
 }
 
 pub fn hide_title_bar(window: Pin<&mut QWindow>) -> bool {
-    let Some(ns_window) = ns_window(&window) else {
+    let Some(view) = ns_view(&window) else {
+        return false;
+    };
+    let Some(ns_window) = view.window() else {
         return false;
     };
     // The window's content already reaches under its title bar, which has no background, through
@@ -104,7 +115,42 @@ pub fn hide_title_bar(window: Pin<&mut QWindow>) -> bool {
     // system's, which would show through where the app is translucent instead of what is behind
     // the window.
     ns_window.setBackgroundColor(Some(&NSColor::clearColor()));
+    take_title_bar_presses(&view);
     true
+}
+
+/// Gives the presses under a window's native title bar to Qt's views, of which `view` is one,
+/// rather than to AppKit, so that the app's title bar there gets them, and moves the window
+/// itself. AppKit drags a window from under its title bar wherever the view there lets it, which
+/// an NSView does unless it is opaque, as Qt's aren't in translucent windows.
+fn take_title_bar_presses(view: &NSView) {
+    extern "C-unwind" fn mouse_down_can_move_window(_view: &AnyObject, _cmd: Sel) -> Bool {
+        Bool::NO
+    }
+    let class: *const AnyClass = view.class();
+    let types = CString::new(format!(
+        "{}{}{}",
+        Bool::ENCODING,
+        <&AnyObject>::ENCODING,
+        Sel::ENCODING
+    ))
+    .unwrap();
+    // Qt's views are all of one class, which doesn't implement mouseDownCanMoveWindow, so the
+    // method is added to it, overriding NSView's. If the class already has it, as when an earlier
+    // window added it, or if Qt one day implements it, the class keeps the one it has.
+    // SAFETY: the function has the method's signature, which the types describe, and the class is
+    // only changed on the main thread, which AppKit's views are used on
+    unsafe {
+        let imp = core::mem::transmute::<extern "C-unwind" fn(&AnyObject, Sel) -> Bool, Imp>(
+            mouse_down_can_move_window,
+        );
+        objc::class_addMethod(
+            class.cast_mut(),
+            sel!(mouseDownCanMoveWindow),
+            imp,
+            types.as_ptr(),
+        );
+    }
 }
 
 pub fn show_window_menu(_window: Pin<&mut QWindow>, _x: f64, _y: f64) -> bool {

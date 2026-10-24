@@ -328,7 +328,8 @@ pub mod qobject {
         /// shown. Returns whether the platform can: on Windows, where a window keeps its resize
         /// borders, shadow, snapping, and animations this way, which frameless windows lack, and
         /// on macOS, where the window keeps its buttons, which `place_window_buttons` places, and
-        /// must have the `ExpandedClientAreaHint` and `NoTitleBarBackgroundHint` flags.
+        /// must have the `ExpandedClientAreaHint` and `NoTitleBarBackgroundHint` flags. There,
+        /// the app's title bar takes the presses under the native one, and moves the window.
         #[qinvokable]
         unsafe fn hide_title_bar(self: &Native, window: *mut QQuickWindow) -> bool;
 
