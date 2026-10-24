@@ -148,8 +148,9 @@ MouseArea {
     }
 
     function selectedText() {
-        // rich text separates its lines with Unicode's separators, and keeps non-breaking spaces
-        return _items.filter(item => item.selectedText !== "").map(item => item.selectedText.replace(/[\u2028\u2029]/g, "\n").replace(/\u00a0/g, " ")).join(separator);
+        // a TextEdit's own selectedText runs the cells of rich text's tables together, and keeps
+        // its line separators and non-breaking spaces
+        return _items.filter(item => item.selectedText !== "").map(item => Native.selectedText(item.textDocument, item.selectionStart, item.selectionEnd)).filter(text => text !== "").join(separator);
     }
 
     onPressed: mouse => {

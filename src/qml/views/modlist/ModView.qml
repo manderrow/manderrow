@@ -251,6 +251,8 @@ Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
             flickable: scroll
+            // so that the keyboard can scroll the README and changelog, which have nothing to focus
+            focusable: true
 
             Flickable {
                 id: scroll
@@ -259,6 +261,11 @@ Item {
                 contentHeight: scrollContent.implicitHeight
                 boundsBehavior: Flickable.StopAtBounds
                 clip: true
+                Accessible.role: Accessible.Pane
+                Accessible.name: {
+                    const tab = tabs.model.find(tab => tab.id === tabs.currentId);
+                    return tab ? tab.name : "";
+                }
 
                 /// How far the content reaches past the view.
                 property real overflow: 0

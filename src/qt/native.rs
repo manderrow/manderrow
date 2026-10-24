@@ -380,6 +380,16 @@ pub mod qobject {
             hover_color: &QColor,
         );
 
+        /// The text between `start` and `end` of a TextEdit's `textDocument`, as a browser
+        /// copies it, with a table's cells separated by tabs and its rows by newlines.
+        #[qinvokable]
+        unsafe fn selected_text(
+            self: &Native,
+            document: *mut QObject,
+            start: i32,
+            end: i32,
+        ) -> QString;
+
         /// Takes over moving the focus with Tab and Shift+Tab in every window: `handler(forward)`
         /// is called before the key reaches any item, and the key goes no further if it returns
         /// true.
@@ -706,6 +716,14 @@ impl qobject::Native {
         // SAFETY: QML passes a live item or null
         if let Some(edit) = unsafe { edit.as_ref() } {
             qobject::hover_link(edit, position, href, link_color, hover_color);
+        }
+    }
+
+    unsafe fn selected_text(&self, document: *mut QObject, start: i32, end: i32) -> QString {
+        // SAFETY: QML passes a live object or null
+        match unsafe { document.as_ref() } {
+            Some(document) => super::rich_text::selected_text(document, start, end),
+            None => QString::default(),
         }
     }
 
