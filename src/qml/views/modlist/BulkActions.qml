@@ -106,12 +106,13 @@ Item {
                     radius: 8
                     color: Theme.neutral80
                     border.color: Theme.neutral70
+                    border.width: Ui.hairline
 
                     RoundedImage {
                         id: art
                         anchors.fill: parent
-                        anchors.margins: 1
-                        radius: card.radius - 1
+                        anchors.margins: Ui.hairline
+                        radius: card.radius - Ui.hairline
                         source: Util.getIconUrl(Util.getQualifiedModName(card.modelData.owner, card.modelData.name, card.modelData.version))
                         // replaced by the blurred copy, through which it would show otherwise
                         opacity: card.overflow ? 0 : 1
@@ -150,14 +151,16 @@ Item {
         }
 
         // the header
-        Rectangle {
+        Item {
             Layout.fillWidth: true
             Layout.rightMargin: Theme.rem
             implicitHeight: headerRow.implicitHeight + Theme.rem
-            topLeftRadius: 0.5 * Theme.rem
-            topRightRadius: 0.5 * Theme.rem
-            color: "transparent"
-            border.color: bulk.bulkBorder
+
+            BoxBackground {
+                topLeftRadius: 0.5 * Theme.rem
+                topRightRadius: 0.5 * Theme.rem
+                border.color: bulk.bulkBorder
+            }
 
             RowLayout {
                 id: headerRow
@@ -220,9 +223,10 @@ Item {
                     parent: table
                     x: -table.contentX
                     width: table.tableWidth
-                    height: table.height + 1
+                    height: table.height + Ui.hairline
                     color: "transparent"
                     border.color: bulk.bulkBorder
+                    border.width: Ui.hairline
                     z: 1
                 }
 
@@ -234,7 +238,7 @@ Item {
                     readonly property var mod: bulk.installedMod(modelData)
 
                     width: table.rowWidth
-                    implicitHeight: entryRow.implicitHeight + 2 * bulk.rowPadding + 1
+                    implicitHeight: entryRow.implicitHeight + 2 * bulk.rowPadding + Ui.hairline
                     color: entryHover.hovered ? Theme.neutral75 : index % 2 === 1 ? Theme.neutral80 : "transparent"
 
                     HoverHandler {
@@ -243,7 +247,7 @@ Item {
                     Rectangle {
                         anchors.bottom: parent.bottom
                         width: parent.width
-                        height: 1
+                        height: Ui.hairline
                         color: bulk.bulkBorder
                     }
 
@@ -251,7 +255,7 @@ Item {
                         id: entryRow
                         anchors.fill: parent
                         anchors.margins: bulk.rowPadding
-                        anchors.bottomMargin: bulk.rowPadding + 1
+                        anchors.bottomMargin: bulk.rowPadding + Ui.hairline
                         spacing: bulk.columnGap
 
                         Btn {
@@ -316,14 +320,16 @@ Item {
         }
 
         // the summary
-        Rectangle {
+        Item {
             Layout.fillWidth: true
             Layout.rightMargin: Theme.rem
             implicitHeight: summaryRow.implicitHeight + Theme.rem
-            bottomLeftRadius: 0.5 * Theme.rem
-            bottomRightRadius: 0.5 * Theme.rem
-            color: "transparent"
-            border.color: bulk.bulkBorder
+
+            BoxBackground {
+                bottomLeftRadius: 0.5 * Theme.rem
+                bottomRightRadius: 0.5 * Theme.rem
+                border.color: bulk.bulkBorder
+            }
 
             RowLayout {
                 id: summaryRow

@@ -87,7 +87,7 @@ Rectangle {
         anchors.fill: parent
         color: "transparent"
         border.color: Theme.primary45
-        border.width: 1
+        border.width: Ui.hairline
         visible: profileItem.isPivot && (profileItem.listFocused || profileItem._menuOpen)
         z: 2
     }

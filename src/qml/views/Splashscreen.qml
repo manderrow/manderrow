@@ -148,12 +148,15 @@ Item {
             height: 0.6 * 1.5 * Theme.rem
             radius: height / 2
             border.color: Theme.hsl(210, 11, 35)
+            border.width: Ui.hairline
             clip: true
             color: "transparent"
 
+            PixelSnap {}
+
             Item {
                 anchors.fill: parent
-                anchors.margins: 1
+                anchors.margins: Ui.hairline
                 clip: true
 
                 Row {

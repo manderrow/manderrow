@@ -12,7 +12,7 @@ AbstractButton {
     property bool mini: false
 
     readonly property bool hot: enabled && (hovered || visualFocus)
-    readonly property real borderWidth: mini ? 0 : 2
+    readonly property real borderWidth: mini ? 0 : Ui.snapBorder(2)
     // the start and end of `linear-gradient(20deg, ...)` across this button
     readonly property real _len: width * Math.sin(20 * Math.PI / 180) + height * Math.cos(20 * Math.PI / 180)
     readonly property real _dx: Math.sin(20 * Math.PI / 180) * _len / 2

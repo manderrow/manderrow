@@ -57,13 +57,15 @@ Dialog {
             }
         }
 
-        Rectangle {
+        Item {
             visible: disclosure.expanded
             Layout.fillWidth: true
             Layout.preferredHeight: Math.min(pre.implicitHeight + 2 * 0.5 * Theme.rem, (Ui.window ? Ui.window.height : 600) * 0.7)
-            color: "transparent"
-            border.color: Theme.neutral70
-            radius: 0.5 * Theme.rem
+
+            BoxBackground {
+                border.color: Theme.neutral70
+                radius: 0.5 * Theme.rem
+            }
 
             Flickable {
                 anchors.fill: parent

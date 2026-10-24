@@ -2,7 +2,7 @@ import QtQuick
 import Manderrow
 
 // A game in the list layout of the game selection screen.
-Rectangle {
+Item {
     id: row
 
     required property var game
@@ -22,32 +22,35 @@ Rectangle {
     Keys.onReturnPressed: row.selected()
     Keys.onEnterPressed: row.selected()
 
-    radius: hovered ? 5 : 0
-    color: hovered ? Qt.rgba(225 / 255, 225 / 255, 225 / 255, 0.1) : Qt.rgba(225 / 255, 225 / 255, 225 / 255, 0)
-    border.width: hovered ? 1 : 0
-    border.color: Qt.rgba(215 / 255, 215 / 255, 215 / 255, 0.2)
-
-    Behavior on color {
-        SmoothColorAnimation {
-            duration: 200
-            curve: Theme.easeOut
-        }
-    }
-
     HoverHandler {
         id: hover
     }
 
-    FocusRing {
-        radius: parent.radius
-    }
+    BoxBackground {
+        radius: row.hovered ? 5 : 0
+        color: row.hovered ? Qt.rgba(225 / 255, 225 / 255, 225 / 255, 0.1) : Qt.rgba(225 / 255, 225 / 255, 225 / 255, 0)
+        border.width: row.hovered ? Ui.hairline : 0
+        border.color: Qt.rgba(215 / 255, 215 / 255, 215 / 255, 0.2)
 
-    // the top border separating rows
-    Rectangle {
-        visible: !row.hovered && row.hoveredRow !== row.index - 1
-        width: parent.width
-        height: 1
-        color: Qt.rgba(215 / 255, 215 / 255, 215 / 255, 0.2)
+        Behavior on color {
+            SmoothColorAnimation {
+                duration: 200
+                curve: Theme.easeOut
+            }
+        }
+
+        FocusRing {
+            target: row
+            radius: parent.radius
+        }
+
+        // the top border separating rows
+        Rectangle {
+            visible: !row.hovered && row.hoveredRow !== row.index - 1
+            width: parent.width
+            height: Ui.hairline
+            color: Qt.rgba(215 / 255, 215 / 255, 215 / 255, 0.2)
+        }
     }
 
     Row {

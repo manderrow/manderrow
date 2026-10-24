@@ -71,6 +71,8 @@ Popup {
             anchors.fill: parent
             color: dialog.backgroundColor
             radius: dialog.cornerRadius
+
+            PixelSnap {}
         }
     }
 

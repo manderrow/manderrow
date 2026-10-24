@@ -141,7 +141,7 @@ Item {
                             id: tabBar
                             Layout.fillWidth: true
                             Layout.bottomMargin: 0.75 * Theme.rem
-                            implicitHeight: tabs.implicitHeight + 2 * 0.3 * Theme.rem + 1
+                            implicitHeight: tabs.implicitHeight + 2 * 0.3 * Theme.rem + Ui.hairline
                             color: Theme.surface(Theme.neutral90)
 
                             PillTabs {
@@ -172,7 +172,7 @@ Item {
                             Rectangle {
                                 anchors.bottom: parent.bottom
                                 width: parent.width
-                                height: 1
+                                height: Ui.hairline
                                 color: Theme.neutral80
                             }
                         }

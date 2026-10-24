@@ -12,8 +12,6 @@ mod ffi {
 
         #[rust_name = "win_id"]
         fn winId(self: &QWindow) -> quintptr;
-        #[rust_name = "device_pixel_ratio"]
-        fn devicePixelRatio(self: &QWindow) -> f64;
     }
 }
 

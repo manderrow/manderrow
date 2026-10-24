@@ -26,11 +26,16 @@ ApplicationWindow {
     font.family: Theme.font
     font.pixelSize: Theme.rem
 
-    // the screen's pixel ratio, for effects that work in device pixels
-    Binding {
-        target: Ui
-        property: "dpr"
-        value: appWindow.screen ? appWindow.screen.devicePixelRatio : 1
+    // the window's pixel ratio, for effects that work in device pixels. Its screen's can differ:
+    // with fractional scaling on Wayland, a screen's is the scale rounded up to a whole number.
+    function _updateDpr() {
+        Ui.dpr = Native.devicePixelRatio(appWindow);
+    }
+    Connections {
+        target: Native
+        function onDevicePixelRatioChanged() {
+            appWindow._updateDpr();
+        }
     }
 
     onWidthChanged: {
@@ -109,6 +114,7 @@ ApplicationWindow {
 
     Component.onCompleted: {
         Ui.window = appWindow;
+        _updateDpr();
         Ui.appContent = content;
         if (Qt.platform.os === "windows" || Qt.platform.os === "osx")
             _nativeFrame = Native.hideTitleBar(appWindow);
@@ -224,6 +230,13 @@ ApplicationWindow {
         target: appWindow.Overlay.overlay
         property: "containmentMask"
         value: Ui.belowTitleBar
+    }
+
+    // snaps boxes onto device pixels before each frame is drawn, after animations and layouts have
+    // moved them
+    onAfterAnimating: {
+        for (const snap of Ui.pixelSnaps)
+            snap.update();
     }
 
     // browser-like focus, Tab, and keyboard scrolling

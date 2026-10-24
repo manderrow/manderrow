@@ -26,13 +26,13 @@ Dropdown {
 
                 Layout.fillWidth: true
                 implicitWidth: entry.modelData.spacer ? 0 : itemBtn.implicitWidth + 2 * 0.35 * Theme.rem
-                implicitHeight: entry.modelData.spacer ? 1 + 2 * 0.35 * Theme.rem : itemBtn.implicitHeight
+                implicitHeight: entry.modelData.spacer ? Ui.hairline + 2 * 0.35 * Theme.rem : itemBtn.implicitHeight
 
                 Rectangle {
                     visible: !!entry.modelData.spacer
                     anchors.verticalCenter: parent.verticalCenter
                     width: parent.width
-                    height: 1
+                    height: Ui.hairline
                     color: Theme.neutral70
                 }
 

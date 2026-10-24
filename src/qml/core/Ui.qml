@@ -9,8 +9,19 @@ QtObject {
     property Item appContent: null
     /// The width of the "0" glyph at the root font size, for widths specified in `ch`.
     property real ch: 8.8
-    /// The device pixel ratio of the window's screen.
+    /// The device pixel ratio of the window, at which it is drawn, which may not be its screen's.
     property real dpr: 1
+    /// The width of a 1px line or border, snapped to whole device pixels.
+    readonly property real hairline: snapBorder(1)
+
+    /// The width of a `width`px line or border, snapped to whole device pixels as browsers snap
+    /// border widths: rounded down, to no less than one device pixel. At fractional pixel ratios a
+    /// line a whole number of logical pixels wide covers more or fewer rows of device pixels
+    /// depending on where it falls, and Qt rounds a border that wide to the nearest device pixel,
+    /// so a 1px border is two device pixels wide at 1.5x.
+    function snapBorder(width: real): real {
+        return width <= 0 ? 0 : Math.max(1, Math.floor(width * dpr + 1e-6)) / dpr;
+    }
     /// The name of the profile being viewed, shown in the title bar.
     property string currentProfileName: ""
     /// A containmentMask for full-window items that leaves out the title bar.
@@ -33,6 +44,8 @@ QtObject {
     readonly property var scrollers: []
     /// Every FocusGroup, which add and remove themselves.
     readonly property var focusGroups: []
+    /// Every PixelSnap, which add and remove themselves.
+    readonly property var pixelSnaps: []
 
     /// Whether `item` is `ancestor` or inside it. With the window's `activeFocusItem`, this is
     /// CSS's `:focus-within`.

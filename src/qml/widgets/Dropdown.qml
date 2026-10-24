@@ -162,7 +162,10 @@ Item {
                     anchors.fill: parent
                     color: Theme.neutral80
                     border.color: Theme.neutral70
+                    border.width: Ui.hairline
                     radius: 4
+
+                    PixelSnap {}
                 }
             }
 

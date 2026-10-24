@@ -44,7 +44,7 @@ Item {
         Repeater {
             model: root.dependencies || []
 
-            delegate: Rectangle {
+            delegate: Item {
                 id: dependency
 
                 required property string modelData
@@ -54,13 +54,16 @@ Item {
 
                 width: column.width
                 height: row.implicitHeight + Theme.rem
-                radius: 4
-                color: hover.hovered ? Theme.neutral75 : Theme.alpha(Theme.neutral75, 0)
-                border.color: Theme.neutral75
 
-                Behavior on color {
-                    SmoothColorAnimation {
-                        duration: 100
+                BoxBackground {
+                    radius: 4
+                    color: hover.hovered ? Theme.neutral75 : Theme.alpha(Theme.neutral75, 0)
+                    border.color: Theme.neutral75
+
+                    Behavior on color {
+                        SmoothColorAnimation {
+                            duration: 100
+                        }
                     }
                 }
 

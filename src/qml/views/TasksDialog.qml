@@ -30,7 +30,7 @@ Dialog {
         Rectangle {
             Layout.fillWidth: true
             Layout.bottomMargin: 0.5 * Theme.rem
-            implicitHeight: 1
+            implicitHeight: Ui.hairline
             color: Theme.neutral70
         }
 
@@ -105,7 +105,7 @@ Dialog {
                 Rectangle {
                     visible: entry.index > 0
                     Layout.fillWidth: true
-                    implicitHeight: 2
+                    implicitHeight: Ui.snapBorder(2)
                     color: "white"
                 }
 

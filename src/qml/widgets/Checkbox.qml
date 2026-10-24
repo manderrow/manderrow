@@ -13,11 +13,13 @@ Rectangle {
 
     // .switchDefault: 1em wide with border-box sizing; its height is the icon's plus the border
     implicitWidth: size
-    implicitHeight: size + 2
+    implicitHeight: size + 2 * Ui.hairline
     radius: 2
     color: checked ? Theme.primary40 : Theme.alpha(Theme.primary40, 0)
     border.color: Theme.neutral60
-    border.width: 1
+    border.width: Ui.hairline
+
+    PixelSnap {}
 
     // the check fills the box inside its border
     CheckMark {

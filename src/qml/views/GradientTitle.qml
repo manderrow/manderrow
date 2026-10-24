@@ -67,7 +67,7 @@ Item {
     component Rule: Rectangle {
         property bool leading
         width: title.width * 0.2
-        height: 2
+        height: Ui.snapBorder(2)
         anchors.verticalCenter: parent.verticalCenter
         gradient: Gradient {
             orientation: Gradient.Horizontal

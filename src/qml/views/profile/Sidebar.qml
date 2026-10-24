@@ -121,7 +121,7 @@ Rectangle {
     // border-right
     Rectangle {
         anchors.right: parent.right
-        width: 1
+        width: Ui.hairline
         height: parent.height
         color: Theme.neutral80
         z: 3
@@ -154,7 +154,7 @@ Rectangle {
         activeTextColor: Theme.primary55
         activeBgColor: sidebar.expanded ? Theme.neutral90 : Theme.neutral80
         bgColor: sidebar.expanded ? Theme.neutral90 : "transparent"
-        x: sidebar.expanded ? sidebar.width - 1 : (sidebar.width - width) / 2
+        x: sidebar.expanded ? sidebar.width - Ui.hairline : (sidebar.width - width) / 2
         y: (sidebar.height - height) / 2
         onClicked: sidebar.open = !sidebar.open
 
@@ -166,6 +166,9 @@ Rectangle {
             color: "transparent"
             radius: expandBtn.rightRadius
             border.color: Theme.neutral70
+            border.width: Ui.hairline
+
+            PixelSnap {}
         }
     }
 
@@ -234,7 +237,7 @@ Rectangle {
                 visible: !sidebar.mini
                 anchors.bottom: parent.bottom
                 width: parent.width
-                height: 1
+                height: Ui.hairline
                 color: Theme.neutral80
             }
 
@@ -299,7 +302,7 @@ Rectangle {
                     background: Rectangle {
                         radius: height / 2
                         border.color: session.edge
-                        border.width: 2
+                        border.width: Ui.snapBorder(2)
                         gradient: Gradient {
                             orientation: Gradient.Horizontal
                             GradientStop {
@@ -315,6 +318,8 @@ Rectangle {
                                 color: session.tone3
                             }
                         }
+
+                        PixelSnap {}
                     }
                 }
 
@@ -409,20 +414,23 @@ Rectangle {
                 }
             }
 
-            Rectangle {
+            Item {
                 id: searchForm
                 Layout.fillWidth: true
                 Layout.leftMargin: 0.5 * Theme.rem
                 Layout.rightMargin: 0.5 * Theme.rem
-                implicitHeight: searchRow.implicitHeight + 2
-                radius: 4
-                color: Theme.neutral80
-                border.color: Theme.neutral70
+                implicitHeight: searchRow.implicitHeight + 2 * Ui.hairline
+
+                BoxBackground {
+                    radius: 4
+                    color: Theme.neutral80
+                    border.color: Theme.neutral70
+                }
 
                 RowLayout {
                     id: searchRow
                     anchors.fill: parent
-                    anchors.margins: 1
+                    anchors.margins: Ui.hairline
                     spacing: 0
 
                     Field {
@@ -561,7 +569,7 @@ Rectangle {
             Rectangle {
                 visible: !sidebar.mini
                 width: parent.width
-                height: 1
+                height: Ui.hairline
                 color: Theme.neutral80
             }
 

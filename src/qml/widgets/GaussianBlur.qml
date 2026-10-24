@@ -18,7 +18,7 @@ Item {
     /// Hides `source` itself while this shows, for a blur that covers it all.
     property bool hidesSource: false
 
-    readonly property real _dpr: Screen.devicePixelRatio > 0 ? Screen.devicePixelRatio : 1
+    readonly property real _dpr: Ui.dpr
 
     ShaderEffectSource {
         id: capture

@@ -3,7 +3,7 @@ import QtQuick.Layouts
 import Manderrow
 
 // The search bar of a mod list, ported from ModSearch.tsx.
-Rectangle {
+Item {
     id: search
 
     property string query: ""
@@ -15,16 +15,19 @@ Rectangle {
     signal sortEdited(var sort)
     signal profileSortOrderEdited(bool order)
 
-    implicitHeight: row.implicitHeight + 2
-    radius: height / 2
-    color: Theme.neutral80
-    border.color: field.activeFocus ? Theme.primary50 : Theme.neutral75
+    implicitHeight: row.implicitHeight + 2 * Ui.hairline
+
+    BoxBackground {
+        radius: height / 2
+        color: Theme.neutral80
+        border.color: field.activeFocus ? Theme.primary50 : Theme.neutral75
+    }
 
     RowLayout {
         id: row
         anchors.fill: parent
-        anchors.margins: 1
-        anchors.rightMargin: Theme.rem + 1
+        anchors.margins: Ui.hairline
+        anchors.rightMargin: Theme.rem + Ui.hairline
         spacing: 0.5 * Theme.rem
 
         Field {
@@ -42,6 +45,10 @@ Rectangle {
 
         Row {
             Layout.fillHeight: true
+            // its implicit height is its own height, which its children take, so it would size
+            // the bar after itself. The layouts' pixel snapping grows a bar sized like that
+            // without end at some pixel ratios.
+            Layout.preferredHeight: 0
 
             SelectDropdown {
                 height: parent.height

@@ -60,12 +60,12 @@ Item {
         Item {
             Layout.fillWidth: true
             Layout.rightMargin: 1.5 * Theme.rem
-            implicitHeight: headerRow.implicitHeight + 1
+            implicitHeight: headerRow.implicitHeight + Ui.hairline
 
             Rectangle {
                 anchors.bottom: parent.bottom
                 width: parent.width
-                height: 1
+                height: Ui.hairline
                 color: Theme.neutral70
             }
 
@@ -86,7 +86,7 @@ Item {
                         Layout.fillHeight: true
                         Layout.leftMargin: 0.25 * Theme.rem
                         Layout.rightMargin: 0.5 * Theme.rem
-                        implicitWidth: 1
+                        implicitWidth: Ui.hairline
                         color: Theme.neutral80
                     }
                     component Label: Text {
@@ -162,7 +162,7 @@ Item {
                             Repeater {
                                 model: consoleView.visibleLevelsOptions
 
-                                delegate: Rectangle {
+                                delegate: Item {
                                     id: toggle
 
                                     required property string modelData
@@ -170,9 +170,11 @@ Item {
 
                                     implicitWidth: toggleText.implicitWidth + Theme.rem
                                     implicitHeight: toggleText.implicitHeight + 0.5 * Theme.rem
-                                    radius: height / 2
-                                    color: "transparent"
-                                    border.color: on ? Theme.primary50 : Theme.neutral70
+
+                                    BoxBackground {
+                                        radius: height / 2
+                                        border.color: toggle.on ? Theme.primary50 : Theme.neutral70
+                                    }
 
                                     Text {
                                         id: toggleText
@@ -183,7 +185,7 @@ Item {
                                         font.pixelSize: 0.8 * Theme.rem
                                     }
                                     ClickArea {
-                                        radius: parent.radius
+                                        radius: toggle.height / 2
                                         onActivated: {
                                             const levels = Object.assign({}, consoleView.visibleLevels);
                                             levels[toggle.modelData] = !toggle.on;

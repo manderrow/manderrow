@@ -34,7 +34,7 @@ Item {
     /// rather than anywhere over the item, which only hints at it with a line along that edge.
     readonly property bool _selectorShown: selectable && (forceSelectorVisibility || selected || selectorHover.hovered)
 
-    implicitHeight: row.implicitHeight + 2
+    implicitHeight: row.implicitHeight + 2 * Ui.hairline
     // a role="button" with tabIndex 0 on the web
     activeFocusOnTab: true
     Keys.onReturnPressed: modItem.focusToggled()
@@ -50,7 +50,7 @@ Item {
         anchors.fill: parent
         radius: modItem.hot || modItem.focused ? 6 : 0
         color: modItem.hot ? (modItem.focused ? Theme.neutral70 : Theme.neutral80) : modItem.focused ? Theme.neutral80 : Theme.alpha(Theme.neutral80, 0)
-        border.width: 1
+        border.width: Ui.hairline
         border.color: tap.pressed ? Theme.neutral50 : modItem.focused ? Theme.primary60 : modItem.hot ? Theme.neutral70 : Theme.alpha(Theme.neutral70, 0)
 
         Behavior on color {
@@ -72,6 +72,8 @@ Item {
             }
         }
 
+        PixelSnap {}
+
         FocusRing {
             target: modItem
             radius: parent.radius
@@ -81,7 +83,7 @@ Item {
         Rectangle {
             visible: !modItem.hot && !modItem.focused && !modItem.previousHot
             width: parent.width
-            height: 1
+            height: Ui.hairline
             color: Theme.neutral80
         }
     }
@@ -101,9 +103,9 @@ Item {
 
     RowLayout {
         id: row
-        x: 1
-        y: 1
-        width: parent.width - 2
+        x: Ui.hairline
+        y: Ui.hairline
+        width: parent.width - 2 * Ui.hairline
         spacing: 0
 
         // the bulk selection checkbox, which grows in when the pointer nears it
@@ -154,7 +156,7 @@ Item {
                 height: modItem._selectorShown ? 18 : hint ? 30 : 0
                 radius: 2
                 color: "transparent"
-                border.width: modItem._selectorShown ? 2 : hint ? 1.5 : 0
+                border.width: modItem._selectorShown ? Ui.snapBorder(2) : hint ? Ui.snapBorder(1.5) : 0
                 border.color: modItem.selected || selectorHover.hovered || hint ? Theme.neutral15 : Theme.neutral45
 
                 Behavior on x {
@@ -181,6 +183,8 @@ Item {
                         curve: Theme.easeInOut
                     }
                 }
+
+                PixelSnap {}
 
                 // the check is revealed like the Checkbox's, and hidden at once when unchecked. It
                 // fills the box inside its border.

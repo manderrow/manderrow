@@ -373,7 +373,7 @@ Item {
                 Rectangle {
                     parent: list
                     anchors.right: parent.right
-                    width: 1
+                    width: Ui.hairline
                     height: parent.height
                     color: Theme.neutral80
                     z: 1

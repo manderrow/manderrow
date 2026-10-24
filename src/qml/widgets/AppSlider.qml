@@ -36,7 +36,9 @@ Basic.Slider {
         radius: width / 2
         color: control.pressed ? Theme.neutral20 : control.hovered ? Theme.neutral10 : Theme.neutral05
         border.color: Theme.primary50
-        border.width: 2
+        border.width: Ui.snapBorder(2)
+
+        PixelSnap {}
 
         FocusRing {
             target: control
