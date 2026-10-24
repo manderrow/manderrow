@@ -17,7 +17,7 @@ Item {
     }
 
     implicitWidth: row.implicitWidth
-    implicitHeight: scroller.implicitHeight + 1
+    implicitHeight: scroller.implicitHeight + Ui.hairline
 
     HorizontalScrollView {
         id: scroller
@@ -43,7 +43,7 @@ Item {
                     text: modelData.name
                     horizontalPadding: fontSize
                     topPadding: 0.4 * fontSize
-                    bottomPadding: 0.4 * fontSize + 2
+                    bottomPadding: 0.4 * fontSize + Ui.snapBorder(2)
                     textColor: isCurrent ? "white" : Theme.neutral40
                     activeTextColor: isCurrent ? "white" : Theme.neutral20
                     activeBgColor: "transparent"
@@ -56,7 +56,7 @@ Item {
                     Rectangle {
                         anchors.bottom: parent.bottom
                         width: parent.width
-                        height: 2
+                        height: Ui.snapBorder(2)
                         color: parent.isCurrent ? Theme.neutral20 : "transparent"
                     }
                 }
@@ -68,7 +68,7 @@ Item {
     Rectangle {
         anchors.bottom: parent.bottom
         width: parent.width
-        height: 1
+        height: Ui.hairline
         color: Theme.neutral70
     }
 }

@@ -357,7 +357,7 @@ Rectangle {
 
         property Item slot: null
         // the border is outside the input
-        readonly property real contentHeight: searchField.implicitHeight + 2
+        readonly property real contentHeight: searchField.implicitHeight + 2 * Ui.hairline
         // the slot scrolls with the list's header; reading contentY re-evaluates this as it does
         readonly property real naturalY: slot ? slot.mapToItem(page, 0, list.contentY * 0).y : 0
 
@@ -391,11 +391,14 @@ Rectangle {
                 radius: 0.5 * Theme.rem
                 color: Theme.alpha(Theme.neutral80, 0.5)
                 border.color: Theme.alpha(Theme.neutral60, 0.5)
+                border.width: Ui.hairline
+
+                PixelSnap {}
             }
 
             Row {
                 anchors.fill: parent
-                anchors.margins: 1
+                anchors.margins: Ui.hairline
 
                 Field {
                     id: searchField

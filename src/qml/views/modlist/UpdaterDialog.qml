@@ -44,18 +44,20 @@ Dialog {
             font.variableAxes: ({ "wght": Font.Medium })
         }
 
-        Rectangle {
+        Item {
             Layout.fillWidth: true
-            implicitHeight: listColumn.implicitHeight + 2
-            radius: 0.5 * Theme.rem
-            color: "transparent"
-            border.color: Theme.neutral70
+            implicitHeight: listColumn.implicitHeight + 2 * Ui.hairline
+
+            BoxBackground {
+                radius: 0.5 * Theme.rem
+                border.color: Theme.neutral70
+            }
 
             ColumnLayout {
                 id: listColumn
-                x: 1
-                y: 1
-                width: parent.width - 2
+                x: Ui.hairline
+                y: Ui.hairline
+                width: parent.width - 2 * Ui.hairline
                 spacing: 0
 
                 RowLayout {
@@ -88,7 +90,7 @@ Dialog {
 
                 Rectangle {
                     Layout.fillWidth: true
-                    implicitHeight: 1
+                    implicitHeight: Ui.hairline
                     color: Theme.neutral70
                 }
 

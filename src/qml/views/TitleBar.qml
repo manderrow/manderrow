@@ -48,7 +48,7 @@ Rectangle {
     Rectangle {
         anchors.bottom: parent.bottom
         width: parent.width
-        height: 1
+        height: Ui.hairline
         color: Theme.neutral80
     }
 

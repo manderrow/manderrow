@@ -41,7 +41,7 @@ ToolTip {
         font.weight: 320
         font.variableAxes: ({ "wght": 320 })
         wrapMode: Text.Wrap
-        width: Math.min(implicitWidth, tip._maxWidth - 2 * tip.padding - 2)
+        width: Math.min(implicitWidth, tip._maxWidth - 2 * tip.padding - 2 * Ui.hairline)
     }
 
     background: Item {
@@ -57,7 +57,10 @@ ToolTip {
             anchors.fill: parent
             color: Theme.neutral80
             border.color: Theme.neutral70
+            border.width: Ui.hairline
             radius: 4
+
+            PixelSnap {}
         }
 
         // the arrow, pointing at the target

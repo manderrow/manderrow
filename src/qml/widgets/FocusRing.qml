@@ -15,7 +15,7 @@ Rectangle {
     anchors.fill: parent
     color: "transparent"
     border.color: Theme.warn5
-    border.width: 2
+    border.width: Ui.snapBorder(2)
     visible: shown
     z: 100
 }

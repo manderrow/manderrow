@@ -184,14 +184,17 @@ Item {
                 }
 
                 // the donation link
-                Rectangle {
+                Item {
                     visible: !!view.mod.donation_link
                     Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                     implicitWidth: donate.implicitWidth + 2 * Theme.rem
                     implicitHeight: donate.implicitHeight + Theme.rem
-                    radius: 4
-                    color: "transparent"
-                    border.color: Theme.neutral70
+
+                    BoxBackground {
+                        id: donateBox
+                        radius: 4
+                        border.color: Theme.neutral70
+                    }
 
                     Column {
                         id: donate
@@ -214,7 +217,7 @@ Item {
 
                     ClickArea {
                         id: donateHover
-                        radius: parent.radius
+                        radius: donateBox.radius
                         activatesOnSpace: false
                         onActivated: Util.openUrl(view.mod.donation_link)
                     }
@@ -304,18 +307,18 @@ Item {
         Item {
             Layout.fillWidth: true
             Layout.rightMargin: Theme.rem
-            implicitHeight: (view.installed === undefined ? onlineActions.implicitHeight : installedActions.implicitHeight) + 0.5 * Theme.rem + 0.75 * Theme.rem + 1
+            implicitHeight: (view.installed === undefined ? onlineActions.implicitHeight : installedActions.implicitHeight) + 0.5 * Theme.rem + 0.75 * Theme.rem + Ui.hairline
 
             Rectangle {
                 width: parent.width
-                height: 1
+                height: Ui.hairline
                 color: Theme.neutral70
             }
 
             RowLayout {
                 id: onlineActions
                 visible: view.installed === undefined && view.installContext !== null
-                y: 0.5 * Theme.rem + 1
+                y: 0.5 * Theme.rem + Ui.hairline
                 width: parent.width
                 spacing: 0.25 * Theme.rem
 
@@ -356,7 +359,7 @@ Item {
             RowLayout {
                 id: installedActions
                 visible: view.installed !== undefined
-                y: 0.5 * Theme.rem + 1
+                y: 0.5 * Theme.rem + Ui.hairline
                 width: parent.width
                 spacing: 0.75 * Theme.rem
 

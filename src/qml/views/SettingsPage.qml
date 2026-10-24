@@ -38,20 +38,22 @@ Item {
         height: parent.height
 
         // the sidebar
-        Rectangle {
+        Item {
             id: navbar
             x: Theme.rem
             y: page.paddingBlock
             width: page.sidebarWidth
             // the content and the border around it
-            height: Math.min(navContent.implicitHeight + 2 * 1.25 * Theme.rem + 2, parent.height - 2 * page.paddingBlock)
-            radius: 6
-            color: "transparent"
-            border.color: Theme.neutral80
+            height: Math.min(navContent.implicitHeight + 2 * 1.25 * Theme.rem + 2 * Ui.hairline, parent.height - 2 * page.paddingBlock)
+
+            BoxBackground {
+                radius: 6
+                border.color: Theme.neutral80
+            }
 
             Flickable {
                 anchors.fill: parent
-                anchors.margins: 1
+                anchors.margins: Ui.hairline
                 contentHeight: navContent.implicitHeight + 2 * 1.25 * Theme.rem
                 clip: true
                 ScrollBar.vertical: AppScrollBar {}
@@ -143,7 +145,7 @@ Item {
                         visible: !option.isLast
                         anchors.bottom: parent.bottom
                         width: parent.width
-                        height: 1
+                        height: Ui.hairline
                         color: Theme.neutral80
                     }
 

@@ -35,6 +35,8 @@ AbstractButton {
     property color borderColor: variant === "ghost" ? Theme.neutral70 : "transparent"
     property color activeBorderColor: borderColor
     property real borderWidth: variant === "ghost" ? 1 : 0
+    /// The border's width, snapped to whole device pixels.
+    readonly property real _borderWidth: Ui.snapBorder(borderWidth)
     /// The corner radius. Defaults to a pill shape.
     property real radius: height / 2
     property real leftRadius: radius
@@ -57,8 +59,8 @@ AbstractButton {
     Keys.onReturnPressed: control.clicked()
     Keys.onEnterPressed: control.clicked()
     // the border adds to the size, as it does on the web
-    horizontalPadding: (padAll !== undefined ? padAll : 1.5 * fontSize) + borderWidth
-    verticalPadding: (padAll !== undefined ? padAll : 0.35 * fontSize) + borderWidth
+    horizontalPadding: (padAll !== undefined ? padAll : 1.5 * fontSize) + _borderWidth
+    verticalPadding: (padAll !== undefined ? padAll : 0.35 * fontSize) + _borderWidth
     spacing: 0.3 * fontSize
     opacity: enabled ? 1 : 0.5
     font.family: Theme.font
@@ -79,13 +81,15 @@ AbstractButton {
         bottomRightRadius: control.rightRadius
         color: control.active ? Theme.fadeFrom(control.activeBgColor, control.bgColor) : Theme.fadeFrom(control.bgColor, control.activeBgColor)
         border.color: control.active ? Theme.fadeFrom(control.activeBorderColor, control.borderColor) : Theme.fadeFrom(control.borderColor, control.activeBorderColor)
-        border.width: control.borderWidth
+        border.width: control._borderWidth
 
         Behavior on color {
             SmoothColorAnimation {
                 duration: 100
             }
         }
+
+        PixelSnap {}
 
         FocusRing {
             target: control

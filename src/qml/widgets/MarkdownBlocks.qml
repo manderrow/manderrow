@@ -165,7 +165,7 @@ Column {
                         readonly property real overflowWidth: headingText.overflowWidth
 
                         width: parent.width
-                        height: headingText.height + (slot.block.level === 1 ? 1 : 0)
+                        height: headingText.height + (slot.block.level === 1 ? Ui.hairline : 0)
 
                         RichBlock {
                             id: headingText
@@ -178,7 +178,7 @@ Column {
                             visible: slot.block.level === 1
                             anchors.bottom: parent.bottom
                             width: parent.width
-                            height: 1
+                            height: Ui.hairline
                             color: Theme.neutral80
                         }
                     }
@@ -436,7 +436,7 @@ Column {
                     id: rule
                     Rectangle {
                         width: parent.width
-                        height: 1
+                        height: Ui.hairline
                         color: Theme.neutral80
                     }
                 }

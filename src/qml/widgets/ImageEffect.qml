@@ -16,7 +16,7 @@ ShaderEffect {
     /// extending the edge pixels, as `backdrop-filter: blur()` does.
     property bool blurFadesEdges: true
 
-    readonly property real _dpr: Screen.devicePixelRatio > 0 ? Screen.devicePixelRatio : 1
+    readonly property real _dpr: Ui.dpr
     // the image's aspect ratio relative to this item's
     readonly property real _relativeAspect: image.implicitHeight > 0 && height > 0 ? (image.implicitWidth / image.implicitHeight) / (width / height) : 1
 

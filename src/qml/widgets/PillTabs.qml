@@ -35,7 +35,9 @@ Item {
         radius: 8
         color: Theme.lighten(Theme.neutral80, -2)
         border.color: Qt.rgba(0, 0, 0, 0.35)
-        border.width: 1
+        border.width: Ui.hairline
+
+        PixelSnap {}
     }
 
     Rectangle {
@@ -98,7 +100,7 @@ Item {
                 Rectangle {
                     visible: tab.separated
                     anchors.right: parent.right
-                    width: 1
+                    width: Ui.hairline
                     height: parent.height
                     color: Theme.neutral70
                 }

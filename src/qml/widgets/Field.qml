@@ -12,7 +12,7 @@ TextField {
     property color bgColor: Theme.neutral80
     property color borderColor: Theme.neutral70
     property real radius: variant === "pill" ? height / 2 : 4
-    readonly property real borderWidth: variant === "bare" ? 0 : 1
+    readonly property real borderWidth: variant === "bare" ? 0 : Ui.hairline
 
     font.family: Theme.font
     font.pixelSize: fontSize
@@ -34,5 +34,7 @@ TextField {
         border.color: field.borderColor
         border.width: field.borderWidth
         radius: field.radius
+
+        PixelSnap {}
     }
 }

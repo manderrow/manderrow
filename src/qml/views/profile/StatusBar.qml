@@ -29,7 +29,7 @@ Item {
         return { downloads, other };
     }
 
-    implicitHeight: row.implicitHeight + 2 * 0.2 * Theme.rem + 1
+    implicitHeight: row.implicitHeight + 2 * 0.2 * Theme.rem + Ui.hairline
 
     Rectangle {
         x: bar.leftInset
@@ -39,7 +39,7 @@ Item {
 
         Rectangle {
             width: parent.width
-            height: 1
+            height: Ui.hairline
             color: Theme.neutral80
         }
     }
@@ -53,7 +53,7 @@ Item {
     Row {
         id: row
         anchors.centerIn: parent
-        anchors.verticalCenterOffset: 0.5
+        anchors.verticalCenterOffset: Ui.hairline / 2
 
         component Chunk: Item {
             property alias text: label.text
@@ -74,7 +74,7 @@ Item {
             Rectangle {
                 visible: !parent.last
                 anchors.right: parent.right
-                width: 1
+                width: Ui.hairline
                 height: parent.height
                 color: Theme.neutral70
             }

@@ -79,6 +79,7 @@ pub mod qobject {
         WindowStateChange = 105,
         Expose = 206,
         ApplicationStateChange = 214,
+        DevicePixelRatioChange = 222,
     }
 
     #[namespace = "manderrow"]
@@ -169,6 +170,8 @@ pub mod qobject {
 
         #[rust_name = "map_to_global"]
         fn mapToGlobal(self: &QWindow, pos: &QPointF) -> QPointF;
+        #[rust_name = "device_pixel_ratio"]
+        fn devicePixelRatio(self: &QWindow) -> f64;
 
         #[rust_name = "grab_window"]
         fn grabWindow(self: Pin<&mut QQuickWindow>) -> QImage;
@@ -301,6 +304,13 @@ pub mod qobject {
             y: f64,
         ) -> *mut QQuickItem;
 
+        /// The ratio of a window's device pixels to its logical pixels, at which it is drawn. It
+        /// can differ from its screen's: with fractional scaling on Wayland, a screen's ratio is
+        /// the scale rounded up to a whole number. It changes as `device_pixel_ratio_changed` is
+        /// emitted.
+        #[qinvokable]
+        unsafe fn device_pixel_ratio(self: &Native, window: *mut QQuickWindow) -> f64;
+
         /// Blurs what is behind a translucent window, where the platform can: with Wayland
         /// compositors that support ext-background-effect or KWin's blur, with KWin on X11, on
         /// Windows 10 and 11, with an acrylic blur, and on macOS, once the window is shown.
@@ -399,6 +409,11 @@ pub mod qobject {
         /// configures one, such as a Wayland compositor with xdg_toplevel's configure event.
         #[qsignal]
         fn window_configured(self: Pin<&mut Native>);
+
+        /// The device pixel ratio of a window changed, as when it moved to a screen with another
+        /// scale.
+        #[qsignal]
+        fn device_pixel_ratio_changed(self: Pin<&mut Native>);
     }
 
     impl cxx_qt::Initialize for Native {}
@@ -629,6 +644,14 @@ impl qobject::Native {
         })
     }
 
+    unsafe fn device_pixel_ratio(&self, window: *mut QQuickWindow) -> f64 {
+        // SAFETY: QML passes a live window or null
+        let Some(window) = (unsafe { window.as_ref() }) else {
+            return 1.0;
+        };
+        Upcast::<QWindow>::upcast(window).device_pixel_ratio()
+    }
+
     unsafe fn set_blur_behind(&self, window: *mut QQuickWindow, enabled: bool) -> bool {
         let Some(window) = (unsafe { pin_window(window) }) else {
             return false;
@@ -739,6 +762,9 @@ impl qobject::Native {
             }
             QEventType::Expose | QEventType::WindowStateChange if to_window => {
                 self.window_configured();
+            }
+            QEventType::DevicePixelRatioChange if to_window => {
+                self.device_pixel_ratio_changed();
             }
             // Key releases are not delivered while the app is in the background.
             QEventType::ApplicationStateChange => {
