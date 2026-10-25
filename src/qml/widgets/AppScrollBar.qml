@@ -18,8 +18,10 @@ ScrollBar {
     property Item hoverArea: parent
 
     /// Whether there is anything to scroll. A view that hasn't been given a size yet has a size of
-    /// 0, but nothing to scroll.
-    readonly property bool scrollable: size > 0 && size < 1.0
+    /// 0, but nothing to scroll, and one whose content is less than half a pixel longer than it,
+    /// as rounding leaves content that fits at fractional pixel ratios, has nothing to scroll to,
+    /// as WheelScroll's `canScroll` has it. The bar is as long as the view.
+    readonly property bool scrollable: size > 0 && (1 / size - 1) * (orientation === Qt.Vertical ? height : width) > 0.5
     /// The space beside the content that the bar takes up while there is something to scroll: its
     /// width, or its height for a horizontal bar, when hovered.
     readonly property real gutter: scrollable ? (thin ? 6 : 10) + 2 * padding : 0
