@@ -286,21 +286,26 @@ MouseArea {
         _link = "";
     }
 
-    // scrolls while the pointer is dragged past the top or bottom of the view
-    Timer {
-        readonly property real overshoot: {
+    // scrolls while the pointer is dragged past the edges of the view, as WebKit does: every 50 ms,
+    // by as far as the pointer is past them, so that the farther it is, the faster it goes
+    FrameAnimation {
+        /// How far the pointer is past the view's edges.
+        readonly property point overshoot: {
             const scroller = area._scroller;
             if (!area.pressed || !area._dragged || !scroller)
-                return 0;
-            const y = scroller.flickable.mapFromItem(null, area._scenePoint).y;
-            return y < 0 ? y : Math.max(0, y - scroller.flickable.height);
+                return Qt.point(0, 0);
+            const f = scroller.flickable;
+            const p = f.mapFromItem(null, area._scenePoint);
+            return Qt.point(p.x < 0 ? p.x : Math.max(0, p.x - f.width), p.y < 0 ? p.y : Math.max(0, p.y - f.height));
         }
 
-        running: overshoot !== 0
-        repeat: true
-        interval: 16
+        running: overshoot.x !== 0 || overshoot.y !== 0
         onTriggered: {
-            area._scroller.scrollBy(Math.sign(overshoot) * Math.min(Math.abs(overshoot), 100) / 4, false);
+            const scale = frameTime * 1000 / 50;
+            if (overshoot.y !== 0)
+                area._scroller.scrollBy(overshoot.y * scale, false, true);
+            if (overshoot.x !== 0)
+                area._scroller.scrollBy(overshoot.x * scale, false, false);
             area._focus = area._locate(area._scenePoint);
             area._apply();
         }
