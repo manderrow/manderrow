@@ -79,10 +79,12 @@ impl AppHandle {
             exe_dir.join("..").join("lib").join("manderrow").join(name),
         ];
         if cfg!(debug_assertions) {
-            // Development builds run straight out of the target directory.
+            // Development builds run straight out of the target directory, so use the copy that
+            // build.rs leaves in the agent's zig-out.
             candidates.push(
                 PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-                    .join("../agent/zig-out")
+                    .join("agent")
+                    .join("zig-out")
                     .join(name),
             );
         }
