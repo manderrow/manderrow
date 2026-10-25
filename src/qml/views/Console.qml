@@ -23,6 +23,63 @@ Item {
         })
     property string searchInput: ""
 
+    /// Whether the levels and the search show a line of the log.
+    function shows(line) {
+        if (line.filter !== "" && !visibleLevels[line.filter])
+            return false;
+        return !line.searchable || line.message.includes(searchInput);
+    }
+
+    /// The text of the shown lines from one end of the log's selection to the other, a line of
+    /// the log to a line of text, with its type, scope, and message separated by spaces.
+    function textBetween(start, end) {
+        const events = connection.events;
+        const lines = [];
+        const last = Math.min(Math.floor(end.place / 3), log.count - 1);
+        for (let row = Math.floor(start.place / 3); row <= last; row++) {
+            const line = events.get(shownLines.mapToSource(shownLines.index(row, 0)).row);
+            const cells = [];
+            [line.type, line.scope, line.message].forEach((text, column) => {
+                const place = row * 3 + column;
+                if (place < start.place || place > end.place)
+                    return;
+                const cell = text.slice(place === start.place ? start.position : 0, place === end.place ? end.position : text.length);
+                if (cell !== "")
+                    cells.push(cell);
+            });
+            // as when the selection starts at the end of a line
+            if (cells.length > 0)
+                lines.push(cells.join(" "));
+        }
+        return lines.join("\n");
+    }
+
+    /// The lengths of the lines of the shown rows' messages, for estimating their heights, which
+    /// are found as they are needed.
+    property var _lineLengths: []
+    /// The events whose rows `_lineLengths` are of, and how many of them have been looked at.
+    property var _lineLengthsOf: null
+    property int _lineLengthsScanned: 0
+
+    function lineLengths(row) {
+        const events = connection ? connection.events : null;
+        if (_lineLengthsOf !== events || (events && events.count < _lineLengthsScanned))
+            _forgetLineLengths();
+        _lineLengthsOf = events;
+        while (events && _lineLengths.length <= row && _lineLengthsScanned < events.count) {
+            const line = events.get(_lineLengthsScanned++);
+            if (shows(line))
+                _lineLengths.push(line.message.split("\n").map(text => text.length));
+        }
+        return _lineLengths[row] || [0];
+    }
+
+    function _forgetLineLengths() {
+        _lineLengths = [];
+        _lineLengthsOf = null;
+        _lineLengthsScanned = 0;
+    }
+
     /// The lines of the connection's log that the levels and the search show.
     SortFilterProxyModel {
         id: shownLines
@@ -36,9 +93,7 @@ Item {
                     property string message
                 }
                 function filter(line: Line): bool {
-                    if (line.filter !== "" && !consoleView.visibleLevels[line.filter])
-                        return false;
-                    return !line.searchable || line.message.includes(consoleView.searchInput);
+                    return consoleView.shows(line);
                 }
             }
         ]
@@ -49,8 +104,16 @@ Item {
     }
 
     // the filter reads these, which the model doesn't watch
-    onVisibleLevelsChanged: shownLines.invalidate()
-    onSearchInputChanged: shownLines.invalidate()
+    onVisibleLevelsChanged: refilter()
+    onSearchInputChanged: refilter()
+    onConnectionChanged: logSelection.clear()
+
+    function refilter() {
+        logSelection.clear();
+        _forgetLineLengths();
+        shownLines.invalidate();
+        Qt.callLater(logBar.reestimate);
+    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -292,10 +355,6 @@ Item {
             topMargin: 0.5 * Theme.rem
             bottomMargin: Theme.rem
             boundsBehavior: Flickable.StopAtBounds
-            ScrollBar.vertical: AppScrollBar {
-                id: logBar
-                policy: ScrollBar.AlwaysOn
-            }
             WheelScroll {
                 id: logScroll
             }
@@ -319,6 +378,18 @@ Item {
                 return Math.ceil(widest);
             }
 
+            /// How many characters fit on a line of a message, and how tall the line is, which
+            /// estimate the heights of the lines that haven't been laid out.
+            readonly property int charsPerLine: Math.max(1, Math.floor((width - leftMargin - rightMargin - typeWidth - scopeWidth - 16) / regularMetrics.advanceWidth("0")))
+            readonly property real lineHeight: regularMetrics.height
+            onCharsPerLineChanged: Qt.callLater(logBar.reestimate)
+            onLineHeightChanged: Qt.callLater(logBar.reestimate)
+
+            FontMetrics {
+                id: regularMetrics
+                font.family: Theme.fontMonospace
+                font.pixelSize: log.fontSize
+            }
             FontMetrics {
                 id: boldMetrics
                 font.family: Theme.fontMonospace
@@ -360,9 +431,33 @@ Item {
                 font.pixelSize: log.fontSize
             }
 
+            // over the lines, selecting across them as on the web
+            SelectionArea {
+                id: logSelection
+                parent: log
+                content: log.contentItem
+                placeOf: edit => edit.place
+                textBetween: (start, end) => consoleView.textBetween(start, end)
+                lastPlace: log.count * 3 - 1
+            }
+
+            ListScrollBar {
+                id: logBar
+                parent: log
+                z: 1
+                view: log
+                estimate: row => {
+                    let lines = 0;
+                    for (const length of consoleView.lineLengths(row))
+                        lines += Math.max(1, Math.ceil(length / log.charsPerLine));
+                    return lines * log.lineHeight + 2;
+                }
+            }
+
             delegate: Item {
                 id: line
 
+                required property int index
                 required property string type
                 required property string dataType
                 required property string scope
@@ -378,6 +473,7 @@ Item {
                     implicitHeight: typeText.implicitHeight
                     color: line.dataType === "STARTED" || line.dataType === "CONNECT" ? "green" : line.dataType === "ERROR" || line.dataType === "CRASH" ? "red" : "transparent"
 
+                    // the brackets are ::before and ::after on the web, which can't be selected
                     component Bracket: Text {
                         color: Theme.neutral20
                         font.family: Theme.fontMonospace
@@ -387,10 +483,12 @@ Item {
                     Bracket {
                         text: "["
                     }
-                    Bracket {
+                    Cell {
                         id: typeText
+                        place: line.index * 3
                         x: (parent.width - width) / 2
                         text: line.type
+                        font.bold: true
                     }
                     Bracket {
                         anchors.right: parent.right
@@ -398,32 +496,36 @@ Item {
                     }
                 }
 
-                Text {
-                    x: typeCell.width + 8
-                    width: log.scopeWidth
-                    horizontalAlignment: Text.AlignRight
-                    text: line.scope
-                    color: Theme.neutral20
-                    font.family: Theme.fontMonospace
-                    font.pixelSize: log.fontSize
-                    font.italic: true
-                }
-
-                TextEdit {
-                    id: messageCell
-                    x: typeCell.width + 8 + log.scopeWidth + 8
-                    width: parent.width - x
-                    text: line.message
+                // selected by the log's SelectionArea, by their place in it
+                component Cell: TextEdit {
+                    required property int place
                     textFormat: TextEdit.PlainText
-                    // white-space: pre-wrap with word-break: break-word. (The line wrap checkbox
-                    // was never wired up in the web UI.)
-                    wrapMode: TextEdit.WrapAtWordBoundaryOrAnywhere
                     readOnly: true
-                    selectByMouse: true
+                    selectByMouse: false
                     selectionColor: Theme.primary50
                     color: Theme.neutral20
                     font.family: Theme.fontMonospace
                     font.pixelSize: log.fontSize
+                }
+
+                Cell {
+                    place: line.index * 3 + 1
+                    x: typeCell.width + 8
+                    width: log.scopeWidth
+                    horizontalAlignment: Text.AlignRight
+                    text: line.scope
+                    font.italic: true
+                }
+
+                Cell {
+                    id: messageCell
+                    place: line.index * 3 + 2
+                    x: typeCell.width + 8 + log.scopeWidth + 8
+                    width: parent.width - x
+                    text: line.message
+                    // white-space: pre-wrap with word-break: break-word. (The line wrap checkbox
+                    // was never wired up in the web UI.)
+                    wrapMode: TextEdit.WrapAtWordBoundaryOrAnywhere
                 }
             }
         }
