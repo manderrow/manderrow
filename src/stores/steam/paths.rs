@@ -109,7 +109,13 @@ pub async fn resolve_steamapps_directory() -> Result<PathBuf> {
     Err(anyhow::Error::msg(ERROR_MSG))
 }
 
+/// Returns the `steamapps` directories of all Steam libraries, which hold the app manifests.
 pub async fn resolve_steam_library_folders() -> Result<Vec<PathBuf>> {
+    // libraryfolders.vdf lists the root of each library, not its steamapps directory
+    fn library_steamapps(root: &str) -> PathBuf {
+        Path::new(root).join("steamapps")
+    }
+
     let steamapps_dir = resolve_steamapps_directory().await?;
     let mut locations = vec![steamapps_dir.clone()];
 
@@ -138,7 +144,7 @@ pub async fn resolve_steam_library_folders() -> Result<Vec<PathBuf>> {
                                     vdf::Event::GroupEnd { .. } if depth == 0 => break,
                                     vdf::Event::GroupEnd { .. } => depth -= 1,
                                     vdf::Event::Item { key, value, .. } if key.s == b"path" => {
-                                        locations.push(value.validate_utf8()?.s.into());
+                                        locations.push(library_steamapps(value.validate_utf8()?.s));
                                     }
                                     vdf::Event::Item { .. } => {}
                                     vdf::Event::Comment { .. } => {}
@@ -147,7 +153,7 @@ pub async fn resolve_steam_library_folders() -> Result<Vec<PathBuf>> {
                             }
                         }
                         vdf::Event::Item { value, .. } => {
-                            locations.push(value.validate_utf8()?.s.into());
+                            locations.push(library_steamapps(value.validate_utf8()?.s));
                         }
                         vdf::Event::Comment { .. } => {}
                         vdf::Event::FileEnd { .. } => {}
