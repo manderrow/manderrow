@@ -10,6 +10,10 @@ import Manderrow
 // It selects the read-only TextEdits whose `selectByMouse` is off, which leaves their presses, and
 // their cursor, to it. Declare it after the content, over it: it is only over the text, so that
 // elsewhere, as on images and buttons, the pointer is for what is under it.
+//
+// The content can be a view that creates its blocks only while they are in view, as a ListView
+// does its delegates, with `placeOf`, `textBetween`, and `lastPlace`, so that the selection spans
+// blocks that have gone out of view, or haven't been created yet.
 MouseArea {
     id: area
 
@@ -17,13 +21,24 @@ MouseArea {
     required property Item content
     /// Put between the text of each block when they are copied.
     property string separator: "\n\n"
+    /// For a view that creates its blocks only while they are in view: a function that gives the
+    /// place of a block in the content, which numbers the blocks in reading order, so that the
+    /// selection doesn't depend on which of them there are.
+    property var placeOf: null
+    /// With `placeOf`, a function that gives the text from one end of the selection to the other,
+    /// as `{ place, position }`, start first, for copying blocks that aren't there. The end's
+    /// position can be past the end of its block's text.
+    property var textBetween: null
+    /// With `placeOf`, the place of the last block, which Ctrl+A selects to the end of.
+    property int lastPlace: -1
     /// The color of the links in the text, which hovering one turns into `hoveredLinkColor`.
     property color linkColor: Theme.primary60
     property color hoveredLinkColor: Theme.primary65
 
     /// The TextEdits being selected, in reading order.
     property list<TextEdit> _items
-    /// The ends of the selection, as `{ index, position }` in `_items`.
+    /// The ends of the selection, as `{ place, position }`. A block's place is its index in
+    /// `_items`, unless `placeOf` gives it.
     property var _anchor: null
     property var _focus: null
     property point _pressPoint
@@ -38,6 +53,8 @@ MouseArea {
     /// The size of the content when the TextEdits were collected, which changes as its blocks are
     /// created and its images load.
     property size _collectedSize
+    /// Whether the view's blocks have been created or destroyed since they were collected.
+    property bool _stale: false
     /// Where the pointer is while dragging, in scene coordinates, so that the selection follows it
     /// as the view scrolls.
     property point _scenePoint
@@ -72,11 +89,30 @@ MouseArea {
         found.sort((a, b) => a.top.y - b.top.y || a.top.x - b.top.x);
         _items = found.map(entry => entry.edit);
         _collectedSize = Qt.size(content.width, content.height);
+        _stale = false;
     }
 
     function _collectIfChanged() {
-        if (content.width !== _collectedSize.width || content.height !== _collectedSize.height)
+        if (_stale || content.width !== _collectedSize.width || content.height !== _collectedSize.height)
             _collect();
+    }
+
+    function _placeOf(i) {
+        return placeOf ? placeOf(_items[i]) : i;
+    }
+
+    // the blocks that a view creates as they come into view are selected as they are created
+    Connections {
+        target: area.placeOf ? area.content : null
+        function onChildrenChanged() {
+            area._stale = true;
+            Qt.callLater(area._refresh);
+        }
+    }
+
+    function _refresh() {
+        _collect();
+        _apply();
     }
 
     /// The TextEdit under a point in scene coordinates.
@@ -92,30 +128,56 @@ MouseArea {
         return null;
     }
 
-    /// The position in the text nearest a point in scene coordinates. Between blocks, it is the end
-    /// of the one above.
+    /// The position in the text nearest a point in scene coordinates: in the block beside it, of
+    /// those level with it, or between rows of blocks, at the end of the one before.
     function _locate(scenePoint) {
+        let before = -1;
+        let nearest = -1;
+        let nearestDistance = Infinity;
+        let nearestPoint = null;
         for (let i = 0; i < _items.length; i++) {
             const item = _items[i];
+            if (!item)
+                continue;
             const p = item.mapFromItem(null, scenePoint.x, scenePoint.y);
+            // as are the blocks after it, which are sorted by their tops
             if (p.y < 0)
-                return i === 0 ? { index: 0, position: 0 } : { index: i - 1, position: _items[i - 1].length };
-            if (p.y < item.height)
-                return { index: i, position: item.positionAt(p.x, p.y) };
+                break;
+            if (p.y >= item.height) {
+                before = i;
+                continue;
+            }
+            const distance = p.x < 0 ? -p.x : Math.max(0, p.x - item.width);
+            if (distance < nearestDistance) {
+                nearest = i;
+                nearestDistance = distance;
+                nearestPoint = p;
+            }
         }
-        const last = _items.length - 1;
-        return { index: last, position: _items[last].length };
+        if (nearest >= 0)
+            return { place: _placeOf(nearest), position: _items[nearest].positionAt(nearestPoint.x, nearestPoint.y) };
+        if (before >= 0)
+            return { place: _placeOf(before), position: _items[before].length };
+        const first = _items.findIndex(item => item);
+        return first >= 0 ? { place: _placeOf(first), position: 0 } : _focus;
+    }
+
+    /// The ends of the selection, start first.
+    function _ends() {
+        const backwards = _anchor && (_focus.place < _anchor.place || (_focus.place === _anchor.place && _focus.position < _anchor.position));
+        return backwards ? [_focus, _anchor] : [_anchor, _focus];
     }
 
     function _apply() {
-        const backwards = _anchor && (_focus.index < _anchor.index || (_focus.index === _anchor.index && _focus.position < _anchor.position));
-        const start = backwards ? _focus : _anchor;
-        const end = backwards ? _anchor : _focus;
+        const [start, end] = _ends();
         _items.forEach((item, i) => {
-            if (!start || i < start.index || i > end.index)
+            if (!item)
+                return;
+            const place = _placeOf(i);
+            if (!start || place < start.place || place > end.place)
                 item.deselect();
             else
-                item.select(i === start.index ? start.position : 0, i === end.index ? end.position : item.length);
+                item.select(place === start.place ? Math.min(start.position, item.length) : 0, place === end.place ? Math.min(end.position, item.length) : item.length);
         });
     }
 
@@ -140,17 +202,26 @@ MouseArea {
 
     function selectAll() {
         _collect();
-        if (_items.length === 0)
-            return;
-        _anchor = { index: 0, position: 0 };
-        _focus = { index: _items.length - 1, position: _items[_items.length - 1].length };
+        if (placeOf) {
+            if (lastPlace < 0)
+                return;
+            _anchor = { place: 0, position: 0 };
+            _focus = { place: lastPlace, position: Infinity };
+        } else {
+            if (_items.length === 0)
+                return;
+            _anchor = { place: 0, position: 0 };
+            _focus = { place: _items.length - 1, position: _items[_items.length - 1].length };
+        }
         _apply();
     }
 
     function selectedText() {
+        if (placeOf)
+            return _anchor ? textBetween(..._ends()) : "";
         // a TextEdit's own selectedText runs the cells of rich text's tables together, and keeps
         // its line separators and non-breaking spaces
-        return _items.filter(item => item.selectedText !== "").map(item => Native.selectedText(item.textDocument, item.selectionStart, item.selectionEnd)).filter(text => text !== "").join(separator);
+        return _items.filter(item => item && item.selectedText !== "").map(item => Native.selectedText(item.textDocument, item.selectionStart, item.selectionEnd)).filter(text => text !== "").join(separator);
     }
 
     onPressed: mouse => {
@@ -183,11 +254,11 @@ MouseArea {
         } else if (_clicks === 2) {
             item.cursorPosition = at.position;
             item.selectWord();
-            _anchor = { index: at.index, position: item.selectionStart };
-            _focus = { index: at.index, position: item.selectionEnd };
+            _anchor = { place: at.place, position: item.selectionStart };
+            _focus = { place: at.place, position: item.selectionEnd };
         } else if (_clicks === 3) {
-            _anchor = { index: at.index, position: 0 };
-            _focus = { index: at.index, position: item.length };
+            _anchor = { place: at.place, position: 0 };
+            _focus = { place: at.place, position: item.length };
         } else {
             _anchor = at;
             _focus = at;
