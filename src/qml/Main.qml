@@ -318,6 +318,9 @@ ApplicationWindow {
                 id: notFoundView
                 NotFound {}
             }
+
+            // middle-click autoscrolling, over the pages
+            MiddleClickScroll {}
         }
 
         TitleBar {
