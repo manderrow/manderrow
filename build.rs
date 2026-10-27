@@ -6,6 +6,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 
 use cxx_qt_build::{CxxQtBuilder, QmlFile, QmlModule};
+use manderrow_qml_gen::{generate_strings, TRANSLATIONS};
 
 #[derive(Clone, Copy)]
 struct Env<'a> {
@@ -92,6 +93,9 @@ fn main() {
 }
 
 fn build_qt(crate_dir: &Path) {
+    println!("cargo::rerun-if-changed={}", crate_dir.join(TRANSLATIONS).display());
+    generate_strings(crate_dir).unwrap();
+
     let qml_dir = crate_dir.join("src").join("qml");
     println!("cargo::rerun-if-changed={}", qml_dir.display());
     let mut qml_files = Vec::new();

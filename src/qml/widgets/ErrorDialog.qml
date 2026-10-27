@@ -112,13 +112,13 @@ Dialog {
             }
 
             Paragraph {
-                text: I18n.t("error.title")
+                text: Strings.error.title
                 font.pixelSize: 1.5 * Theme.rem
                 font.weight: Font.Bold
                 font.variableAxes: ({ "wght": Font.Bold })
             }
             Paragraph {
-                text: I18n.t("error.deescalation_msg")
+                text: Strings.error.deescalation_msg
             }
 
             ColumnLayout {
@@ -139,22 +139,22 @@ Dialog {
 
                 Disclosure {
                     visible: dialog._native
-                    title: I18n.t("error.native_stack_trace") + ":"
+                    title: Strings.error.native_stack_trace + ":"
                     body: dialog._native ? dialog.err.backtrace : ""
                 }
 
                 Disclosure {
                     visible: !!dialog.err && !!dialog.err.stack
-                    title: I18n.t("error.js_stack_trace") + ":"
+                    title: Strings.error.js_stack_trace + ":"
                     body: dialog.err && dialog.err.stack ? dialog.err.stack : ""
                 }
             }
 
             Paragraph {
-                text: I18n.t("error.report_msg")
+                text: Strings.error.report_msg
             }
             Paragraph {
-                text: I18n.t("error.ignore_msg")
+                text: Strings.error.ignore_msg
             }
         }
 
@@ -166,7 +166,7 @@ Dialog {
                 id: ignoreBtn
                 property bool busy: false
                 enabled: !busy
-                text: I18n.t("error.ignore_btn")
+                text: Strings.error.ignore_btn
                 onClicked: {
                     busy = true;
                     Promise.resolve(dialog.reset()).then(() => {
@@ -181,7 +181,7 @@ Dialog {
 
             // TODO: Add link to report button
             Btn {
-                text: I18n.t("error.report_btn")
+                text: Strings.error.report_btn
             }
         }
     }

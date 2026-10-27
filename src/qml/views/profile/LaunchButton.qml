@@ -232,7 +232,7 @@ AbstractButton {
 
             Text {
                 visible: !launch.mini
-                text: I18n.t("profile.sidebar.launch_modded_btn")
+                text: Strings.profile.sidebar.launch_modded_btn
                 color: Theme.neutral05
                 font: launch.font
                 anchors.verticalCenter: parent.verticalCenter

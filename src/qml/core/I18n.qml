@@ -41,6 +41,8 @@ QtObject {
         });
     }
 
+    /// Translates a key. Prefer `Strings`, whose typed properties the editor completes and qmllint
+    /// checks; this is for keys that are only known at runtime, like those from the backend.
     function t(key, args) {
         const value = dict[key];
         if (value === undefined)

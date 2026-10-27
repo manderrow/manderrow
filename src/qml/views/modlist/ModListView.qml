@@ -287,7 +287,7 @@ Item {
 
                 LineText {
                     visible: modList.isLoading || modList.queriedLoading
-                    text: I18n.t("modlist.fetching_msg")
+                    text: Strings.modlist.fetching_msg
                 }
                 ProgressBar {
                     visible: modList.isLoading || modList.queriedLoading
@@ -305,9 +305,7 @@ Item {
 
                 LineText {
                     visible: !modList.isLoading && !modList.queriedLoading && modList.queriedError === null && modList.queried !== null
-                    text: I18n.t("modlist.discovered_msg", {
-                        count: Util.formatNumber(modList.queried ? modList.queried.count : 0)
-                    })
+                    text: Strings.modlist.discovered_msg(Util.formatNumber(modList.queried ? modList.queried.count : 0))
                 }
                 AsyncButton {
                     visible: !modList.isLoading && !modList.queriedLoading && modList.queriedError === null && modList.queried !== null
@@ -416,7 +414,7 @@ Item {
                     visible: !modList._end
                     width: list.width
                     padding: 0.5 * Theme.rem
-                    text: I18n.t("global.phrases.loading") + "..."
+                    text: Strings.global.phrases.loading + "..."
                     color: Theme.neutral05
                     font.family: Theme.font
                     font.pixelSize: Theme.rem
@@ -470,7 +468,7 @@ Item {
                         Layout.fillWidth: true
                         horizontalAlignment: Text.AlignHCenter
                         wrapMode: Text.WordWrap
-                        text: I18n.t("modlist.modview.no_mod_selected_title")
+                        text: Strings.modlist.modview.no_mod_selected_title
                         color: Theme.neutral20
                         font.family: Theme.font
                         font.pixelSize: 1.5 * Theme.rem
@@ -479,7 +477,7 @@ Item {
                         Layout.fillWidth: true
                         horizontalAlignment: Text.AlignHCenter
                         wrapMode: Text.WordWrap
-                        text: I18n.t("modlist.modview.no_mod_selected_subtitle")
+                        text: Strings.modlist.modview.no_mod_selected_subtitle
                         color: Theme.neutral30
                         font.family: Theme.font
                         font.pixelSize: Theme.rem

@@ -106,7 +106,7 @@ Item {
 
                             Text {
                                 Layout.alignment: Qt.AlignHCenter
-                                text: I18n.t("profile.blank.no_profiles_title")
+                                text: Strings.profile.blank.no_profiles_title
                                 color: Theme.neutral05
                                 font.family: Theme.font
                                 font.pixelSize: 1.5 * Theme.rem
@@ -115,7 +115,7 @@ Item {
                             }
                             Text {
                                 Layout.alignment: Qt.AlignHCenter
-                                text: I18n.t("profile.blank.no_profiles_subtitle")
+                                text: Strings.profile.blank.no_profiles_subtitle
                                 color: Theme.neutral20
                                 font.family: Theme.font
                                 font.pixelSize: Theme.rem
@@ -124,7 +124,7 @@ Item {
                                 Layout.alignment: Qt.AlignHCenter
                                 Layout.topMargin: 0.5 * Theme.rem
                                 variant: "primary"
-                                text: I18n.t("profile.blank.create_profile_btn")
+                                text: Strings.profile.blank.create_profile_btn
                                 onClicked: sidebar.createProfile()
                             }
                         }
@@ -152,11 +152,11 @@ Item {
                                 model: [
                                     {
                                         id: "mod-list",
-                                        name: I18n.t("profile.tabs.installed")
+                                        name: Strings.profile.tabs.installed
                                     },
                                     {
                                         id: "mod-search",
-                                        name: I18n.t("profile.tabs.online")
+                                        name: Strings.profile.tabs.online
                                     },
                                     {
                                         id: "logs",
@@ -164,7 +164,7 @@ Item {
                                     },
                                     {
                                         id: "config",
-                                        name: I18n.t("profile.tabs.config")
+                                        name: Strings.profile.tabs.config
                                     }
                                 ]
                             }

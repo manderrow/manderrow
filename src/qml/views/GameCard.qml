@@ -138,7 +138,7 @@ FocusScope {
                     iconName: "star"
                     textColor: Theme.neutral20
                     activeBgColor: "transparent"
-                    tooltip: I18n.t("game_select.fav_btn")
+                    tooltip: Strings.game_select.fav_btn
                 }
 
                 Text {

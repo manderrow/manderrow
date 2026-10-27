@@ -26,6 +26,7 @@ search-sublime_fuzzy = ["sublime_fuzzy"]
 
 [build-dependencies]
 cxx-qt-build = { version = "0.10", features = ["link_qt_object_files"] }
+manderrow-qml-gen = { path = "./crates/qml-gen" }
 
 [dependencies]
 manderrow-args = { path = "./crates/args" }

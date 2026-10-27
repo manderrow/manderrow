@@ -1,0 +1,14 @@
+[package]
+name = "manderrow-qml-gen"
+version = "0.1.0"
+authors.workspace = true
+edition = "2024"
+
+[[bin]]
+name = "qml-gen"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1"
+# the order of the translations' keys, which the generated Strings.qml keeps
+serde_json = { version = "1", features = ["preserve_order"] }

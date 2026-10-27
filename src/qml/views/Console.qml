@@ -277,7 +277,7 @@ Item {
                     SText {
                         Layout.alignment: Qt.AlignHCenter
                         bottomPadding: 0.25 * Theme.rem
-                        text: status.live ? I18n.t("console.live_log") : I18n.t("console.log_created_at")
+                        text: status.live ? Strings.console_.live_log : Strings.console_.log_created_at
                         color: Theme.neutral30
                         font.pixelSize: 0.75 * Theme.rem
                     }
@@ -328,7 +328,7 @@ Item {
 
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
-                            text: status.connected ? I18n.t("console.live_log_connected") : I18n.t("console.live_log_disconnected")
+                            text: status.connected ? Strings.console_.live_log_connected : Strings.console_.live_log_disconnected
                             color: Theme.neutral05
                             font.family: Theme.font
                             font.pixelSize: Theme.rem
@@ -425,7 +425,7 @@ Item {
             SText {
                 visible: !consoleView.connection || consoleView.connection.events.count === 0
                 x: log.leftMargin
-                text: consoleView.connection ? I18n.t("console.launching_log_placeholder") : I18n.t("console.game_not_running")
+                text: consoleView.connection ? Strings.console_.launching_log_placeholder : Strings.console_.game_not_running
                 color: Theme.neutral20
                 font.family: Theme.fontMonospace
                 font.pixelSize: log.fontSize

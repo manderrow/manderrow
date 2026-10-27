@@ -29,7 +29,7 @@ Item {
         visible: root.dependencies === undefined || root.dependencies.length === 0
         width: parent.width
         wrapMode: Text.Wrap
-        text: root.dependencies === undefined ? I18n.t("global.phrases.loading") : I18n.t("modlist.modview.no_dependencies_msg")
+        text: root.dependencies === undefined ? Strings.global.phrases.loading : Strings.modlist.modview.no_dependencies_msg
         color: Theme.neutral05
         font.family: Theme.font
         font.pixelSize: Theme.rem

@@ -19,7 +19,7 @@ Dialog {
         SText {
             Layout.fillWidth: true
             horizontalAlignment: TextEdit.AlignHCenter
-            text: I18n.t("task_manager.title")
+            text: Strings.task_manager.title
             color: Theme.neutral05
             font.family: Theme.font
             font.pixelSize: 1.5 * Theme.rem
@@ -44,11 +44,11 @@ Dialog {
                 model: [
                     {
                         id: "active",
-                        name: I18n.t("task_manager.active_tab_name")
+                        name: Strings.task_manager.active_tab_name
                     },
                     {
                         id: "completed",
-                        name: I18n.t("task_manager.completed_tab_name")
+                        name: Strings.task_manager.completed_tab_name
                     }
                 ]
             }
@@ -83,7 +83,7 @@ Dialog {
             SText {
                 visible: list.count === 0
                 topPadding: 8
-                text: I18n.t("task_manager.no_tasks_yet_msg")
+                text: Strings.task_manager.no_tasks_yet_msg
                 color: Theme.neutral05
                 font.family: Theme.font
                 font.pixelSize: Theme.rem
@@ -177,7 +177,7 @@ Dialog {
 
                     SText {
                         anchors.verticalCenter: parent.verticalCenter
-                        text: I18n.t("task_manager.source_label")
+                        text: Strings.task_manager.source_label
                         color: sourceHover.hovered ? Theme.primary70 : Theme.primary60
                         font.family: Theme.font
                         font.pixelSize: Theme.rem

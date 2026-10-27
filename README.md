@@ -72,6 +72,12 @@ MANDERROW_DEV_ROUTE=/settings MANDERROW_DEV_SCREENSHOT=settings.png \
   cargo run
 ```
 
+## Developing
+
+### Translations
+
+The translations are in `src/locales`, and `en-CA.json` has every key. `just gen` and the build generate `src/qml/core/Strings.qml` from it, which is checked in: a singleton with a typed property for each translation, so that `Strings.game_select.title` is the translation of `game_select.title`, and the editor completes the keys. A translation with `{{ placeholders }}` is a function of them, like `Strings.status_bar.downloads_tracker(count)`. A key that is a keyword or the name of a JavaScript global, like `delete`, gets a `_` after it, and one that starts with a digit gets one before it. `I18n.t(key, args)` is for keys that are only known at runtime.
+
 ## Contributing
 
 This project is under rapid active development, and is not yet in release. If you wish you help, there are todo lists in the issues tab, or if you are interested in getting in contact, you can friend me on Discord `@emperor_of_bluegaria`.

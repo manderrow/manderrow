@@ -63,7 +63,7 @@ Item {
 
         Text {
             Layout.alignment: Qt.AlignHCenter
-            text: I18n.t("modlist.installed.no_mods_title")
+            text: Strings.modlist.installed.no_mods_title
             color: Theme.neutral05
             font.family: Theme.font
             font.pixelSize: 1.5 * Theme.rem
@@ -72,7 +72,7 @@ Item {
         }
         Text {
             Layout.alignment: Qt.AlignHCenter
-            text: I18n.t("modlist.installed.no_mods_msg")
+            text: Strings.modlist.installed.no_mods_msg
             color: Theme.neutral20
             font.family: Theme.font
             font.pixelSize: Theme.rem
@@ -81,7 +81,7 @@ Item {
             Layout.alignment: Qt.AlignHCenter
             Layout.topMargin: 0.5 * Theme.rem
             variant: "primary"
-            text: I18n.t("modlist.installed.browse_btn")
+            text: Strings.modlist.installed.browse_btn
             onClicked: Router.setSearch({ "profile-tab": "mod-search" })
         }
     }
@@ -119,7 +119,7 @@ Item {
                     btn.wrapText: true
                     variant: "ghost"
                     iconName: "refresh-cw"
-                    text: I18n.t("modlist.installed.check_updates_btn")
+                    text: Strings.modlist.installed.check_updates_btn
                     externalBusy: root.updatesLoading
                     progressMode: "external"
                     externalProgress: root.checkUpdatesProgress
@@ -134,7 +134,7 @@ Item {
                     variant: "primary"
                     iconName: "circle-arrow-up"
                     iconFilled: true
-                    text: I18n.t("modlist.installed.updates_available_btn")
+                    text: Strings.modlist.installed.updates_available_btn
                     onClicked: updater.open()
                 }
 

@@ -174,7 +174,7 @@ Item {
                     Layout.maximumWidth: Math.ceil(implicitWidth)
                     Layout.minimumWidth: Util.longestWordWidth(titleMetrics, text)
                     wrapMode: TextEdit.WordWrap
-                    text: I18n.t("modlist.installed.multiselect_title")
+                    text: Strings.modlist.installed.multiselect_title
                     color: Theme.neutral20
                     font.family: Theme.font
                     font.pixelSize: 1.5 * Theme.rem
@@ -188,7 +188,7 @@ Item {
                     Layout.fillWidth: true
                 }
                 Field {
-                    placeholderText: I18n.t("global.phrases.search")
+                    placeholderText: Strings.global.phrases.search
                     onTextChanged: bulk.search = text
                 }
             }
@@ -265,7 +265,7 @@ Item {
                             verticalPadding: 0.25 * fontSize
                             activeBgColor: "transparent"
                             activeTextColor: Theme.danger5
-                            tooltip: I18n.t("global.phrases.remove")
+                            tooltip: Strings.global.phrases.remove
                             onClicked: bulk.removeRequested(entry.mod)
                         }
 
@@ -342,9 +342,7 @@ Item {
                     Layout.fillWidth: true
                     Layout.minimumWidth: Util.longestWordWidth(countMetrics, text)
                     wrapMode: TextEdit.WordWrap
-                    text: I18n.t(bulk.mods.length > 1 ? "modlist.installed.selected_count_plural" : "modlist.installed.selected_count_single", {
-                        count: bulk.mods.length
-                    })
+                    text: bulk.mods.length > 1 ? Strings.modlist.installed.selected_count_plural(bulk.mods.length) : Strings.modlist.installed.selected_count_single(bulk.mods.length)
                     color: Theme.neutral05
                     font.family: Theme.font
                     font.pixelSize: Theme.rem
@@ -390,19 +388,19 @@ Item {
             }
 
             Action {
-                text: I18n.t("modlist.installed.enable_all")
+                text: Strings.modlist.installed.enable_all
             }
             Action {
-                text: I18n.t("modlist.installed.disable_all")
+                text: Strings.modlist.installed.disable_all
             }
             Action {
-                text: I18n.t("modlist.installed.delete_all")
+                text: Strings.modlist.installed.delete_all
             }
             Action {
-                text: I18n.t("modlist.installed.update_all")
+                text: Strings.modlist.installed.update_all
             }
             Action {
-                text: I18n.t("global.phrases.cancel")
+                text: Strings.global.phrases.cancel
                 onClicked: bulk.cancelRequested()
             }
         }
