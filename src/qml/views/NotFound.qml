@@ -34,14 +34,14 @@ Item {
             Layout.alignment: Qt.AlignHCenter
             Layout.topMargin: 0.5 * Theme.rem
             Layout.bottomMargin: 0.5 * Theme.rem
-            text: I18n.t("404_page.subtitle")
+            text: Strings._404_page.subtitle
             color: Theme.neutral05
             font.family: Theme.font
             font.pixelSize: Theme.rem
         }
         Btn {
             Layout.alignment: Qt.AlignHCenter
-            text: I18n.t("404_page.home_btn")
+            text: Strings._404_page.home_btn
             onClicked: Router.navigate("/profile/")
         }
     }

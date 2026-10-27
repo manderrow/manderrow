@@ -1730,6 +1730,7 @@ dependencies = [
  "manderrow-macros",
  "manderrow-paths",
  "manderrow-process-util",
+ "manderrow-qml-gen",
  "manderrow-types",
  "mimalloc",
  "objc2",
@@ -1833,6 +1834,14 @@ dependencies = [
  "tokio",
  "windows 0.61.3",
  "winsafe",
+]
+
+[[package]]
+name = "manderrow-qml-gen"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "serde_json",
 ]
 
 [[package]]
@@ -2758,6 +2767,7 @@ version = "1.0.143"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d401abef1d108fbd9cbaebc3e46611f4b1021f714a0597a71f41ee463f5f4a5a"
 dependencies = [
+ "indexmap",
  "itoa",
  "memchr",
  "ryu",

@@ -129,7 +129,7 @@ Item {
         Text {
             anchors.horizontalCenter: parent.horizontalCenter
             topPadding: 2 * 0.9 * 1.5 * Theme.rem
-            text: I18n.t("splashscreen.launching_msg")
+            text: Strings.splashscreen.launching_msg
             color: Theme.hsl(212, 18, 70)
             font.family: Theme.font
             font.pixelSize: 0.9 * 1.5 * Theme.rem

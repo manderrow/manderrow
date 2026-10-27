@@ -23,7 +23,7 @@ Dropdown {
         const selected = options.find(option => option.selected);
         if (selected !== undefined)
             return selected.label;
-        return fallback !== "" ? fallback : I18n.t("global.select_dropdown.default_fallback");
+        return fallback !== "" ? fallback : Strings.global.select_dropdown.default_fallback;
     }
 
     SelectList {

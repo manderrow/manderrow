@@ -253,7 +253,7 @@ Rectangle {
 
                     GradientTitle {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        text: I18n.t("game_select.title")
+                        text: Strings.game_select.title
                     }
 
                     SText {
@@ -261,7 +261,7 @@ Rectangle {
                         width: Math.min(implicitWidth, parent.width - 2 * Theme.rem)
                         horizontalAlignment: TextEdit.AlignHCenter
                         wrapMode: TextEdit.Wrap
-                        text: I18n.t("game_select.subtitle")
+                        text: Strings.game_select.subtitle
                         color: Theme.neutral20
                         font.family: Theme.font
                         font.pixelSize: 1.25 * Theme.rem
@@ -293,7 +293,7 @@ Rectangle {
                     width: parent.width
                     y: 0.5 * Theme.rem
                     horizontalAlignment: TextEdit.AlignHCenter
-                    text: I18n.t("game_select.no_games_msg")
+                    text: Strings.game_select.no_games_msg
                     color: Theme.neutral05
                     font.family: Theme.font
                     font.pixelSize: Theme.rem
@@ -409,7 +409,7 @@ Rectangle {
                     rightPadding: 0.75 * fontSize
                     topPadding: 0.5 * fontSize
                     bottomPadding: 0.5 * fontSize
-                    placeholderText: I18n.t("game_select.search.input_placeholder")
+                    placeholderText: Strings.game_select.search.input_placeholder
                     placeholderTextColor: Qt.rgba(196 / 255, 196 / 255, 196 / 255, 1)
                     maximumLength: 100
                     focus: true
@@ -420,24 +420,24 @@ Rectangle {
                 SelectDropdown {
                     id: sortSelect
                     height: parent.height
-                    preset: I18n.t("global.select_dropdown.sort_by")
+                    preset: Strings.global.select_dropdown.sort_by
                     trigger.bgColor: "transparent"
                     trigger.activeBgColor: Theme.alpha(Theme.neutral10, 0.1)
                     trigger.radius: 0.5 * Theme.rem
                     options: [
                         {
                             value: Api.gameSortColumn.modDownloads,
-                            label: I18n.t("global.game_sort_column.mod_downloads"),
+                            label: Strings.global.game_sort_column.mod_downloads,
                             selected: page.sort === Api.gameSortColumn.modDownloads
                         },
                         {
                             value: Api.gameSortColumn.popularity,
-                            label: I18n.t("global.game_sort_column.popularity"),
+                            label: Strings.global.game_sort_column.popularity,
                             selected: page.sort === Api.gameSortColumn.popularity
                         },
                         {
                             value: Api.gameSortColumn.name,
-                            label: I18n.t("global.game_sort_column.name"),
+                            label: Strings.global.game_sort_column.name,
                             selected: page.sort === Api.gameSortColumn.name
                         }
                     ]
@@ -451,9 +451,7 @@ Rectangle {
                     radius: 0.5 * Theme.rem
                     activeBgColor: Theme.alpha(Theme.neutral10, 0.1)
                     iconName: page.displayType === "card" ? "list" : "grid-2x2"
-                    tooltip: I18n.t("game_select.search.display_type_btn", {
-                        type: page.displayType === "card" ? I18n.t("game_select.search.card_display_type") : I18n.t("game_select.search.list_display_type")
-                    })
+                    tooltip: Strings.game_select.search.display_type_btn(page.displayType === "card" ? Strings.game_select.search.card_display_type : Strings.game_select.search.list_display_type)
                     onClicked: page.displayType = page.displayType === "card" ? "list" : "card"
                 }
             }

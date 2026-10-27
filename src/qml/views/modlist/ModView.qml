@@ -208,7 +208,7 @@ Item {
                         }
                         Text {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            text: I18n.t("modlist.modview.donate_btn")
+                            text: Strings.modlist.modview.donate_btn
                             color: donateHover.hovered ? Theme.primary70 : Theme.primary60
                             font.family: Theme.font
                             font.pixelSize: 0.9 * Theme.rem
@@ -353,7 +353,7 @@ Item {
                     Layout.minimumWidth: implicitWidth
                     mod: view.mod
                     installContext: view.installContext
-                    text: I18n.t("modlist.online.install_btn")
+                    text: Strings.modlist.online.install_btn
                     fontSize: 1.15 * Theme.rem
                     btn.fontWeight: Font.Medium
                     // border-radius: 0 100vmax 100vmax 0
@@ -377,7 +377,7 @@ Item {
                     Layout.fillHeight: true
                     Layout.preferredWidth: 1
                     Layout.minimumWidth: trigger.minimumWidth
-                    label: I18n.t("modlist.installed.change_version_btn")
+                    label: Strings.modlist.installed.change_version_btn
                     trigger.wrapText: true
                     fillToTriggerWidth: true
                     panelPadding: 0.5 * Theme.rem
@@ -398,7 +398,7 @@ Item {
                             Layout.leftMargin: 0.5 * Theme.rem
                             Layout.rightMargin: 0.5 * Theme.rem
                             Layout.bottomMargin: 0.5 * Theme.rem
-                            placeholderText: I18n.t("modlist.installed.search_version_placeholder")
+                            placeholderText: Strings.modlist.installed.search_version_placeholder
                             Accessible.searchEdit: true
                             text: view.versionSearch
                             onTextEdited: view.versionSearch = text
@@ -423,7 +423,7 @@ Item {
                                 version: view.modListing.versions.find(v => view.isSelectedVersion(v)) || view.modListing.versions[0]
                             })
                             installContext: view.installContext
-                            text: I18n.t("global.phrases.apply")
+                            text: Strings.global.phrases.apply
                             btn.enabled: !busy && !(view.isPackage && view.isSelectedVersion(view.mod.version))
                         }
                     }
@@ -436,7 +436,7 @@ Item {
                     Layout.minimumWidth: implicitWidth
                     mod: view.installed || view.mod
                     installContext: view.installContext
-                    text: I18n.t("modlist.installed.uninstall_btn")
+                    text: Strings.modlist.installed.uninstall_btn
                     btn.bgColor: "transparent"
                     btn.activeBgColor: Theme.danger5
                     btn.borderColor: Theme.danger4

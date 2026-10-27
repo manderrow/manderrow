@@ -61,27 +61,27 @@ Item {
                 options: [
                     {
                         value: Api.modSortColumn.relevance,
-                        label: I18n.t("global.mod_sort_column.relevance"),
+                        label: Strings.global.mod_sort_column.relevance,
                         selected: true
                     },
                     {
                         value: Api.modSortColumn.downloads,
-                        label: I18n.t("global.mod_sort_column.downloads"),
+                        label: Strings.global.mod_sort_column.downloads,
                         selected: false
                     },
                     {
                         value: Api.modSortColumn.name,
-                        label: I18n.t("global.mod_sort_column.name"),
+                        label: Strings.global.mod_sort_column.name,
                         selected: false
                     },
                     {
                         value: Api.modSortColumn.owner,
-                        label: I18n.t("global.mod_sort_column.owner"),
+                        label: Strings.global.mod_sort_column.owner,
                         selected: false
                     },
                     {
                         value: Api.modSortColumn.size,
-                        label: I18n.t("global.mod_sort_column.size"),
+                        label: Strings.global.mod_sort_column.size,
                         selected: false
                     }
                 ]
@@ -127,7 +127,7 @@ Item {
                     return I18n.t(`global.mod_sort_column.${option.column}`);
                 }
                 function orderLabel(option) {
-                    return option.descending ? I18n.t("global.sort_order.descending") : I18n.t("global.sort_order.ascending");
+                    return option.descending ? Strings.global.sort_order.descending : Strings.global.sort_order.ascending;
                 }
 
                 function displayIndex(index) {

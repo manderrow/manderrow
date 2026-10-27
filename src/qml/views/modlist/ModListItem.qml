@@ -333,7 +333,7 @@ Item {
             btn.horizontalPadding: 0.65 * fontSize
             btn.verticalPadding: 0.25 * fontSize
             iconName: "move-down"
-            tooltip: I18n.t("modlist.online.install_btn")
+            tooltip: Strings.modlist.online.install_btn
         }
     }
 
@@ -351,7 +351,7 @@ Item {
             btn.horizontalPadding: 0.65 * fontSize
             btn.verticalPadding: 0.25 * fontSize
             iconName: "trash"
-            tooltip: I18n.t("modlist.installed.uninstall_btn")
+            tooltip: Strings.modlist.installed.uninstall_btn
             onUninstalled: modItem.uninstalled()
         }
     }

@@ -326,7 +326,7 @@ Rectangle {
                 SessionButton {
                     visible: !!sidebar.focusedConnection && sidebar.focusedConnection.status === "connected"
                     iconName: "skull"
-                    label: I18n.t("profile.sidebar.kill_game_btn")
+                    label: Strings.profile.sidebar.kill_game_btn
                     tone1: Theme.danger3
                     tone2: Theme.danger4
                     tone3: Theme.danger5
@@ -337,7 +337,7 @@ Rectangle {
                 SessionButton {
                     visible: sidebar.hasLiveConnection && sidebar.focusedConnection.status !== "connected"
                     iconName: "x"
-                    label: I18n.t("profile.sidebar.cancel_launch_btn")
+                    label: Strings.profile.sidebar.cancel_launch_btn
                     tone1: Theme.warn3
                     tone2: Theme.warn4
                     tone3: Theme.warn5
@@ -363,7 +363,7 @@ Rectangle {
                     iconFilled: true
                     horizontalPadding: 0.25 * fontSize
                     verticalPadding: 0.1 * fontSize
-                    tooltip: I18n.t("profile.sidebar.game_settings_btn")
+                    tooltip: Strings.profile.sidebar.game_settings_btn
                 }
             }
         }
@@ -385,7 +385,7 @@ Rectangle {
 
                 Text {
                     Layout.fillWidth: true
-                    text: I18n.t("profile.sidebar.profiles_title")
+                    text: Strings.profile.sidebar.profiles_title
                     color: Theme.neutral20
                     font.family: Theme.font
                     font.pixelSize: 1.17 * Theme.rem
@@ -404,12 +404,12 @@ Rectangle {
 
                 ProfilesActionButton {
                     iconName: "plus"
-                    tooltip: I18n.t("profile.sidebar.create_profile_tooltip")
+                    tooltip: Strings.profile.sidebar.create_profile_tooltip
                     onClicked: sidebar.createProfile()
                 }
                 ProfilesActionButton {
                     iconName: "file-input"
-                    tooltip: I18n.t("profile.sidebar.import_profile_tooltip")
+                    tooltip: Strings.profile.sidebar.import_profile_tooltip
                     onClicked: importDialog.open()
                 }
             }
@@ -440,14 +440,14 @@ Rectangle {
                         rightPadding: 0.4 * Theme.rem
                         topPadding: 0.2 * Theme.rem
                         bottomPadding: 0.2 * Theme.rem
-                        placeholderText: I18n.t("global.phrases.search")
+                        placeholderText: Strings.global.phrases.search
                         maximumLength: 100
                         onTextChanged: sidebar.profileQuery = text
                     }
 
                     SelectDropdown {
                         Layout.fillHeight: true
-                        preset: I18n.t("global.sort_title")
+                        preset: Strings.global.sort_title
                         options: [
                             {
                                 value: "alphabetical",
@@ -456,7 +456,7 @@ Rectangle {
                             },
                             {
                                 value: "creation_date",
-                                label: I18n.t("global.sort_type.creation_date"),
+                                label: Strings.global.sort_type.creation_date,
                                 selected: sidebar.profileSortType === "creation_date"
                             }
                         ]
@@ -512,7 +512,7 @@ Rectangle {
                         onItemChanged: sidebar._profileCreator = item
                         sourceComponent: ProfileNameEditor {
                             objectName: "newProfileEditor"
-                            initialValue: I18n.t("profile.default_profile_name")
+                            initialValue: Strings.profile.default_profile_name
                             submit: name => Api.createProfile(sidebar.gameId, name).then(() => Globals.refetchProfiles())
                             onClosed: sidebar._profileCreatorClosed()
                         }
@@ -524,7 +524,7 @@ Rectangle {
                         horizontalAlignment: Text.AlignHCenter
                         topPadding: 0.35 * Theme.rem
                         bottomPadding: 0.35 * Theme.rem
-                        text: I18n.t("profile.sidebar.no_profiles_search_msg")
+                        text: Strings.profile.sidebar.no_profiles_search_msg
                         color: Theme.neutral20
                         font.family: Theme.font
                         font.pixelSize: Theme.rem
@@ -598,7 +598,7 @@ Rectangle {
                 Text {
                     visible: !sidebar.mini
                     anchors.verticalCenter: parent.verticalCenter
-                    text: I18n.t("settings.link_title")
+                    text: Strings.settings.link_title
                     color: settingsHover.hovered ? Theme.primary50 : Theme.neutral30
                     font.family: Theme.font
                     font.pixelSize: 1.1 * Theme.rem

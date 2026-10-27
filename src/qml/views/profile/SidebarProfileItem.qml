@@ -124,7 +124,7 @@ Rectangle {
                 id: playingHover
             }
             Tip {
-                text: I18n.t("profile.sidebar.profile_running_icon")
+                text: Strings.profile.sidebar.profile_running_icon
                 shown: playingHover.hovered
             }
         }
@@ -227,7 +227,7 @@ Rectangle {
                     btn.verticalPadding: 0.2 * Theme.rem
                     btn.iconRotation: 90
                     iconName: profileItem.profile.pinned ? "pin-off" : "pin"
-                    tooltip: profileItem.profile.pinned ? I18n.t("profile.sidebar.unpin_profile_btn") : I18n.t("profile.sidebar.pin_profile_btn")
+                    tooltip: profileItem.profile.pinned ? Strings.profile.sidebar.unpin_profile_btn : Strings.profile.sidebar.pin_profile_btn
                     action: () => Api.overwriteProfileMetadata(profileItem.profile.id, profileItem._metadata({ pinned: !profileItem.profile.pinned })).then(() => Globals.refetchProfiles(), e => Globals.refetchProfiles().then(() => {
                             throw e;
                         }))
@@ -236,18 +236,18 @@ Rectangle {
                 OptionButton {
                     visible: Native.shift
                     iconName: "copy"
-                    tooltip: I18n.t("profile.sidebar.duplicate_profile_btn")
+                    tooltip: Strings.profile.sidebar.duplicate_profile_btn
                 }
                 OptionButton {
                     visible: Native.shift
                     iconName: "clipboard"
-                    tooltip: I18n.t("profile.sidebar.copy_id_profile_btn")
+                    tooltip: Strings.profile.sidebar.copy_id_profile_btn
                     onClicked: Native.copyText(profileItem.profile.id)
                 }
                 OptionButton {
                     visible: Native.shift
                     iconName: "trash-2"
-                    tooltip: I18n.t("global.phrases.delete")
+                    tooltip: Strings.global.phrases.delete_
                     // leaves the profile first if it's being viewed, as deleting from the menu does
                     onClicked: profileItem._delete().catch(e => Ui.window.reportError(e))
                 }
@@ -262,27 +262,27 @@ Rectangle {
                     trigger.iconName: "ellipsis-vertical"
                     trigger.horizontalPadding: 0.1 * Theme.rem
                     trigger.verticalPadding: 0.2 * Theme.rem
-                    trigger.tooltip: menu.opened ? "" : I18n.t("profile.sidebar.ellipsis_btn")
+                    trigger.tooltip: menu.opened ? "" : Strings.profile.sidebar.ellipsis_btn
                     items: [
                         {
                             icon: "square-pen",
-                            label: I18n.t("profile.sidebar.rename_profile_btn"),
+                            label: Strings.profile.sidebar.rename_profile_btn,
                             action: () => profileItem.renaming = true
                         },
                         {
                             icon: "trash-2",
-                            label: I18n.t("global.phrases.delete"),
+                            label: Strings.global.phrases.delete_,
                             action: () => deletePrompt.open()
                         },
                         {
                             icon: "copy",
-                            label: I18n.t("profile.sidebar.duplicate_profile_btn"),
+                            label: Strings.profile.sidebar.duplicate_profile_btn,
                             // TODO: implement duplicate profile
                             action: () => {}
                         },
                         {
                             icon: "forward",
-                            label: I18n.t("profile.sidebar.share_profile_btn"),
+                            label: Strings.profile.sidebar.share_profile_btn,
                             // TODO: implement share profile
                             action: () => {}
                         },
@@ -291,12 +291,12 @@ Rectangle {
                         },
                         {
                             icon: "clipboard",
-                            label: I18n.t("profile.sidebar.copy_id_profile_btn"),
+                            label: Strings.profile.sidebar.copy_id_profile_btn,
                             action: () => Native.copyText(profileItem.profile.id)
                         },
                         {
                             icon: "folder-open",
-                            label: I18n.t("profile.sidebar.open_folder_profile_btn"),
+                            label: Strings.profile.sidebar.open_folder_profile_btn,
                             action: () => profileItem._openFolder()
                         }
                     ]
@@ -308,10 +308,10 @@ Rectangle {
     PopupLoader {
         id: deletePrompt
         sourceComponent: PromptDialog {
-            title: I18n.t("global.phrases.confirm")
-            question: I18n.t("profile.delete_msg", { profileName: profileItem.profile.name })
+            title: Strings.global.phrases.confirm
+            question: Strings.profile.delete_msg(profileItem.profile.name)
             okType: "danger"
-            okText: I18n.t("global.phrases.delete")
+            okText: Strings.global.phrases.delete_
             onAccepted: {
                 close();
                 profileItem._delete().catch(e => Ui.window.reportError(e));

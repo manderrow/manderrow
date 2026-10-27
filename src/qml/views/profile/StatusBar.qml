@@ -82,11 +82,11 @@ Item {
 
         Chunk {
             first: true
-            text: I18n.t("status_bar.downloads_tracker", { count: bar.counts.downloads })
+            text: Strings.status_bar.downloads_tracker(bar.counts.downloads)
         }
         Chunk {
             last: true
-            text: I18n.t("status_bar.other_tasks_tracker", { count: bar.counts.other })
+            text: Strings.status_bar.other_tasks_tracker(bar.counts.other)
         }
     }
 

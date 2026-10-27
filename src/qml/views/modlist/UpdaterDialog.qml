@@ -36,7 +36,7 @@ Dialog {
             Layout.fillWidth: true
             Layout.bottomMargin: 0.5 * 1.5 * Theme.rem
             horizontalAlignment: TextEdit.AlignHCenter
-            text: I18n.t("modlist.installed.updater_title")
+            text: Strings.modlist.installed.updater_title
             color: Theme.neutral10
             font.family: Theme.font
             font.pixelSize: 1.5 * Theme.rem
@@ -73,7 +73,7 @@ Dialog {
                             anchors.verticalCenter: parent.verticalCenter
                         }
                         Text {
-                            text: I18n.t("global.phrases.select_all")
+                            text: Strings.global.phrases.select_all
                             color: Theme.neutral05
                             font.family: Theme.font
                             font.pixelSize: Theme.rem
@@ -84,7 +84,7 @@ Dialog {
                         Layout.fillWidth: true
                     }
                     Field {
-                        placeholderText: I18n.t("global.phrases.search")
+                        placeholderText: Strings.global.phrases.search
                     }
                 }
 
@@ -219,12 +219,12 @@ Dialog {
 
             Btn {
                 variant: "ghost"
-                text: I18n.t("global.phrases.cancel")
+                text: Strings.global.phrases.cancel
                 onClicked: dialog.close()
             }
             Btn {
                 variant: "primary"
-                text: dialog.selectedCount === dialog.updates.length ? I18n.t("modlist.installed.update_all_btn") : I18n.t("modlist.installed.update_selected_btn")
+                text: dialog.selectedCount === dialog.updates.length ? Strings.modlist.installed.update_all_btn : Strings.modlist.installed.update_selected_btn
             }
         }
     }

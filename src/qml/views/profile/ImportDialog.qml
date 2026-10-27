@@ -12,7 +12,7 @@ MultistageModal {
 
     estimatedStages: 2
     initialStage: ({
-            title: I18n.t("profile.import_model.import_title"),
+            title: Strings.profile.import_model.import_title,
             component: choosePage
         })
 
@@ -39,7 +39,7 @@ MultistageModal {
 
             SText {
                 Layout.bottomMargin: 0.25 * Theme.rem
-                text: I18n.t("profile.import_model.thunderstore_code_label")
+                text: Strings.profile.import_model.thunderstore_code_label
                 color: Theme.neutral05
                 font.family: Theme.font
                 font.pixelSize: Theme.rem
@@ -58,7 +58,7 @@ MultistageModal {
 
             ButtonRow {
                 Btn {
-                    text: I18n.t("global.phrases.cancel")
+                    text: Strings.global.phrases.cancel
                     onClicked: dialog.close()
                 }
                 Item {
@@ -66,12 +66,12 @@ MultistageModal {
                 }
                 AsyncButton {
                     id: next
-                    text: I18n.t("global.phrases.next")
+                    text: Strings.global.phrases.next
                     progressMode: "listener"
                     // the field is required, so an empty code focuses it instead
                     action: listener => code.text === "" ? code.forceActiveFocus() : Api.previewImportModpackFromThunderstoreCode(code.text, dialog.gameId, dialog.profileId, listener).then(modpack => {
                         dialog.pushStage({
-                            title: I18n.t("profile.import_model.preview_title"),
+                            title: Strings.profile.import_model.preview_title,
                             component: previewPage,
                             props: { thunderstoreCode: code.text, modpack }
                         });
@@ -193,7 +193,7 @@ MultistageModal {
 
             ButtonRow {
                 Btn {
-                    text: I18n.t("global.phrases.cancel")
+                    text: Strings.global.phrases.cancel
                     onClicked: dialog.close()
                 }
                 Item {

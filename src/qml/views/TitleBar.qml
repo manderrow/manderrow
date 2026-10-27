@@ -106,7 +106,7 @@ Rectangle {
         // TitleBarButtons and TitleBarDropdowns, in order
 
         TitleBarButton {
-            text: I18n.t("settings.title")
+            text: Strings.settings.title
             iconName: "settings"
             onClicked: if (Router.route !== "settings")
                 Router.navigate("/settings")
@@ -184,18 +184,18 @@ Rectangle {
 
         ControlButton {
             visible: !bar.tiled
-            tooltip: I18n.t("titlebar.minimize_btn")
+            tooltip: Strings.titlebar.minimize_btn
             path: "M19 13H5v-2h14z"
             onClicked: bar.window.showMinimized()
         }
         ControlButton {
             visible: !bar.tiled
-            tooltip: bar.maximized ? I18n.t("titlebar.restore_btn") : I18n.t("titlebar.maximize_btn")
+            tooltip: bar.maximized ? Strings.titlebar.restore_btn : Strings.titlebar.maximize_btn
             path: bar.maximized ? "M4 8h4V4h12v12h-4v4H4zm12 0v6h2V6h-8v2zM6 12v6h8v-6z" : "M4 4h16v16H4zm2 4v10h12V8z"
             onClicked: bar.toggleMaximized()
         }
         ControlButton {
-            tooltip: I18n.t("global.phrases.close")
+            tooltip: Strings.global.phrases.close
             path: "M13.46 12L19 17.54V19h-1.46L12 13.46L6.46 19H5v-1.46L10.54 12L5 6.46V5h1.46L12 10.54L17.54 5H19v1.46z"
             hoverColor: Theme.danger5
             onClicked: bar.window.close()

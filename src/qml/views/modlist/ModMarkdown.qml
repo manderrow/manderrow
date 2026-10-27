@@ -76,7 +76,7 @@ Item {
             visible: !bar.visible
             width: parent.width
             wrapMode: Text.Wrap
-            text: root.error !== null ? String(root.error) : I18n.t(`profile.mod_markdown.no_${root.endpoint}_provided`)
+            text: root.error !== null ? String(root.error) : root.endpoint === "changelog" ? Strings.profile.mod_markdown.no_changelog_provided : Strings.profile.mod_markdown.no_readme_provided
             color: Theme.neutral05
             font.family: Theme.font
             font.pixelSize: Theme.rem

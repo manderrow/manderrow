@@ -11,9 +11,9 @@ Dialog {
     property string question
     /// "danger", "ok", "info", or "" for the confirm button's color.
     property string okType: ""
-    property string okText: I18n.t("global.phrases.confirm")
+    property string okText: Strings.global.phrases.confirm
     property string cancelType: ""
-    property string cancelText: I18n.t("global.phrases.cancel")
+    property string cancelText: Strings.global.phrases.cancel
     /// When false, the dialog only has a cancel button, as in InfoDialog.
     property bool showOk: true
 
@@ -41,7 +41,7 @@ Dialog {
             visible: prompt.title !== undefined
             Layout.fillWidth: true
             Layout.bottomMargin: 0.25 * 1.5 * Theme.rem
-            text: prompt.title === null || prompt.title === undefined ? I18n.t("global.dialogue_default_title") : prompt.title
+            text: prompt.title === null || prompt.title === undefined ? Strings.global.dialogue_default_title : prompt.title
             horizontalAlignment: TextEdit.AlignHCenter
             wrapMode: TextEdit.Wrap
             color: Theme.neutral05

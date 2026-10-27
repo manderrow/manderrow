@@ -17,7 +17,7 @@ Grid {
     verticalItemAlignment: Grid.AlignVCenter
 
     Btn {
-        text: I18n.t("game_select.select_btn")
+        text: Strings.game_select.select_btn
         fontWeight: Font.DemiBold
         bgColor: Qt.rgba(245 / 255, 245 / 255, 245 / 255, 1)
         activeBgColor: Qt.rgba(215 / 255, 215 / 255, 215 / 255, 1)
@@ -26,7 +26,7 @@ Grid {
     }
 
     AsyncButton {
-        text: I18n.t("game_select.set_default_btn")
+        text: Strings.game_select.set_default_btn
         btn.bgColor: Qt.rgba(225 / 255, 225 / 255, 225 / 255, 0.2)
         btn.activeBgColor: Qt.rgba(225 / 255, 225 / 255, 225 / 255, 0.3)
         btn.borderColor: Qt.rgba(225 / 255, 225 / 255, 225 / 255, 0.3)

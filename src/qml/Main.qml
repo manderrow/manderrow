@@ -180,8 +180,8 @@ ApplicationWindow {
         interval: Number(Backend.devOption("script_delay") || 1500)
         onTriggered: {
             try {
-                const run = new Function("find", "Api", "ConsoleStore", "Globals", "Native", "Router", "Tasks", "Ui", Backend.devOption("script"));
-                run(appWindow.find, Api, ConsoleStore, Globals, Native, Router, Tasks, Ui);
+                const run = new Function("find", "Api", "ConsoleStore", "Globals", "Native", "Router", "Strings", "Tasks", "Ui", Backend.devOption("script"));
+                run(appWindow.find, Api, ConsoleStore, Globals, Native, Router, Strings, Tasks, Ui);
             } catch (e) {
                 console.error("Dev script failed:", e, e.stack);
             }

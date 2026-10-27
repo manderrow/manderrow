@@ -79,7 +79,7 @@ Item {
                         }
                         SText {
                             Layout.fillWidth: true
-                            text: I18n.t("settings.title")
+                            text: Strings.settings.title
                             color: Theme.neutral05
                             font.family: Theme.font
                             font.pixelSize: 2 * Theme.rem
@@ -92,7 +92,7 @@ Item {
                         Layout.fillWidth: true
                         Layout.topMargin: 0.5 * Theme.rem
                         Layout.bottomMargin: Theme.rem
-                        placeholderText: I18n.t("settings.search_input_placeholder")
+                        placeholderText: Strings.settings.search_input_placeholder
                     }
 
                     Repeater {
