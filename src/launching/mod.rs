@@ -22,11 +22,11 @@ use crate::wrap::WrapperMode;
 
 pub static LOADERS_DIR: LazyLock<PathBuf> = LazyLock::new(|| cache_dir().join("loaders"));
 
-#[derive(Debug, Clone, Copy, serde::Deserialize)]
+/// What to launch a game from.
+#[derive(Debug, Clone, Copy)]
 pub enum LaunchTarget<'a> {
-    #[serde(rename = "profile")]
     Profile(Uuid),
-    #[serde(rename = "vanilla")]
+    /// The game, by its id, without mods.
     Vanilla(&'a str),
 }
 

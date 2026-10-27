@@ -30,6 +30,8 @@ pub enum Event {
     Copy,
     PartialEq,
     Eq,
+    PartialOrd,
+    Ord,
     Hash,
     serde::Serialize,
     serde::Deserialize,
@@ -479,12 +481,11 @@ pub struct InProcessIpc {
 }
 
 impl InProcessIpc {
-    pub async fn send(&self, message: C2SMessage) -> Result<()> {
+    pub fn send(&self, message: C2SMessage) {
         self.app.ipc_events().emit(Event::Message {
             conn_id: self.conn_id,
             msg: message,
         });
-        Ok(())
     }
 
     pub async fn recv(&mut self) -> Result<S2CMessage> {
@@ -504,7 +505,7 @@ impl InProcessIpc {
     {
         let (mut receiver, msg) =
             doctor::PatientChoiceReceiver::new(translation_key, message, message_args, fixes);
-        self.send(msg).await?;
+        self.send(msg);
         loop {
             match receiver.process(self.recv().await?)? {
                 ControlFlow::Break(choice) => return Ok(choice),

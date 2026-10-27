@@ -11,25 +11,13 @@ QtObject {
     readonly property var rawLocales: ["en-CA", "en-US", "es", "fr-FR"]
     readonly property string defaultLocale: rawLocales[0]
 
-    readonly property var localeNames: JSON.parse(App.localeDictionary("localeNames"))
+    readonly property var localeNames: App.localeNames()
 
     property string locale: defaultLocale
 
-    readonly property var _defaultDict: _flatten(JSON.parse(App.localeDictionary(defaultLocale)))
-    readonly property var dict: Object.assign({}, _defaultDict, _flatten(JSON.parse(App.localeDictionary(locale) || "{}")))
-
-    function _flatten(obj, prefix, out) {
-        out = out || {};
-        for (const key of Object.keys(obj)) {
-            const path = prefix ? `${prefix}.${key}` : key;
-            const value = obj[key];
-            if (value !== null && typeof value === "object")
-                _flatten(value, path, out);
-            else
-                out[path] = value;
-        }
-        return out;
-    }
+    readonly property var _defaultDict: App.translations(defaultLocale)
+    /// The translations by key, with the default locale's for those the locale lacks.
+    readonly property var dict: Object.assign({}, _defaultDict, App.translations(locale))
 
     /// Replaces `{{ name }}` placeholders, like `@solid-primitives/i18n`'s `resolveTemplate`.
     function resolveTemplate(template, args) {

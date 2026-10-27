@@ -80,8 +80,8 @@ pub mod qobject {
         #[qproperty(QObjectList, all, READ, NOTIFY)]
         type Tasks = super::TasksRust;
 
-        /// The task with an id, as a call's `taskId`. A task that is yet to be created is known
-        /// as unstarted until it is.
+        /// The task with an id, as a call's `taskId`, or null for -1. A task that is yet to be
+        /// created is known as unstarted until it is.
         #[qinvokable]
         fn get(self: Pin<&mut Tasks>, id: i32) -> *mut Task;
     }
@@ -145,12 +145,12 @@ impl Default for TaskRust {
 
 #[derive(Default)]
 pub struct TasksRust {
-    tasks: HashMap<i32, Child<Task>>,
     all: QObjectList,
+    tasks: HashMap<Id, Child<Task>>,
     /// The aggregate tasks that wait on each task, with how much of their progress is its.
-    aggregates: HashMap<i32, Vec<(i32, Progress)>>,
+    aggregates: HashMap<Id, Vec<(Id, Progress)>>,
     /// The tasks that wait on each task and haven't found a download among those they wait on.
-    awaiting_download: HashMap<i32, Vec<i32>>,
+    awaiting_download: HashMap<Id, Vec<Id>>,
 }
 
 impl cxx_qt::Initialize for qobject::Tasks {
@@ -164,174 +164,153 @@ impl cxx_qt::Initialize for qobject::Tasks {
 
 impl qobject::Tasks {
     fn get(self: Pin<&mut Self>, id: i32) -> *mut Task {
-        self.get_or_create(id)
+        Id::from_qml(id).map_or(std::ptr::null_mut(), |id| self.task(id).as_ptr())
     }
 
-    fn get_or_create(mut self: Pin<&mut Self>, id: i32) -> *mut Task {
-        if let Some(task) = self.tasks.get(&id) {
-            return task.as_ptr();
+    /// A task, which is made if it's unknown, as a task can be known of before it's created.
+    fn task(mut self: Pin<&mut Self>, id: Id) -> &mut Child<Task> {
+        if !self.tasks.contains_key(&id) {
+            let mut task = qobject::new_task();
+            task.pin_mut().rust_mut().id = id.to_qml();
+            let task = Child::adopt(self.as_mut(), task);
+            let mut rust = self.as_mut().rust_mut();
+            rust.all.push(task.as_qobject());
+            rust.tasks.insert(id, task);
+            self.as_mut().all_changed();
         }
-        let mut task = qobject::new_task();
-        task.pin_mut().rust_mut().id = id;
-        let task = Child::adopt(self.as_mut(), task);
-        let pointer = task.as_ptr();
-        let mut rust = self.as_mut().rust_mut();
-        rust.all.0.append(task.as_qobject());
-        rust.tasks.insert(id, task);
-        self.all_changed();
-        pointer
-    }
-
-    /// A task to update, which is created if it's unknown.
-    fn task(mut self: Pin<&mut Self>, id: i32) -> Pin<&mut Task> {
-        self.as_mut().get_or_create(id);
-        let rust = self.rust_mut().get_mut();
-        rust.tasks
-            .get_mut(&id)
-            .expect("the task was created")
+        self.rust_mut()
             .get_mut()
+            .tasks
+            .get_mut(&id)
+            .expect("the task was made")
     }
 
-    fn handle(mut self: Pin<&mut Self>, event: Event) {
+    fn handle(self: Pin<&mut Self>, event: Event) {
         match event {
-            Event::Created { id, metadata } => {
-                let id = id.to_qml();
-                let mut task = self.as_mut().task(id);
-                if task.status != TaskStatus::Unstarted {
-                    slog_scope::error!("Duplicate id {id} in task creation: {:?}", metadata.title);
-                    return;
-                }
-                {
-                    let mut rust = task.as_mut().rust_mut();
-                    rust.title = QString::from(&*metadata.title);
-                    (rust.kind, rust.url) = match &metadata.kind {
-                        tasks::Kind::Aggregate => (TaskKind::Aggregate, QString::default()),
-                        tasks::Kind::Download { url } => (TaskKind::Download, QString::from(url)),
-                        tasks::Kind::Other => (TaskKind::Other, QString::default()),
-                    };
-                    rust.progress_unit = match metadata.progress_unit {
-                        tasks::ProgressUnit::Bytes => TaskProgressUnit::Bytes,
-                        tasks::ProgressUnit::Other => TaskProgressUnit::Other,
-                    };
-                    rust.status = TaskStatus::Running;
-                }
-                task.as_mut().metadata_changed();
-                task.as_mut().status_changed();
-                let (kind, unit) = (task.kind, task.progress_unit);
+            Event::Created { id, metadata } => self.created(id, metadata),
+            Event::Progress { id, progress } => self.progressed(id, progress),
+            Event::Dependency { id, dependency } => self.depends(id, dependency),
+            Event::Dropped { id, status } => self.dropped(id, status),
+        }
+    }
 
-                // the tasks waiting on it that were waiting to know whether it's a download
-                if kind == TaskKind::Download {
-                    let pointer = self.as_mut().get_or_create(id);
-                    for parent in self
-                        .as_mut()
-                        .rust_mut()
-                        .awaiting_download
-                        .remove(&id)
-                        .unwrap_or_default()
-                    {
-                        self.as_mut().task(parent).set_download(pointer);
-                    }
-                }
-                // an aggregate only adds up the progress of tasks in its unit
-                let mut aggregates = self
-                    .as_mut()
-                    .rust_mut()
-                    .aggregates
-                    .remove(&id)
-                    .unwrap_or_default();
-                aggregates.retain(|&(parent, _)| self.as_mut().task(parent).progress_unit == unit);
-                if !aggregates.is_empty() {
-                    self.as_mut().rust_mut().aggregates.insert(id, aggregates);
-                }
-            }
-            Event::Progress { id, progress } => {
-                let id = id.to_qml();
-                self.as_mut()
-                    .task(id)
-                    .set_progress(progress.completed as f64, progress.total as f64);
-                // what it has added to each aggregate's progress, which this replaces, so that each
-                // update is constant time however many tasks there are
-                let mut aggregates = self
-                    .as_mut()
-                    .rust_mut()
-                    .aggregates
-                    .remove(&id)
-                    .unwrap_or_default();
-                for (parent, counted) in &mut aggregates {
-                    let mut parent = self.as_mut().task(*parent);
-                    let completed =
-                        parent.completed + progress.completed as f64 - counted.completed as f64;
-                    let total = parent.total + progress.total as f64 - counted.total as f64;
-                    parent.as_mut().set_progress(completed, total);
-                    *counted = progress;
-                }
-                if !aggregates.is_empty() {
-                    self.as_mut().rust_mut().aggregates.insert(id, aggregates);
-                }
-            }
-            Event::Dependency { id, dependency } => {
-                let (id, dependency) = (id.to_qml(), dependency.to_qml());
-                let task = self.as_mut().task(id);
-                let (kind, unit, has_download) =
-                    (task.kind, task.progress_unit, !task.download.is_null());
-                let dependency_task = self.as_mut().task(dependency);
-                let dependency_status = dependency_task.status;
-                let dependency_kind = dependency_task.kind;
-                let dependency_unit = dependency_task.progress_unit;
-                let pointer = self.as_mut().get_or_create(dependency);
+    fn created(mut self: Pin<&mut Self>, id: Id, metadata: tasks::Metadata) {
+        let task = self.as_mut().task(id);
+        let download = task.as_ptr();
+        let mut task = task.get_mut();
+        if task.status != TaskStatus::Unstarted {
+            slog_scope::error!("Duplicate id {id:?} in task creation: {:?}", metadata.title);
+            return;
+        }
+        {
+            let mut rust = task.as_mut().rust_mut();
+            rust.title = QString::from(&*metadata.title);
+            rust.kind = TaskKind::from(&metadata.kind);
+            rust.url = match &metadata.kind {
+                tasks::Kind::Download { url } => QString::from(url),
+                _ => QString::default(),
+            };
+            rust.progress_unit = TaskProgressUnit::from(metadata.progress_unit);
+            rust.status = TaskStatus::Running;
+        }
+        task.as_mut().metadata_changed();
+        task.as_mut().status_changed();
+        let (kind, unit) = (task.kind, task.progress_unit);
 
-                if !has_download {
-                    if dependency_kind == TaskKind::Download {
-                        self.as_mut().task(id).set_download(pointer);
-                    } else if dependency_status == TaskStatus::Unstarted {
-                        // it may turn out to be one once it's created
-                        self.as_mut()
-                            .rust_mut()
-                            .awaiting_download
-                            .entry(dependency)
-                            .or_default()
-                            .push(id);
-                    }
-                }
-                if kind == TaskKind::Aggregate
-                    && (dependency_status == TaskStatus::Unstarted || dependency_unit == unit)
-                {
-                    let counted = Progress {
-                        completed: 0,
-                        total: 0,
-                    };
-                    self.as_mut()
-                        .rust_mut()
-                        .aggregates
-                        .entry(dependency)
-                        .or_default()
-                        .push((id, counted));
-                }
-            }
-            Event::Dropped { id, status } => {
-                let id = id.to_qml();
-                let mut task = self.as_mut().task(id);
-                {
-                    let mut rust = task.as_mut().rust_mut();
-                    match status {
-                        DropStatus::Success { success } => {
-                            rust.status = TaskStatus::Succeeded;
-                            rust.cached = matches!(success, Some(SuccessInfo::Cached));
-                        }
-                        DropStatus::Cancelled => rust.status = TaskStatus::Cancelled,
-                        DropStatus::Failed { error } => {
-                            rust.status = TaskStatus::Failed;
-                            rust.error = QString::from(&*error);
-                        }
-                    }
-                    rust.is_complete = true;
-                }
-                task.status_changed();
-                let mut rust = self.as_mut().rust_mut();
-                rust.aggregates.remove(&id);
-                rust.awaiting_download.remove(&id);
+        // the tasks waiting on it that were waiting to know whether it's a download
+        let awaiting = self.as_mut().rust_mut().awaiting_download.remove(&id);
+        if kind == TaskKind::Download {
+            for parent in awaiting.into_iter().flatten() {
+                self.as_mut().task(parent).get_mut().set_download(download);
             }
         }
+        // an aggregate only adds up the progress of tasks in its unit
+        if let Some(mut aggregates) = self.as_mut().rust_mut().aggregates.remove(&id) {
+            aggregates.retain(|&(parent, _)| self.as_mut().task(parent).progress_unit == unit);
+            if !aggregates.is_empty() {
+                self.as_mut().rust_mut().aggregates.insert(id, aggregates);
+            }
+        }
+    }
+
+    fn progressed(mut self: Pin<&mut Self>, id: Id, progress: Progress) {
+        self.as_mut()
+            .task(id)
+            .get_mut()
+            .set_progress(progress.completed as f64, progress.total as f64);
+        // what it has added to each aggregate's progress, which this replaces, so that each update
+        // is constant time however many tasks there are
+        let Some(mut aggregates) = self.as_mut().rust_mut().aggregates.remove(&id) else {
+            return;
+        };
+        for (parent, counted) in &mut aggregates {
+            let mut parent = self.as_mut().task(*parent).get_mut();
+            let completed = parent.completed + progress.completed as f64 - counted.completed as f64;
+            let total = parent.total + progress.total as f64 - counted.total as f64;
+            parent.as_mut().set_progress(completed, total);
+            *counted = progress;
+        }
+        self.as_mut().rust_mut().aggregates.insert(id, aggregates);
+    }
+
+    fn depends(mut self: Pin<&mut Self>, id: Id, dependency: Id) {
+        let task = self.as_mut().task(id);
+        let (kind, unit, has_download) = (task.kind, task.progress_unit, !task.download.is_null());
+        let dependency_task = self.as_mut().task(dependency);
+        let download = dependency_task.as_ptr();
+        let (dependency_status, dependency_kind, dependency_unit) = (
+            dependency_task.status,
+            dependency_task.kind,
+            dependency_task.progress_unit,
+        );
+
+        if !has_download {
+            if dependency_kind == TaskKind::Download {
+                self.as_mut().task(id).get_mut().set_download(download);
+            } else if dependency_status == TaskStatus::Unstarted {
+                // it may turn out to be one once it's created
+                self.as_mut()
+                    .rust_mut()
+                    .awaiting_download
+                    .entry(dependency)
+                    .or_default()
+                    .push(id);
+            }
+        }
+        if kind == TaskKind::Aggregate
+            && (dependency_status == TaskStatus::Unstarted || dependency_unit == unit)
+        {
+            let counted = Progress {
+                completed: 0,
+                total: 0,
+            };
+            self.as_mut()
+                .rust_mut()
+                .aggregates
+                .entry(dependency)
+                .or_default()
+                .push((id, counted));
+        }
+    }
+
+    fn dropped(mut self: Pin<&mut Self>, id: Id, status: DropStatus) {
+        let mut task = self.as_mut().task(id).get_mut();
+        {
+            let mut rust = task.as_mut().rust_mut();
+            rust.status = TaskStatus::from(&status);
+            match status {
+                DropStatus::Success { success } => {
+                    rust.cached = matches!(success, Some(SuccessInfo::Cached));
+                }
+                DropStatus::Cancelled => {}
+                DropStatus::Failed { error } => rust.error = QString::from(&*error),
+            }
+            rust.is_complete = true;
+        }
+        task.status_changed();
+        let mut rust = self.as_mut().rust_mut();
+        rust.aggregates.remove(&id);
+        rust.awaiting_download.remove(&id);
     }
 }
 
@@ -351,11 +330,43 @@ impl Task {
     }
 
     fn cancel(&self) {
-        let id = Id::from_qml(self.id);
+        let Some(id) = Id::from_qml(self.id) else {
+            return;
+        };
         super::runtime().spawn(async move {
             if let Err(e) = tasks::cancel(id).await {
                 slog_scope::error!("Unable to cancel task {id:?}: {e:#}");
             }
         });
+    }
+}
+
+impl From<&tasks::Kind> for TaskKind {
+    fn from(kind: &tasks::Kind) -> Self {
+        match kind {
+            tasks::Kind::Aggregate => Self::Aggregate,
+            tasks::Kind::Download { .. } => Self::Download,
+            tasks::Kind::Other => Self::Other,
+        }
+    }
+}
+
+impl From<tasks::ProgressUnit> for TaskProgressUnit {
+    fn from(unit: tasks::ProgressUnit) -> Self {
+        match unit {
+            tasks::ProgressUnit::Bytes => Self::Bytes,
+            tasks::ProgressUnit::Other => Self::Other,
+        }
+    }
+}
+
+/// The status of a task that has completed.
+impl From<&DropStatus> for TaskStatus {
+    fn from(status: &DropStatus) -> Self {
+        match status {
+            DropStatus::Success { .. } => Self::Succeeded,
+            DropStatus::Cancelled => Self::Cancelled,
+            DropStatus::Failed { .. } => Self::Failed,
+        }
     }
 }

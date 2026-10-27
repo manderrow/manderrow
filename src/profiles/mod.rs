@@ -33,10 +33,9 @@ pub struct Profile {
     pub pinned: bool,
 }
 
-#[derive(Clone, Debug, serde::Deserialize, serde::Serialize)]
+#[derive(Clone, Debug)]
 pub struct ProfileWithId {
     pub id: Uuid,
-    #[serde(flatten)]
     pub metadata: Profile,
 }
 
@@ -404,7 +403,7 @@ async fn install_profile_mod_inner<'a, 'b>(
             &url,
             Some(crate::installing::CacheOptions::by_url()),
             &mod_folder_path,
-            Some(handle.allocate_dependency(app)?),
+            Some(handle.allocate_dependency(app)),
         )
         .await?;
 
@@ -507,7 +506,7 @@ async fn install_profile_mod_inner<'a, 'b>(
     // FIXME: include queued transactions in this task, handle cancellation, etc.
     handle
         .unwrap()
-        .drop(tasks::DropStatus::Success { success: None })?;
+        .drop(tasks::DropStatus::Success { success: None });
 
     Ok(())
 }

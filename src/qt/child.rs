@@ -1,5 +1,6 @@
 //! QObjects that another QObject owns as its children.
 
+use core::ops::Deref;
 use core::pin::Pin;
 
 use cxx::memory::UniquePtrTarget;
@@ -30,14 +31,18 @@ impl<T: Upcast<QObject> + UniquePtrTarget> Child<T> {
         unsafe { QObjectMutPtr::from_raw(Upcast::<QObject>::upcast_ptr(self.0).cast_mut()) }
     }
 
-    pub fn get(&self) -> &T {
-        // SAFETY: the child lives as long as its parent, whose state this is in
-        unsafe { &*self.0 }
-    }
-
     pub fn get_mut(&mut self) -> Pin<&mut T> {
         // SAFETY: the child lives as long as its parent, whose state this is in, and this borrows
         // it uniquely
         unsafe { Pin::new_unchecked(&mut *self.0) }
+    }
+}
+
+impl<T> Deref for Child<T> {
+    type Target = T;
+
+    fn deref(&self) -> &T {
+        // SAFETY: the child lives as long as its parent, whose state this is in
+        unsafe { &*self.0 }
     }
 }

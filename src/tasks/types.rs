@@ -10,8 +10,10 @@ impl Id {
         self.0 as i32
     }
 
-    pub fn from_qml(id: i32) -> Self {
-        Self(id as u32 as u64)
+    /// The id that QML knows a task by, or `None` for one that no task has, like a call's
+    /// `taskId` of -1.
+    pub fn from_qml(id: i32) -> Option<Self> {
+        u64::try_from(id).ok().map(Self)
     }
 }
 

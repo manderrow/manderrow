@@ -80,10 +80,11 @@ pub mod qobject {
 
 use core::pin::Pin;
 
+use anyhow::anyhow;
 use cxx::UniquePtr;
 use cxx_qt::CxxQtType;
-use cxx_qt_lib::{QDateTime, QString, QStringList, QTimeZone, QVariant};
-use manderrow_types::mods::{ArchivedModRef, ArchivedModVersionRef, Timestamp};
+use cxx_qt_lib::{QDateTime, QString, QStringList, QTimeZone};
+use manderrow_types::mods::{ArchivedModRef, ArchivedModVersionRef, ModId, Timestamp};
 use packed_semver::Version;
 
 use super::call::{self, Call};
@@ -91,9 +92,39 @@ use super::child::Child;
 use super::QObjectList;
 use crate::mod_index::thunderstore::{self, ModMarkdown};
 use crate::profiles::{ManifestVersion, ModManifest};
-use crate::{tasks, Reqwest};
+use crate::Reqwest;
 
 pub use qobject::{Mod, ModVersion};
+
+/// A mod, by its owner and name.
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct ModKey {
+    pub owner: String,
+    pub name: String,
+}
+
+impl ModKey {
+    pub fn of(owner: &QString, name: &QString) -> Self {
+        Self {
+            owner: owner.to_string(),
+            name: name.to_string(),
+        }
+    }
+
+    /// The mod's id in the mod index.
+    pub fn id(&self) -> ModId<'_> {
+        ModId {
+            owner: self.owner.as_str().into(),
+            name: self.name.as_str().into(),
+        }
+    }
+}
+
+/// A version of a mod, as QML passes it.
+pub fn parse_version(version: &QString) -> anyhow::Result<Version> {
+    let version = version.to_string();
+    Version::from_str(&version).map_err(|e| anyhow!("Invalid version {version:?}: {e}"))
+}
 
 /// What a `Mod` shows, which the backend sends the Qt thread to make one of.
 pub struct ModInfo {
@@ -205,6 +236,7 @@ impl VersionInfo {
     }
 }
 
+#[derive(Default)]
 pub struct ModVersionRust {
     version_number: QString,
     description: QString,
@@ -214,21 +246,6 @@ pub struct ModVersionRust {
     website_url: QString,
     is_active: bool,
     file_size: f64,
-}
-
-impl Default for ModVersionRust {
-    fn default() -> Self {
-        Self {
-            version_number: QString::default(),
-            description: QString::default(),
-            dependencies: QStringList::default(),
-            downloads: 0.0,
-            date_created: QDateTime::default(),
-            website_url: QString::default(),
-            is_active: false,
-            file_size: 0.0,
-        }
-    }
 }
 
 pub struct ModRust {
@@ -262,6 +279,20 @@ impl Default for ModRust {
             display_version: std::ptr::null_mut(),
             installed_version: None,
         }
+    }
+}
+
+/// A mod that a call returns, as a `Mod`, or null.
+impl call::Output for Option<ModInfo> {
+    fn return_from(self, call: Pin<&mut Call>) {
+        call.return_object(self.map(new_mod));
+    }
+}
+
+/// Mods that a call returns, as a list of `Mod`s.
+impl call::Output for Vec<ModInfo> {
+    fn return_from(self, call: Pin<&mut Call>) {
+        call.return_objects(self.into_iter().map(new_mod));
     }
 }
 
@@ -316,9 +347,8 @@ impl Mod {
         self.changed();
     }
 
-    /// The mod's owner and name, for the backend.
-    pub fn id(&self) -> (String, String) {
-        (self.owner.to_string(), self.name.to_string())
+    pub fn key(&self) -> ModKey {
+        ModKey::of(&self.owner, &self.name)
     }
 
     pub fn installed_version(&self) -> Option<Version> {
@@ -333,37 +363,24 @@ impl Mod {
         self.markdown(version, ModMarkdown::Changelog)
     }
 
-    fn markdown(&self, version: &QString, endpoint: ModMarkdown) -> *mut Call {
-        let (owner, name) = self.id();
-        let version = version.to_string();
-        let task = tasks::allocate_task();
-        call::start(
-            Some(task),
-            async move {
-                let version = Version::from_str(&version)
-                    .map_err(|e| anyhow::anyhow!("Invalid version {version:?}: {e}"))?;
-                let app = super::app();
-                let json = thunderstore::fetch_mod_markdown(
-                    Some(app),
-                    &slog_scope::logger(),
-                    &app.state::<Reqwest>(),
-                    &owner,
-                    &name,
-                    version,
-                    endpoint,
-                    Some(task),
-                )
-                .await?;
-                #[derive(serde::Deserialize)]
-                struct Markdown {
-                    markdown: Option<String>,
-                }
-                let markdown =
-                    serde_json::from_str::<Markdown>(&json).map_err(anyhow::Error::from)?;
-                Ok(markdown.markdown.unwrap_or_default())
-            },
-            |call, markdown| call.return_value(QVariant::from(&QString::from(&markdown))),
-        )
+    fn markdown(&self, version: &QString, document: ModMarkdown) -> *mut Call {
+        let ModKey { owner, name } = self.key();
+        let version = parse_version(version);
+        call::spawn_with_task(move |task| async move {
+            let app = super::app();
+            let markdown = thunderstore::fetch_mod_markdown(
+                Some(app),
+                &slog_scope::logger(),
+                &app.state::<Reqwest>(),
+                &owner,
+                &name,
+                version?,
+                document,
+                Some(task),
+            )
+            .await?;
+            anyhow::Ok(markdown.unwrap_or_default())
+        })
     }
 }
 

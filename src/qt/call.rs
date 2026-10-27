@@ -1,8 +1,9 @@
 //! `Call`: an asynchronous call into the backend, which the methods that start one return.
 //!
 //! QML turns a call into a promise with `Async.promise(call)`, or awaits it with `yield` in
-//! `Async.co`. What it resolves to depends on the call: a value, or objects, which become QML's
-//! once it takes them, so that they live as long as QML refers to them.
+//! `Async.co`. What it resolves to depends on the call, which its future's [`Output`] decides: a
+//! value, or objects, which become QML's once it takes them, so that they live as long as QML
+//! refers to them.
 
 #[cxx_qt::bridge]
 pub mod qobject {
@@ -79,10 +80,12 @@ use cxx::UniquePtr;
 use cxx_qt::casting::Upcast;
 use cxx_qt::{CxxQtType, QObject, Threading};
 use cxx_qt_lib::{QObjectExt, QString, QStringList, QVariant};
+use uuid::Uuid;
 
 pub use qobject::Call;
 use qobject::{CallResultKind, CallStatus};
 
+use super::error::QmlError;
 use crate::{tasks, CommandError};
 
 pub struct CallRust {
@@ -112,18 +115,59 @@ impl Default for CallRust {
     }
 }
 
+/// What a call returns to QML, made of what its future resolved to. It's made on the Qt thread,
+/// as the QObjects that some calls return must be.
+pub trait Output: Send + 'static {
+    fn return_from(self, call: Pin<&mut Call>);
+}
+
+impl Output for () {
+    fn return_from(self, _call: Pin<&mut Call>) {}
+}
+
+impl Output for String {
+    fn return_from(self, call: Pin<&mut Call>) {
+        call.return_value(QVariant::from(&QString::from(&self)));
+    }
+}
+
+/// An id, like a profile's, which QML knows as a string.
+impl Output for Uuid {
+    fn return_from(self, call: Pin<&mut Call>) {
+        call.return_value(QVariant::from(&QString::from(&self.to_string())));
+    }
+}
+
 /// Starts a call of `future` on the backend's runtime, and returns it to give to QML, which owns
-/// it. Once `future` completes, `finish` runs on the Qt thread with its result, to make what the
-/// call returns of it, with [`Call::return_value`] and the like, unless QML has dropped the call
-/// by then. The call's progress is that of `task`, which `future` creates.
-pub fn start<T, F>(
+/// it. What `future` resolves to is returned from the call once it completes, unless QML has
+/// dropped the call by then.
+pub fn spawn<T, E>(future: impl Future<Output = Result<T, E>> + Send + 'static) -> *mut Call
+where
+    T: Output,
+    E: Into<CommandError> + Send + 'static,
+{
+    start(None, future)
+}
+
+/// Starts a call as [`spawn`] does, whose progress is that of a task: `make` is given the task's
+/// id, and makes the future that creates it.
+pub fn spawn_with_task<F, T, E>(make: impl FnOnce(tasks::Id) -> F) -> *mut Call
+where
+    F: Future<Output = Result<T, E>> + Send + 'static,
+    T: Output,
+    E: Into<CommandError> + Send + 'static,
+{
+    let task = tasks::allocate_task();
+    start(Some(task), make(task))
+}
+
+fn start<T, E>(
     task: Option<tasks::Id>,
-    future: F,
-    finish: impl FnOnce(Pin<&mut Call>, T) + Send + 'static,
+    future: impl Future<Output = Result<T, E>> + Send + 'static,
 ) -> *mut Call
 where
-    T: Send + 'static,
-    F: Future<Output = Result<T, CommandError>> + Send + 'static,
+    T: Output,
+    E: Into<CommandError> + Send + 'static,
 {
     let mut call = qobject::new_call();
     if let Some(task) = task {
@@ -134,11 +178,11 @@ where
         let result = future.await;
         // fails only if QML has dropped the call, when there's no one to tell
         _ = thread.queue(move |mut call| match result {
-            Ok(value) => {
-                finish(call.as_mut(), value);
+            Ok(output) => {
+                output.return_from(call.as_mut());
                 call.set_status(CallStatus::Succeeded);
             }
-            Err(e) => call.fail(e),
+            Err(e) => call.fail(e.into()),
         });
     });
     // QML owns an object without a parent that a method returns
@@ -201,17 +245,17 @@ impl Call {
     }
 
     fn fail(mut self: Pin<&mut Self>, error: CommandError) {
-        match error {
-            CommandError::Aborted => self.set_status(CallStatus::Aborted),
-            CommandError::Error {
+        match QmlError::of(&error) {
+            Some(QmlError {
                 messages,
                 backtrace,
-            } => {
+            }) => {
                 let mut rust = self.as_mut().rust_mut();
-                rust.error_messages = messages.iter().map(QString::from).collect();
-                rust.backtrace = QString::from(&backtrace);
+                rust.error_messages = messages;
+                rust.backtrace = backtrace;
                 self.set_status(CallStatus::Failed);
             }
+            None => self.set_status(CallStatus::Aborted),
         }
     }
 

@@ -1,7 +1,6 @@
 //! Manderrow app settings. The backend is the "source of truth". When changes are made in the
-//! frontend, the modified settings are sent to the backend with [`update`], which performs final
-//! validation, makes the modified settings active, sends them to the frontend, and finally writes
-//! them to disk.
+//! frontend, they're sent to the backend with [`change`], which performs final validation, makes
+//! the change active, sends the settings to the frontend, and finally writes them to disk.
 
 use std::path::PathBuf;
 use std::sync::LazyLock;
@@ -86,47 +85,145 @@ pub fn try_read() -> SettingsStateInner {
 /// A setting's value, which is its default unless it's been changed.
 #[derive(Debug, Clone, Copy)]
 pub struct Setting<T> {
-    value: T,
-    is_default: bool,
+    pub value: T,
+    pub is_default: bool,
 }
 
 impl<T> Setting<T> {
-    pub fn value(&self) -> &T {
-        &self.value
+    pub fn map<U>(self, f: impl FnOnce(T) -> U) -> Setting<U> {
+        Setting {
+            value: f(self.value),
+            is_default: self.is_default,
+        }
+    }
+}
+
+/// A change to a setting.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Change<T> {
+    /// Changes it back to its default.
+    Reset,
+    Set(T),
+}
+
+impl<T> Change<T> {
+    pub fn try_map<U>(self, f: impl FnOnce(T) -> Option<U>) -> Option<Change<U>> {
+        Some(match self {
+            Self::Reset => Change::Reset,
+            Self::Set(value) => Change::Set(f(value)?),
+        })
+    }
+
+    /// The value the setting is changed to, or `None` for its default.
+    fn into_override(self) -> Option<T> {
+        match self {
+            Self::Reset => None,
+            Self::Set(value) => Some(value),
+        }
     }
 }
 
 /// A section of the settings, which the settings page has a tab for.
-pub struct SectionInfo {
+pub struct Section {
     pub id: &'static str,
-    pub settings: &'static [SettingInfo],
+    pub keys: &'static [Key],
 }
 
-/// What a setting is set with on the settings page.
-pub struct SettingInfo {
-    /// Its key, in camelCase, which is that of its translation.
-    pub key: &'static str,
-    pub input: Input,
-    /// The values a `Select` offers.
-    pub options: &'static [&'static str],
-}
-
+/// What the settings page sets a setting with.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Input {
     Toggle,
-    /// One of the games, by its id.
+    /// One of the games, or none.
     GameSelect,
-    /// One of its options.
-    Select,
-    /// A percentage, from 0 to 100.
+    /// One of its options, by name, which is that of its translation.
+    Select(&'static [&'static str]),
     Percent,
 }
 
-#[derive(Debug, Clone, Copy, serde::Deserialize)]
-enum Change<T> {
-    #[serde(rename = "default")]
-    Default,
-    #[serde(rename = "override")]
-    Override(T),
+/// A setting's value, as the settings page shows and sets it, of the kind that its [`Input`] sets.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Value {
+    Bool(bool),
+    Game(Option<GameId>),
+    /// One of a select's options.
+    Choice(&'static str),
+    Percent(Percent),
+}
+
+/// A type of setting, which decides what the settings page sets it with.
+pub trait SettingType: Sized {
+    const INPUT: Input;
+
+    fn to_value(&self) -> Value;
+
+    /// The setting of a value, or `None` if it isn't of the kind that [`Self::INPUT`] sets.
+    fn from_value(value: Value) -> Option<Self>;
+}
+
+impl SettingType for bool {
+    const INPUT: Input = Input::Toggle;
+
+    fn to_value(&self) -> Value {
+        Value::Bool(*self)
+    }
+
+    fn from_value(value: Value) -> Option<Self> {
+        match value {
+            Value::Bool(value) => Some(value),
+            _ => None,
+        }
+    }
+}
+
+impl SettingType for Percent {
+    const INPUT: Input = Input::Percent;
+
+    fn to_value(&self) -> Value {
+        Value::Percent(*self)
+    }
+
+    fn from_value(value: Value) -> Option<Self> {
+        match value {
+            Value::Percent(value) => Some(value),
+            _ => None,
+        }
+    }
+}
+
+impl SettingType for Option<GameId> {
+    const INPUT: Input = Input::GameSelect;
+
+    fn to_value(&self) -> Value {
+        Value::Game(self.clone())
+    }
+
+    fn from_value(value: Value) -> Option<Self> {
+        match value {
+            Value::Game(value) => Some(value),
+            _ => None,
+        }
+    }
+}
+
+impl SettingType for Theme {
+    const INPUT: Input = Input::Select(&["auto", "dark", "light"]);
+
+    fn to_value(&self) -> Value {
+        Value::Choice(match self {
+            Self::Auto => "auto",
+            Self::Dark => "dark",
+            Self::Light => "light",
+        })
+    }
+
+    fn from_value(value: Value) -> Option<Self> {
+        match value {
+            Value::Choice("auto") => Some(Self::Auto),
+            Value::Choice("dark") => Some(Self::Dark),
+            Value::Choice("light") => Some(Self::Light),
+            _ => None,
+        }
+    }
 }
 
 /// The app's color scheme.
@@ -139,47 +236,67 @@ pub enum Theme {
     Light,
 }
 
+/// A game, by its id.
+#[derive(Debug, Clone, PartialEq, Eq, serde::Deserialize, serde::Serialize)]
+#[serde(transparent)]
+pub struct GameId(pub String);
+
+/// A percentage, from 0 to 100.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, serde::Serialize)]
+#[serde(transparent)]
+pub struct Percent(u8);
+
+impl Percent {
+    pub const fn new(percent: u8) -> Option<Self> {
+        if percent <= 100 {
+            Some(Self(percent))
+        } else {
+            None
+        }
+    }
+
+    pub const fn get(self) -> u8 {
+        self.0
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for Percent {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        // a value out of range, as from editing the file, isn't worth losing the settings over
+        Ok(Self(u8::deserialize(deserializer)?.min(100)))
+    }
+}
+
 #[manderrow_macros::settings(sections = [general, appearance, launching])]
 struct Settings {
+    /// The game the app opens to, rather than to the game selection.
     #[section(general)]
     #[default(None)]
-    #[input(game_select)]
-    #[ref_by(Option<&'a String>, Option::as_ref)]
-    default_game: Option<String>,
+    default_game: Option<GameId>,
 
     /// Overrides the system's color scheme.
     #[section(appearance)]
     #[default(Theme::Auto)]
-    #[input(select)]
-    #[options(auto, dark, light)]
-    #[ref_by(Theme, Theme::clone)]
     theme: Theme,
 
     /// Shows the desktop through the window's background.
     #[section(appearance)]
     #[default(true)]
-    #[input(toggle)]
-    #[ref_by(bool, bool::clone)]
     window_translucent: bool,
 
-    /// How opaque the window's background is while it is translucent, in percent.
+    /// How opaque the window's background is while it is translucent.
     #[section(appearance)]
-    #[default(70)]
-    #[input(percent)]
-    #[ref_by(u8, u8::clone)]
-    window_opacity: u8,
+    #[default(Percent::new(70).unwrap())]
+    window_opacity: Percent,
 
     /// Blurs the desktop behind the translucent window, where the platform supports it.
     #[section(appearance)]
     #[default(true)]
-    #[input(toggle)]
-    #[ref_by(bool, bool::clone)]
     window_blur: bool,
 
+    /// Opens the console when a game is launched.
     #[section(launching)]
     #[default(false)]
-    #[input(toggle)]
-    #[ref_by(bool, bool::clone)]
     open_console_on_launch: bool,
 }
 
@@ -188,7 +305,7 @@ struct Settings {
 #[derive(Debug, serde::Deserialize, serde::Serialize)]
 pub struct SettingsOnDisk {
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    default_game: Option<Option<String>>,
+    default_game: Option<Option<GameId>>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     open_console_on_launch: Option<bool>,
@@ -197,7 +314,7 @@ pub struct SettingsOnDisk {
     window_translucent: Option<bool>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    window_opacity: Option<u8>,
+    window_opacity: Option<Percent>,
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     window_blur: Option<bool>,
@@ -206,16 +323,61 @@ pub struct SettingsOnDisk {
     theme: Option<Theme>,
 }
 
-/// Changes the settings: `patch` is a JSON object of the changes by key, each `"default"`, or
-/// `{ "override": value }`.
-pub async fn update(app: &AppHandle, patch: serde_json::Value) -> Result<(), CommandError> {
-    let patch: SettingsPatch = serde_json::from_value(patch).map_err(anyhow::Error::from)?;
+/// Changes a setting, and sends the settings to the frontend.
+pub async fn change(app: &AppHandle, change: SettingChange) -> Result<(), CommandError> {
     let state = app.state::<SettingsStateInner>();
     let mut settings = state.write().await;
-    settings.as_mut().map_err(|e| e.clone())?.update(patch);
+    settings.as_mut().map_err(|e| e.clone())?.apply(change);
     let settings = settings.downgrade();
     let settings = settings.as_ref().unwrap();
     app.settings_events().emit(settings.clone());
     write(settings).await?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn settings_are_their_defaults_until_changed() {
+        let mut settings = Settings::default();
+        assert_eq!(*settings.window_opacity().value, Percent::new(70).unwrap());
+        assert!(settings.window_opacity().is_default);
+
+        settings.apply(SettingChange::Theme(Change::Set(Theme::Dark)));
+        assert_eq!(settings.get(Key::Theme).value, Value::Choice("dark"));
+        assert!(!settings.get(Key::Theme).is_default);
+
+        settings.apply(SettingChange::Theme(Change::Reset));
+        assert_eq!(*settings.theme().value, Theme::Auto);
+        assert!(settings.theme().is_default);
+    }
+
+    #[test]
+    fn changes_from_the_settings_page_are_of_the_settings_types() {
+        let change = SettingChange::new(Key::WindowBlur, Change::Set(Value::Bool(false)));
+        assert!(matches!(
+            change,
+            Some(SettingChange::WindowBlur(Change::Set(false)))
+        ));
+        assert!(SettingChange::new(Key::WindowBlur, Change::Set(Value::Choice("dark"))).is_none());
+        assert!(SettingChange::new(Key::Theme, Change::Set(Value::Choice("blue"))).is_none());
+    }
+
+    #[test]
+    fn reads_what_it_writes() {
+        let disk = r#"{"default_game":"lethal-company","window_opacity":150,"theme":"light"}"#;
+        let disk = serde_json::from_str::<SettingsOnDisk>(disk).unwrap();
+        assert_eq!(
+            disk.default_game,
+            Some(Some(GameId("lethal-company".to_owned())))
+        );
+        // clamped, rather than failing to read the settings
+        assert_eq!(disk.window_opacity, Percent::new(100));
+        assert_eq!(
+            serde_json::to_string(&disk).unwrap(),
+            r#"{"default_game":"lethal-company","window_opacity":100,"theme":"light"}"#
+        );
+    }
 }

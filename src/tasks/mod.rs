@@ -62,43 +62,30 @@ struct OwnedTaskHandleInner<'a> {
 
 
 impl TaskHandle {
-    pub fn send_progress_manually(
-        &self,
-        app: &AppHandle,
-        completed: u64,
-        total: u64,
-    ) -> Result<()> {
+    pub fn send_progress_manually(&self, app: &AppHandle, completed: u64, total: u64) {
         if let Some(id) = self.0 {
             app.task_events().emit(Event::Progress {
                 id,
                 progress: Progress { completed, total },
             });
         }
-        Ok(())
     }
 
-    pub fn send_progress(&self, app: &AppHandle, progress: &crate::util::Progress) -> Result<()> {
-        if let Some(id) = self.0 {
-            let (completed, total) = progress.get();
-            app.task_events().emit(Event::Progress {
-                id,
-                progress: Progress { completed, total },
-            });
-        }
-        Ok(())
+    pub fn send_progress(&self, app: &AppHandle, progress: &crate::util::Progress) {
+        let (completed, total) = progress.get();
+        self.send_progress_manually(app, completed, total);
     }
 
-    pub fn send_dependency(&self, app: &AppHandle, dependency: Id) -> Result<()> {
+    pub fn send_dependency(&self, app: &AppHandle, dependency: Id) {
         if let Some(id) = self.0 {
             app.task_events().emit(Event::Dependency { id, dependency });
         }
-        Ok(())
     }
 
-    pub fn allocate_dependency(&self, app: &AppHandle) -> Result<Id> {
+    pub fn allocate_dependency(&self, app: &AppHandle) -> Id {
         let dependency = allocate_task();
-        self.send_dependency(app, dependency)?;
-        Ok(dependency)
+        self.send_dependency(app, dependency);
+        dependency
     }
 }
 
@@ -119,12 +106,11 @@ impl<'a> Deref for OwnedTaskHandleInner<'a> {
 }
 
 impl OwnedTaskHandleInner<'_> {
-    fn drop(self, status: DropStatus) -> Result<()> {
+    fn drop(self, status: DropStatus) {
         self.app.task_events().emit(Event::Dropped {
             id: self.id,
             status,
         });
-        Ok(())
     }
 }
 
@@ -139,7 +125,7 @@ impl<'a> OwnedTaskHandle<'a> {
         CancelledFuture { handle: self }
     }
 
-    pub fn drop(self, status: DropStatus) -> Result<()> {
+    pub fn drop(self, status: DropStatus) {
         // use ManuallyDrop to avoid calling <TaskHandle as Drop>::drop which exists only to
         // handle cases where the task Future is dropped
         let mut this = ManuallyDrop::new(self);
@@ -147,10 +133,10 @@ impl<'a> OwnedTaskHandle<'a> {
         unsafe { ManuallyDrop::take(&mut this.inner) }.drop(status)
     }
 
-    pub fn fail(self, e: &impl std::fmt::Display) -> Result<()> {
+    pub fn fail(self, e: &impl std::fmt::Display) {
         self.drop(DropStatus::Failed {
             error: e.to_string().into(),
-        })
+        });
     }
 }
 
@@ -158,7 +144,7 @@ impl Drop for OwnedTaskHandle<'_> {
     fn drop(&mut self) {
         // SAFETY: inner has not been dropped yet
         let inner = unsafe { ManuallyDrop::take(&mut self.inner) };
-        _ = inner.drop(DropStatus::Cancelled);
+        inner.drop(DropStatus::Cancelled);
     }
 }
 
@@ -268,9 +254,7 @@ impl TaskBuilder {
         };
         let (handle, (success, t)) = run_non_terminal(handle, fut).await?;
         if let Some(handle) = handle {
-            handle
-                .drop(DropStatus::Success { success })
-                .map_err(TaskError::Management)?;
+            handle.drop(DropStatus::Success { success });
         }
         Ok(t)
     }
@@ -291,7 +275,7 @@ where
         } else {
             std::future::pending().await
         } } => {
-            handle.unwrap().drop(DropStatus::Cancelled).map_err(TaskError::Management)?;
+            handle.unwrap().drop(DropStatus::Cancelled);
             Err(TaskError::Cancelled)
         }
         r = fut => {
@@ -299,7 +283,7 @@ where
                 Ok(t) => Ok((handle, t)),
                 Err(e) => {
                     if let Some(handle) = handle {
-                        handle.fail(&e).map_err(TaskError::Management)?;
+                        handle.fail(&e);
                     }
                     Err(TaskError::Failed(e))
                 }

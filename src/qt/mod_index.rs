@@ -59,15 +59,15 @@ pub mod qobject {
     }
 }
 
+use core::pin::Pin;
+
 use cxx_qt_lib::{QList, QString, QVariant};
-use manderrow_types::mods::ModId;
-use manderrow_types::util::rkyv::InternedString;
 
 use super::call::{self, Call};
-use super::mods::{self, ModInfo};
+use super::mods::{ModInfo, ModKey};
 use crate::mod_index::{self, SortColumn};
 use crate::util::search::SortOption;
-use crate::{tasks, Reqwest};
+use crate::Reqwest;
 use qobject::ModSortColumn;
 
 #[derive(Default)]
@@ -76,22 +76,17 @@ pub struct ModIndexRust;
 impl qobject::ModIndex {
     fn fetch(&self, game: &QString, refresh: bool) -> *mut Call {
         let game = game.to_string();
-        let task = tasks::allocate_task();
-        call::start(
-            Some(task),
-            async move {
-                let app = super::app();
-                Ok(mod_index::fetch_mod_index(
-                    Some(app),
-                    &app.state::<Reqwest>(),
-                    &game,
-                    refresh,
-                    Some(task),
-                )
-                .await?)
-            },
-            |_, ()| {},
-        )
+        call::spawn_with_task(move |task| async move {
+            let app = super::app();
+            mod_index::fetch_mod_index(
+                Some(app),
+                &app.state::<Reqwest>(),
+                &game,
+                refresh,
+                Some(task),
+            )
+            .await
+        })
     }
 
     fn query(
@@ -105,60 +100,70 @@ impl qobject::ModIndex {
     ) -> *mut Call {
         let (game, query) = (game.to_string(), query.to_string());
         let mut sort = Vec::<SortOption<SortColumn>>::new();
-        for (column, descending) in columns.iter().zip(descending.iter()) {
-            let column = ModSortColumn { repr: *column };
-            let column = match column {
-                ModSortColumn::Relevance => SortColumn::Relevance,
-                ModSortColumn::Downloads => SortColumn::Downloads,
-                ModSortColumn::Name => SortColumn::Name,
-                ModSortColumn::Owner => SortColumn::Owner,
-                ModSortColumn::Size => SortColumn::Size,
-                _ => continue,
+        for (&column, &descending) in columns.iter().zip(descending.iter()) {
+            // QML can pass any number
+            let Ok(column) = SortColumn::try_from(ModSortColumn { repr: column }) else {
+                continue;
             };
             // each column can only be sorted by once
             if !sort.iter().any(|option| option.column == column) {
-                sort.push(SortOption {
-                    column,
-                    descending: *descending,
-                });
+                sort.push(SortOption { column, descending });
             }
         }
         let skip = usize::try_from(skip).unwrap_or(0);
         let limit = usize::try_from(limit).unwrap_or(0);
-        call::start(
-            None,
-            async move {
-                let index = mod_index::read_mod_index(&game).await?;
-                let results = mod_index::query_mod_index(&index, &query, &sort)?;
-                let page = results
-                    .iter()
-                    .skip(skip)
-                    .take(limit)
-                    .map(|&(position, _)| ModInfo::summary(index.get(position)))
-                    .collect::<Vec<_>>();
-                Ok((results.len(), page))
-            },
-            |mut call, (count, page)| {
-                call.as_mut().set_value(QVariant::from(&(count as f64)));
-                call.return_objects(page.into_iter().map(mods::new_mod));
-            },
-        )
+        call::spawn(async move {
+            let index = mod_index::read_mod_index(&game).await?;
+            let results = mod_index::query_mod_index(&index, &query, &sort)?;
+            let mods = results
+                .iter()
+                .skip(skip)
+                .take(limit)
+                .map(|&(position, _)| ModInfo::summary(index.get(position)))
+                .collect();
+            anyhow::Ok(Page {
+                count: results.len(),
+                mods,
+            })
+        })
     }
 
     fn get(&self, game: &QString, owner: &QString, name: &QString) -> *mut Call {
-        let (game, owner, name) = (game.to_string(), owner.to_string(), name.to_string());
-        call::start(
-            None,
-            async move {
-                let index = mod_index::read_mod_index(&game).await?;
-                let id = ModId {
-                    owner: InternedString(&owner),
-                    name: InternedString(&name),
-                };
-                let found = mod_index::get_one_from_mod_index(&index, id).await?;
-                Ok(found.map(ModInfo::listing))
-            },
-            |call, info| call.return_object(info.map(mods::new_mod)),
-        )
+        let (game, key) = (game.to_string(), ModKey::of(owner, name));
+        call::spawn(async move {
+            let index = mod_index::read_mod_index(&game).await?;
+            let found = mod_index::get_one_from_mod_index(&index, key.id()).await?;
+            anyhow::Ok(found.map(ModInfo::listing))
+        })
+    }
+}
+
+/// A page of the mods that match a query, as summaries, with the count of all that match as the
+/// call's value.
+struct Page {
+    count: usize,
+    mods: Vec<ModInfo>,
+}
+
+impl call::Output for Page {
+    fn return_from(self, mut call: Pin<&mut Call>) {
+        call.as_mut()
+            .set_value(QVariant::from(&(self.count as f64)));
+        self.mods.return_from(call);
+    }
+}
+
+impl TryFrom<ModSortColumn> for SortColumn {
+    type Error = ();
+
+    fn try_from(column: ModSortColumn) -> Result<Self, ()> {
+        Ok(match column {
+            ModSortColumn::Relevance => Self::Relevance,
+            ModSortColumn::Downloads => Self::Downloads,
+            ModSortColumn::Name => Self::Name,
+            ModSortColumn::Owner => Self::Owner,
+            ModSortColumn::Size => Self::Size,
+            _ => return Err(()),
+        })
     }
 }

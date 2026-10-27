@@ -8,6 +8,8 @@ pub mod qobject {
         type QString = cxx_qt_lib::QString;
         include!("cxx-qt-lib/qstringlist.h");
         type QStringList = cxx_qt_lib::QStringList;
+        include!("cxx-qt-lib/qmap.h");
+        type QVariantMap = crate::qt::QVariantMap;
         include!("manderrow/src/qt/call.cxxqt.h");
         type Call = crate::qt::call::Call;
         include!("manderrow/src/qt/markdown.cxxqt.h");
@@ -44,9 +46,14 @@ pub mod qobject {
         #[qproperty(*mut WindowState, window_state, READ, CONSTANT)]
         type App = super::AppRust;
 
-        /// The JSON translation dictionary of a locale, or empty if there's no such locale.
+        /// The translations of a locale, by their keys, like `game_select.title`. There are none
+        /// for a locale that isn't translated.
         #[qinvokable]
-        fn locale_dictionary(self: &App, locale: &QString) -> QString;
+        fn translations(self: &App, locale: &QString) -> QVariantMap;
+
+        /// The names of the locales, each in its own language, by locale.
+        #[qinvokable]
+        fn locale_names(self: &App) -> QVariantMap;
 
         /// The user's locales, in their order of preference.
         #[qinvokable]
@@ -60,9 +67,9 @@ pub mod qobject {
         #[qinvokable]
         fn clear_cache(self: &App) -> *mut Call;
 
-        /// Starts a new instance of the app. Returns an error message on failure.
+        /// Starts a new instance of the app, which waits for this one to quit.
         #[qinvokable]
-        fn relaunch(self: &App) -> QString;
+        fn relaunch(self: &App) -> *mut Call;
 
         /// Returns the value of the `MANDERROW_DEV_<NAME>` environment variable, or an empty
         /// string. These options support development and automated testing of the UI, and are
@@ -97,13 +104,14 @@ pub mod qobject {
 use core::pin::Pin;
 
 use cxx_qt::{CxxQtType, Threading};
-use cxx_qt_lib::{QString, QStringList};
+use cxx_qt_lib::{QString, QStringList, QVariant};
 
 use super::call::{self, Call};
 use super::child::Child;
 use super::markdown::{self, qobject::MarkdownDocument};
 use super::outbox::Outbox;
-use crate::window_state;
+use super::QVariantMap;
+use crate::{i18n, window_state};
 
 pub struct WindowStateRust {
     saved: bool,
@@ -189,12 +197,29 @@ impl qobject::WindowState {
 }
 
 impl qobject::App {
-    fn locale_dictionary(&self, locale: &QString) -> QString {
-        QString::from(crate::i18n::locale_dictionary(&locale.to_string()).unwrap_or_default())
+    fn translations(&self, locale: &QString) -> QVariantMap {
+        let locale = locale.to_string();
+        match i18n::translations(&locale) {
+            Ok(translations) => to_qmap(translations),
+            Err(e) => {
+                slog_scope::error!("Invalid translations of {locale}: {e}");
+                QVariantMap::default()
+            }
+        }
+    }
+
+    fn locale_names(&self) -> QVariantMap {
+        match i18n::locale_names() {
+            Ok(names) => to_qmap(names),
+            Err(e) => {
+                slog_scope::error!("Invalid locale names: {e}");
+                QVariantMap::default()
+            }
+        }
     }
 
     fn preferred_locales(&self) -> QStringList {
-        crate::i18n::get_preferred_locales()
+        i18n::get_preferred_locales()
             .iter()
             .map(QString::from)
             .collect()
@@ -206,11 +231,7 @@ impl qobject::App {
     }
 
     fn clear_cache(&self) -> *mut Call {
-        call::start(
-            None,
-            async { Ok(crate::installing::clear_cache().await?) },
-            |_, ()| {},
-        )
+        call::spawn(crate::installing::clear_cache())
     }
 
     fn dev_option(&self, name: &QString) -> QString {
@@ -222,11 +243,8 @@ impl qobject::App {
         QString::from(&std::env::var(key).unwrap_or_default())
     }
 
-    fn relaunch(&self) -> QString {
-        match crate::app::relaunch() {
-            Ok(()) => QString::default(),
-            Err(e) => QString::from(&format!("{e:#}")),
-        }
+    fn relaunch(&self) -> *mut Call {
+        call::spawn(async { crate::app::relaunch() })
     }
 
     fn bench_exit_splash(&self) {
@@ -240,4 +258,11 @@ impl qobject::App {
             std::process::exit(0);
         }
     }
+}
+
+fn to_qmap(strings: impl IntoIterator<Item = (String, String)>) -> QVariantMap {
+    strings
+        .into_iter()
+        .map(|(key, value)| (QString::from(&key), QVariant::from(&QString::from(&value))))
+        .collect()
 }
