@@ -1,31 +1,31 @@
-const builtin = @import("builtin");
 const std = @import("std");
 
-const alloc = @import("root.zig").alloc;
+const root = @import("root.zig");
+const alloc = root.alloc;
 const openOrCreateDir = @import("paths.zig").openOrCreateDir;
 
 log_to_file: bool,
-logs_dir: ?std.fs.Dir,
+logs_dir: ?std.Io.Dir,
 c2s_tx: ?[:0]const u8,
 instructions: []Instruction,
 dlfcn_host_path: ?[:0]const u8,
 agent_host_path: ?[:0]const u8,
 
 /// Holds allocations. Not meant to be used directly.
-args: std.process.ArgIterator,
+args: std.process.Args.Iterator,
 
 pub fn extract() !@This() {
-    var args = try std.process.argsWithAllocator(alloc);
+    var args = try root.processArgs().iterateAllocator(alloc);
 
     var enabled = false;
-    var instructions: std.ArrayListUnmanaged(Instruction) = .empty;
+    var instructions: std.ArrayList(Instruction) = .empty;
     errdefer instructions.deinit(alloc);
     var c2s_tx: ?[:0]const u8 = null;
     var dlfcn_host_path: ?[:0]const u8 = null;
     var agent_host_path: ?[:0]const u8 = null;
 
     var log_to_file = false;
-    var logs_dir: ?std.fs.Dir = null;
+    var logs_dir: ?std.Io.Dir = null;
 
     var extracting = false;
     while (args.next()) |arg| {
@@ -52,30 +52,7 @@ pub fn extract() !@This() {
                 .@"--log-to-file" => log_to_file = true,
                 .@"--logs-dir" => {
                     const path = args.next() orelse return error.MissingOptionValue;
-                    var os_path = switch (builtin.os.tag) {
-                        .windows => blk: {
-                            const buf = try alloc.allocSentinel(u16, try std.unicode.calcWtf16LeLen(path), 0);
-                            const n = try std.unicode.wtf8ToWtf16Le(buf, path);
-                            std.debug.assert(n == buf.len);
-                            break :blk buf;
-                        },
-                        else => path,
-                    };
-                    defer if (builtin.os.tag == .windows) {
-                        alloc.free(os_path);
-                    };
-                    switch (builtin.os.tag) {
-                        .windows => {
-                            if (std.fs.path.isAbsoluteWindowsWTF16(os_path)) {
-                                const new_path_tmp = try std.os.windows.wToPrefixedFileW(null, os_path);
-                                const new_path = try alloc.dupeZ(u16, new_path_tmp.span());
-                                alloc.free(os_path);
-                                os_path = new_path;
-                            }
-                        },
-                        else => {},
-                    }
-                    logs_dir = try @import("paths.zig").openOrCreateDir(std.fs.cwd(), os_path);
+                    logs_dir = try openOrCreateDir(std.Io.Dir.cwd(), path);
                 },
                 .@"--c2s-tx" => {
                     c2s_tx = args.next() orelse return error.MissingOptionValue;
@@ -88,7 +65,7 @@ pub fn extract() !@This() {
                 } }),
                 .@"--insn-set-var" => {
                     const kv = args.next() orelse return error.MissingOptionValue;
-                    const eq_sign = std.mem.indexOfScalar(u8, kv, '=') orelse return error.InvalidSetVarKV;
+                    const eq_sign = std.mem.findScalar(u8, kv, '=') orelse return error.InvalidSetVarKV;
                     try instructions.append(alloc, .{ .set_var = .{
                         .kv = kv,
                         .eq_sign = eq_sign,

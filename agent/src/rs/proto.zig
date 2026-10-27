@@ -6,7 +6,7 @@ const LogLevel = ipc.LogLevel;
 const StandardOutputChannel = ipc.StandardOutputChannel;
 const rs = @import("../rs.zig");
 
-pub const calling_convention: std.builtin.CallingConvention = if (builtin.cpu.arch == .x86_64) .{ .x86_64_sysv = .{} } else .c;
+pub const calling_convention: std.lang.CallingConvention = if (builtin.target.cpu.arch == .x86_64) .{ .x86_64_sysv = .{} } else .c;
 
 pub const init = fn (
     c2s_tx_ptr: ?[*]const u8,

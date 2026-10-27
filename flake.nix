@@ -51,12 +51,12 @@
             qtsvg
           ]);
 
-          agentZigDeps = pkgs.zig_0_15.fetchDeps {
+          agentZigDeps = pkgs.zig_0_17.fetchDeps {
             pname = "manderrow-agent";
             version = "0.0.0";
             src = ./agent;
             fetchAll = true;
-            hash = "sha256-dDinP1UoR1SgH4asItyun4gsCFVUNCVOQlt3fKH3JPQ=";
+            hash = pkgs.lib.fakeHash;
           };
         in
         {
@@ -68,7 +68,7 @@
             cargoLock = {
               lockFile = ./Cargo.lock;
               outputHashes = {
-                "ipc-channel-0.20.1" = "sha256-2EPEAKMXlPhXZkmF06SKgxnI2EXDojrN6zJpy0s1AOc=";
+                "ipc-channel-0.20.1" = pkgs.lib.fakeHash;
                 "rkyv_intern-0.1.0" = "sha256-Y5lgD40YlsesGKHbS8k45OvJ4tOaCwRfuuo9v2EOlHU=";
                 "get-locale-0.1.0" = "sha256-m0YM3BA5ttmzqTva4664uVrI16CTAjZTZ6gQLia7XVU=";
                 "vdf-0.1.0" = "sha256-NaBEm2pPOAAQ1+zN6gtBHjlmv8fCrKaD9CzoVbyoq2w=";
@@ -78,7 +78,7 @@
             nativeBuildInputs = [
               rustToolchain
               pkgs.pkg-config
-              pkgs.zig_0_15
+              pkgs.zig_0_17
               qtEnv
               pkgs.wine64
               pkgs.sccache
@@ -149,7 +149,7 @@
               rustToolchain
               pkgs.rust-analyzer
               pkgs.pkg-config
-              pkgs.zig_0_15
+              pkgs.zig_0_17
               qtEnv
               pkgs.wine64
               pkgs.sccache

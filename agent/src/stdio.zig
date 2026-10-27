@@ -3,17 +3,19 @@ const std = @import("std");
 
 const root = @import("root.zig");
 const alloc = root.alloc;
+const io = root.io;
 const logger = root.logger;
 const ipc = @import("ipc.zig");
 const rs = @import("rs.zig");
+const util = @import("util.zig");
 
-pub var real_stderr: ?std.fs.File = null;
-pub var real_stderr_mutex = std.Thread.Mutex.Recursive.init;
+pub var real_stderr: ?std.Io.File = null;
+pub var real_stderr_mutex: util.RecursiveMutex = .init;
 
 pub fn forwardStdio() !void {
-    switch (builtin.os.tag) {
+    switch (builtin.target.os.tag) {
         .windows => {
-            real_stderr = .{ .handle = GetStdHandlePtr(.err).* };
+            real_stderr = .{ .handle = GetStdHandlePtr(.err).*, .flags = .{ .nonblocking = false } };
 
             const Channel = struct {
                 channel: ipc.StandardOutputChannel,
@@ -25,25 +27,26 @@ pub fn forwardStdio() !void {
             }) |channel| {
                 var rd: std.os.windows.HANDLE = undefined;
                 var wr: std.os.windows.HANDLE = undefined;
-                // this function in the std lib really ought to take a bool for
-                // bInheritHandle and not take nLength at all since it is unused.
-                try std.os.windows.CreatePipe(&rd, &wr, &.{
-                    .nLength = undefined,
-                    .lpSecurityDescriptor = null,
-                    .bInheritHandle = std.os.windows.FALSE,
-                });
+                // without security attributes, the handles aren't inherited
+                if (!util.windows.kernel32.CreatePipe(&rd, &wr, null, 0).toBool()) {
+                    return std.os.windows.unexpectedError(std.os.windows.GetLastError());
+                }
                 GetStdHandlePtr(channel.id).* = wr;
                 const thread = try std.Thread.spawn(
                     .{},
                     forwardFromPipe,
-                    .{ channel.channel, std.fs.File{ .handle = rd } },
+                    .{ channel.channel, std.Io.File{ .handle = rd, .flags = .{ .nonblocking = false } } },
                 );
                 defer thread.detach();
-                thread.setName("manderrow-std" ++ @tagName(channel.channel) ++ "-forwarder") catch {};
+                thread.setName(io, "manderrow-std" ++ @tagName(channel.channel) ++ "-forwarder") catch {};
             }
         },
         else => {
-            real_stderr = .{ .handle = try std.posix.dup(std.posix.STDERR_FILENO) };
+            const stderr_fd = std.c.dup(std.posix.STDERR_FILENO);
+            if (stderr_fd == -1) {
+                return std.posix.unexpectedErrno(std.posix.errno(stderr_fd));
+            }
+            real_stderr = .{ .handle = stderr_fd, .flags = .{ .nonblocking = false } };
 
             const Channel = struct {
                 channel: ipc.StandardOutputChannel,
@@ -53,15 +56,15 @@ pub fn forwardStdio() !void {
                 .{ .channel = .out, .fd = std.posix.STDOUT_FILENO },
                 .{ .channel = .err, .fd = std.posix.STDERR_FILENO },
             }) |channel| {
-                const pipe = try std.posix.pipe();
-                try std.posix.dup2(pipe[1], channel.fd);
+                const pipe = try std.Io.Threaded.pipe2(.{});
+                try std.Io.Threaded.dup2(pipe[1], channel.fd);
                 const thread = try std.Thread.spawn(
                     .{},
                     forwardFromPipe,
-                    .{ channel.channel, std.fs.File{ .handle = pipe[0] } },
+                    .{ channel.channel, std.Io.File{ .handle = pipe[0], .flags = .{ .nonblocking = false } } },
                 );
                 defer thread.detach();
-                thread.setName("manderrow-std" ++ @tagName(channel.channel) ++ "-forwarder") catch {};
+                thread.setName(io, "manderrow-std" ++ @tagName(channel.channel) ++ "-forwarder") catch {};
             }
         },
     }
@@ -78,11 +81,11 @@ fn GetStdHandlePtr(handle_id: StdHandle) *std.os.windows.HANDLE {
     };
 }
 
-fn forwardFromPipe(channel: ipc.StandardOutputChannel, pipe: std.fs.File) void {
-    defer pipe.close();
+fn forwardFromPipe(channel: ipc.StandardOutputChannel, pipe: std.Io.File) void {
+    defer pipe.close(io);
     var rdr_buf: [4096]u8 = undefined;
-    var rdr = pipe.reader(&rdr_buf);
-    var buf = std.io.Writer.Allocating.initCapacity(alloc, 256) catch |e| {
+    var rdr = pipe.readerStreaming(io, &rdr_buf);
+    var buf = std.Io.Writer.Allocating.initCapacity(alloc, 256) catch |e| {
         logger.err("Error in stdio forwarder: {}", .{e});
         return;
     };
@@ -96,7 +99,7 @@ fn forwardFromPipe(channel: ipc.StandardOutputChannel, pipe: std.fs.File) void {
         };
         if (rdr.interface.bufferedLen() != 0) {
             std.debug.assert(rdr.interface.buffered()[0] == '\n');
-            rdr.interface.seek += 1;
+            rdr.interface.toss(1);
         }
 
         var line = buf.written();

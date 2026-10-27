@@ -1,6 +1,7 @@
 #![feature(exit_status_error)]
 
 use std::env::{var, var_os};
+use std::ffi::OsString;
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -312,15 +313,21 @@ fn zig_build(
 
     let mut command = Command::new("zig");
     // build.zig runs cargo for the agent's own targets, which must not inherit the rustflags that
-    // Cargo passes this build script for the app's target, nor the app's target directory, whose
-    // lock this build holds.
+    // Cargo passes this build script for the app's target, nor use the app's target directory,
+    // whose lock this build holds.
     command.env_remove("CARGO_ENCODED_RUSTFLAGS");
-    command.env("CARGO_TARGET_DIR", out_dir.join("target"));
     command.current_dir(dir);
     command.arg("build");
+    let mut cargo_target_dir = OsString::from("-Dcargo-target-dir=");
+    cargo_target_dir.push(out_dir.join("target"));
+    command.arg(cargo_target_dir);
+    command.arg("-freference-trace=24");
 
     command.arg("--cache-dir");
     command.arg(out_dir.join("cache"));
+    // rather than the agent's zig-pkg, which the agent's builds would all fetch into at once
+    command.arg("--pkg-dir");
+    command.arg(out_dir.join("pkg"));
 
     let out_dir = out_dir.join("out");
     command.arg("-p");
