@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Effects
@@ -47,7 +48,10 @@ Item {
         // the popup takes the focus as it opens
         popup.open();
         const contents = (popup.contentItem as Loader).item;
+        // the contents may have an initialFocusItem function, as SelectList does
+        // qmllint disable missing-property
         const initial = contents && typeof contents.initialFocusItem === "function" ? contents.initialFocusItem() : null;
+        // qmllint enable missing-property
         if (initial)
             initial.forceActiveFocus(Ui.focusVisible ? Qt.TabFocusReason : Qt.PopupFocusReason);
         else if (Ui.focusVisible)

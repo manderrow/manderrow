@@ -1,4 +1,3 @@
-pub mod commands;
 
 use anyhow::Result;
 use packed_semver::Version;

@@ -2,7 +2,6 @@
 //!
 //! Never make changes to `IndexEntryV*` or [`Index`] variants. Make a new version instead.
 
-pub mod commands;
 mod index;
 
 use std::ffi::OsString;

@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import Manderrow
 
@@ -8,12 +9,15 @@ import Manderrow
 Item {
     id: root
 
-    /// The action. When `progressMode` is "listener", it receives a task listener that it should
-    /// pass to the API call whose progress is shown. It may return a promise.
+    /// The action, which may return a call or a promise. It receives a function to give the task
+    /// whose progress to show, for a call that doesn't return its task.
     property var action: function () {}
-    /// "" for no progress, "listener" to track a task, or "external" to show `externalProgress`.
+    /// "" for no progress, "task" for the progress of the action's task, or "external" for
+    /// `externalTask`'s.
     property string progressMode: ""
-    property var externalProgress
+    property Task externalTask: null
+    /// Shows the progress of the task's download rather than its own, as an installation's.
+    property bool downloadProgress: false
     /// "in-place" (fill the button), "circular", or "simple" (a progress bar).
     property string progressStyle: "in-place"
     /// Marks the button busy regardless of the action.
@@ -32,13 +36,16 @@ Item {
     property alias fontSize: button.fontSize
 
     readonly property bool busy: externalBusy || _busy
-    readonly property var progress: progressMode === "external" ? externalProgress : _task ? _task.progress : Tasks.initProgress()
+    /// The task whose progress is shown.
+    readonly property Task task: progressMode === "external" ? externalTask : _task && downloadProgress ? _task.download : _task
+    readonly property real completed: task ? task.completed : 0
+    readonly property real total: task ? task.total : 0
     readonly property bool showProgress: progressMode !== "" && busy
-    readonly property real percent: !progress ? 0 : progress.total == null ? 0 : progress.completed / (progress.total === 0 ? 1 : progress.total) * 100
+    readonly property real percent: total === 0 ? 0 : completed / total * 100
     readonly property bool _inPlace: showProgress && progressStyle === "in-place"
 
     property bool _busy: false
-    property var _task: null
+    property Task _task: null
     property var _err: null
 
     implicitWidth: errorIndicator.item ? (errorIndicator.item as Item).implicitWidth : button.implicitWidth
@@ -51,15 +58,17 @@ Item {
         _task = null;
         let result;
         try {
-            result = progressMode === "listener" ? action(event => {
+            result = action(task => {
                 // the button may have been destroyed by the time this runs
-                if (root && event.event === "created")
-                    root._task = event.task;
-            }) : action();
+                if (root)
+                    root._task = task;
+            });
         } catch (e) {
             result = Promise.reject(e);
         }
-        Promise.resolve(result).then(() => {
+        if (Async.isCall(result) && (result as Call).taskId >= 0)
+            _task = Tasks.get((result as Call).taskId);
+        Async.resolve(result).then(() => {
             if (root)
                 root._busy = false;
         }, e => {
@@ -117,7 +126,8 @@ Item {
                 anchors.centerIn: parent
                 active: root.showProgress && root.progressStyle === "circular"
                 sourceComponent: CircularProgress {
-                    progress: root.progress
+                    completed: root.completed
+                    total: root.total
                     size: button.fontSize
                 }
             }
@@ -128,7 +138,8 @@ Item {
                 width: parent.width
                 active: root.showProgress && root.progressStyle === "simple"
                 sourceComponent: ProgressBar {
-                    progress: root.progress
+                    completed: root.completed
+                    total: root.total
                 }
             }
         }

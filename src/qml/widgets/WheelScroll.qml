@@ -15,9 +15,9 @@ WheelHandler {
     /// declared inside a Flickable is attached to its content item.)
     property Flickable flickable: {
         let item = parent;
-        while (item && item.contentY === undefined)
+        while (item && !(item as Flickable))
             item = item.parent;
-        return item;
+        return item as Flickable;
     }
     readonly property bool vertical: orientation === Qt.Vertical
     /// Whether this is scrolling the Flickable, which the Flickable's `moving` doesn't say, as that

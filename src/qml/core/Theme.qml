@@ -8,11 +8,11 @@ QtObject {
 
     /// The color scheme: "auto", "dark", or "light", from the theme setting, which the `theme` dev
     /// option overrides. Until the settings load, it is "auto".
-    readonly property string _forced: Backend.devOption("theme")
-    readonly property string scheme: _forced !== "" ? _forced : Globals.settings ? Globals.settings.theme.value : "auto"
+    readonly property string _forced: App.devOption("theme")
+    readonly property string scheme: _forced !== "" ? _forced : Settings.theme === Settings.Dark ? "dark" : Settings.theme === Settings.Light ? "light" : "auto"
     /// Follows the system color scheme, like `prefers-color-scheme` did, unless the theme setting
     /// picks one.
-    readonly property bool dark: scheme === "auto" ? Qt.styleHints.colorScheme === Qt.ColorScheme.Dark : scheme === "dark"
+    readonly property bool dark: scheme === "auto" ? Application.styleHints.colorScheme === Qt.ColorScheme.Dark : scheme === "dark"
 
     /// The width of the window, which drives the responsive breakpoints.
     property real windowWidth: 1024

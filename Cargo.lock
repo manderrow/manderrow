@@ -1808,7 +1808,6 @@ dependencies = [
  "cruet",
  "proc-macro2",
  "quote",
- "serde_json",
  "syn 2.0.119",
 ]
 
@@ -1841,6 +1840,11 @@ name = "manderrow-qml-gen"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "cxx-gen",
+ "cxx-qt-gen",
+ "proc-macro2",
+ "qt-build-utils",
+ "quote",
  "serde_json",
 ]
 

@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Effects
@@ -50,14 +51,14 @@ Rectangle {
         }
     }
 
-    property var focusedConnection: null
+    property Connection focusedConnection: null
 
     signal backClicked
     signal launchClicked
     signal killClicked
     signal cancelClicked
 
-    readonly property var game: Globals.gamesById[gameId]
+    readonly property Game game: Games.byId(gameId)
     readonly property real fullWidth: 22 * Theme.rem
     readonly property real miniWidth: 3.3 * Theme.rem
     readonly property real pad: Theme.rem
@@ -108,7 +109,7 @@ Rectangle {
         pivotIndex = -1;
     }
 
-    readonly property bool hasLiveConnection: focusedConnection !== null && focusedConnection.status !== "disconnected"
+    readonly property bool hasLiveConnection: focusedConnection !== null && focusedConnection.status !== Connection.Disconnected
 
     width: mini ? miniWidth : fullWidth
     // expanded over the content on narrow windows, it hides the content beneath
@@ -190,7 +191,7 @@ Rectangle {
             SharpImage {
                 visible: !sidebar.mini
                 anchors.fill: parent
-                source: Util.gameHeroUrl(sidebar.gameId)
+                source: sidebar.game ? sidebar.game.heroUrl : ""
             }
 
             // darkens the top and bottom of the banner
@@ -324,7 +325,7 @@ Rectangle {
                 }
 
                 SessionButton {
-                    visible: !!sidebar.focusedConnection && sidebar.focusedConnection.status === "connected"
+                    visible: !!sidebar.focusedConnection && sidebar.focusedConnection.status === Connection.Connected
                     iconName: "skull"
                     label: Strings.profile.sidebar.kill_game_btn
                     tone1: Theme.danger3
@@ -335,7 +336,7 @@ Rectangle {
                 }
 
                 SessionButton {
-                    visible: sidebar.hasLiveConnection && sidebar.focusedConnection.status !== "connected"
+                    visible: sidebar.hasLiveConnection && sidebar.focusedConnection.status !== Connection.Connected
                     iconName: "x"
                     label: Strings.profile.sidebar.cancel_launch_btn
                     tone1: Theme.warn3
@@ -513,7 +514,7 @@ Rectangle {
                         sourceComponent: ProfileNameEditor {
                             objectName: "newProfileEditor"
                             initialValue: Strings.profile.default_profile_name
-                            submit: name => Api.createProfile(sidebar.gameId, name).then(() => Globals.refetchProfiles())
+                            submit: name => Profiles.create(sidebar.gameId, name)
                             onClosed: sidebar._profileCreatorClosed()
                         }
                     }
@@ -532,7 +533,7 @@ Rectangle {
                 }
 
                 delegate: SidebarProfileItem {
-                    required property var modelData
+                    required property Profile modelData
                     width: profileList.width
                     profile: modelData
                     gameId: sidebar.gameId

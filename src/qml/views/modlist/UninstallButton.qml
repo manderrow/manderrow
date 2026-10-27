@@ -1,22 +1,22 @@
 import QtQuick
 import Manderrow
 
-// Uninstalls a mod from the current profile, ported from UninstallButton in InstallationBtns.tsx.
+// Uninstalls a mod from the profile, ported from UninstallButton in InstallationBtns.tsx.
 AsyncButton {
     id: button
 
-    /// The installed mod package.
-    required property var mod
-    required property var installContext
+    /// The mod installed in the profile.
+    required property Mod mod
+    required property Profile profile
 
     signal uninstalled
 
-    progressMode: "listener"
     btn.bgColor: Theme.danger4
     btn.activeBgColor: Theme.danger5
 
-    action: () => Api.uninstallProfileMod(button.installContext.profileId, button.mod.owner, button.mod.name).then(() => {
-        button.uninstalled();
-        return button.installContext.refetchInstalled();
+    action: () => Async.promise(button.profile.uninstallMod(button.mod.owner, button.mod.name)).then(() => {
+        // the button may have been destroyed by the time this runs
+        if (button)
+            button.uninstalled();
     })
 }

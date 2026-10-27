@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Manderrow
@@ -60,27 +61,27 @@ Item {
                 // the original never wired these up: relevance always shows as selected
                 options: [
                     {
-                        value: Api.modSortColumn.relevance,
+                        value: ModIndex.Relevance,
                         label: Strings.global.mod_sort_column.relevance,
                         selected: true
                     },
                     {
-                        value: Api.modSortColumn.downloads,
+                        value: ModIndex.Downloads,
                         label: Strings.global.mod_sort_column.downloads,
                         selected: false
                     },
                     {
-                        value: Api.modSortColumn.name,
+                        value: ModIndex.Name,
                         label: Strings.global.mod_sort_column.name,
                         selected: false
                     },
                     {
-                        value: Api.modSortColumn.owner,
+                        value: ModIndex.Owner,
                         label: Strings.global.mod_sort_column.owner,
                         selected: false
                     },
                     {
-                        value: Api.modSortColumn.size,
+                        value: ModIndex.Size,
                         label: Strings.global.mod_sort_column.size,
                         selected: false
                     }
@@ -124,7 +125,18 @@ Item {
                 }
 
                 function columnLabel(option) {
-                    return I18n.t(`global.mod_sort_column.${option.column}`);
+                    switch (option.column) {
+                    case ModIndex.Relevance:
+                        return Strings.global.mod_sort_column.relevance;
+                    case ModIndex.Downloads:
+                        return Strings.global.mod_sort_column.downloads;
+                    case ModIndex.Name:
+                        return Strings.global.mod_sort_column.name;
+                    case ModIndex.Owner:
+                        return Strings.global.mod_sort_column.owner;
+                    default:
+                        return Strings.global.mod_sort_column.size;
+                    }
                 }
                 function orderLabel(option) {
                     return option.descending ? Strings.global.sort_order.descending : Strings.global.sort_order.ascending;

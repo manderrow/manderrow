@@ -51,8 +51,7 @@ static SANITIZER: LazyLock<ammonia::Builder<'static>> = LazyLock::new(|| {
     builder
 });
 
-#[derive(Debug, serde::Serialize)]
-#[serde(tag = "type", rename_all = "camelCase")]
+#[derive(Debug)]
 pub enum Block {
     Heading {
         level: u8,
@@ -97,17 +96,17 @@ pub enum Block {
     },
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug)]
 pub struct ListItem {
     /// Whether a task list item is checked, or `None` for an ordinary item.
-    checked: Option<bool>,
-    children: Vec<Block>,
+    pub checked: Option<bool>,
+    pub children: Vec<Block>,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug)]
 pub struct TableRow {
-    header: bool,
-    cells: Vec<String>,
+    pub header: bool,
+    pub cells: Vec<String>,
 }
 
 /// Renders a node and its descendants to sanitized HTML.
@@ -327,24 +326,24 @@ pub fn to_blocks(markdown: &str) -> Vec<Block> {
 mod tests {
     use super::{to_blocks, Block};
 
-    fn json(markdown: &str) -> String {
-        serde_json::to_string(&to_blocks(markdown)).unwrap()
+    fn debug(markdown: &str) -> String {
+        format!("{:?}", to_blocks(markdown))
     }
 
     #[test]
     fn renders_gfm() {
-        let out = json("# Title\n\n| a |\n|---|\n| 1 |\n\n> [!NOTE]\n> hi\n\n:smile: **bold**\n\n- [x] done\n- todo");
-        assert!(out.contains(r#""type":"heading","level":1"#), "{out}");
-        assert!(out.contains(r#""type":"table""#), "{out}");
-        assert!(out.contains(r#""kind":"note""#), "{out}");
+        let out = debug("# Title\n\n| a |\n|---|\n| 1 |\n\n> [!NOTE]\n> hi\n\n:smile: **bold**\n\n- [x] done\n- todo");
+        assert!(out.contains("Heading { level: 1"), "{out}");
+        assert!(out.contains("Table {"), "{out}");
+        assert!(out.contains(r#"kind: "note""#), "{out}");
         assert!(out.contains('😄'), "{out}");
         assert!(out.contains("<strong>bold</strong>"), "{out}");
-        assert!(out.contains(r#""checked":true"#), "{out}");
+        assert!(out.contains("checked: Some(true)"), "{out}");
     }
 
     #[test]
     fn strips_scripts_and_insecure_images() {
-        let out = json(
+        let out = debug(
             "<script>alert(1)</script>\n\n![x](http://insecure.example/x.png)\n\n\
              ![y](https://gcdn.thunderstore.io/live/y.png)\n\ntext <img src=\"file:///etc/z.png\"> \
              [![badge](https://img.shields.io/badge/a-b-green)](https://example.com)",
@@ -352,7 +351,7 @@ mod tests {
         assert!(!out.contains("script"), "{out}");
         assert!(!out.contains("insecure.example"), "{out}");
         assert!(!out.contains("file:"), "{out}");
-        assert!(out.contains(r#""type":"image","src":"https://gcdn.thunderstore.io/live/y.png""#), "{out}");
+        assert!(out.contains(r#"Image { src: "https://gcdn.thunderstore.io/live/y.png""#), "{out}");
         assert!(out.contains(r#"src=\"https://img.shields.io/badge/a-b-green\""#), "{out}");
     }
 

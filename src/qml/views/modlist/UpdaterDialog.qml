@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
@@ -7,7 +8,8 @@ import Manderrow
 Dialog {
     id: dialog
 
-    /// `[{ newMod, oldVersionNumber }]`
+    /// `[{ newMod, oldVersionNumber }]`, where `newMod` is the summary of a mod whose latest version
+    /// isn't the one installed
     property var updates: []
     /// Indices into `updates` of the mods selected for updating.
     property var selected: ({})
@@ -152,7 +154,7 @@ Dialog {
                                 Layout.preferredWidth: 3 * Theme.rem
                                 Layout.preferredHeight: 3 * Theme.rem
                                 radius: 4
-                                source: Util.getIconUrl(Util.getQualifiedModName(entry.modelData.newMod.owner, entry.modelData.newMod.name, entry.modelData.newMod.versions[0].version_number))
+                                source: Util.getIconUrl(Util.getQualifiedModName(entry.modelData.newMod.owner, entry.modelData.newMod.name, entry.modelData.newMod.displayVersion.versionNumber))
                             }
 
                             ColumnLayout {
@@ -199,7 +201,7 @@ Dialog {
                                 }
                                 Text {
                                     width: 7 * Ui.ch * 0.9
-                                    text: entry.modelData.newMod.versions[0].version_number
+                                    text: entry.modelData.newMod.displayVersion.versionNumber
                                     color: Theme.neutral20
                                     font.family: Theme.font
                                     font.pixelSize: 0.9 * Theme.rem

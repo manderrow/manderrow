@@ -11,5 +11,4 @@ proc-macro = true
 cruet = "0.15"
 quote = "1"
 proc-macro2 = "1"
-serde_json = "1"
 syn = "2"

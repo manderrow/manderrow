@@ -1,7 +1,6 @@
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::{format_ident, quote};
-use serde_json::json;
 use syn::{
     Attribute, Data, DeriveInput, Error, Expr, Ident, Path, Result, Token, Type,
     parse::Parse,
@@ -192,47 +191,41 @@ pub fn settings(args: TokenStream, input: TokenStream) -> TokenStream {
         .unzip();
 
     let field_default: Vec<_> = fields.iter().map(|f| &f.default).collect();
+    let field_key: Vec<_> = fields
+        .iter()
+        .map(|f| cruet::to_camel_case(&f.ident.to_string()))
+        .collect();
 
     let name = input.ident;
 
-    let defaulted = format_ident!("Defaulted{name}");
     let patch = format_ident!("{name}Patch");
 
-    let ui_ident: Ident = Ident::new("UI", Span::call_site());
-
-    let ui = serde_json::to_string(&json!({
-        "sections": args.sections.iter().map(|section| {
-            json!({
-                "id": cruet::to_camel_case(&section.to_string()),
-                "settings": fields.iter()
-                    .filter(|field| field.section == *section)
-                    .map(|field| {
-                        let mut setting = json!({
-                            "key": cruet::to_camel_case(&field.ident.to_string()),
-                            "input": field.input.to_string(),
-                        });
-                        if let Some(options) = &field.options {
-                            setting["options"] = options.iter().map(Ident::to_string).collect();
-                        }
-                        setting
-                    })
-                    .collect::<Vec<_>>(),
-            })
-        }).collect::<Vec<_>>()
-    }))
-    .unwrap();
+    let sections = args.sections.iter().map(|section| {
+        let id = cruet::to_camel_case(&section.to_string());
+        let settings = fields
+            .iter()
+            .filter(|field| field.section == *section)
+            .map(|field| {
+                let key = cruet::to_camel_case(&field.ident.to_string());
+                let input = format_ident!("{}", cruet::to_class_case(&field.input.to_string()));
+                let options = field
+                    .options
+                    .iter()
+                    .flatten()
+                    .map(|option| option.to_string());
+                quote! {
+                    SettingInfo { key: #key, input: Input::#input, options: &[#(#options),*] }
+                }
+            });
+        quote! {
+            SectionInfo { id: #id, settings: &[#(#settings),*] }
+        }
+    });
 
     let expanded = quote! {
         #[derive(Debug, Clone, Default)]
         pub struct #name {
             #(#field_ident: Option<#field_ty>),*
-        }
-
-        #[derive(Debug, Clone, serde::Serialize)]
-        #[serde(rename_all = "camelCase")]
-        #[allow(non_snake_case)]
-        pub struct #defaulted<'a> {
-            #(#field_ident: Setting<#field_by_ref_ty>),*
         }
 
         #[derive(Debug, Clone, serde::Deserialize)]
@@ -251,9 +244,14 @@ pub fn settings(args: TokenStream, input: TokenStream) -> TokenStream {
                 }
             })*
 
-            pub fn defaulted(&self) -> #defaulted {
-                #defaulted {
-                    #(#field_ident: self.#field_ident()),*
+            /// A setting's value as JSON, by its key, and whether it's the default.
+            pub fn json(&self, key: &str) -> Option<(serde_json::Value, bool)> {
+                match key {
+                    #(#field_key => {
+                        let setting = self.#field_ident();
+                        Some((serde_json::to_value(setting.value).ok()?, setting.is_default))
+                    })*
+                    _ => None,
                 }
             }
 
@@ -269,7 +267,8 @@ pub fn settings(args: TokenStream, input: TokenStream) -> TokenStream {
             }
         }
 
-        pub const #ui_ident: &str = #ui;
+        /// The sections of the settings, with what each setting is set with.
+        pub const SECTIONS: &[SectionInfo] = &[#(#sections),*];
     };
 
     TokenStream::from(expanded)

@@ -21,9 +21,9 @@ Item {
     /// The nearest Flickable around this, which vertical wheels scroll when they can.
     readonly property Flickable _outer: {
         let item = parent;
-        while (item && item.contentY === undefined)
+        while (item && !(item as Flickable))
             item = item.parent;
-        return item;
+        return item as Flickable;
     }
     /// Whether anything around this scrolls up and down.
     readonly property bool _outerScrolls: _outer !== null && _outer.visibleArea.heightRatio < 1

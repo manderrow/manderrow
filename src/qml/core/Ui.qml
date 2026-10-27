@@ -24,12 +24,13 @@ QtObject {
     }
     /// The name of the profile being viewed, shown in the title bar.
     property string currentProfileName: ""
-    /// A containmentMask for full-window items that leaves out the title bar.
-    readonly property QtObject belowTitleBar: QtObject {
+    component BelowTitleBar: QtObject {
         function contains(point: point): bool {
             return point.y >= Theme.titlebarHeight;
         }
     }
+    /// A containmentMask for full-window items that leaves out the title bar.
+    readonly property BelowTitleBar belowTitleBar: BelowTitleBar {}
     /// How opaque the window's background is, from the appearance settings: 1 unless the window
     /// is translucent. Theme.surface applies it.
     property real surfaceOpacity: 1

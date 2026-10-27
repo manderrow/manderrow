@@ -6,13 +6,15 @@ import Manderrow
 Item {
     id: root
 
-    /// `{ completed, total }`
-    property var progress
+    /// How much is done, of the `total`, as a task's progress.
+    property real completed
+    /// How much there is to do, or 0 while that's unknown.
+    property real total
     /// The font size the indicator is drawn at. It is 2em wide.
     property real size: Theme.rem
     property bool noProgressText: false
 
-    readonly property real percentage: progress && progress.total ? progress.completed / progress.total * 100 : 0
+    readonly property real percentage: total !== 0 ? completed / total * 100 : 0
     // the SVG this replaces was 200 units wide, with a ring of radius 90 and a stroke of 0.75em
     readonly property real _scale: width / 200
     readonly property real _stroke: 0.75 * size

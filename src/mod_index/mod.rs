@@ -1,4 +1,3 @@
-pub mod commands;
 mod memory;
 pub mod thunderstore;
 

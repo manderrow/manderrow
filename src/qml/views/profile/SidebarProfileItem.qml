@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic
 import Manderrow
@@ -6,7 +7,7 @@ import Manderrow
 Rectangle {
     id: profileItem
 
-    required property var profile
+    required property Profile profile
     required property string gameId
     /// Whether this is the profile being viewed.
     property bool selected: false
@@ -27,13 +28,9 @@ Rectangle {
     readonly property bool _hot: hover.hovered || _menuOpen || Ui.isWithin(Window.activeFocusItem, profileItem)
     /// Whether a game launched from this profile is still connected or connecting.
     readonly property bool _running: {
-        // read for the dependency on it, as the connections themselves notify nothing
-        if (ConsoleStore.connectionsUpdate === 0)
-            return false;
-        const connections = ConsoleStore.connections;
-        for (const id in connections) {
-            const connection = connections[id];
-            if (connection.profileId === profile.id && connection.status !== "disconnected")
+        for (const object of Console.connections) {
+            const connection = object as Connection;
+            if (connection.profileId === profileItem.profile.id && connection.status !== Connection.Disconnected)
                 return true;
         }
         return false;
@@ -50,30 +47,21 @@ Rectangle {
     }
     color: highlighted ? Theme.primary25 : selected ? Theme.neutral80 : _hot ? Theme.neutral85 : "transparent"
 
-    function _metadata(changes) {
-        return Object.assign({ name: profile.name, game: profile.game, pinned: profile.pinned }, changes);
-    }
-
-    function _delete() {
+    function _delete(): var {
         if (selected)
             Router.navigate(`/profile/${gameId}`, { replace: true });
         if (_deleting)
             return Promise.resolve();
         _deleting = true;
-        const refetch = () => {
-            profileItem._deleting = false;
-            return Globals.refetchProfiles();
-        };
-        return Api.deleteProfile(profile.id).then(refetch, e => refetch().then(() => {
-            throw e;
-        }));
+        return Async.promise(profile.remove()).finally(() => {
+            if (profileItem)
+                profileItem._deleting = false;
+        });
     }
 
     function _openFolder() {
-        Api.getProfilePath(profile.id).then(path => {
-            if (!Native.openFolder(path))
-                throw new Error(`Failed to open folder: ${path}`);
-        }).catch(e => Ui.window.reportError(e));
+        if (!Native.openFolder(profile.path))
+            Ui.window.reportError(new Error(`Failed to open folder: ${profile.path}`));
     }
 
     HoverHandler {
@@ -98,9 +86,7 @@ Rectangle {
         width: parent.width
         sourceComponent: ProfileNameEditor {
             initialValue: profileItem.profile.name
-            submit: name => Api.overwriteProfileMetadata(profileItem.profile.id, profileItem._metadata({ name })).then(() => Globals.refetchProfiles(), e => Globals.refetchProfiles().then(() => {
-                    throw e;
-                }))
+            submit: name => profileItem.profile.rename(name)
             onClosed: profileItem.renaming = false
         }
     }
@@ -228,9 +214,7 @@ Rectangle {
                     btn.iconRotation: 90
                     iconName: profileItem.profile.pinned ? "pin-off" : "pin"
                     tooltip: profileItem.profile.pinned ? Strings.profile.sidebar.unpin_profile_btn : Strings.profile.sidebar.pin_profile_btn
-                    action: () => Api.overwriteProfileMetadata(profileItem.profile.id, profileItem._metadata({ pinned: !profileItem.profile.pinned })).then(() => Globals.refetchProfiles(), e => Globals.refetchProfiles().then(() => {
-                            throw e;
-                        }))
+                    action: () => profileItem.profile.setPinned(!profileItem.profile.pinned)
                 }
 
                 OptionButton {

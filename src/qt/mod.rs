@@ -1,6 +1,14 @@
 //! The Qt Quick frontend host.
 
-mod bridge;
+mod app;
+mod call;
+mod child;
+mod console;
+mod games;
+mod markdown;
+mod mod_index;
+mod modpacks;
+mod mods;
 mod native;
 #[cfg(target_vendor = "apple")]
 mod native_macos;
@@ -8,8 +16,14 @@ mod native_macos;
 mod native_unix;
 #[cfg(windows)]
 mod native_win32;
+mod object_list;
+mod outbox;
+mod profiles;
 mod rich_text;
+mod settings;
 mod setup;
+mod tasks;
+mod variant_map;
 mod web_images;
 
 use std::sync::OnceLock;
@@ -21,6 +35,9 @@ use cxx_qt_lib::{QGuiApplication, QQmlApplicationEngine, QUrl};
 
 use crate::app::AppHandle;
 use crate::single_instance::InstanceLock;
+
+pub use object_list::QObjectList;
+pub use variant_map::QVariantMap;
 
 static APP: OnceLock<AppHandle> = OnceLock::new();
 static RUNTIME: OnceLock<tokio::runtime::Runtime> = OnceLock::new();
@@ -62,9 +79,7 @@ pub fn run(app: AppHandle, instance: InstanceLock) -> anyhow::Result<()> {
     setup::configure_app();
 
     // Another launch of the app asks this instance to come to the front.
-    instance.listen(move || {
-        _ = app.emit("single_instance", ());
-    });
+    instance.listen(move || app.activation_events().emit(()));
 
     let mut engine = QQmlApplicationEngine::new();
     let mut engine_ref = engine.as_mut().context("Failed to create the QML engine")?;

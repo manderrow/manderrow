@@ -10,14 +10,15 @@ Item {
     objectName: "modList"
 
     property string game
-    property var installContext: null
+    property Profile profile: null
     /// `(game, query, sort) => Promise<{ count, mods: page => Promise<mods>, get: id => mod }>`.
     /// Replacing it queries the mods again.
     property var fetcher: null
-    /// Reloads the mods. May return a promise.
+    /// Reloads the mods. May return a call or a promise.
     property var refresh: function () {}
     property bool isLoading: false
-    property var progress
+    /// The task whose progress is shown while the mods are loading.
+    property Task progressTask: null
     /// Controls shown at the end of the line above the list.
     property Component trailingControls: null
     /// Whether mods can be selected for bulk actions.
@@ -29,23 +30,23 @@ Item {
     property string query: ""
     property var sort: [
         {
-            column: Api.modSortColumn.relevance,
+            column: ModIndex.Relevance,
             descending: true
         },
         {
-            column: Api.modSortColumn.downloads,
+            column: ModIndex.Downloads,
             descending: true
         },
         {
-            column: Api.modSortColumn.name,
+            column: ModIndex.Name,
             descending: false
         },
         {
-            column: Api.modSortColumn.owner,
+            column: ModIndex.Owner,
             descending: false
         },
         {
-            column: Api.modSortColumn.size,
+            column: ModIndex.Size,
             descending: true
         }
     ]
@@ -188,7 +189,7 @@ Item {
         const map = {};
         const order = [];
         for (const mod of entries) {
-            map[_key(mod)] = { owner: mod.owner, name: mod.name, version: mod.version.version_number };
+            map[_key(mod)] = { owner: mod.owner, name: mod.name, version: mod.version.versionNumber };
             order.push(_key(mod));
         }
         selected = map;
@@ -202,7 +203,7 @@ Item {
             delete map[key];
             order = order.filter(k => k !== key);
         } else {
-            map[key] = { owner: mod.owner, name: mod.name, version: mod.version.version_number };
+            map[key] = { owner: mod.owner, name: mod.name, version: mod.version.versionNumber };
             order.push(key);
         }
         selected = map;
@@ -210,7 +211,7 @@ Item {
         pivotIndex = index;
     }
     function shiftSelect(mod, index) {
-        const items = installContext.installed;
+        const items = profile.mods;
         const pivot = pivotIndex >= 0 ? items[pivotIndex] : undefined;
         if (pivot === undefined || Util.modIdEquals(pivot, mod))
             return;
@@ -228,6 +229,25 @@ Item {
         selected = {};
         selectedOrder = [];
         pivotIndex = -1;
+    }
+
+    // the selected mods that have been uninstalled are deselected
+    Connections {
+        target: modList.multiselect ? modList.profile : null
+        function onModsChanged() {
+            const profile = modList.profile;
+            const order = modList.selectedOrder.filter(key => {
+                const mod = modList.selected[key];
+                return profile.installedMod(mod.owner, mod.name) !== null;
+            });
+            if (order.length === modList.selectedOrder.length)
+                return;
+            const map = {};
+            for (const key of order)
+                map[key] = modList.selected[key];
+            modList.selected = map;
+            modList.selectedOrder = order;
+        }
     }
 
     // selectors stay visible until the list is first hovered and left, to hint at them
@@ -293,14 +313,15 @@ Item {
                     visible: modList.isLoading || modList.queriedLoading
                     Layout.fillWidth: true
                     Layout.maximumWidth: 12 * Theme.rem
-                    progress: modList.progress
+                    completed: modList.progressTask ? modList.progressTask.completed : 0
+                    total: modList.progressTask ? modList.progressTask.total : 0
                 }
 
                 ErrorIndicator {
                     visible: !modList.isLoading && !modList.queriedLoading && modList.queriedError !== null
                     message: "Query failed"
                     err: modList.queriedError
-                    reset: () => Promise.resolve(modList.refresh()).then(() => modList.requery())
+                    reset: () => Async.resolve(modList.refresh()).then(() => modList.requery())
                 }
 
                 LineText {
@@ -392,7 +413,7 @@ Item {
 
                     width: list.width - list.rightMargin
                     mod: modList.mods[i]
-                    installContext: modList.installContext
+                    profile: modList.profile
                     focused: Util.modIdEquals(modList.focusedModId, mod)
                     selectable: modList.multiselect
                     selected: modList.multiselect && modList.isSelected(mod)
@@ -440,7 +461,7 @@ Item {
                         anchors.fill: parent
                         mod: modList.focusedMod
                         gameId: modList.game
-                        installContext: modList.installContext
+                        profile: modList.profile
                         onCloseRequested: modList.focusedModId = null
                     }
                 }
@@ -450,7 +471,7 @@ Item {
                     active: modList.focusedMod === null && modList.multiselect && modList.selectedMods.length !== 0
                     sourceComponent: BulkActions {
                         mods: modList.selectedMods
-                        installContext: modList.installContext
+                        profile: modList.profile
                         onRemoveRequested: mod => modList.deselect(mod)
                         onCancelRequested: modList.clearSelection()
                     }

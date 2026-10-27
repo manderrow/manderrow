@@ -1,4 +1,3 @@
-pub mod commands;
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -8,12 +7,13 @@ use anyhow::{anyhow, ensure, Context as _, Result};
 use futures_util::stream::FuturesOrdered;
 use futures_util::StreamExt as _;
 use manderrow_paths::local_data_dir;
-use manderrow_types::mods::{ModAndVersion, ModId, ModMetadata, ModSpec, ModVersion};
+use manderrow_types::mods::{ModAndVersion, ModId, ModMetadata, ModSpec, ModVersion, Timestamp};
+use manderrow_types::util::serde::empty_string_as_none;
 use packed_semver::Version;
 use parking_lot::Mutex;
 use slog::{debug, error};
 use smol_str::SmolStr;
-use crate::app::{AppHandle, RawJson};
+use crate::app::AppHandle;
 use uuid::Uuid;
 
 use crate::installing::{
@@ -156,15 +156,44 @@ pub const PATCHERS_FOLDER: &str = "patchers";
 
 const MANIFEST_FILE_NAME: &str = "manderrow_mod.json";
 
-pub async fn get_profile_mods(id: Uuid) -> Result<RawJson> {
+/// The manifest of an installed mod: the mod and the installed version, as they were in the mod
+/// index when it was installed.
+#[derive(Debug, serde::Deserialize)]
+pub struct ModManifest {
+    pub name: String,
+    pub owner: String,
+    #[serde(default, deserialize_with = "empty_string_as_none")]
+    pub donation_link: Option<String>,
+    pub date_created: Timestamp,
+    pub is_deprecated: bool,
+    pub has_nsfw_content: bool,
+    pub categories: Vec<String>,
+    pub version: ManifestVersion,
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct ManifestVersion {
+    pub description: String,
+    pub version_number: Version,
+    pub dependencies: Vec<String>,
+    pub downloads: u64,
+    pub date_created: Timestamp,
+    #[serde(default, deserialize_with = "empty_string_as_none")]
+    pub website_url: Option<String>,
+    pub is_active: bool,
+    pub file_size: u64,
+}
+
+/// The manifests of the mods installed in a profile.
+pub async fn get_profile_mods(id: Uuid) -> Result<Vec<ModManifest>> {
     let mut path = profile_path(id);
 
     path.push(MODS_FOLDER);
 
     let mut iter = match tokio::fs::read_dir(&path).await {
         Ok(t) => t,
-        Err(e) if e.is_not_found() => return Ok(RawJson("[]".to_owned())),
-        Err(e) => return Err(anyhow::Error::from(e).into()),
+        Err(e) if e.is_not_found() => return Ok(Vec::new()),
+        Err(e) => return Err(anyhow::Error::from(e)),
     };
     let mut tasks = FuturesOrdered::new();
     while let Some(e) = iter.next_entry().await.map_err(anyhow::Error::from)? {
@@ -173,44 +202,40 @@ pub async fn get_profile_mods(id: Uuid) -> Result<RawJson> {
             tasks.push_back(tokio::task::spawn(async move {
                 path.push(e.file_name());
                 path.push(MANIFEST_FILE_NAME);
-                match tokio::fs::read_to_string(&path).await {
-                    Ok(t) => Ok(Some(t)),
+                let json = match tokio::fs::read(&path).await {
+                    Ok(t) => t,
                     Err(e) if e.is_not_found() => return Ok(None),
                     Err(e) => {
                         return Err(anyhow::Error::from(e)
                             .context(format!("Failed to read mod manifest {path:?}")))
                     }
-                }
+                };
+                serde_json::from_slice::<ModManifest>(&json)
+                    .map(Some)
+                    .with_context(|| format!("Invalid mod manifest {path:?}"))
             }));
         }
     }
-    let mut buf = "[".to_owned();
-    let mut first = true;
+    let mut manifests = Vec::new();
     while let Some(r) = tasks.next().await {
-        if let Some(m) = r.map_err(anyhow::Error::from)?? {
-            if first {
-                first = false;
-            } else {
-                buf.push(',');
-            }
-            buf.push_str(&m);
-        }
+        manifests.extend(r??);
     }
-    buf.push(']');
-    Ok(RawJson(buf))
+    Ok(manifests)
 }
 
+/// Installs a version of a mod in a profile, as it is in the mod index, with its dependencies.
 pub async fn install_profile_mod(
     app: &AppHandle,
     reqwest: &Reqwest,
     id: Uuid,
-    r#mod: ModMetadata<'_>,
-    version: ModVersion<'_>,
+    owner: &str,
+    name: &str,
+    version: Version,
     task_id: tasks::Id,
 ) -> Result<()> {
     let log = slog_scope::logger();
 
-    if r#mod.owner == "BepInEx" && r#mod.name == "BepInExPack" {
+    if owner == "BepInEx" && name == "BepInExPack" {
         return Err(anyhow!(
             "BepInEx pack is managed by manderrow and will be installed automatically if required"
         ));
@@ -231,9 +256,9 @@ pub async fn install_profile_mod(
         id,
         &profile_path,
         &mod_index,
-        r#mod.owner,
-        r#mod.name,
-        version.version_number,
+        owner,
+        name,
+        version,
         task_id,
         &seen,
     )

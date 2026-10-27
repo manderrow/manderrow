@@ -1,5 +1,3 @@
-pub mod commands;
-
 use std::collections::HashMap;
 use std::ops::ControlFlow;
 use std::sync::atomic::AtomicU32;
@@ -14,7 +12,17 @@ use crate::app::AppHandle;
 pub use manderrow_ipc::*;
 use triomphe::Arc;
 
-pub const EVENT_NAME: &str = "ipc_message";
+/// What happens to the connections to games, which the console shows.
+pub enum Event {
+    /// A game sent a message, or the app did on its behalf.
+    Message {
+        conn_id: ConnectionId,
+        msg: C2SMessage,
+    },
+    Closed {
+        conn_id: ConnectionId,
+    },
+}
 
 #[derive(
     Debug,
@@ -31,6 +39,17 @@ pub const EVENT_NAME: &str = "ipc_message";
 )]
 #[serde(transparent)]
 pub struct ConnectionId(u32);
+
+impl ConnectionId {
+    /// The id as QML knows it. Ids are counted from 0 as connections are made, so they fit.
+    pub fn to_qml(self) -> i32 {
+        self.0 as i32
+    }
+
+    pub fn from_qml(id: i32) -> Self {
+        Self(id as u32)
+    }
+}
 
 impl std::fmt::Display for ConnectionId {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -148,14 +167,6 @@ enum ManagementEvent {
     },
 }
 
-#[derive(Clone, serde::Serialize)]
-pub struct IdentifiedC2SMessage<'a> {
-    #[serde(rename = "connId")]
-    pub conn_id: ConnectionId,
-    #[serde(flatten)]
-    pub msg: &'a C2SMessage,
-}
-
 pub struct IpcState {
     next_connection_id: AtomicU32,
     connections: Arc<RwLock<HashMap<ConnectionId, IpcConnection>>>,
@@ -222,9 +233,7 @@ impl IpcState {
                                     }
                                     _ => {}
                                 }
-                                if let Err(e) = app.emit("ipc_closed", id) {
-                                    error!(log, "Failed to emit ipc_closed event: {}", e; "conn_id" => id.0);
-                                }
+                                app.ipc_events().emit(Event::Closed { conn_id: id });
                             };
                             match msg {
                                 MessageReceived(id, msg) if id == mgmt_rx => {
@@ -331,9 +340,7 @@ impl IpcState {
                                         }
                                     }
 
-                                    if let Err(e) = app.emit(EVENT_NAME, IdentifiedC2SMessage { conn_id: id, msg: &msg }) {
-                                        error!(log, "Failed to emit ipc_message event: {}", e; "conn_id" => id, "rx" => rx);
-                                    }
+                                    app.ipc_events().emit(Event::Message { conn_id: id, msg: msg.clone() });
 
                                     if started_but_already_dead {
                                         // the process has already died, clear it out
@@ -347,9 +354,7 @@ impl IpcState {
                                     };
                                     connections.write().remove(&id);
                                     rx_to_id.remove(&rx);
-                                    if let Err(e) = app.emit("ipc_closed", id) {
-                                        error!(log, "Failed to emit ipc_closed event: {}", e; "conn_id" => id, "rx" => rx);
-                                    }
+                                    app.ipc_events().emit(Event::Closed { conn_id: id });
                                 }
                             }
                         }
@@ -430,7 +435,7 @@ impl IpcState {
                         return;
                     }
                 };
-                _ = app.emit(EVENT_NAME, IdentifiedC2SMessage { conn_id, msg: &msg });
+                app.ipc_events().emit(Event::Message { conn_id, msg: msg.clone() });
                 if let C2SMessage::Connect { s2c_tx } = msg {
                     if let Err(e) = mgmt_tx.lock().send(&ManagementEvent::ExternalRegistration {
                         id: conn_id,
@@ -475,13 +480,10 @@ pub struct InProcessIpc {
 
 impl InProcessIpc {
     pub async fn send(&self, message: C2SMessage) -> Result<()> {
-        self.app.emit(
-            EVENT_NAME,
-            IdentifiedC2SMessage {
-                conn_id: self.conn_id,
-                msg: &message,
-            },
-        )?;
+        self.app.ipc_events().emit(Event::Message {
+            conn_id: self.conn_id,
+            msg: message,
+        });
         Ok(())
     }
 

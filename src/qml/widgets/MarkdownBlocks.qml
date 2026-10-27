@@ -1,12 +1,13 @@
+pragma ComponentBehavior: Bound
 import QtQuick
-import QtQuick.Controls.Basic
 import Manderrow
 
 // Lays out blocks produced by the backend's Markdown renderer, recursively.
 Column {
     id: root
 
-    property var blocks: []
+    /// The `MarkdownBlock`s to lay out.
+    property list<QtObject> blocks
     /// Whether these are the document's top-level blocks, whose first heading has no top margin.
     property bool first: false
     /// Paragraphs in tight lists and blockquotes have no margins.
@@ -21,6 +22,10 @@ Column {
     /// Whether every block has been created.
     readonly property bool ready: progress.pending === 0
     /// How far the blocks reach to the right, past their width where they can't wrap to fit.
+    ///
+    /// The blocks that can overflow, and the nested MarkdownBlocks, have an overflowWidth of their
+    /// own, which this reads from them without knowing their types, as they're loaded. So qmllint,
+    /// which doesn't know them either, is told not to warn about reading it.
     readonly property real overflowWidth: {
         let right = width;
         for (let i = 0; i < children.length; i++) {
@@ -39,13 +44,13 @@ Column {
         return headingSizes[level - 1] * rem;
     }
 
-    function margins(block, index) {
-        switch (block.type) {
-        case "paragraph":
-        case "html":
-        case "image":
+    function margins(block: MarkdownBlock, index: int): var {
+        switch (block.kind) {
+        case MarkdownBlock.Paragraph:
+        case MarkdownBlock.Html:
+        case MarkdownBlock.Image:
             return { top: 0, bottom: compact ? 0 : 0.75 * rem };
-        case "heading":
+        case MarkdownBlock.Heading:
             {
                 const size = headingSize(block.level);
                 if (block.level > 4)
@@ -53,11 +58,11 @@ Column {
                 const top = block.level === 1 ? (first && index === 0 ? 0 : 0.5 * size) : 0.75 * size;
                 return { top, bottom: 0.35 * size };
             }
-        case "quote":
+        case MarkdownBlock.Quote:
             return { top: 0.5 * baseSize, bottom: 0.5 * baseSize };
-        case "list":
+        case MarkdownBlock.List:
             return { top: 0, bottom: block.ordered ? 0 : baseSize };
-        case "rule":
+        case MarkdownBlock.Rule:
             return { top: baseSize, bottom: baseSize };
         default:
             return { top: 0, bottom: 0 };
@@ -116,43 +121,43 @@ Column {
         delegate: Item {
             id: slot
 
-            required property var modelData
+            required property MarkdownBlock modelData
             required property int index
-            readonly property var block: modelData
+            readonly property MarkdownBlock block: modelData
             readonly property var margin: root.margins(modelData, index)
-            readonly property var previous: index > 0 ? root.margins(root.blocks[index - 1], index - 1) : ({ bottom: 0 })
+            readonly property var previous: index > 0 ? root.margins(root.blocks[index - 1] as MarkdownBlock, index - 1) : ({ bottom: 0 })
             // adjacent vertical margins collapse, as in CSS
             readonly property real topGap: Math.max(0, margin.top - previous.bottom)
-            readonly property real overflowWidth: loader.item && loader.item.overflowWidth !== undefined ? loader.x + loader.item.overflowWidth : width
+            readonly property real overflowWidth: loader.item && loader.item.overflowWidth !== undefined ? loader.x + loader.item.overflowWidth : width // qmllint disable missing-property
 
             width: root.width
-            height: topGap + (loader.item ? loader.item.height : 0) + margin.bottom
+            height: topGap + (loader.item ? (loader.item as Item).height : 0) + margin.bottom
 
             BlocksLoader {
                 id: loader
                 y: slot.topGap
                 width: parent.width
                 sourceComponent: {
-                    switch (slot.block.type) {
-                    case "heading":
+                    switch (slot.block.kind) {
+                    case MarkdownBlock.Heading:
                         return heading;
-                    case "paragraph":
+                    case MarkdownBlock.Paragraph:
                         return paragraph;
-                    case "html":
+                    case MarkdownBlock.Html:
                         return paragraph;
-                    case "image":
+                    case MarkdownBlock.Image:
                         return image;
-                    case "code":
+                    case MarkdownBlock.Code:
                         return code;
-                    case "quote":
+                    case MarkdownBlock.Quote:
                         return quote;
-                    case "alert":
+                    case MarkdownBlock.Alert:
                         return alert;
-                    case "list":
+                    case MarkdownBlock.List:
                         return list;
-                    case "table":
+                    case MarkdownBlock.Table:
                         return table;
-                    case "rule":
+                    case MarkdownBlock.Rule:
                         return rule;
                     default:
                         return null;
@@ -260,7 +265,7 @@ Column {
                 Component {
                     id: quote
                     Item {
-                        readonly property real overflowWidth: quoteBlocks.item ? Math.max(width, quoteBlocks.x + quoteBlocks.item.overflowWidth) : width
+                        readonly property real overflowWidth: quoteBlocks.item ? Math.max(width, quoteBlocks.x + quoteBlocks.item.overflowWidth) : width // qmllint disable missing-property
 
                         width: parent.width
                         height: quoteBlocks.height + 2 * 0.5 * root.baseSize
@@ -288,7 +293,7 @@ Column {
                 Component {
                     id: alert
                     Column {
-                        readonly property real overflowWidth: Math.max(width, alertTitle.width, alertBlocks.item ? alertBlocks.item.overflowWidth : 0)
+                        readonly property real overflowWidth: Math.max(width, alertTitle.width, alertBlocks.item ? alertBlocks.item.overflowWidth : 0) // qmllint disable missing-property
 
                         width: parent.width
 
@@ -299,7 +304,7 @@ Column {
 
                             Icon {
                                 // the nearest Lucide icons to the Octicons that GitHub shows
-                                name: ({ note: "info", tip: "lightbulb", important: "message-square-warning", warning: "triangle-alert", caution: "octagon-alert" })[slot.block.kind] || ""
+                                name: ({ note: "info", tip: "lightbulb", important: "message-square-warning", warning: "triangle-alert", caution: "octagon-alert" })[slot.block.alertKind] || ""
                                 size: 16
                                 color: root.textColor
                                 anchors.verticalCenter: parent.verticalCenter
@@ -342,9 +347,9 @@ Column {
                             delegate: Item {
                                 id: listItem
 
-                                required property var modelData
+                                required property MarkdownListItem modelData
                                 required property int index
-                                readonly property real overflowWidth: itemBlocks.item ? itemBlocks.x + itemBlocks.item.overflowWidth : width
+                                readonly property real overflowWidth: itemBlocks.item ? itemBlocks.x + itemBlocks.item.overflowWidth : width // qmllint disable missing-property
 
                                 width: parent.width
                                 // li { margin-left: 1.5em; margin-bottom: 0.25em }
@@ -352,7 +357,7 @@ Column {
 
                                 Text {
                                     x: 1.5 * root.baseSize - width - 0.4 * root.baseSize
-                                    visible: listItem.modelData.checked === null
+                                    visible: !listItem.modelData.isTask
                                     text: slot.block.ordered ? `${slot.block.start + listItem.index}.` : "•"
                                     color: root.textColor
                                     font.family: Theme.font
@@ -361,10 +366,10 @@ Column {
                                     lineHeightMode: Text.FixedHeight
                                 }
                                 Checkbox {
-                                    visible: listItem.modelData.checked !== null
+                                    visible: listItem.modelData.isTask
                                     x: 1.5 * root.baseSize - width - 0.4 * root.baseSize
                                     y: (1.35 * root.rem - height) / 2
-                                    checked: listItem.modelData.checked === true
+                                    checked: listItem.modelData.checked
                                     size: 0.8 * root.baseSize
                                     enabled: false
                                 }
@@ -410,7 +415,8 @@ Column {
                                 const block = slot.block;
                                 const padding = Math.round(0.35 * root.baseSize);
                                 let html = `<table style="border-collapse: collapse; border-color: ${Theme.neutral50}" border="1" cellspacing="0" cellpadding="${padding}">`;
-                                for (const row of block.rows) {
+                                for (const object of block.rows) {
+                                    const row = object as MarkdownTableRow;
                                     html += "<tr>";
                                     row.cells.forEach((cell, i) => {
                                         const tag = row.header ? "th" : "td";

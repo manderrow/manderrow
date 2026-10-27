@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic
 import Manderrow
@@ -50,12 +51,10 @@ ApplicationWindow {
     }
 
     // The geometry to save, tracked while the window is neither maximized nor minimized.
-    property var _state: ({ width: 1024, height: 576, x: 0, y: 0, prevX: 0, prevY: 0, maximized: false, fullscreen: false })
-
     function _trackGeometry() {
         if (visibility !== Window.Windowed)
             return;
-        const s = _state;
+        const s = App.windowState;
         if (s.x !== x || s.y !== y) {
             s.prevX = s.x;
             s.prevY = s.y;
@@ -74,28 +73,27 @@ ApplicationWindow {
 
     onClosing: {
         // automated screenshot runs shouldn't overwrite the user's window state
-        if (Backend.devOption("screenshot") !== "")
+        if (App.devOption("screenshot") !== "")
             return;
-        _state.maximized = visibility === Window.Maximized;
-        _state.fullscreen = visibility === Window.FullScreen;
-        Backend.saveWindowState(JSON.stringify(_state));
+        const s = App.windowState;
+        s.maximized = visibility === Window.Maximized;
+        s.fullscreen = visibility === Window.FullScreen;
+        s.save();
     }
 
     function _restoreState() {
-        const saved = Backend.windowState();
-        if (saved === "") {
+        const s = App.windowState;
+        if (!s.saved) {
             x = (Screen.width - width) / 2;
             y = (Screen.height - height) / 2;
             return;
         }
-        const s = JSON.parse(saved);
-        _state = s;
         width = s.width;
         height = s.height;
         // restore the position only if it is still on a screen
         const px = s.maximized ? s.prevX : s.x;
         const py = s.maximized ? s.prevY : s.y;
-        const onScreen = Qt.application.screens.some(screen => px < screen.virtualX + screen.width && px + s.width > screen.virtualX && py < screen.virtualY + screen.height && py + s.height > screen.virtualY);
+        const onScreen = Application.screens.some(screen => px < screen.virtualX + screen.width && px + s.width > screen.virtualX && py < screen.virtualY + screen.height && py + s.height > screen.virtualY);
         if (onScreen) {
             x = px;
             y = py;
@@ -110,6 +108,19 @@ ApplicationWindow {
     }
 
     /// Shows an error that a view couldn't handle itself, like the web UI's ErrorBoundary.
+    /// What kept the app from starting: its settings or profiles couldn't be read.
+    readonly property var startupError: {
+        if (Settings.errorMessages.length > 0)
+            return Async.nativeError(Settings.errorMessages, Settings.backtrace);
+        if (Profiles.errorMessages.length > 0)
+            return Async.nativeError(Profiles.errorMessages, Profiles.backtrace);
+        return null;
+    }
+
+    // The singletons that the backend sends events to are created before it can send them any,
+    // rather than as they're first used, which would drop those sent before then.
+    readonly property list<QtObject> _eventSinks: [Console, Tasks]
+
     function reportError(e) {
         if (e && e.isAborted)
             return;
@@ -136,25 +147,23 @@ ApplicationWindow {
             Native.setDarkFrame(appWindow, Theme.dark);
         });
 
-        Api.benchExitSplash();
-        Api.getPreferredLocales().then(locales => I18n.detectLocale(locales));
-        ConsoleStore.init();
-        Globals.load();
+        App.benchExitSplash();
+        I18n.detectLocale(App.preferredLocales());
 
-        const size = Backend.devOption("size");
+        const size = App.devOption("size");
         if (size !== "") {
             const [w, h] = size.split("x").map(Number);
             showNormal();
             width = w;
             height = h;
         }
-        const route = Backend.devOption("route");
+        const route = App.devOption("route");
         if (route !== "")
             Router.navigate(route, { replace: true });
-        const screenshot = Backend.devOption("screenshot");
+        const screenshot = App.devOption("screenshot");
         if (screenshot !== "")
             screenshotTimer.start();
-        if (Backend.devOption("script") !== "")
+        if (App.devOption("script") !== "")
             scriptTimer.start();
     }
 
@@ -177,11 +186,13 @@ ApplicationWindow {
     // milliseconds (1500 by default), with `find(objectName)` and the core singletons available.
     Timer {
         id: scriptTimer
-        interval: Number(Backend.devOption("script_delay") || 1500)
+        interval: Number(App.devOption("script_delay") || 1500)
         onTriggered: {
             try {
-                const run = new Function("find", "Api", "ConsoleStore", "Globals", "Native", "Router", "Strings", "Tasks", "Ui", Backend.devOption("script"));
-                run(appWindow.find, Api, ConsoleStore, Globals, Native, Router, Strings, Tasks, Ui);
+                // qmllint disable literal-constructor
+                const run = new Function("find", "App", "Async", "Console", "Games", "I18n", "ModIndex", "Native", "Profiles", "Router", "Settings", "Strings", "Tasks", "Theme", "Ui", App.devOption("script"));
+                // qmllint enable literal-constructor
+                run(appWindow.find, App, Async, Console, Games, I18n, ModIndex, Native, Profiles, Router, Settings, Strings, Tasks, Theme, Ui);
             } catch (e) {
                 console.error("Dev script failed:", e, e.stack);
             }
@@ -192,9 +203,9 @@ ApplicationWindow {
     // MANDERROW_DEV_SCREENSHOT_DELAY milliseconds (3000 by default), then quits.
     Timer {
         id: screenshotTimer
-        interval: Number(Backend.devOption("screenshot_delay") || 3000)
+        interval: Number(App.devOption("screenshot_delay") || 3000)
         onTriggered: {
-            Native.grabWindow(appWindow, Backend.devOption("screenshot"));
+            Native.grabWindow(appWindow, App.devOption("screenshot"));
             Qt.quit();
         }
     }
@@ -208,17 +219,13 @@ ApplicationWindow {
     }
 
     // The appearance settings' glass: the window's background shows the desktop, blurred,
-    // through it. Until the settings load, their defaults apply.
-    function _setting(key, fallback) {
-        const setting = Globals.settings ? Globals.settings[key] : undefined;
-        return setting !== undefined ? setting.value : fallback;
-    }
+    // through it.
     Binding {
         target: Ui
         property: "surfaceOpacity"
-        value: appWindow._setting("windowTranslucent", true) ? Math.max(0, Math.min(100, appWindow._setting("windowOpacity", 70))) / 100 : 1
+        value: Settings.windowTranslucent ? Math.max(0, Math.min(100, Settings.windowOpacity)) / 100 : 1
     }
-    readonly property bool _blurBehind: Ui.translucent && _setting("windowBlur", true)
+    readonly property bool _blurBehind: Ui.translucent && Settings.windowBlur
     on_BlurBehindChanged: Native.setBlurBehind(appWindow, _blurBehind)
     onVisibleChanged: Native.setBlurBehind(appWindow, _blurBehind)
     // the native frame's colors, on Windows and macOS
@@ -254,19 +261,22 @@ ApplicationWindow {
     }
 
     Connections {
-        target: Globals
+        target: Profiles
         function onLoadedChanged() {
-            if (Globals.loaded)
-                Api.benchExitInteractive();
+            if (Profiles.loaded)
+                App.benchExitInteractive();
         }
     }
 
-    readonly property var _activateSubscription: Api.listen("single_instance", () => {
-        if (appWindow.visibility === Window.Minimized)
-            appWindow.showNormal();
-        appWindow.raise();
-        appWindow.requestActivate();
-    })
+    Connections {
+        target: App
+        function onActivationRequested() {
+            if (appWindow.visibility === Window.Minimized)
+                appWindow.showNormal();
+            appWindow.raise();
+            appWindow.requestActivate();
+        }
+    }
 
     Rectangle {
         id: root
@@ -283,17 +293,17 @@ ApplicationWindow {
             anchors.topMargin: Theme.titlebarHeight
 
             // the `splash` dev option keeps the splashscreen up, for testing
-            readonly property bool _holdSplash: Backend.devOption("splash") !== ""
+            readonly property bool _holdSplash: App.devOption("splash") !== ""
 
             Loader {
                 anchors.fill: parent
-                active: !Globals.loaded || content._holdSplash
+                active: !Profiles.loaded || content._holdSplash
                 sourceComponent: Splashscreen {}
             }
 
             Loader {
                 anchors.fill: parent
-                active: Globals.loaded && !content._holdSplash
+                active: Profiles.loaded && !content._holdSplash
                 sourceComponent: {
                     switch (Router.route) {
                     case "profile":
@@ -308,7 +318,7 @@ ApplicationWindow {
 
             Component {
                 id: profileView
-                Profile {}
+                ProfilePage {}
             }
             Component {
                 id: settingsView
@@ -337,12 +347,12 @@ ApplicationWindow {
     }
 
     Loader {
-        active: Globals.error !== null
+        active: appWindow.startupError !== null
         sourceComponent: ErrorDialog {
             visible: true
-            err: Globals.error
+            err: appWindow.startupError
             reset: () => {
-                const error = Backend.relaunch();
+                const error = App.relaunch();
                 if (error !== "")
                     throw new Error(error);
                 Qt.quit();

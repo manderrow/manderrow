@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
@@ -15,14 +16,6 @@ MultistageModal {
             title: Strings.profile.import_model.import_title,
             component: choosePage
         })
-
-    // Parses the mod source from a Thunderstore download URL.
-    function detectModSource(url) {
-        const match = url.match(/https:\/\/thunderstore\.io\/package\/download\/([a-zA-Z0-9_]+)\/([a-zA-Z0-9_]+)\/(\d+\.\d+\.\d+)\//) || url.match(/https:\/\/gcdn\.thunderstore\.io\/live\/repository\/packages\/([a-zA-Z0-9_]+)-([a-zA-Z0-9_]+)-(\d+\.\d+\.\d+).zip/);
-        if (match === null)
-            return undefined;
-        return { author: match[1], name: match[2], version: match[3], source: "Thunderstore" };
-    }
 
     component ButtonRow: RowLayout {
         Layout.fillWidth: true
@@ -67,15 +60,21 @@ MultistageModal {
                 AsyncButton {
                     id: next
                     text: Strings.global.phrases.next
-                    progressMode: "listener"
+                    progressMode: "task"
                     // the field is required, so an empty code focuses it instead
-                    action: listener => code.text === "" ? code.forceActiveFocus() : Api.previewImportModpackFromThunderstoreCode(code.text, dialog.gameId, dialog.profileId, listener).then(modpack => {
-                        dialog.pushStage({
-                            title: Strings.profile.import_model.preview_title,
-                            component: previewPage,
-                            props: { thunderstoreCode: code.text, modpack }
+                    action: showTask => {
+                        if (code.text === "")
+                            return code.forceActiveFocus();
+                        const preview = Profiles.previewModpack(code.text, dialog.gameId);
+                        showTask(Tasks.get(preview.taskId));
+                        return Async.promise(preview).then(modpack => {
+                            dialog.pushStage({
+                                title: Strings.profile.import_model.preview_title,
+                                component: previewPage,
+                                props: { modpack }
+                            });
                         });
-                    })
+                    }
                 }
             }
         }
@@ -88,10 +87,7 @@ MultistageModal {
             id: page
 
             property var modal
-            property string thunderstoreCode
-            property var modpack: ({ name: "", mods: [], diff: [] })
-            /// The task installing each mod, by URL.
-            property var modProgress: ({})
+            property Modpack modpack: null
 
             spacing: 0
 
@@ -104,7 +100,7 @@ MultistageModal {
                 }
                 Text {
                     Layout.fillWidth: true
-                    text: page.modpack.name
+                    text: page.modpack ? page.modpack.name : ""
                     elide: Text.ElideRight
                     color: Theme.neutral05
                     font.family: Theme.font
@@ -154,25 +150,25 @@ MultistageModal {
                         text: "Mods"
                     }
                     Repeater {
-                        model: page.modpack.mods
+                        model: page.modpack ? page.modpack.mods : []
 
                         delegate: RowLayout {
                             id: modEntry
 
-                            required property var modelData
-                            readonly property var metadata: dialog.detectModSource(modelData.url)
-                            readonly property var task: page.modProgress[modelData.url] !== undefined ? Tasks.get(page.modProgress[modelData.url]) : undefined
+                            required property ModpackMod modelData
+                            readonly property Task task: modelData.taskId >= 0 ? Tasks.get(modelData.taskId) : null
 
                             Layout.fillWidth: true
 
                             Item_ {
                                 textFormat: Text.PlainText
-                                text: modEntry.metadata ? `${modEntry.metadata.name} v${modEntry.metadata.version}` + (modEntry.metadata.author ? ` by ${modEntry.metadata.author}` : "") : modEntry.modelData.url
+                                text: `${modEntry.modelData.name} v${modEntry.modelData.version} by ${modEntry.modelData.owner}`
                             }
                             ProgressBar {
-                                visible: modEntry.task !== undefined
+                                visible: modEntry.task !== null
                                 Layout.alignment: Qt.AlignRight
-                                progress: modEntry.task ? modEntry.task.progress : Tasks.initProgress()
+                                completed: modEntry.task ? modEntry.task.completed : 0
+                                total: modEntry.task ? modEntry.task.total : 0
                             }
                         }
                     }
@@ -181,11 +177,11 @@ MultistageModal {
                         text: "Files"
                     }
                     Repeater {
-                        model: page.modpack.diff
+                        model: page.modpack ? page.modpack.files : []
                         delegate: Item_ {
-                            required property var modelData
+                            required property string modelData
                             textFormat: Text.StyledText
-                            text: `<b>[${modelData.diff}]</b> ${Util.escapeHtml(modelData.path)}`
+                            text: `<b>[Created]</b> ${Util.escapeHtml(modelData)}`
                         }
                     }
                 }
@@ -201,16 +197,15 @@ MultistageModal {
                 }
                 AsyncButton {
                     text: "Import"
-                    progressMode: "listener"
-                    action: listener => Api.importModpackFromThunderstoreCode(page.thunderstoreCode, dialog.gameId, dialog.profileId, info => {
-                        const progress = Object.assign({}, page.modProgress);
-                        progress[info.url] = info.task;
-                        page.modProgress = progress;
-                    }, listener).then(id => {
-                        console.log(`Imported to profile ${id}`);
-                        dialog.close();
-                        return Globals.refetchProfiles();
-                    })
+                    progressMode: "task"
+                    action: showTask => {
+                        const importing = page.modpack.importInto(dialog.profileId ?? "");
+                        showTask(Tasks.get(importing.taskId));
+                        return Async.promise(importing).then(id => {
+                            console.log(`Imported to profile ${id}`);
+                            dialog.close();
+                        });
+                    }
                 }
             }
         }

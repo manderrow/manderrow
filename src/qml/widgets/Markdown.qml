@@ -10,6 +10,8 @@ Item {
     id: root
 
     property string source
+    /// The source laid out as blocks, which this keeps as long as it shows them.
+    readonly property MarkdownDocument document: App.markdown(source)
     /// Whether every block has been created.
     readonly property bool ready: blocks.ready
     /// How far its content reaches to the right: past its width where something can't wrap to fit
@@ -21,7 +23,7 @@ Item {
     MarkdownBlocks {
         id: blocks
         width: parent.width
-        blocks: JSON.parse(Backend.markdownBlocks(root.source))
+        blocks: root.document.blocks
         first: true
     }
 

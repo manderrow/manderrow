@@ -1,6 +1,6 @@
 //! Manderrow app settings. The backend is the "source of truth". When changes are made in the
-//! frontend, the modified settings are sent to the backend via the "update_settings" command.
-//! The backend performs final validation, makes the modified settings active, and finally writes
+//! frontend, the modified settings are sent to the backend with [`update`], which performs final
+//! validation, makes the modified settings active, sends them to the frontend, and finally writes
 //! them to disk.
 
 use std::path::PathBuf;
@@ -10,12 +10,8 @@ use manderrow_paths::{config_dir, PRODUCT_NAME};
 use tokio::sync::RwLock;
 use triomphe::Arc;
 
+use crate::app::AppHandle;
 use crate::{util::IoErrorKindExt, CommandError};
-
-pub mod commands;
-
-/// The name of the event used to send the settings to the frontend.
-pub const EVENT: &str = "settings";
 
 pub type SettingsStateInner = Arc<RwLock<Result<Settings, CommandError>>>;
 
@@ -76,7 +72,7 @@ static PATH: LazyLock<PathBuf> =
     LazyLock::new(|| config_dir().join(format!("{}.json", PRODUCT_NAME)));
 
 fn get_path() -> &'static PathBuf {
-    &*PATH
+    &PATH
 }
 
 pub fn try_read() -> SettingsStateInner {
@@ -87,20 +83,42 @@ pub fn try_read() -> SettingsStateInner {
     }))
 }
 
-#[derive(Debug, Clone, Copy, serde::Serialize)]
+/// A setting's value, which is its default unless it's been changed.
+#[derive(Debug, Clone, Copy)]
 pub struct Setting<T> {
     value: T,
-    #[serde(rename = "isDefault")]
     is_default: bool,
 }
 
-impl<T: ToOwned> Setting<T> {
-    fn to_owned(&self) -> Setting<T::Owned> {
-        Setting {
-            value: self.value.to_owned(),
-            ..*self
-        }
+impl<T> Setting<T> {
+    pub fn value(&self) -> &T {
+        &self.value
     }
+}
+
+/// A section of the settings, which the settings page has a tab for.
+pub struct SectionInfo {
+    pub id: &'static str,
+    pub settings: &'static [SettingInfo],
+}
+
+/// What a setting is set with on the settings page.
+pub struct SettingInfo {
+    /// Its key, in camelCase, which is that of its translation.
+    pub key: &'static str,
+    pub input: Input,
+    /// The values a `Select` offers.
+    pub options: &'static [&'static str],
+}
+
+pub enum Input {
+    Toggle,
+    /// One of the games, by its id.
+    GameSelect,
+    /// One of its options.
+    Select,
+    /// A percentage, from 0 to 100.
+    Percent,
 }
 
 #[derive(Debug, Clone, Copy, serde::Deserialize)]
@@ -186,4 +204,18 @@ pub struct SettingsOnDisk {
 
     #[serde(default, skip_serializing_if = "Option::is_none")]
     theme: Option<Theme>,
+}
+
+/// Changes the settings: `patch` is a JSON object of the changes by key, each `"default"`, or
+/// `{ "override": value }`.
+pub async fn update(app: &AppHandle, patch: serde_json::Value) -> Result<(), CommandError> {
+    let patch: SettingsPatch = serde_json::from_value(patch).map_err(anyhow::Error::from)?;
+    let state = app.state::<SettingsStateInner>();
+    let mut settings = state.write().await;
+    settings.as_mut().map_err(|e| e.clone())?.update(patch);
+    let settings = settings.downgrade();
+    let settings = settings.as_ref().unwrap();
+    app.settings_events().emit(settings.clone());
+    write(settings).await?;
+    Ok(())
 }
