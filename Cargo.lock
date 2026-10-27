@@ -1507,7 +1507,7 @@ dependencies = [
 [[package]]
 name = "ipc-channel"
 version = "0.20.1"
-source = "git+https://github.com/manderrow/ipc-channel#af45c4fb6962a1d2034ac695ee92611a19b5dabb"
+source = "git+https://github.com/manderrow/ipc-channel#5612ac61e7842df7a6e246bceb19140cf91740d2"
 dependencies = [
  "bytecheck",
  "fastrand",
