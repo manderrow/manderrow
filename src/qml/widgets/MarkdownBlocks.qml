@@ -13,6 +13,8 @@ Column {
     /// Paragraphs in tight lists and blockquotes have no margins.
     property bool compact: false
     property color textColor: Theme.neutral05
+    /// A function that opens a link around an image, shared with the nested blocks.
+    property var openLink: url => Util.openUrl(url)
     component Progress: QtObject {
         /// How many loaders are creating blocks.
         property int pending: 0
@@ -168,6 +170,8 @@ Column {
                     id: heading
                     Item {
                         readonly property real overflowWidth: headingText.overflowWidth
+                        /// Found by Markdown when a link to it is clicked.
+                        readonly property string markdownAnchor: slot.block.anchor
 
                         width: parent.width
                         height: headingText.height + (slot.block.level === 1 ? Ui.hairline : 0)
@@ -225,7 +229,7 @@ Column {
                             ClickArea {
                                 enabled: !!slot.block.href
                                 activatesOnSpace: false
-                                onActivated: Util.openUrl(slot.block.href)
+                                onActivated: root.openLink(slot.block.href)
                             }
                         }
                     }
@@ -283,6 +287,7 @@ Column {
                             Component.onCompleted: setSource("MarkdownBlocks.qml", {
                                 blocks: slot.block.children,
                                 progress: root.progress,
+                                openLink: root.openLink,
                                 compact: true,
                                 textColor: Theme.neutral20
                             })
@@ -321,7 +326,8 @@ Column {
                             width: parent.width
                             Component.onCompleted: setSource("MarkdownBlocks.qml", {
                                 blocks: slot.block.children,
-                                progress: root.progress
+                                progress: root.progress,
+                                openLink: root.openLink
                             })
                         }
                     }
@@ -381,6 +387,7 @@ Column {
                                     Component.onCompleted: setSource("MarkdownBlocks.qml", {
                                         blocks: listItem.modelData.children,
                                         progress: root.progress,
+                                        openLink: root.openLink,
                                         compact: slot.block.tight
                                     })
                                 }

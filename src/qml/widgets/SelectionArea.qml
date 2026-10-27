@@ -34,6 +34,8 @@ MouseArea {
     /// The color of the links in the text, which hovering one turns into `hoveredLinkColor`.
     property color linkColor: Theme.primary60
     property color hoveredLinkColor: Theme.primary65
+    /// A function that opens a link clicked in the text, which otherwise opens externally.
+    property var openLink: url => Util.openUrl(url)
 
     /// The TextEdits being selected, in reading order.
     property list<TextEdit> _items
@@ -282,7 +284,7 @@ MouseArea {
     onExited: _hover(Qt.point(-Infinity, -Infinity))
     onReleased: {
         if (!_dragged && _link !== "")
-            Util.openUrl(_link);
+            openLink(_link);
         _link = "";
     }
 

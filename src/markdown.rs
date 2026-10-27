@@ -8,6 +8,7 @@ use std::borrow::Cow;
 use std::sync::LazyLock;
 
 use comrak::nodes::{AlertType, ListType, Node, NodeValue, TableAlignment};
+use comrak::Anchorizer;
 
 /// Images are only loaded from these schemes, which are all that the `web` image provider and
 /// Image load. They come from any origin, as badges like shields.io's do, which the web frontend
@@ -56,6 +57,8 @@ pub enum Block {
     Heading {
         level: u8,
         html: String,
+        /// The fragment that links to it, as GitHub gives it, like `getting-started`.
+        anchor: String,
     },
     Paragraph {
         html: String,
@@ -214,7 +217,7 @@ fn html_escape_decode(s: &str) -> String {
     s.replace("&amp;", "&")
 }
 
-fn blocks<'a>(parent: Node<'a>, out: &mut Vec<Block>) {
+fn blocks<'a>(parent: Node<'a>, anchors: &mut Anchorizer, out: &mut Vec<Block>) {
     for node in parent.children() {
         let value = node.data.borrow().value.clone();
         match value {
@@ -231,18 +234,19 @@ fn blocks<'a>(parent: Node<'a>, out: &mut Vec<Block>) {
             NodeValue::Heading(heading) => out.push(Block::Heading {
                 level: heading.level,
                 html: inline_html(node),
+                anchor: anchors.anchorize(&node.collect_text()),
             }),
             NodeValue::CodeBlock(code) => out.push(Block::Code {
                 text: code.literal.trim_end_matches('\n').to_owned(),
             }),
             NodeValue::BlockQuote | NodeValue::MultilineBlockQuote(_) => {
                 let mut children = Vec::new();
-                blocks(node, &mut children);
+                blocks(node, anchors, &mut children);
                 out.push(Block::Quote { children });
             }
             NodeValue::Alert(alert) => {
                 let mut children = Vec::new();
-                blocks(node, &mut children);
+                blocks(node, anchors, &mut children);
                 out.push(Block::Alert {
                     kind: match alert.alert_type {
                         AlertType::Note => "note",
@@ -267,7 +271,7 @@ fn blocks<'a>(parent: Node<'a>, out: &mut Vec<Block>) {
                             _ => None,
                         };
                         let mut children = Vec::new();
-                        blocks(item, &mut children);
+                        blocks(item, anchors, &mut children);
                         ListItem { checked, children }
                     })
                     .collect();
@@ -308,7 +312,7 @@ fn blocks<'a>(parent: Node<'a>, out: &mut Vec<Block>) {
             }
             NodeValue::FrontMatter(_) => {}
             // footnotes, description lists, and anything else with block children
-            _ => blocks(node, out),
+            _ => blocks(node, anchors, out),
         }
     }
 }
@@ -318,7 +322,7 @@ pub fn to_blocks(markdown: &str) -> Vec<Block> {
     let arena = comrak::Arena::new();
     let root = comrak::parse_document(&arena, markdown, &OPTIONS);
     let mut out = Vec::new();
-    blocks(root, &mut out);
+    blocks(root, &mut Anchorizer::new(), &mut out);
     out
 }
 
@@ -353,6 +357,27 @@ mod tests {
         assert!(!out.contains("file:"), "{out}");
         assert!(out.contains(r#"Image { src: "https://gcdn.thunderstore.io/live/y.png""#), "{out}");
         assert!(out.contains(r#"src=\"https://img.shields.io/badge/a-b-green\""#), "{out}");
+    }
+
+    #[test]
+    fn anchors_headings_like_github() {
+        let blocks =
+            to_blocks("# Getting Started\n\n## `config.toml` & you\n\n> ## Getting started");
+        let anchors: Vec<_> = blocks
+            .iter()
+            .flat_map(|block| match block {
+                Block::Quote { children } => &children[..],
+                _ => std::slice::from_ref(block),
+            })
+            .filter_map(|block| match block {
+                Block::Heading { anchor, .. } => Some(anchor.as_str()),
+                _ => None,
+            })
+            .collect();
+        assert_eq!(
+            anchors,
+            ["getting-started", "configtoml--you", "getting-started-1"]
+        );
     }
 
     #[test]

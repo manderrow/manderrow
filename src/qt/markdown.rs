@@ -39,6 +39,8 @@ pub mod qobject {
         #[qproperty(i32, level, READ, CONSTANT)]
         /// The sanitized HTML of a heading, paragraph, or HTML block.
         #[qproperty(QString, html, READ, CONSTANT)]
+        /// The fragment that links to a heading, without its `#`.
+        #[qproperty(QString, anchor, READ, CONSTANT)]
         /// An image's source, alternative text, and link.
         #[qproperty(QString, src, READ, CONSTANT)]
         #[qproperty(QString, alt, READ, CONSTANT)]
@@ -121,6 +123,7 @@ pub struct MarkdownBlockRust {
     kind: MarkdownBlockKind,
     level: i32,
     html: QString,
+    anchor: QString,
     src: QString,
     alt: QString,
     href: QString,
@@ -144,6 +147,7 @@ impl Default for MarkdownBlockRust {
             kind: MarkdownBlockKind::Paragraph,
             level: 0,
             html: QString::default(),
+            anchor: QString::default(),
             src: QString::default(),
             alt: QString::default(),
             href: QString::default(),
@@ -204,11 +208,16 @@ fn new_block(block: Block) -> UniquePtr<qobject::MarkdownBlock> {
     let mut object = qobject::new_markdown_block();
     let html = |html: String| QString::from(&html);
     match block {
-        Block::Heading { level, html: text } => {
+        Block::Heading {
+            level,
+            html: text,
+            anchor,
+        } => {
             let mut rust = object.pin_mut().rust_mut();
             rust.kind = MarkdownBlockKind::Heading;
             rust.level = i32::from(level);
             rust.html = html(text);
+            rust.anchor = QString::from(&anchor);
         }
         Block::Paragraph { html: text } => {
             let mut rust = object.pin_mut().rust_mut();
