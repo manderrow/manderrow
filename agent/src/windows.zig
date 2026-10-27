@@ -2,7 +2,7 @@ const builtin = @import("builtin");
 const std = @import("std");
 
 comptime {
-    if (builtin.os.tag != .windows) @compileError("Windows-only code cannot be accessed from " ++ @tagName(builtin.os.tag));
+    if (builtin.target.os.tag != .windows) @compileError("Windows-only code cannot be accessed from " ++ @tagName(builtin.target.os.tag));
 }
 
 const FdwReason = enum(std.os.windows.DWORD) {
@@ -23,15 +23,15 @@ pub noinline fn DllMain(
 ) std.os.windows.BOOL {
     const module: std.os.windows.HMODULE = @ptrCast(hInstDll);
 
-    const fdwReason: FdwReason = @enumFromInt(fdwReasonRaw);
+    const fdwReason: FdwReason = @fromBackingInt(@intCast(fdwReasonRaw));
 
     if (fdwReason != .PROCESS_ATTACH) {
-        return std.os.windows.TRUE;
+        return .TRUE;
     }
 
     initialFrameAddress = @frameAddress();
 
     @call(.never_inline, @import("root.zig").entrypoint, .{module});
 
-    return std.os.windows.TRUE;
+    return .TRUE;
 }

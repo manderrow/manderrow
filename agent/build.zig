@@ -8,28 +8,28 @@ const IpcMode = enum {
 };
 
 pub fn build(b: *std.Build) !void {
-    b.reference_trace = 24;
-
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{
-        .preferred_optimize_mode = .ReleaseSafe,
+        .preferred_optimize_mode = .safe,
     });
 
     const strip = b.option(bool, "strip", "Forces stripping on all optimization modes") orelse switch (optimize) {
-        .Debug => false,
-        .ReleaseSafe, .ReleaseFast, .ReleaseSmall => true,
+        .debug => false,
+        .safe, .fast, .small => true,
     };
 
     const ipc = b.option(IpcMode, "ipc-mode", "Determines the IPC mechanism used") orelse .ipc_channel;
     const wine = b.option(bool, "wine", "Compiles ipc-channel with the unix-on-wine feature") orelse false;
     const host_lib = b.option(bool, "host-lib", "Compiles in host library mode. The entrypoint will not be exported.") orelse false;
+    // an option rather than CARGO_TARGET_DIR, as the configuration cache doesn't track the environment
+    const cargo_target_dir = b.option(std.Build.LazyPath, "cargo-target-dir", "The target directory of the Rust part of the agent") orelse b.path("../target");
 
     const build_zig_zon = b.createModule(.{
         .root_source_file = b.path("build.zig.zon"),
     });
 
     {
-        const lib = try createLib(b, target, optimize, strip, wine, ipc, host_lib, build_zig_zon, b.getInstallStep());
+        const lib = try createLib(b, target, optimize, strip, wine, ipc, host_lib, cargo_target_dir, build_zig_zon, b.getInstallStep());
 
         b.getInstallStep().dependOn(&b.addInstallArtifact(lib.compile, .{
             .dest_dir = .{ .override = .lib },
@@ -37,9 +37,11 @@ pub fn build(b: *std.Build) !void {
 
         const lib_unit_tests = b.addTest(.{
             .root_module = lib.mod,
+            // as for the library
+            .use_llvm = true,
         });
 
-        lib_unit_tests.linkSystemLibrary("unwind");
+        lib_unit_tests.root_module.linkSystemLibrary("unwind", .{});
 
         const run_lib_unit_tests = b.addRunArtifact(lib_unit_tests);
 
@@ -65,11 +67,11 @@ pub fn build(b: *std.Build) !void {
         .{ .target = b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .windows, .abi = .gnu }), .ipc = .stderr },
         .{ .target = b.resolveTargetQuery(.{ .cpu_arch = .x86_64, .os_tag = .windows, .abi = .gnu }), .ipc = .winelib },
     }) |cfg| {
-        if (builtin.os.tag != .linux and cfg.host_lib) {
+        if (builtin.target.os.tag != .linux and cfg.host_lib) {
             // building host_lib is currently only supported on Linux
             continue;
         }
-        const lib_2 = try createLib(b, cfg.target, optimize, strip, cfg.wine, cfg.ipc, cfg.host_lib, build_zig_zon, build_all_step);
+        const lib_2 = try createLib(b, cfg.target, optimize, strip, cfg.wine, cfg.ipc, cfg.host_lib, cargo_target_dir, build_zig_zon, build_all_step);
         build_all_step.dependOn(&b.addInstallArtifact(lib_2.compile, .{
             .dest_dir = .{ .override = .lib },
         }).step);
@@ -79,11 +81,12 @@ pub fn build(b: *std.Build) !void {
 fn createLib(
     b: *std.Build,
     target: std.Build.ResolvedTarget,
-    optimize: std.builtin.OptimizeMode,
+    optimize: std.lang.Optimize,
     strip: bool,
     wine: bool,
     ipc: IpcMode,
     host_lib: bool,
+    cargo_target_dir: std.Build.LazyPath,
     build_zig_zon: *std.Build.Module,
     install_step: *std.Build.Step,
 ) !struct { mod: *std.Build.Module, compile: *std.Build.Step.Compile } {
@@ -95,7 +98,7 @@ fn createLib(
     const lib_mod = b.createModule(.{
         .root_source_file = b.path("src/root.zig"),
         .target = target,
-        .optimize = if (target.result.os.tag == .windows and optimize == .Debug) .Debug else optimize,
+        .optimize = if (target.result.os.tag == .windows and optimize == .debug) .debug else optimize,
         .strip = strip,
         .link_libc = true,
     });
@@ -175,14 +178,16 @@ fn createLib(
                 "manderrow-agent",
                 "--profile",
                 switch (optimize) {
-                    .Debug => "dev",
-                    .ReleaseSafe, .ReleaseFast, .ReleaseSmall => "release",
+                    .debug => "dev",
+                    .safe, .fast, .small => "release",
                 },
                 "--target",
                 rust_target,
-                "--manifest-path",
+                "--target-dir",
             });
-            cargo_build.addFileArg(b.path("../Cargo.toml"));
+            cargo_build.addDirectoryArg2(cargo_target_dir, .{});
+            cargo_build.addArg("--manifest-path");
+            cargo_build.addFileArg2(b.path("../Cargo.toml"), .{});
             if (wine) {
                 cargo_build.addArgs(&.{ "--features", "unix-on-wine" });
             }
@@ -196,18 +201,15 @@ fn createLib(
             const rust_lib_path = b.fmt("{s}/{s}/{s}", .{
                 rust_target,
                 switch (optimize) {
-                    .Debug => "debug",
-                    .ReleaseSafe, .ReleaseFast, .ReleaseSmall => "release",
+                    .debug => "debug",
+                    .safe, .fast, .small => "release",
                 },
                 switch (target.result.abi) {
                     .msvc => "manderrow_agent_rs.lib",
                     else => "libmanderrow_agent_rs.a",
                 },
             });
-            lib.addObjectFile(if (b.graph.env_map.get("CARGO_TARGET_DIR")) |cargo_target_dir|
-                .{ .cwd_relative = b.pathJoin(&.{ cargo_target_dir, rust_lib_path }) }
-            else
-                b.path(b.fmt("../target/{s}", .{rust_lib_path})));
+            lib_mod.addObjectFile(cargo_target_dir.path(b, rust_lib_path));
         },
         .winelib => {
             lib_mod.addImport("dlfcn", dep.module("proxy"));

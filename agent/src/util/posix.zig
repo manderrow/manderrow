@@ -9,7 +9,7 @@ const c = struct {
 };
 
 fn assertValidKey(key: [*:0]const u8) void {
-    if (builtin.mode == .Debug or builtin.mode == .ReleaseSafe) {
+    if (builtin.mode.runtimeSafety()) {
         var ptr = key;
         if (ptr[0] == 0) {
             std.debug.panic("Zero-length environment variable key: {s}", .{key});
@@ -31,7 +31,7 @@ pub fn setenv(key: [*:0]const u8, value: [*:0]const u8, overwrite: bool) !void {
         .SUCCESS => {},
         .INVAL => unreachable, // key has been validated
         .NOMEM => return error.OutOfMemory,
-        else => |err| crash.crash(@src(), "unexpected errno: {d}\n", .{@intFromEnum(err)}),
+        else => |err| crash.crash(@src(), "unexpected errno: {d}\n", .{@backingInt(err)}),
     }
 }
 
@@ -44,6 +44,6 @@ pub fn unsetenv(key: [*:0]const u8) !void {
         .INVAL => unreachable, // key has been validated
         // unclear if this is a valid error from unsetenv. Doesn't make sense to be.
         .NOMEM => return error.OutOfMemory,
-        else => |err| crash.crash(@src(), "unexpected errno: {d}\n", .{@intFromEnum(err)}),
+        else => |err| crash.crash(@src(), "unexpected errno: {d}\n", .{@backingInt(err)}),
     }
 }

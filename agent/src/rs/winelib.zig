@@ -13,7 +13,7 @@ const proto = @import("proto.zig");
 const rs = @import("../rs.zig");
 
 comptime {
-    switch (builtin.cpu.arch) {
+    switch (builtin.target.cpu.arch) {
         .x86_64 => {},
         else => @compileError("winelib is only supported on x86_64"),
     }
@@ -52,7 +52,7 @@ pub fn manderrow_agent_send_log(
 }
 
 comptime {
-    if (builtin.os.tag != .windows) {
+    if (builtin.target.os.tag != .windows) {
         @compileError("winelib IPC implementation is only supported on Windows");
     }
 }
