@@ -7,7 +7,6 @@
 #![feature(panic_backtrace_config)]
 #![feature(type_alias_impl_trait)]
 #![feature(type_changing_struct_update)]
-#![feature(vec_push_within_capacity)]
 
 mod app;
 mod error;

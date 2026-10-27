@@ -55,20 +55,23 @@ pub mod qobject {
 }
 
 use core::pin::Pin;
+use std::collections::HashMap;
 use std::sync::Arc;
 
+use anyhow::Context as _;
 use cxx::UniquePtr;
 use cxx_qt::{CxxQtType, Threading};
-use cxx_qt_lib::{QString, QStringList, QVariant};
+use cxx_qt_lib::QString;
 use uuid::Uuid;
 
 use super::call::{self, Call};
 use super::child::Child;
+use super::mods::ModKey;
 use super::outbox::Outbox;
 use super::profiles::{refreshing, Profiles};
 use super::QObjectList;
 use crate::importing::{self, Modpack};
-use crate::{tasks, Reqwest};
+use crate::Reqwest;
 
 pub struct ModpackModRust {
     owner: QString,
@@ -92,23 +95,38 @@ impl Default for ModpackModRust {
 pub struct ModpackRust {
     name: QString,
     mods: QObjectList,
-    files: QStringList,
+    files: cxx_qt_lib::QStringList,
     thunderstore_id: Uuid,
     game: String,
-    mod_objects: Vec<Child<qobject::ModpackMod>>,
+    mod_objects: HashMap<ModKey, Child<qobject::ModpackMod>>,
     profiles: Option<Arc<Outbox<Profiles>>>,
 }
 
-/// Makes a `Modpack` to give QML, of one shared as a Thunderstore profile code, for a game.
-pub fn new_modpack(
-    modpack: Modpack,
-    thunderstore_id: Uuid,
-    game: String,
-    profiles: Arc<Outbox<Profiles>>,
-) -> UniquePtr<qobject::Modpack> {
+/// A modpack shared as a Thunderstore profile code, looked up to import into a game's profiles,
+/// which a call returns as a `Modpack`.
+pub struct ModpackPreview {
+    pub modpack: Modpack,
+    pub thunderstore_id: Uuid,
+    pub game: String,
+    pub profiles: Arc<Outbox<Profiles>>,
+}
+
+impl call::Output for ModpackPreview {
+    fn return_from(self, call: Pin<&mut Call>) {
+        call.return_object(Some(new_modpack(self)));
+    }
+}
+
+fn new_modpack(preview: ModpackPreview) -> UniquePtr<qobject::Modpack> {
+    let ModpackPreview {
+        modpack,
+        thunderstore_id,
+        game,
+        profiles,
+    } = preview;
     let mut object = qobject::new_modpack_object();
     let mut mods = QObjectList::default();
-    let mut mod_objects = Vec::with_capacity(modpack.mods.len());
+    let mut mod_objects = HashMap::with_capacity(modpack.mods.len());
     for m in modpack.mods {
         let mut mod_object = qobject::new_modpack_mod_object();
         {
@@ -118,8 +136,12 @@ pub fn new_modpack(
             rust.version = QString::from(&m.version);
         }
         let child = Child::adopt(object.pin_mut(), mod_object);
-        mods.0.append(child.as_qobject());
-        mod_objects.push(child);
+        mods.push(child.as_qobject());
+        let key = ModKey {
+            owner: m.owner,
+            name: m.name,
+        };
+        mod_objects.insert(key, child);
     }
     let mut rust = object.pin_mut().rust_mut();
     rust.name = QString::from(&modpack.name);
@@ -134,22 +156,24 @@ pub fn new_modpack(
 
 impl qobject::Modpack {
     fn import_into(&self, profile_id: &QString) -> *mut Call {
-        let profile_id = profile_id.to_string();
+        let profile_id = match profile_id.to_string().as_str() {
+            "" => Ok(None),
+            id => Uuid::try_parse(id)
+                .map(Some)
+                .with_context(|| format!("Invalid profile id {id:?}")),
+        };
         let (thunderstore_id, game) = (self.thunderstore_id, self.game.clone());
         let profiles = self.profiles.clone().expect("a modpack has the profiles");
         let thread = self.qt_thread();
-        let task = tasks::allocate_task();
-        call::start(
-            Some(task),
+        call::spawn_with_task(move |task| {
             refreshing(profiles, async move {
-                let profile_id = match profile_id.as_str() {
-                    "" => None,
-                    id => Some(Uuid::try_parse(id).map_err(anyhow::Error::from)?),
-                };
-                let on_mod_task = move |owner: &str, name: &str, task: tasks::Id| {
-                    let (owner, name) = (owner.to_owned(), name.to_owned());
+                let on_mod_task = move |owner: &str, name: &str, task| {
+                    let key = ModKey {
+                        owner: owner.to_owned(),
+                        name: name.to_owned(),
+                    };
                     // fails only if QML has dropped the modpack, when there's no one to tell
-                    _ = thread.queue(move |modpack| modpack.set_task(&owner, &name, task));
+                    _ = thread.queue(move |modpack| modpack.set_task(&key, task));
                 };
                 let app = super::app();
                 importing::import_thunderstore_modpack(
@@ -157,24 +181,20 @@ impl qobject::Modpack {
                     &app.state::<Reqwest>(),
                     thunderstore_id,
                     &game,
-                    profile_id,
+                    profile_id?,
                     &on_mod_task,
                     task,
                 )
                 .await
-            }),
-            |call, id| call.return_value(QVariant::from(&QString::from(&id.to_string()))),
-        )
+            })
+        })
     }
 
-    fn set_task(self: Pin<&mut Self>, owner: &str, name: &str, task: tasks::Id) {
-        let rust = self.rust_mut().get_mut();
-        for m in &mut rust.mod_objects {
-            if m.get().owner.to_string() == owner && m.get().name.to_string() == name {
-                let mut m = m.get_mut();
-                m.as_mut().rust_mut().task_id = task.to_qml();
-                m.task_id_changed();
-            }
+    fn set_task(self: Pin<&mut Self>, key: &ModKey, task: crate::tasks::Id) {
+        if let Some(m) = self.rust_mut().get_mut().mod_objects.get_mut(key) {
+            let mut m = m.get_mut();
+            m.as_mut().rust_mut().task_id = task.to_qml();
+            m.task_id_changed();
         }
     }
 }

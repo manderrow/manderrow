@@ -135,13 +135,8 @@ impl qobject::Games {
     }
 
     fn search(&self, query: &QString, sort: qobject::SortColumn) -> QObjectList {
-        let column = match sort {
-            qobject::SortColumn::ModDownloads => SortColumn::ModDownloads,
-            qobject::SortColumn::Popularity => SortColumn::Popularity,
-            qobject::SortColumn::Name => SortColumn::Name,
-            // QML can pass any number
-            _ => SortColumn::ModDownloads,
-        };
+        // QML can pass any number
+        let column = SortColumn::try_from(sort).unwrap_or(SortColumn::ModDownloads);
         let sort = [
             SortOption {
                 column: SortColumn::Relevance,
@@ -163,5 +158,18 @@ impl qobject::Games {
                 QObjectList::default()
             }
         }
+    }
+}
+
+impl TryFrom<qobject::SortColumn> for SortColumn {
+    type Error = ();
+
+    fn try_from(column: qobject::SortColumn) -> Result<Self, ()> {
+        Ok(match column {
+            qobject::SortColumn::ModDownloads => Self::ModDownloads,
+            qobject::SortColumn::Popularity => Self::Popularity,
+            qobject::SortColumn::Name => Self::Name,
+            _ => return Err(()),
+        })
     }
 }

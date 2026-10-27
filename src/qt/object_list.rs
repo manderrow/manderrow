@@ -18,6 +18,12 @@ unsafe impl cxx::ExternType for QObjectList {
     type Kind = cxx::kind::Trivial;
 }
 
+impl QObjectList {
+    pub fn push(&mut self, object: QObjectMutPtr) {
+        self.0.append(object);
+    }
+}
+
 impl FromIterator<QObjectMutPtr> for QObjectList {
     fn from_iter<I: IntoIterator<Item = QObjectMutPtr>>(iter: I) -> Self {
         Self(iter.into_iter().collect())

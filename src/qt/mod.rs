@@ -4,6 +4,7 @@ mod app;
 mod call;
 mod child;
 mod console;
+mod error;
 mod games;
 mod markdown;
 mod mod_index;

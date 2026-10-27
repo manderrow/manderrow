@@ -351,12 +351,7 @@ ApplicationWindow {
         sourceComponent: ErrorDialog {
             visible: true
             err: appWindow.startupError
-            reset: () => {
-                const error = App.relaunch();
-                if (error !== "")
-                    throw new Error(error);
-                Qt.quit();
-            }
+            reset: () => Async.promise(App.relaunch()).then(() => Qt.quit())
         }
     }
 

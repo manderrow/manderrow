@@ -85,7 +85,7 @@ pub async fn fetch_mod_index(
                 let progress_updater = async {
                     if let Some(app) = app {
                         loop {
-                            _ = handle.send_progress(app, &mod_index.progress);
+                            handle.send_progress(app, &mod_index.progress);
 
                             mod_index.progress.updates().notified().await;
                         }
@@ -272,8 +272,7 @@ pub async fn fetch_mod_index(
     }
 }
 
-#[derive(Clone, Copy, PartialEq, Eq, serde::Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Clone, Copy, PartialEq, Eq)]
 #[repr(u8)]
 pub enum SortColumn {
     Relevance,

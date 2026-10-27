@@ -676,7 +676,7 @@ pub async fn fetch_resource_uncached<'a>(
                     bytes.extend_from_slice(&chunk);
                     if let Some(app) = app {
                         total += chunk.len();
-                        handle.send_progress_manually(app, total.as_u64(), len.as_u64())?;
+                        handle.send_progress_manually(app, total.as_u64(), len.as_u64());
                     }
                 }
                 bytes
@@ -686,7 +686,7 @@ pub async fn fetch_resource_uncached<'a>(
                 while let Some(chunk) = resp.chunk().await? {
                     if let Some(app) = app {
                         total += chunk.len();
-                        handle.send_progress_manually(app, total.as_u64(), 0)?;
+                        handle.send_progress_manually(app, total.as_u64(), 0);
                     }
                     buf.push(chunk);
                 }
@@ -754,13 +754,13 @@ pub async fn fetch_resource_cached_by_hash_at_path(
                 let mut written = 0u64;
                 let len = resp.content_length();
                 if let (Some(app), Some(total)) = (app, len) {
-                    handle.send_progress_manually(app, written, total)?;
+                    handle.send_progress_manually(app, written, total);
                 }
                 while let Some(chunk) = resp.chunk().await? {
                     wtr.write_all(&chunk).await?;
                     if let Some(app) = app {
                         written += chunk.len().as_u64();
-                        handle.send_progress_manually(app, written, len.unwrap_or(0))?;
+                        handle.send_progress_manually(app, written, len.unwrap_or(0));
                     }
                 }
                 let hash_on_disk = {
@@ -802,7 +802,7 @@ fn report_progress_from_file_metadata(
         metadata.size()
     };
     if let Some(app) = app {
-        handle.send_progress_manually(app, size, size)?;
+        handle.send_progress_manually(app, size, size);
     }
     Ok(())
 }
@@ -858,13 +858,13 @@ pub async fn fetch_resource_cached_by_url(
                     let mut wtr = tmp_file;
                     let mut written = 0u64;
                     if let (Some(app), Some(total)) = (app, len) {
-                        handle.send_progress_manually(app, written, total)?;
+                        handle.send_progress_manually(app, written, total);
                     }
                     while let Some(chunk) = resp.chunk().await? {
                         wtr.write_all(&chunk).await?;
                         if let Some(app) = app {
                             written += chunk.len().as_u64();
-                            handle.send_progress_manually(app, written, len.unwrap_or(0))?;
+                            handle.send_progress_manually(app, written, len.unwrap_or(0));
                         }
                     }
 

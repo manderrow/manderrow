@@ -46,17 +46,19 @@ pub async fn preview_thunderstore_modpack(
         thunderstore::lookup_profile(Some(app), &log, reqwest, thunderstore_id, Some(task_id))
             .await?;
 
-    let mut mods = Vec::with_capacity(profile.manifest.mods.len());
-
-    for m in profile.manifest.mods {
-        let (owner, name) = m.full_name.components();
-        mods.push_within_capacity(ModpackMod {
-            owner: owner.to_owned(),
-            name: name.to_owned(),
-            version: m.version.to_string(),
+    let mods = profile
+        .manifest
+        .mods
+        .iter()
+        .map(|m| {
+            let (owner, name) = m.full_name.components();
+            ModpackMod {
+                owner: owner.to_owned(),
+                name: name.to_owned(),
+                version: m.version.to_string(),
+            }
         })
-        .unwrap();
-    }
+        .collect();
 
     let mut files = Vec::with_capacity(profile.archive.len());
 
@@ -75,7 +77,7 @@ pub async fn preview_thunderstore_modpack(
             .into_string()
             .map_err(|s| anyhow!("Path must be valid Unicode: {s:?}"))?;
 
-        files.push_within_capacity(path).unwrap();
+        files.push(path);
     }
 
     Ok(Modpack {
@@ -117,21 +119,18 @@ pub async fn import_thunderstore_modpack(
             &app.state(),
             game,
             false,
-            Some(handle.allocate_dependency(app)?),
+            Some(handle.allocate_dependency(app)),
         )
         .await?;
 
-        _ = profile_id;
-        let profile = {
-            thunderstore::lookup_profile(
-                Some(app),
-                &log,
-                reqwest,
-                thunderstore_id,
-                Some(handle.allocate_dependency(app)?),
-            )
-            .await?
-        };
+        let profile = thunderstore::lookup_profile(
+            Some(app),
+            &log,
+            reqwest,
+            thunderstore_id,
+            Some(handle.allocate_dependency(app)),
+        )
+        .await?;
 
         let (profile_id, is_new_profile) = match profile_id {
             Some(profile_id) => (profile_id, false),
@@ -212,7 +211,7 @@ async fn import_onto_profile(
                     );
                 };
 
-                let sub_task_id = handle.allocate_dependency(app)?;
+                let sub_task_id = handle.allocate_dependency(app);
                 on_mod_task(&m.owner, &m.name, sub_task_id);
                 crate::profiles::install_profile_mod(
                     app,
@@ -242,43 +241,39 @@ async fn import_onto_profile(
                     let mut target_path = profile_path.clone();
                     async move {
                         tokio::task::spawn_local(async move {
-                            loop {
-                                let file = archive
-                                    .by_index(i)
-                                    .context("Failed to open file in archive")?;
+                            let file = archive
+                                .by_index(i)
+                                .context("Failed to open file in archive")?;
 
-                                if file.is_dir() {
-                                    break;
-                                }
+                            if file.is_dir() {
+                                return Ok(());
+                            }
 
-                                if file.is_symlink() {
-                                    bail!("Symlinks are not supported");
-                                }
+                            if file.is_symlink() {
+                                bail!("Symlinks are not supported");
+                            }
 
-                                let Some(path) = thunderstore::get_archive_file_path(&file)? else {
-                                    break;
-                                };
+                            let Some(path) = thunderstore::get_archive_file_path(&file)? else {
+                                return Ok(());
+                            };
 
-                                target_path.push(path);
+                            target_path.push(path);
 
-                                tokio::fs::create_dir_all(target_path.parent().unwrap())
-                                    .await
-                                    .context("Unable to create target file parents")?;
-                                let mut target_file = tokio::fs::File::create(&target_path)
-                                    .await
-                                    .with_context(|| {
+                            tokio::fs::create_dir_all(target_path.parent().unwrap())
+                                .await
+                                .context("Unable to create target file parents")?;
+                            let mut target_file = tokio::fs::File::create(&target_path)
+                                .await
+                                .with_context(|| {
                                     format!("Unable to create target file {:?}", target_path)
                                 })?;
 
-                                tokio::io::copy(
-                                    &mut futures_util::io::AllowStdIo::new(file).compat(),
-                                    &mut target_file,
-                                )
-                                .await
-                                .context("Unable to write target file")?;
-
-                                break;
-                            }
+                            tokio::io::copy(
+                                &mut futures_util::io::AllowStdIo::new(file).compat(),
+                                &mut target_file,
+                            )
+                            .await
+                            .context("Unable to write target file")?;
 
                             Ok::<_, anyhow::Error>(())
                         })

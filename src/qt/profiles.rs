@@ -117,27 +117,25 @@ use std::collections::HashMap;
 use std::future::Future;
 use std::sync::Arc;
 
+use anyhow::Context as _;
 use cxx_qt::{CxxQtType, Threading};
-use cxx_qt_lib::{QString, QVariant};
+use cxx_qt_lib::{QString, QStringList};
+use indexmap::IndexMap;
 use smol_str::SmolStr;
 use uuid::Uuid;
-
-use packed_semver::Version;
 
 pub use qobject::Profiles;
 
 use super::call::{self, Call};
 use super::child::Child;
-use super::modpacks;
-use super::mods::{self, Mod, ModInfo};
+use super::error::QmlError;
+use super::modpacks::ModpackPreview;
+use super::mods::{self, Mod, ModInfo, ModKey};
 use super::outbox::Outbox;
 use super::QObjectList;
 use crate::profiles::{self, ModManifest, ProfileWithId};
 use crate::{importing, mod_index};
-use crate::{tasks, CommandError, Reqwest};
-
-/// A mod's owner and name.
-type ModKey = (String, String);
+use crate::{CommandError, Reqwest};
 
 #[derive(Default)]
 pub struct ProfileRust {
@@ -150,10 +148,9 @@ pub struct ProfileRust {
     mods_loaded: bool,
     uuid: Uuid,
     metadata: Option<profiles::Profile>,
-    profiles: Option<Arc<Outbox<qobject::Profiles>>>,
-    installed: HashMap<ModKey, Child<Mod>>,
+    profiles: Option<Arc<Outbox<Profiles>>>,
     /// The installed mods, in the order they were read.
-    installed_order: Vec<ModKey>,
+    installed: IndexMap<ModKey, Child<Mod>>,
     /// The mods that have been uninstalled, which are kept, as QML may still be showing them, and
     /// reused if they're installed again.
     uninstalled: HashMap<ModKey, Child<Mod>>,
@@ -163,16 +160,16 @@ pub struct ProfileRust {
 pub struct ProfilesRust {
     all: QObjectList,
     loaded: bool,
-    error_messages: cxx_qt_lib::QStringList,
+    error_messages: QStringList,
     backtrace: QString,
     profiles: HashMap<Uuid, Child<qobject::Profile>>,
     /// The profiles that have been deleted, which are kept, as QML may still be showing them.
     /// QML lists them in arrays, which can't tell it they're gone before they are. There are few.
     removed: Vec<Child<qobject::Profile>>,
-    outbox: Option<Arc<Outbox<qobject::Profiles>>>,
+    outbox: Option<Arc<Outbox<Profiles>>>,
 }
 
-impl cxx_qt::Initialize for qobject::Profiles {
+impl cxx_qt::Initialize for Profiles {
     fn initialize(mut self: Pin<&mut Self>) {
         let outbox = Outbox::new(self.qt_thread());
         self.as_mut().rust_mut().outbox = Some(outbox.clone());
@@ -182,14 +179,14 @@ impl cxx_qt::Initialize for qobject::Profiles {
                 match result {
                     Ok(list) => this.as_mut().apply(list),
                     Err(e) => {
-                        if let CommandError::Error {
+                        if let Some(QmlError {
                             messages,
                             backtrace,
-                        } = CommandError::from(e)
+                        }) = QmlError::of(&CommandError::from(e))
                         {
                             let mut rust = this.as_mut().rust_mut();
-                            rust.error_messages = messages.iter().map(QString::from).collect();
-                            rust.backtrace = QString::from(&backtrace);
+                            rust.error_messages = messages;
+                            rust.backtrace = backtrace;
                         }
                     }
                 }
@@ -200,7 +197,7 @@ impl cxx_qt::Initialize for qobject::Profiles {
     }
 }
 
-impl qobject::Profiles {
+impl Profiles {
     fn by_id(&self, id: &QString) -> *mut qobject::Profile {
         Uuid::try_parse(&id.to_string())
             .ok()
@@ -209,44 +206,39 @@ impl qobject::Profiles {
     }
 
     fn create(&self, game: &QString, name: &QString) -> *mut Call {
-        let (game, name) = (
-            SmolStr::from(game.to_string()),
-            SmolStr::from(name.to_string()),
-        );
-        call::start(
-            None,
-            refreshing(self.outbox(), profiles::create_profile(game, name)),
-            |call, id| call.return_value(QVariant::from(&QString::from(&id.to_string()))),
-        )
+        let game = SmolStr::from(game.to_string());
+        let name = SmolStr::from(name.to_string());
+        call::spawn(refreshing(
+            self.outbox(),
+            profiles::create_profile(game, name),
+        ))
     }
 
     fn refresh(&self) -> *mut Call {
-        call::start(
-            None,
-            refreshing(self.outbox(), async { anyhow::Ok(()) }),
-            |_, ()| {},
-        )
+        call::spawn(refreshing(self.outbox(), async { anyhow::Ok(()) }))
     }
 
     fn preview_modpack(&self, code: &QString, game: &QString) -> *mut Call {
         let (code, game) = (code.to_string(), game.to_string());
         let profiles = self.outbox();
-        let task = tasks::allocate_task();
-        call::start(
-            Some(task),
-            async move {
-                let id = Uuid::try_parse(code.trim())
-                    .map_err(|e| anyhow::anyhow!("Invalid profile code {code:?}: {e}"))?;
-                let app = super::app();
-                let modpack =
-                    importing::preview_thunderstore_modpack(app, &app.state::<Reqwest>(), id, task)
-                        .await?;
-                Ok((modpack, id))
-            },
-            move |call, (modpack, id)| {
-                call.return_object(Some(modpacks::new_modpack(modpack, id, game, profiles)))
-            },
-        )
+        call::spawn_with_task(move |task| async move {
+            let thunderstore_id = Uuid::try_parse(code.trim())
+                .with_context(|| format!("Invalid profile code {code:?}"))?;
+            let app = super::app();
+            let modpack = importing::preview_thunderstore_modpack(
+                app,
+                &app.state::<Reqwest>(),
+                thunderstore_id,
+                task,
+            )
+            .await?;
+            Ok::<_, CommandError>(ModpackPreview {
+                modpack,
+                thunderstore_id,
+                game,
+                profiles,
+            })
+        })
     }
 
     fn outbox(&self) -> Arc<Outbox<Self>> {
@@ -292,7 +284,7 @@ impl qobject::Profiles {
 
         let mut sorted = profiles.values().collect::<Vec<_>>();
         sorted.sort_by_cached_key(|profile| {
-            let name = profile.get().name.to_string();
+            let name = profile.name.to_string();
             (name.to_lowercase(), name)
         });
         let all = sorted.into_iter().map(Child::as_qobject).collect();
@@ -332,131 +324,107 @@ impl qobject::Profile {
         let id = self.uuid;
         let mut metadata = self.metadata.clone().expect("a profile has its metadata");
         change(&mut metadata);
-        call::start(
-            None,
-            refreshing(self.outbox(), async move {
-                anyhow::Ok(profiles::write_profile(id, &metadata).await?)
-            }),
-            |_, ()| {},
-        )
+        call::spawn(refreshing(self.outbox(), async move {
+            profiles::write_profile(id, &metadata)
+                .await
+                .context("Unable to write the profile")
+        }))
     }
 
     fn remove(&self) -> *mut Call {
-        call::start(
-            None,
-            refreshing(self.outbox(), profiles::delete_profile(self.uuid)),
-            |_, ()| {},
-        )
+        call::spawn(refreshing(
+            self.outbox(),
+            profiles::delete_profile(self.uuid),
+        ))
     }
 
-    fn outbox(&self) -> Arc<Outbox<qobject::Profiles>> {
+    fn outbox(&self) -> Arc<Outbox<Profiles>> {
         self.profiles.clone().expect("a profile has its singleton")
     }
 
     fn refresh_mods(&self) -> *mut Call {
-        call::start(
-            None,
-            refreshing_mods(self.outbox(), self.uuid, async { Ok(()) }),
-            |_, ()| {},
-        )
+        call::spawn(refreshing_mods(self.outbox(), self.uuid, async {
+            anyhow::Ok(())
+        }))
     }
 
     fn installed_mod(&self, owner: &QString, name: &QString) -> *mut Mod {
         self.installed
-            .get(&(owner.to_string(), name.to_string()))
+            .get(&ModKey::of(owner, name))
             .map_or(std::ptr::null_mut(), Child::as_ptr)
     }
 
     fn install_mod(&self, owner: &QString, name: &QString, version: &QString) -> *mut Call {
-        let (id, owner, name, version) = (
+        let (id, key, version) = (
             self.uuid,
-            owner.to_string(),
-            name.to_string(),
-            version.to_string(),
+            ModKey::of(owner, name),
+            mods::parse_version(version),
         );
-        let task = tasks::allocate_task();
-        call::start(
-            Some(task),
-            refreshing_mods(self.outbox(), id, async move {
-                let version = Version::from_str(&version)
-                    .map_err(|e| anyhow::anyhow!("Invalid version {version:?}: {e}"))?;
+        let profiles = self.outbox();
+        call::spawn_with_task(move |task| {
+            refreshing_mods(profiles, id, async move {
                 let app = super::app();
                 profiles::install_profile_mod(
                     app,
                     &app.state::<Reqwest>(),
                     id,
-                    &owner,
-                    &name,
-                    version,
+                    &key.owner,
+                    &key.name,
+                    version?,
                     task,
                 )
                 .await
-            }),
-            |_, ()| {},
-        )
+            })
+        })
     }
 
     fn uninstall_mod(&self, owner: &QString, name: &QString) -> *mut Call {
-        let (id, owner, name) = (self.uuid, owner.to_string(), name.to_string());
-        call::start(
-            None,
-            refreshing_mods(self.outbox(), id, async move {
-                profiles::uninstall_profile_mod(id, &owner, &name).await
-            }),
-            |_, ()| {},
-        )
+        let (id, key) = (self.uuid, ModKey::of(owner, name));
+        call::spawn(refreshing_mods(self.outbox(), id, async move {
+            profiles::uninstall_profile_mod(id, &key.owner, &key.name).await
+        }))
     }
 
     fn find_updates(&self) -> *mut Call {
         let game = self.game.to_string();
         let installed = self
-            .installed_order
+            .installed
             .iter()
-            .filter_map(|key| {
-                let m = self.installed.get(key)?.get();
-                let (owner, name) = m.id();
-                Some((owner, name, m.installed_version()?))
-            })
+            .filter_map(|(key, m)| Some((key.clone(), m.installed_version()?)))
             .collect::<Vec<_>>();
-        call::start(
-            None,
-            async move {
-                let index = mod_index::read_mod_index(&game).await?;
-                let ids = installed
-                    .iter()
-                    .map(|(owner, name, _)| manderrow_types::mods::ModId {
-                        owner: manderrow_types::util::rkyv::InternedString(owner),
-                        name: manderrow_types::util::rkyv::InternedString(name),
-                    })
-                    .collect::<Vec<_>>();
-                let found = mod_index::get_from_mod_index(&index, &ids).await?;
-                let updates = found
-                    .into_iter()
-                    .zip(&installed)
-                    .filter_map(|(m, (_, _, version))| {
-                        let m = m?;
-                        let latest = m.versions.first()?;
-                        (latest.version_number.get() != *version).then(|| ModInfo::summary(m))
-                    })
-                    .collect::<Vec<_>>();
-                Ok(updates)
-            },
-            |call, updates| call.return_objects(updates.into_iter().map(mods::new_mod)),
-        )
+        call::spawn(async move {
+            let index = mod_index::read_mod_index(&game).await?;
+            let ids = installed
+                .iter()
+                .map(|(key, _)| key.id())
+                .collect::<Vec<_>>();
+            let found = mod_index::get_from_mod_index(&index, &ids).await?;
+            let updates = found
+                .into_iter()
+                .zip(&installed)
+                .filter_map(|(m, (_, installed))| {
+                    let m = m?;
+                    let latest = m.versions.first()?;
+                    (latest.version_number.get() != *installed).then(|| ModInfo::summary(m))
+                })
+                .collect::<Vec<_>>();
+            anyhow::Ok(updates)
+        })
     }
 
     /// Updates the installed mods to those read, keeping the objects of those that are still
     /// installed, in the order they were read.
     fn apply_mods(mut self: Pin<&mut Self>, manifests: Vec<ModManifest>) {
         let mut previous = std::mem::take(&mut self.as_mut().rust_mut().installed);
-        let mut installed = HashMap::with_capacity(manifests.len());
-        let mut order = Vec::with_capacity(manifests.len());
-        let mut list = QObjectList::default();
+        let mut installed = IndexMap::with_capacity(manifests.len());
         for manifest in manifests {
-            let key = (manifest.owner.clone(), manifest.name.clone());
+            let key = ModKey {
+                owner: manifest.owner.clone(),
+                name: manifest.name.clone(),
+            };
             let info = ModInfo::installed(manifest);
             let existing = previous
-                .remove(&key)
+                .swap_remove(&key)
                 .or_else(|| self.as_mut().rust_mut().uninstalled.remove(&key));
             let child = match existing {
                 Some(mut child) => {
@@ -465,15 +433,12 @@ impl qobject::Profile {
                 }
                 None => Child::adopt(self.as_mut(), mods::new_mod(info)),
             };
-            list.0.append(child.as_qobject());
-            order.push(key.clone());
             installed.insert(key, child);
         }
         let mut rust = self.as_mut().rust_mut();
         rust.uninstalled.extend(previous);
+        rust.mods = installed.values().map(Child::as_qobject).collect();
         rust.installed = installed;
-        rust.installed_order = order;
-        rust.mods = list;
         rust.mods_loaded = true;
         self.mods_changed();
     }
@@ -481,11 +446,14 @@ impl qobject::Profile {
 
 /// Runs a change to a profile's mods, then reads them again, which updates the profile before the
 /// change's call returns.
-async fn refreshing_mods<T: Send + 'static>(
-    profiles: Arc<Outbox<qobject::Profiles>>,
+async fn refreshing_mods<T, E>(
+    profiles: Arc<Outbox<Profiles>>,
     id: Uuid,
-    change: impl Future<Output = anyhow::Result<T>> + Send,
-) -> Result<T, CommandError> {
+    change: impl Future<Output = Result<T, E>>,
+) -> Result<T, CommandError>
+where
+    E: Into<CommandError>,
+{
     let result = change.await;
     match profiles::get_profile_mods(id).await {
         Ok(manifests) => profiles.send(move |this| {
@@ -496,23 +464,23 @@ async fn refreshing_mods<T: Send + 'static>(
         Err(e) if result.is_ok() => return Err(e.into()),
         Err(e) => slog_scope::error!("Unable to read the mods of profile {id}: {e:#}"),
     }
-    Ok(result?)
+    result.map_err(Into::into)
 }
 
 /// Runs a change to the profiles, then reads them again, which updates the singleton before the
 /// change's call returns. They're read again even if the change failed, since it may have made
 /// some of it.
-pub(super) async fn refreshing<T: Send + 'static, E>(
+pub(super) async fn refreshing<T, E>(
     profiles: Arc<Outbox<Profiles>>,
-    change: impl Future<Output = Result<T, E>> + Send,
+    change: impl Future<Output = Result<T, E>>,
 ) -> Result<T, CommandError>
 where
-    CommandError: From<E>,
+    E: Into<CommandError>,
 {
     let result = change.await;
     match profiles::get_profiles().await {
         Ok(list) => profiles.send(move |this| this.apply(list)),
         Err(e) => slog_scope::error!("Unable to read the profiles: {e:#}"),
     }
-    Ok(result?)
+    result.map_err(Into::into)
 }

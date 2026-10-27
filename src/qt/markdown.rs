@@ -206,23 +206,22 @@ fn new_blocks<P: Upcast<QObject>>(mut parent: Pin<&mut P>, blocks: Vec<Block>) -
 
 fn new_block(block: Block) -> UniquePtr<qobject::MarkdownBlock> {
     let mut object = qobject::new_markdown_block();
-    let html = |html: String| QString::from(&html);
     match block {
         Block::Heading {
             level,
-            html: text,
+            html,
             anchor,
         } => {
             let mut rust = object.pin_mut().rust_mut();
             rust.kind = MarkdownBlockKind::Heading;
             rust.level = i32::from(level);
-            rust.html = html(text);
+            rust.html = QString::from(&html);
             rust.anchor = QString::from(&anchor);
         }
-        Block::Paragraph { html: text } => {
+        Block::Paragraph { html } => {
             let mut rust = object.pin_mut().rust_mut();
             rust.kind = MarkdownBlockKind::Paragraph;
-            rust.html = html(text);
+            rust.html = QString::from(&html);
         }
         Block::Image {
             src,
@@ -308,10 +307,10 @@ fn new_block(block: Block) -> UniquePtr<qobject::MarkdownBlock> {
             rust.rows = rows;
         }
         Block::Rule => object.pin_mut().rust_mut().kind = MarkdownBlockKind::Rule,
-        Block::Html { html: text } => {
+        Block::Html { html } => {
             let mut rust = object.pin_mut().rust_mut();
             rust.kind = MarkdownBlockKind::Html;
-            rust.html = html(text);
+            rust.html = QString::from(&html);
         }
     }
     object

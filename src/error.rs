@@ -1,4 +1,4 @@
-#[derive(Debug, Clone, serde::Serialize)]
+#[derive(Debug, Clone)]
 pub enum CommandError {
     Aborted,
     Error {
