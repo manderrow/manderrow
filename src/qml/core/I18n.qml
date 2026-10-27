@@ -11,12 +11,12 @@ QtObject {
     readonly property var rawLocales: ["en-CA", "en-US", "es", "fr-FR"]
     readonly property string defaultLocale: rawLocales[0]
 
-    readonly property var localeNames: JSON.parse(Backend.localeDictionary("localeNames"))
+    readonly property var localeNames: JSON.parse(App.localeDictionary("localeNames"))
 
     property string locale: defaultLocale
 
-    readonly property var _defaultDict: _flatten(JSON.parse(Backend.localeDictionary(defaultLocale)))
-    readonly property var dict: Object.assign({}, _defaultDict, _flatten(JSON.parse(Backend.localeDictionary(locale) || "{}")))
+    readonly property var _defaultDict: _flatten(JSON.parse(App.localeDictionary(defaultLocale)))
+    readonly property var dict: Object.assign({}, _defaultDict, _flatten(JSON.parse(App.localeDictionary(locale) || "{}")))
 
     function _flatten(obj, prefix, out) {
         out = out || {};

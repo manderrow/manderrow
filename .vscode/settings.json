@@ -14,5 +14,19 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode",
     "editor.tabSize": 2,
     "editor.insertSpaces": true
-  }
+  },
+  "[qml]": {
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true
+  },
+
+  // RUSTUP_TOOLCHAIN overrides rust-toolchain.toml, and a global toolchain from mise or the like
+  // sets it in VS Code's environment, so that rust-analyzer would build the proc macros with
+  // another rustc than the one whose proc macro server loads them
+  "rust-analyzer.server.extraEnv": { "RUSTUP_TOOLCHAIN": null },
+
+  // set "qt-qml.qmlls.customExePath" to your Qt's qmlls in your user settings, as the README says
+  "qt-qml.qmlls.useNoCMakeCalls": true,
+  // qmlls only loads the resource file mapping QML files back to src from its import paths
+  "qt-qml.qmlls.additionalImportPaths": ["${workspaceFolder}/target/cxxqt/qml_modules"]
 }

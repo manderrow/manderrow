@@ -7,6 +7,7 @@ Field {
 
     property string initialValue
     /// Called with the new name. Returns a promise.
+    /// Submits the name. It may return a call or a promise.
     property var submit: function (name) {}
 
     /// The editor is done, whether the name was submitted or not, and can be removed.
@@ -25,7 +26,7 @@ Field {
             return;
         }
         _busy = true;
-        Promise.resolve(submit(text)).then(() => {
+        Async.resolve(submit(text)).then(() => {
             editor._done = true;
             editor.closed();
         }, e => {

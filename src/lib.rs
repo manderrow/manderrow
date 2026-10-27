@@ -10,9 +10,6 @@
 #![feature(vec_push_within_capacity)]
 
 mod app;
-mod app_commands;
-mod bench_commands;
-mod commands;
 mod error;
 mod games;
 mod i18n;

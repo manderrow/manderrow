@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
@@ -41,7 +42,9 @@ Dialog {
     ColumnLayout {
         id: container
         width: parent.width
-        height: parent.height
+        // the dialog's, rather than the body's, which is sized to fit this, so that a stage taller
+        // than the window scrolls itself
+        height: modal.availableHeight
         spacing: 0.75 * Theme.rem
 
         // the step indicators
@@ -103,7 +106,7 @@ Dialog {
             Layout.leftMargin: Theme.rem
             Layout.rightMargin: Theme.rem
             Layout.bottomMargin: Theme.rem
-            Layout.preferredHeight: item ? item.implicitHeight : 0
+            Layout.preferredHeight: item ? (item as Item).implicitHeight : 0
             sourceComponent: modal.currentStage ? modal.currentStage.component : null
             onLoaded: {
                 if ("modal" in item)

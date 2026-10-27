@@ -3,30 +3,6 @@ import QtQuick
 
 // General purpose helpers, ported from utils/utils.ts and views/profile/modlist/common.ts.
 QtObject {
-    /// Runs a generator function as an async function: each `yield`ed promise is awaited and its
-    /// result sent back into the generator. QML's JavaScript engine has no async/await, so this
-    /// stands in for it. Returns a promise of the generator's return value.
-    function co(generator, thisArg) {
-        return new Promise((resolve, reject) => {
-            const it = generator.call(thisArg);
-            function step(method, arg) {
-                let result;
-                try {
-                    result = it[method](arg);
-                } catch (e) {
-                    reject(e);
-                    return;
-                }
-                if (result.done) {
-                    resolve(result.value);
-                } else {
-                    Promise.resolve(result.value).then(v => step("next", v), e => step("throw", e));
-                }
-            }
-            step("next", undefined);
-        });
-    }
-
     /// Like `Intl.NumberFormat()`: groups digits according to the locale.
     function formatNumber(n) {
         return Number(n).toLocaleString(Qt.locale(), "f", 0);
@@ -79,18 +55,6 @@ QtObject {
 
     function escapeHtml(s) {
         return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-    }
-
-    function removeProperty(obj, prop) {
-        const rest = Object.assign({}, obj);
-        delete rest[prop];
-        return rest;
-    }
-
-    function percentage(progress) {
-        if (!progress || !progress.total)
-            return 0;
-        return progress.completed / progress.total * 100;
     }
 
     /// The source for an image on the web, which loads it with the backend's HTTP client, as
@@ -170,19 +134,6 @@ QtObject {
     }
     function getModAuthorUrl(gameId, owner) {
         return `https://thunderstore.io/c/${gameId}/p/${owner}/`;
-    }
-
-    function gameCoverUrl(thunderstoreId) {
-        return `qrc:/assets/img/game_covers/${thunderstoreId}.webp`;
-    }
-    function gameHeroUrl(gameId) {
-        return `qrc:/assets/img/game_heros/${gameId}.webp`;
-    }
-
-    /// The version a mod is displayed with: the installed version of a package, or the latest
-    /// version of a listing.
-    function displayVersion(mod) {
-        return mod.version !== undefined ? mod.version : mod.versions[0];
     }
 
     function modIdEquals(a, b) {

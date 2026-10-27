@@ -1,6 +1,5 @@
 //! Task management and monitoring.
 
-pub mod commands;
 pub mod types;
 
 use std::{
@@ -12,7 +11,7 @@ use std::{
     sync::{atomic::AtomicU64, LazyLock},
 };
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context as _, Result};
 use futures_util::FutureExt;
 use crate::app::AppHandle;
 use tokio::{
@@ -61,17 +60,6 @@ struct OwnedTaskHandleInner<'a> {
     cancelled: oneshot::Receiver<()>,
 }
 
-impl Id {
-    fn emit<T: TaskEventBody>(self, app: &AppHandle, event: T) -> crate::app::Result<()> {
-        app.emit(
-            T::NAME,
-            TaskEvent {
-                id: self,
-                body: event,
-            },
-        )
-    }
-}
 
 impl TaskHandle {
     pub fn send_progress_manually(
@@ -80,33 +68,29 @@ impl TaskHandle {
         completed: u64,
         total: u64,
     ) -> Result<()> {
-        if let Some(handle) = self.0 {
-            handle.emit(
-                app,
-                TaskProgress {
-                    progress: Progress { completed, total },
-                },
-            )?;
+        if let Some(id) = self.0 {
+            app.task_events().emit(Event::Progress {
+                id,
+                progress: Progress { completed, total },
+            });
         }
         Ok(())
     }
 
     pub fn send_progress(&self, app: &AppHandle, progress: &crate::util::Progress) -> Result<()> {
-        if let Some(handle) = self.0 {
+        if let Some(id) = self.0 {
             let (completed, total) = progress.get();
-            handle.emit(
-                app,
-                TaskProgress {
-                    progress: Progress { completed, total },
-                },
-            )?;
+            app.task_events().emit(Event::Progress {
+                id,
+                progress: Progress { completed, total },
+            });
         }
         Ok(())
     }
 
     pub fn send_dependency(&self, app: &AppHandle, dependency: Id) -> Result<()> {
-        if let Some(handle) = self.0 {
-            handle.emit(app, TaskDependency { dependency })?;
+        if let Some(id) = self.0 {
+            app.task_events().emit(Event::Dependency { id, dependency });
         }
         Ok(())
     }
@@ -136,7 +120,10 @@ impl<'a> Deref for OwnedTaskHandleInner<'a> {
 
 impl OwnedTaskHandleInner<'_> {
     fn drop(self, status: DropStatus) -> Result<()> {
-        self.emit(self.app, TaskDropped { status })?;
+        self.app.task_events().emit(Event::Dropped {
+            id: self.id,
+            status,
+        });
         Ok(())
     }
 }
@@ -171,7 +158,7 @@ impl Drop for OwnedTaskHandle<'_> {
     fn drop(&mut self) {
         // SAFETY: inner has not been dropped yet
         let inner = unsafe { ManuallyDrop::take(&mut self.inner) };
-        _ = inner.drop(DropStatus::Cancelled { direct: false });
+        _ = inner.drop(DropStatus::Cancelled);
     }
 }
 
@@ -179,12 +166,23 @@ pub fn allocate_task() -> Id {
     Id(NEXT_TASK_ID.fetch_add(1, std::sync::atomic::Ordering::Relaxed))
 }
 
+/// Asks a task to stop. It does nothing if the task has already stopped, or been asked to.
+pub async fn cancel(id: Id) -> Result<()> {
+    let cancel = {
+        let mut tasks = TASKS.write().await;
+        tasks.get_mut(&id).context("No such task")?.cancel.take()
+    };
+    if let Some(cancel) = cancel {
+        // Failure just means the task has already completed. Ignore it.
+        _ = cancel.send(());
+    }
+    Ok(())
+}
+
 #[derive(Debug, thiserror::Error)]
 pub enum CreateTaskError {
     #[error("task id collision")]
     IdCollision,
-    #[error("emitting TaskCreated event failed: {0}")]
-    EmitEventFailed(crate::app::EmitError),
 }
 
 impl TaskBuilder {
@@ -227,14 +225,10 @@ impl TaskBuilder {
                 entry.insert(TaskData {
                     cancel: Some(cancel),
                 });
-                self.id
-                    .emit(
-                        app,
-                        TaskCreated {
-                            metadata: self.metadata,
-                        },
-                    )
-                    .map_err(CreateTaskError::EmitEventFailed)?;
+                app.task_events().emit(Event::Created {
+                    id: self.id,
+                    metadata: self.metadata,
+                });
                 Ok(OwnedTaskHandle {
                     inner: ManuallyDrop::new(OwnedTaskHandleInner {
                         app,
@@ -297,7 +291,7 @@ where
         } else {
             std::future::pending().await
         } } => {
-            handle.unwrap().drop(DropStatus::Cancelled { direct: true }).map_err(TaskError::Management)?;
+            handle.unwrap().drop(DropStatus::Cancelled).map_err(TaskError::Management)?;
             Err(TaskError::Cancelled)
         }
         r = fut => {

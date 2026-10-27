@@ -1,8 +1,8 @@
 //! The application handle shared by the backend.
 //!
 //! This replaces the subset of Tauri's `AppHandle`, `Emitter`, and `Manager` APIs that the backend
-//! relied on. Events are forwarded to the frontend through an [`EventSink`], which the Qt bridge
-//! installs once the QML engine has created the `Backend` singleton.
+//! relied on. Its events are delivered to the parts of the frontend that show them, which
+//! subscribe to them as the QML engine creates them.
 
 use std::ops::Deref;
 use std::path::PathBuf;
@@ -14,56 +14,77 @@ use crate::ipc::IpcState;
 use crate::settings::SettingsStateInner;
 use crate::Reqwest;
 
-/// Receives every event emitted by the backend, as an event name and a JSON payload.
-pub type EventSink = dyn Fn(&str, String) + Send + Sync;
-
-#[derive(Debug, thiserror::Error)]
-#[error("Failed to serialize event payload: {0}")]
-pub struct EmitError(#[from] serde_json::Error);
-
-pub type Result<T, E = EmitError> = std::result::Result<T, E>;
-
 #[derive(Clone)]
 pub struct AppHandle(Arc<Inner>);
 
 struct Inner {
-    sink: OnceLock<Box<EventSink>>,
     reqwest: Reqwest,
     settings: SettingsStateInner,
     ipc: OnceLock<IpcState>,
+    task_events: Events<crate::tasks::Event>,
+    settings_events: Events<crate::settings::Settings>,
+    ipc_events: Events<crate::ipc::Event>,
+    activation_events: Events<()>,
+}
+
+/// Delivers a kind of event from the backend to the part of the frontend that shows it, which
+/// subscribes to it as it's created. Events emitted before then are dropped, because there is
+/// nothing to show them yet.
+pub struct Events<E>(OnceLock<Box<dyn Fn(E) + Send + Sync>>);
+
+impl<E> Events<E> {
+    fn new() -> Self {
+        Self(OnceLock::new())
+    }
+
+    pub fn subscribe(&self, sink: impl Fn(E) + Send + Sync + 'static) {
+        if self.0.set(Box::new(sink)).is_err() {
+            slog_scope::warn!("Events of type {} already have a subscriber", std::any::type_name::<E>());
+        }
+    }
+
+    pub fn emit(&self, event: E) {
+        if let Some(sink) = self.0.get() {
+            sink(event);
+        }
+    }
 }
 
 impl AppHandle {
     pub fn new(reqwest: Reqwest, settings: SettingsStateInner) -> Self {
         Self(Arc::new(Inner {
-            sink: OnceLock::new(),
             reqwest,
             settings,
             ipc: OnceLock::new(),
+            task_events: Events::new(),
+            settings_events: Events::new(),
+            ipc_events: Events::new(),
+            activation_events: Events::new(),
         }))
     }
 
-    /// Installs the sink that events are delivered to. Events emitted before a sink is installed
-    /// are dropped, because there is no frontend to receive them yet.
-    pub fn set_event_sink(&self, sink: Box<EventSink>) {
-        if self.0.sink.set(sink).is_err() {
-            slog_scope::warn!("Event sink was already installed");
-        }
+    pub fn task_events(&self) -> &Events<crate::tasks::Event> {
+        &self.0.task_events
+    }
+
+    /// The settings, whenever they change.
+    pub fn settings_events(&self) -> &Events<crate::settings::Settings> {
+        &self.0.settings_events
+    }
+
+    pub fn ipc_events(&self) -> &Events<crate::ipc::Event> {
+        &self.0.ipc_events
+    }
+
+    /// Another launch of the app asking this one to come to the front.
+    pub fn activation_events(&self) -> &Events<()> {
+        &self.0.activation_events
     }
 
     pub fn set_ipc_state(&self, ipc: IpcState) {
         if self.0.ipc.set(ipc).is_err() {
             panic!("IpcState was already initialized");
         }
-    }
-
-    pub fn emit<S: serde::Serialize>(&self, event: &str, payload: S) -> Result<()> {
-        let payload = serde_json::to_string(&payload)?;
-        match self.0.sink.get() {
-            Some(sink) => sink(event, payload),
-            None => slog_scope::debug!("Dropped event {event:?}: no event sink installed"),
-        }
-        Ok(())
     }
 
     pub fn state<T: ManagedState>(&self) -> State<'_, T> {
@@ -129,36 +150,14 @@ impl<T> Deref for State<'_, T> {
     }
 }
 
-/// A JSON value that has already been serialized, sent to the frontend as-is.
-pub struct RawJson(pub String);
-
-/// A stream of messages sent to the frontend while a command runs. The frontend allocates the
-/// channel id and receives each message as a `channel` event.
-#[derive(Clone)]
-pub struct Channel {
-    app: AppHandle,
-    id: u32,
-}
-
-impl Channel {
-    pub fn new(app: AppHandle, id: u32) -> Self {
-        Self { app, id }
-    }
-
-    /// Sends a message that has already been serialized to JSON.
-    pub fn send(&self, json: String) -> Result<()> {
-        #[derive(serde::Serialize)]
-        struct Message<'a> {
-            id: u32,
-            payload: &'a serde_json::value::RawValue,
-        }
-        let payload = serde_json::value::RawValue::from_string(json)?;
-        self.app.emit(
-            "channel",
-            Message {
-                id: self.id,
-                payload: &payload,
-            },
-        )
-    }
+/// Starts a new instance of the app that waits for this one to exit. The caller is responsible for
+/// quitting this instance afterwards.
+pub fn relaunch() -> anyhow::Result<()> {
+    let exe = crate::util::launcher_path().context("Failed to locate the executable")?;
+    std::process::Command::new(exe)
+        .arg("--relaunch")
+        .arg(std::process::id().to_string())
+        .spawn()
+        .context("Failed to start a new instance")?;
+    Ok(())
 }

@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import Manderrow
 
@@ -18,10 +19,11 @@ Item {
     readonly property var counts: {
         let downloads = 0;
         let other = 0;
-        for (const task of Tasks.tasksArray) {
-            if (task.isComplete || task.status.status === "Unstarted")
+        for (const object of Tasks.all) {
+            const task = object as Task;
+            if (task.isComplete || task.status === Task.Unstarted)
                 continue;
-            if (task.metadata.kind === "Download")
+            if (task.kind === Task.Download)
                 downloads++;
             else
                 other++;

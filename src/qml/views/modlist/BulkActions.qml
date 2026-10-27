@@ -12,7 +12,7 @@ Item {
 
     /// `[{ owner, name, version }]`
     property var mods: []
-    property var installContext
+    property Profile profile: null
 
     signal removeRequested(var mod)
     signal cancelRequested
@@ -21,13 +21,15 @@ Item {
     readonly property color bulkBorder: Theme.neutral75
     property string search: ""
 
-    function installedMod(id) {
-        return installContext.getInstalled(id.owner, id.name);
+    /// A selected mod as it's installed. Reading the profile's mods updates a binding that calls
+    /// this as they change.
+    function installedMod(id: var): Mod {
+        return profile && profile.mods ? profile.installedMod(id.owner, id.name) : null;
     }
 
     readonly property real totalSize: mods.reduce((total, id) => {
         const mod = installedMod(id);
-        return total + (mod && mod.version.file_size ? mod.version.file_size : 0);
+        return total + (mod ? mod.version.fileSize : 0);
     }, 0)
 
     // The table's rows are no narrower than their widest name, owner, version, and size, as in the
@@ -59,8 +61,8 @@ Item {
             const mod = installedMod(id);
             if (!mod)
                 continue;
-            parts = Math.max(parts, Math.ceil(partMetrics.advanceWidth(mod.name)) + Math.ceil(lowPartMetrics.advanceWidth(mod.owner)) + Math.ceil(lowPartMetrics.advanceWidth(mod.version.version_number)) + 2 * Math.ceil(separatorMetrics.advanceWidth("•")) + 4 * partGap);
-            size = Math.max(size, Math.ceil(partMetrics.advanceWidth(Util.humanizeFileSize(mod.version.file_size))) + 1);
+            parts = Math.max(parts, Math.ceil(partMetrics.advanceWidth(mod.name)) + Math.ceil(lowPartMetrics.advanceWidth(mod.owner)) + Math.ceil(lowPartMetrics.advanceWidth(mod.version.versionNumber)) + 2 * Math.ceil(separatorMetrics.advanceWidth("•")) + 4 * partGap);
+            size = Math.max(size, Math.ceil(partMetrics.advanceWidth(Util.humanizeFileSize(mod.version.fileSize))) + 1);
         }
         // the remove buttons are as wide as two of the font's ems: an icon and half that each side
         return 2 * rowPadding + 2 * Theme.rem + 2 * columnGap + parts + size;
@@ -235,7 +237,7 @@ Item {
 
                     required property var modelData
                     required property int index
-                    readonly property var mod: bulk.installedMod(modelData)
+                    readonly property Mod mod: bulk.installedMod(modelData)
 
                     width: table.rowWidth
                     implicitHeight: entryRow.implicitHeight + 2 * bulk.rowPadding + Ui.hairline
@@ -303,13 +305,13 @@ Item {
                             Separator {}
                             Part {
                                 low: true
-                                text: entry.mod ? entry.mod.version.version_number : ""
+                                text: entry.mod ? entry.mod.version.versionNumber : ""
                             }
                         }
 
                         SText {
                             Layout.minimumWidth: Math.min(implicitWidth, 4 * Theme.rem)
-                            text: entry.mod ? Util.humanizeFileSize(entry.mod.version.file_size) : ""
+                            text: entry.mod ? Util.humanizeFileSize(entry.mod.version.fileSize) : ""
                             color: Theme.neutral05
                             font.family: Theme.font
                             font.pixelSize: Theme.rem

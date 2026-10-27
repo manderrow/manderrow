@@ -25,8 +25,11 @@ AbstractButton {
     property bool wrapText: false
     /// Its min-content width: the narrowest it can be without its content overflowing it, with its
     /// label wrapped if it wraps. Browsers keep buttons in flex and grid layouts this wide, so
-    /// layouts that stand in for those should too.
+    /// layouts that stand in for those should too. Its contentItem may have a minimumWidth of its
+    /// own, as BtnContent and AsyncButton's contents do.
+    // qmllint disable missing-property
     readonly property real minimumWidth: leftPadding + rightPadding + (!contentItem ? 0 : contentItem.minimumWidth !== undefined ? contentItem.minimumWidth : contentItem.implicitWidth)
+    // qmllint enable missing-property
 
     property color bgColor: variant === "primary" ? Theme.primary40 : variant === "default" ? Theme.neutral80 : "transparent"
     property color activeBgColor: variant === "primary" ? Theme.primary50 : Theme.neutral70

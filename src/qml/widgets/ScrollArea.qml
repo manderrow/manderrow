@@ -21,8 +21,8 @@ Item {
     /// box, so that the keyboard can reach it to scroll it even with nothing to focus in it.
     property bool focusable: false
 
-    property real _verticalGutter: 0
-    property real _horizontalGutter: 0
+    property real _verticalGutter
+    property real _horizontalGutter
     Binding on _verticalGutter {
         value: verticalBar.gutter
         delayed: true

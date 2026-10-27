@@ -7,8 +7,10 @@ Item {
     id: content
 
     /// The Btn, typed as its base: Btn instantiates this, and Qt 6.10 can't load a type with a
-    /// property of a type that instantiates it (6.11 can).
+    /// property of a type that instantiates it (6.11 can). So qmllint doesn't know the Btn's own
+    /// properties, which this reads.
     required property AbstractButton btn
+    // qmllint disable missing-property
 
     /// The width taken by the icon and the space after it.
     readonly property real _iconWidth: icon.visible ? icon.width + row.spacing : 0

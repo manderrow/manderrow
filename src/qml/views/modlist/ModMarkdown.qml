@@ -5,8 +5,9 @@ import Manderrow
 Item {
     id: root
 
-    property var mod
-    property var selectedVersion
+    property Mod mod: null
+    /// The version whose Markdown is shown, or empty for the mod's `displayVersion`.
+    property string selectedVersion
     /// "readme" or "changelog"
     property string endpoint: "readme"
     /// Space on the Markdown's right, which the messages shown in its place don't leave.
@@ -14,13 +15,14 @@ Item {
     /// How far the Markdown reaches to the right, past this where some of it can't wrap to fit.
     readonly property real overflowWidth: markdown.visible ? markdown.overflowWidth : width
 
+    /// The Markdown, once it's been fetched, which is empty if there's none.
     property var result: undefined
     property var error: null
-    property var _task: null
+    property Task _task: null
     property int _generation: 0
 
-    readonly property string _version: mod ? (selectedVersion !== undefined ? selectedVersion : Util.displayVersion(mod).version_number) : ""
-    readonly property bool _hasMarkdown: result !== undefined && !!result.markdown
+    readonly property string _version: mod ? (selectedVersion !== "" ? selectedVersion : mod.displayVersion.versionNumber) : ""
+    readonly property bool _hasMarkdown: result !== undefined && result !== ""
     /// Whether it is being fetched, or the Markdown is still being created, so that it appears
     /// all at once.
     readonly property bool _loading: (result === undefined && error === null) || (_hasMarkdown && !markdown.ready)
@@ -34,11 +36,9 @@ Item {
         _task = null;
         if (!mod)
             return;
-        Api.fetchModMarkdown(mod.owner, mod.name, _version, endpoint, event => {
-            // the component may have been destroyed by the time this runs
-            if (root && event.event === "created")
-                root._task = event.task;
-        }).then(r => {
+        const fetch = endpoint === "changelog" ? mod.changelog(_version) : mod.readme(_version);
+        _task = Tasks.get(fetch.taskId);
+        Async.promise(fetch).then(r => {
             if (root && generation === root._generation)
                 root.result = r;
         }, e => {
@@ -68,7 +68,8 @@ Item {
             id: bar
             visible: root._loading
             width: Math.min(parent.width, 12 * Theme.rem)
-            progress: root._task ? root._task.progress : undefined
+            completed: root._task ? root._task.completed : 0
+            total: root._task ? root._task.total : 0
         }
 
         Text {
@@ -87,6 +88,6 @@ Item {
         id: markdown
         visible: root._hasMarkdown && ready
         width: parent.width - root.rightPadding
-        source: root._hasMarkdown ? root.result.markdown : ""
+        source: root._hasMarkdown ? root.result : ""
     }
 }

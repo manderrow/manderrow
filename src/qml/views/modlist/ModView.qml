@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Manderrow
@@ -12,50 +13,51 @@ Item {
 
     clip: true
 
-    /// A mod listing or an installed mod package.
-    required property var mod
+    /// A mod listing, or a mod installed in the profile.
+    required property Mod mod
     required property string gameId
-    property var installContext: null
+    /// The profile the mod can be installed in, if any.
+    property Profile profile: null
 
     signal closeRequested
 
-    readonly property bool isPackage: mod.version !== undefined
-    readonly property var installed: installContext ? installContext.installedOf(mod) : undefined
+    readonly property bool isPackage: mod.version !== null
+    /// The mod as it's installed in the profile, if it is. Reading the profile's mods updates it as
+    /// they change.
+    readonly property Mod installed: profile && profile.mods ? profile.installedMod(mod.owner, mod.name) : null
 
-    /// All versions of the mod. A package's listing is looked up in the mod index.
-    property var modListing: isPackage ? Object.assign(Util.removeProperty(mod, "version"), { versions: [mod.version] }) : mod
-    property var selectedVersion: isPackage ? mod.version : undefined
+    /// The mod with all of its versions. An installed mod's listing is looked up in the mod index.
+    property Mod listing: isPackage ? null : mod
+    /// The versions to choose from: the listing's, or the installed version until it's found.
+    readonly property list<QtObject> versions: listing ? listing.versions : [mod.version]
+    property ModVersion selectedVersion: isPackage ? mod.version : (versions[0] as ModVersion) ?? null
     property string versionSearch: ""
 
-    onModListingChanged: {
-        if (selectedVersion === undefined && modListing)
-            selectedVersion = modListing.versions[0];
-    }
-
     Component.onCompleted: {
-        if (!isPackage) {
-            selectedVersion = mod.versions[0];
+        if (!isPackage)
             return;
-        }
-        Api.fetchModIndex(gameId, false, () => {}).then(() => Api.getFromModIndex(gameId, [{ owner: mod.owner, name: mod.name }])).then(listings => {
-            if (view && listings[0])
-                view.modListing = listings[0];
+        Async.co(function* () {
+            yield ModIndex.fetch(view.gameId, false);
+            const listing = yield ModIndex.get(view.gameId, view.mod.owner, view.mod.name);
+            if (view && listing)
+                view.listing = listing;
         }).catch(e => Ui.window.reportError(e));
     }
 
-    function isSelectedVersion(version) {
-        return !!selectedVersion && selectedVersion.version_number === version.version_number;
+    function isSelectedVersion(version: ModVersion): bool {
+        return !!selectedVersion && selectedVersion.versionNumber === version.versionNumber;
     }
 
-    function versionOptions(filter) {
-        if (!modListing)
-            return [];
-        return modListing.versions.map((version, i) => ({
-                    label: version.version_number,
-                    secondary: Util.formatDateMed(version.date_created),
-                    value: version,
-                    selected: selectedVersion === undefined && i === 0 ? true : isSelectedVersion(version)
-                })).filter(option => !filter || option.label.toLowerCase().includes(filter.toLowerCase()));
+    function versionOptions(filter: string): var {
+        return versions.map(object => {
+            const version = object as ModVersion;
+            return {
+                label: version.versionNumber,
+                secondary: Util.formatDateMed(version.dateCreated),
+                value: version,
+                selected: isSelectedVersion(version)
+            };
+        }).filter(option => !filter || option.label.toLowerCase().includes(filter.toLowerCase()));
     }
 
     component MetaLink: Item {
@@ -170,7 +172,7 @@ Item {
                         }
 
                         MetaField {
-                            value: "v" + (view.selectedVersion ? view.selectedVersion.version_number : "...")
+                            value: "v" + (view.selectedVersion ? view.selectedVersion.versionNumber : "...")
                         }
                         MetaField {
                             icon: "download"
@@ -178,14 +180,14 @@ Item {
                         }
                         MetaField {
                             icon: "hard-drive"
-                            value: view.selectedVersion ? Util.humanizeFileSize(view.selectedVersion.file_size) : "..."
+                            value: view.selectedVersion ? Util.humanizeFileSize(view.selectedVersion.fileSize) : "..."
                         }
                     }
                 }
 
                 // the donation link
                 Item {
-                    visible: !!view.mod.donation_link
+                    visible: view.mod.donationLink !== ""
                     Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
                     implicitWidth: donate.implicitWidth + 2 * Theme.rem
                     implicitHeight: donate.implicitHeight + Theme.rem
@@ -219,7 +221,7 @@ Item {
                         id: donateHover
                         radius: donateBox.radius
                         activatesOnSpace: false
-                        onActivated: Util.openUrl(view.mod.donation_link)
+                        onActivated: Util.openUrl(view.mod.donationLink)
                     }
                 }
             }
@@ -268,11 +270,11 @@ Item {
                 }
 
                 /// How far the content reaches past the view.
-                property real overflow: 0
+                property real overflow
                 // measured once the content has been laid out at a new width, so that where it
                 // reached at the old one doesn't show a horizontal scroll bar for a moment
                 Binding on overflow {
-                    value: tabContent.item ? Math.max(0, tabContent.item.overflowWidth - scrollContent.width) : 0
+                    value: tabContent.item ? Math.max(0, tabContent.item.overflowWidth - scrollContent.width) : 0 // qmllint disable missing-property
                     delayed: true
                 }
 
@@ -297,7 +299,7 @@ Item {
                 // .markdown { padding-right: 0.75em }
                 rightPadding: 0.75 * Theme.rem
                 mod: view.mod
-                selectedVersion: view.selectedVersion ? view.selectedVersion.version_number : undefined
+                selectedVersion: view.selectedVersion ? view.selectedVersion.versionNumber : ""
                 endpoint: tabs.currentId === "changelog" ? "changelog" : "readme"
             }
         }
@@ -314,7 +316,7 @@ Item {
         Item {
             Layout.fillWidth: true
             Layout.rightMargin: Theme.rem
-            implicitHeight: (view.installed === undefined ? onlineActions.implicitHeight : installedActions.implicitHeight) + 0.5 * Theme.rem + 0.75 * Theme.rem + Ui.hairline
+            implicitHeight: (view.installed === null ? onlineActions.implicitHeight : installedActions.implicitHeight) + 0.5 * Theme.rem + 0.75 * Theme.rem + Ui.hairline
 
             Rectangle {
                 width: parent.width
@@ -324,7 +326,7 @@ Item {
 
             RowLayout {
                 id: onlineActions
-                visible: view.installed === undefined && view.installContext !== null
+                visible: view.installed === null && view.profile !== null
                 y: 0.5 * Theme.rem + Ui.hairline
                 width: parent.width
                 spacing: 0.25 * Theme.rem
@@ -352,7 +354,7 @@ Item {
                     Layout.fillWidth: true
                     Layout.minimumWidth: implicitWidth
                     mod: view.mod
-                    installContext: view.installContext
+                    profile: view.profile
                     text: Strings.modlist.online.install_btn
                     fontSize: 1.15 * Theme.rem
                     btn.fontWeight: Font.Medium
@@ -365,7 +367,7 @@ Item {
 
             RowLayout {
                 id: installedActions
-                visible: view.installed !== undefined
+                visible: view.installed !== null
                 y: 0.5 * Theme.rem + Ui.hairline
                 width: parent.width
                 spacing: 0.75 * Theme.rem
@@ -419,10 +421,9 @@ Item {
                             Layout.leftMargin: 0.5 * Theme.rem
                             Layout.rightMargin: 0.5 * Theme.rem
                             Layout.topMargin: 0.5 * Theme.rem
-                            mod: Object.assign(Util.removeProperty(view.modListing, "versions"), {
-                                version: view.modListing.versions.find(v => view.isSelectedVersion(v)) || view.modListing.versions[0]
-                            })
-                            installContext: view.installContext
+                            mod: view.listing ?? view.mod
+                            versionNumber: (view.selectedVersion ?? view.versions[0] as ModVersion).versionNumber
+                            profile: view.profile
                             text: Strings.global.phrases.apply
                             btn.enabled: !busy && !(view.isPackage && view.isSelectedVersion(view.mod.version))
                         }
@@ -434,8 +435,8 @@ Item {
                     Layout.fillHeight: true
                     Layout.preferredWidth: 1
                     Layout.minimumWidth: implicitWidth
-                    mod: view.installed || view.mod
-                    installContext: view.installContext
+                    mod: view.installed ?? view.mod
+                    profile: view.profile
                     text: Strings.modlist.installed.uninstall_btn
                     btn.bgColor: "transparent"
                     btn.activeBgColor: Theme.danger5

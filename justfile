@@ -27,11 +27,15 @@ update:
 check:
 	cargo check --workspace
 
-# Generates Strings.qml from the translations, as the build does, but without building the app. It
-# builds in its own target directory, so that it doesn't wait for a build of the app, or
-# rust-analyzer's.
+# Generates Strings.qml from the translations, and the QML module's types from the bridges in
+# src/qt for qmlls and qmllint, as the build does, but without building the app. It builds in its
+# own target directory, so that it doesn't wait for a build of the app, or rust-analyzer's.
 gen:
 	cargo run --target-dir target/tools -p manderrow-qml-gen
+
+# Lints the QML. Takes qmllint options or files.
+lint *ARGS: gen
+	python3 -I scripts/lint-qml.py {{ARGS}}
 
 run-script BIN *ARGS:
 	cargo run --bin {{BIN}} -- {{ARGS}}

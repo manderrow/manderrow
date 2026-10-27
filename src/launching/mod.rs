@@ -1,5 +1,4 @@
 mod bep_in_ex;
-pub mod commands;
 
 use std::ffi::OsStr;
 use std::panic::AssertUnwindSafe;
@@ -16,7 +15,7 @@ use uuid::Uuid;
 
 use crate::games::games_by_id;
 use crate::ipc::ConnectionId;
-use crate::ipc::{C2SMessage, IdentifiedC2SMessage, IpcState};
+use crate::ipc::{C2SMessage, IpcState};
 use crate::profiles::{profile_path, read_profile_file};
 use crate::stores::steam::proton::{adapt_host_path, host_path_to_win_path};
 use crate::wrap::WrapperMode;
@@ -53,17 +52,14 @@ pub async fn launch_profile(
             record: &slog::Record<'_>,
             _values: &slog::OwnedKVList,
         ) -> Result<Self::Ok, Self::Err> {
-            _ = self.app.emit(
-                crate::ipc::EVENT_NAME,
-                IdentifiedC2SMessage {
-                    conn_id: self.conn_id,
-                    msg: &C2SMessage::Log {
-                        level: record.level().into(),
-                        scope: "manderrow".into(),
-                        message: record.msg().to_string(),
-                    },
+            self.app.ipc_events().emit(crate::ipc::Event::Message {
+                conn_id: self.conn_id,
+                msg: C2SMessage::Log {
+                    level: record.level().into(),
+                    scope: "manderrow".into(),
+                    message: record.msg().to_string(),
                 },
-            );
+            });
             Ok(())
         }
     }

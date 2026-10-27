@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Manderrow
@@ -12,25 +13,30 @@ Item {
 
     signal showGameSelect
 
+    /// The profiles of the game, by id.
     readonly property var profiles: {
         const out = {};
-        for (const profile of Globals.profiles) {
+        for (const object of Profiles.all) {
+            const profile = object as Profile;
             if (profile.game === gameId)
                 out[profile.id] = profile;
         }
         return out;
     }
-    readonly property var currentProfile: profileId === undefined ? undefined : profiles[profileId]
+    readonly property Profile currentProfile: profileId === undefined ? null : profiles[profileId] ?? null
 
     // Update the title bar with the current profile's name
-    readonly property string titleName: currentProfile === undefined || gameSelectShowing ? "" : currentProfile.name
+    readonly property string titleName: currentProfile === null || gameSelectShowing ? "" : currentProfile.name
     onTitleNameChanged: Ui.currentProfileName = titleName
     Component.onCompleted: Ui.currentProfileName = titleName
     Component.onDestruction: Ui.currentProfileName = ""
 
     onCurrentProfileChanged: {
-        if (profileId !== undefined && currentProfile === undefined)
+        if (profileId !== undefined && currentProfile === null)
             Ui.window.reportError(new Error(`Unknown profile ${profileId}`));
+        // read again whenever it's shown, for changes made to its files outside the app
+        if (currentProfile !== null)
+            Async.promise(currentProfile.refreshMods()).catch(e => Ui.window.reportError(e));
     }
 
     /// The width of the sidebar where it doesn't expand over the content.
@@ -41,31 +47,21 @@ Item {
     // launch errors are tracked here instead of being reported globally
     property var launchError: null
 
-    function launch(modded) {
-        ConsoleStore.allocate(profileId).then(conn => {
-            ConsoleStore.focusedConnection = conn;
-            if (Globals.settings.openConsoleOnLaunch.value && Router.search["profile-tab"] !== "logs")
-                Router.setSearch({ "profile-tab": "logs" });
-            return Api.launchProfile(conn.connId, profileId !== undefined ? { profile: profileId } : { vanilla: gameId }, modded).catch(error => {
-                conn.handleEvent({ type: "Error", error });
-                view.launchError = error;
-            });
-        }).catch(e => view.launchError = e);
+    function launch(modded: bool) {
+        const profile = profileId !== undefined ? profileId : "";
+        const connection = Console.allocate(profile);
+        Console.focused = connection;
+        if (Settings.openConsoleOnLaunch && Router.search["profile-tab"] !== "logs")
+            Router.setSearch({ "profile-tab": "logs" });
+        // the connection's log shows the error too
+        Async.promise(connection.launch(gameId, profile, modded)).catch(e => view.launchError = e);
     }
 
     function killGame() {
-        const conn = ConsoleStore.focusedConnection;
-        if (conn === null)
+        const connection = Console.focused;
+        if (connection === null)
             return;
-        Api.killIpcClient(conn.connId).catch(error => {
-            conn.handleEvent({ type: "Error", error });
-            view.launchError = error;
-        });
-    }
-
-    InstallContext {
-        id: profileInstallContext
-        profileId: view.profileId === undefined ? "" : view.profileId
+        Async.promise(connection.kill()).catch(e => view.launchError = e);
     }
 
     ColumnLayout {
@@ -207,19 +203,19 @@ Item {
                             id: installedTab
                             InstalledModList {
                                 game: view.gameId
-                                installContext: profileInstallContext
+                                profile: view.currentProfile
                             }
                         }
                         Component {
                             id: onlineTab
                             OnlineModList {
                                 game: view.gameId
-                                installContext: profileInstallContext
+                                profile: view.currentProfile
                             }
                         }
                         Component {
                             id: logsTab
-                            Console {}
+                            ConsoleView {}
                         }
                         Component {
                             id: configTab
@@ -244,21 +240,21 @@ Item {
         gameId: view.gameId
         profileId: view.profileId
         profiles: view.profiles
-        focusedConnection: ConsoleStore.focusedConnection
+        focusedConnection: Console.focused
         onBackClicked: view.showGameSelect()
         onLaunchClicked: view.launch(true)
         onKillClicked: view.killGame()
-        onCancelClicked: ConsoleStore.focusedConnection = null
+        onCancelClicked: Console.focused = null
     }
 
     Repeater {
-        model: ConsoleStore.doctorReports
+        model: Console.doctorReports
         delegate: DoctorDialog {
-            required property var modelData
+            required property DoctorReport modelData
             required property int index
             report: modelData
             Component.onCompleted: open()
-            onDismissed: ConsoleStore.dismissDoctorReport(index)
+            onDismissed: Console.dismissDoctorReport(index)
         }
     }
 

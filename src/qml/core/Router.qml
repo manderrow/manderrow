@@ -29,6 +29,10 @@ QtObject {
     readonly property var gameId: route === "profile" && _segments.length > 1 ? _segments[1] : undefined
     readonly property var profileId: route === "profile" && _segments.length > 2 ? _segments[2] : undefined
 
+    /// Emitted after `navigate`, once `route`, `gameId` and `profileId` all have their new values,
+    /// which their own change signals can be emitted before.
+    signal navigated
+
     /// Navigates to `to`, which is a path, or a negative number to go back in history.
     function navigate(to, options) {
         if (typeof to === "number") {
@@ -37,12 +41,14 @@ QtObject {
                 path = entry.path;
                 search = entry.search;
             }
+            navigated();
             return;
         }
         if (!(options && options.replace))
             _history.push({ path, search });
         search = {};
         path = to;
+        navigated();
     }
 
     /// Updates search parameters in place, without adding a history entry.

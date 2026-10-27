@@ -6,12 +6,14 @@ import Manderrow
 Item {
     id: root
 
-    /// `{ completed, total }`, or undefined.
-    property var progress
+    /// How much is done, of the `total`, as a task's progress.
+    property real completed
+    /// How much there is to do, or 0 while that's unknown.
+    property real total
     property real fontSize: Theme.rem
 
-    readonly property bool indeterminate: !progress || progress.total === 0
-    readonly property real fraction: indeterminate ? 0 : Math.min(1, progress.completed / progress.total)
+    readonly property bool indeterminate: total === 0
+    readonly property real fraction: indeterminate ? 0 : Math.min(1, completed / total)
 
     implicitWidth: 12 * Theme.rem
     implicitHeight: indeterminate ? 0.9 * fontSize : label.implicitHeight
@@ -102,7 +104,7 @@ Item {
         id: label
         visible: !root.indeterminate
         anchors.centerIn: parent
-        text: (root.progress && root.progress.total === 0 ? "0" : Util.formatRounded(root.fraction * 100)) + "%"
+        text: Util.formatRounded(root.fraction * 100) + "%"
         color: Theme.neutral05
         font.family: Theme.font
         font.pixelSize: 0.9 * Theme.rem

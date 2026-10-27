@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import Manderrow
@@ -6,10 +7,10 @@ import Manderrow
 Item {
     id: modItem
 
-    /// A mod summary from the mod index (with `versions` and `total_downloads`) or an installed mod
-    /// package (with `version`).
-    required property var mod
-    property var installContext: null
+    /// A mod summary from the mod index, or a mod installed in the profile.
+    required property Mod mod
+    /// The profile the mod can be installed in, if any.
+    property Profile profile: null
     /// Whether this mod is shown in the mod view.
     property bool focused: false
     /// Whether this mod can be selected for bulk actions.
@@ -24,9 +25,11 @@ Item {
     signal shiftClicked
     signal uninstalled
 
-    readonly property bool isPackage: mod.version !== undefined
-    readonly property var displayVersion: Util.displayVersion(mod)
-    readonly property var installed: installContext ? installContext.installedOf(mod) : undefined
+    readonly property bool isPackage: mod.version !== null
+    readonly property ModVersion displayVersion: mod.displayVersion
+    /// The mod as it's installed in the profile, if it is. Reading the profile's mods updates it as
+    /// they change.
+    readonly property Mod installed: profile && profile.mods ? profile.installedMod(mod.owner, mod.name) : null
     readonly property bool hot: hover.hovered
     /// The buttons show while hovered or while the focus is within the item, as on the web.
     readonly property bool revealed: hot || Ui.isWithin(Window.activeFocusItem, modItem)
@@ -220,7 +223,7 @@ Item {
                     Layout.preferredWidth: 64
                     Layout.preferredHeight: 64
                     radius: 6
-                    source: Util.getIconUrl(Util.getQualifiedModName(modItem.mod.owner, modItem.mod.name, modItem.displayVersion.version_number))
+                    source: Util.getIconUrl(Util.getQualifiedModName(modItem.mod.owner, modItem.mod.name, modItem.displayVersion.versionNumber))
                 }
 
                 // min-width: 0: the name and the rest of its line overflow it, toward the button,
@@ -271,7 +274,7 @@ Item {
                         }
                         Text {
                             visible: modItem.isPackage
-                            text: modItem.isPackage ? modItem.mod.version.version_number : ""
+                            text: modItem.isPackage ? modItem.mod.version.versionNumber : ""
                             color: Theme.neutral20
                             font.family: Theme.font
                             font.pixelSize: 0.9 * Theme.rem
@@ -291,7 +294,7 @@ Item {
                             anchors.verticalCenter: parent.verticalCenter
                         }
                         Text {
-                            text: modItem.isPackage ? Util.humanizeFileSize(modItem.mod.version.file_size) : Util.formatRounded(modItem.mod.total_downloads)
+                            text: modItem.isPackage ? Util.humanizeFileSize(modItem.mod.version.fileSize) : Util.formatRounded(modItem.mod.totalDownloads)
                             color: Theme.neutral30
                             font.family: Theme.font
                             font.pixelSize: 0.85 * Theme.rem
@@ -312,8 +315,8 @@ Item {
                 // install or uninstall, revealed on hover
                 Loader {
                     Layout.alignment: Qt.AlignVCenter
-                    active: modItem.installContext !== null
-                    sourceComponent: modItem.installed !== undefined ? uninstallButton : installButton
+                    active: modItem.profile !== null
+                    sourceComponent: modItem.installed !== null ? uninstallButton : installButton
                 }
             }
         }
@@ -323,7 +326,7 @@ Item {
         id: installButton
         InstallButton {
             mod: modItem.mod
-            installContext: modItem.installContext
+            profile: modItem.profile
             fontSize: 1.5 * Theme.rem
             progressStyle: "circular"
             busyPlain: true
@@ -341,7 +344,7 @@ Item {
         id: uninstallButton
         UninstallButton {
             mod: modItem.installed
-            installContext: modItem.installContext
+            profile: modItem.profile
             fontSize: 1.5 * Theme.rem
             progressStyle: "circular"
             busyPlain: true

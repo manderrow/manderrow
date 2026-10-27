@@ -7,37 +7,39 @@ Item {
     id: root
 
     property string game
-    property var installContext
+    property Profile profile: null
+    readonly property list<QtObject> installed: profile ? profile.mods : []
 
-    // available updates: `[{ newMod, oldVersionNumber }]`
+    /// The available updates: `[{ newMod, oldVersionNumber }]`, where `newMod` is the summary of a
+    /// mod whose latest version isn't the one installed.
     property var updates: []
     property bool updatesLoading: false
-    property var checkUpdatesProgress: Tasks.initProgress()
+    property Task checkUpdatesTask: null
     property int _updatesGeneration: 0
 
     /// Looks for updates to the installed mods. With `refresh`, the mod index is refetched first.
-    function checkUpdates(refresh) {
+    function checkUpdates(refresh: bool): var {
         const generation = ++_updatesGeneration;
-        const installed = installContext.installed;
-        if (installed.length === 0) {
+        const profile = root.profile;
+        if (!profile || profile.mods.length === 0) {
             updates = [];
             updatesLoading = false;
             return Promise.resolve();
         }
         updatesLoading = true;
-        return Api.fetchModIndex(game, refresh, event => {
-            // the component may have been destroyed by the time this runs
-            if (root && event.event === "progress")
-                root.checkUpdatesProgress = event.progress;
-        }).then(() => Api.getModUpdates(game, installed.map(mod => ({ owner: mod.owner, name: mod.name, version: mod.version.version_number })))).then(newMods => {
+        const fetch = ModIndex.fetch(game, refresh);
+        checkUpdatesTask = Tasks.get(fetch.taskId);
+        return Async.co(function* () {
+            yield fetch;
+            const newMods = yield profile.findUpdates();
             if (!root || generation !== root._updatesGeneration)
                 return;
-            const installedVersions = {};
-            for (const mod of installed)
-                installedVersions[`${mod.owner}/${mod.name}`] = mod.version.version_number;
-            root.updates = newMods.map(newMod => ({ newMod, oldVersionNumber: installedVersions[`${newMod.owner}/${newMod.name}`] }));
+            root.updates = newMods.map(newMod => ({
+                        newMod,
+                        oldVersionNumber: profile.installedMod(newMod.owner, newMod.name).version.versionNumber
+                    }));
             root.updatesLoading = false;
-        }, e => {
+        }).catch(e => {
             if (!root)
                 return;
             if (generation === root._updatesGeneration)
@@ -47,15 +49,15 @@ Item {
     }
 
     Connections {
-        target: root.installContext
-        function onInstalledChanged() {
+        target: root.profile
+        function onModsChanged() {
             root.checkUpdates(false).catch(e => Ui.window.reportError(e));
         }
     }
     Component.onCompleted: checkUpdates(false).catch(e => Ui.window.reportError(e))
 
     ColumnLayout {
-        visible: root.installContext.installed.length === 0
+        visible: root.installed.length === 0
         anchors.centerIn: parent
         // centred within the page's padding, which the list leaves beside it
         anchors.horizontalCenterOffset: -Theme.rem / 2
@@ -87,16 +89,15 @@ Item {
     }
 
     ModListView {
-        visible: root.installContext.installed.length !== 0
+        visible: root.installed.length !== 0
         anchors.fill: parent
         game: root.game
-        installContext: root.installContext
+        profile: root.profile
         multiselect: true
-        progress: Tasks.initProgress()
-        refresh: () => root.installContext.refetchInstalled()
+        refresh: () => root.profile ? root.profile.refreshMods() : undefined
         // TODO: implement filter and sort
         fetcher: {
-            const data = root.installContext.installed;
+            const data = root.installed;
             return (game, query, sort) => ({
                     count: data.length,
                     mods: page => page === 0 ? data : [],
@@ -122,7 +123,7 @@ Item {
                     text: Strings.modlist.installed.check_updates_btn
                     externalBusy: root.updatesLoading
                     progressMode: "external"
-                    externalProgress: root.checkUpdatesProgress
+                    externalTask: root.checkUpdatesTask
                     action: () => root.checkUpdates(true)
                 }
 

@@ -109,9 +109,9 @@ MouseArea {
         }
     }
     Connections {
-        target: Qt.application
+        target: Application
         function onStateChanged() {
-            if (Qt.application.state !== Qt.ApplicationActive)
+            if (Application.state !== Qt.ApplicationActive)
                 autoscroll.stop();
         }
     }

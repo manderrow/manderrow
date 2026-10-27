@@ -1,100 +1,69 @@
 use std::borrow::Cow;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, serde::Deserialize, serde::Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 #[repr(transparent)]
 pub struct Id(pub(super) u64);
 
-#[derive(Clone, serde::Serialize)]
+impl Id {
+    /// The id as QML knows it. Ids are counted from 0 as tasks are created, so they fit.
+    pub fn to_qml(self) -> i32 {
+        self.0 as i32
+    }
+
+    pub fn from_qml(id: i32) -> Self {
+        Self(id as u32 as u64)
+    }
+}
+
+#[derive(Clone)]
 pub struct Metadata {
     pub title: Cow<'static, str>,
-    #[serde(flatten)]
     pub kind: Kind,
     pub progress_unit: ProgressUnit,
 }
 
-#[derive(Debug, Clone, serde::Serialize)]
-#[serde(tag = "kind")]
+#[derive(Debug, Clone)]
 pub enum Kind {
     Aggregate,
     Download { url: String },
     Other,
 }
 
-#[derive(Debug, Clone, Copy, serde::Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ProgressUnit {
     Bytes,
     Other,
 }
 
-#[derive(Clone, serde::Serialize)]
+#[derive(Clone, Copy)]
 pub struct Progress {
     pub completed: u64,
     pub total: u64,
 }
 
-#[derive(Clone, serde::Serialize)]
-pub struct TaskEvent<T: TaskEventBody> {
-    pub id: Id,
-    #[serde(flatten)]
-    pub body: T,
+/// What happens to a task, which the frontend shows.
+#[derive(Clone)]
+pub enum Event {
+    Created { id: Id, metadata: Metadata },
+    Progress { id: Id, progress: Progress },
+    /// The task waits on another, whose progress an aggregate task adds up.
+    Dependency { id: Id, dependency: Id },
+    Dropped { id: Id, status: DropStatus },
 }
 
-pub trait TaskEventBody: Clone + serde::Serialize {
-    const NAME: &str;
-}
-
-#[derive(Clone, serde::Serialize)]
-pub struct TaskCreated {
-    pub metadata: Metadata,
-}
-
-impl TaskEventBody for TaskCreated {
-    const NAME: &str = "task_created";
-}
-
-#[derive(Clone, serde::Serialize)]
-pub struct TaskProgress {
-    pub progress: Progress,
-}
-
-impl TaskEventBody for TaskProgress {
-    const NAME: &str = "task_progress";
-}
-
-#[derive(Clone, serde::Serialize)]
-pub struct TaskDependency {
-    pub dependency: Id,
-}
-
-impl TaskEventBody for TaskDependency {
-    const NAME: &str = "task_dependency";
-}
-
-#[derive(Clone, serde::Serialize)]
-pub struct TaskDropped {
-    pub status: DropStatus,
-}
-
-impl TaskEventBody for TaskDropped {
-    const NAME: &str = "task_dropped";
-}
-
-#[derive(Clone, serde::Serialize)]
-#[serde(tag = "status")]
+#[derive(Clone)]
 pub enum DropStatus {
     Success {
         success: Option<SuccessInfo>,
     },
-    Cancelled {
-        /// If true, the cancellation was due to the user acting directly on the task. Otherwise, it was likely due to the task's [`Future`](std::future::Future) being dropped.
-        direct: bool,
-    },
+    /// By the user, or as the task's [`Future`](std::future::Future) was dropped.
+    Cancelled,
     Failed {
         error: Cow<'static, str>,
     },
 }
 
-#[derive(Clone, Copy, serde::Serialize)]
+#[derive(Clone, Copy)]
 pub enum SuccessInfo {
     Cached,
 }

@@ -6,8 +6,11 @@ use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use cxx_qt_build::{CxxQtBuilder, QmlFile, QmlModule};
-use manderrow_qml_gen::{generate_strings, TRANSLATIONS};
+use cxx_qt_build::{CxxQtBuilder, QmlModule};
+use manderrow_qml_gen::{
+    bridges, generate_strings, point_qmltypes_at_bridges, qml_files, write_qmlls_qrc, Platform,
+    MODULE, TRANSLATIONS,
+};
 
 #[derive(Clone, Copy)]
 struct Env<'a> {
@@ -97,33 +100,20 @@ fn build_qt(crate_dir: &Path) {
     println!("cargo::rerun-if-changed={}", crate_dir.join(TRANSLATIONS).display());
     generate_strings(crate_dir).unwrap();
 
-    let qml_dir = crate_dir.join("src").join("qml");
-    println!("cargo::rerun-if-changed={}", qml_dir.display());
-    let mut qml_files = Vec::new();
-    collect_files(&qml_dir, "qml", &mut qml_files);
-    qml_files.sort();
+    println!("cargo::rerun-if-changed={}", crate_dir.join("src").join("qml").display());
+    let qml_files = qml_files(crate_dir).unwrap();
+    let module = QmlModule::new(MODULE).qml_files(qml_files.iter().cloned());
 
-    let module = QmlModule::new("Manderrow").qml_files(qml_files.iter().map(|path| {
-        let source = std::fs::read_to_string(path).unwrap();
-        QmlFile::from(path.strip_prefix(crate_dir).unwrap())
-            .singleton(source.lines().any(|line| line.trim() == "pragma Singleton"))
-    }));
-
-    // Native's platform services, which only build for their platforms
-    let mut bridges = vec![
-        "src/qt/bridge.rs",
-        "src/qt/native.rs",
-        "src/qt/rich_text.rs",
-        "src/qt/setup.rs",
-        "src/qt/web_images.rs",
-    ];
-    if var_os("CARGO_CFG_WINDOWS").is_some() {
-        bridges.push("src/qt/native_win32.rs");
+    let platform = if var_os("CARGO_CFG_WINDOWS").is_some() {
+        Platform::Windows
     } else if var_os("CARGO_CFG_TARGET_VENDOR").is_some_and(|vendor| vendor == "apple") {
-        bridges.push("src/qt/native_macos.rs");
+        Platform::Apple
     } else if var_os("CARGO_CFG_UNIX").is_some() {
-        bridges.push("src/qt/native_unix.rs");
-    }
+        Platform::Unix
+    } else {
+        Platform::Other
+    };
+    let bridges = bridges(platform);
 
     // Qt's private headers, if they are installed, for the QPA headers that Native uses
     let private_headers = qt_dir("QT_INSTALL_HEADERS")
@@ -134,7 +124,7 @@ fn build_qt(crate_dir: &Path) {
         .qt_module("Gui")
         .qt_module("Quick")
         .qt_module("QuickControls2")
-        .files(bridges);
+        .files(&bridges);
     // SAFETY: this only adds include directories
     let builder = unsafe {
         builder.cc_builder(|cc| {
@@ -145,6 +135,32 @@ fn build_qt(crate_dir: &Path) {
         })
     };
     builder.build();
+
+    // so that qmlls navigates from the QML to the sources, rather than to what the build generates
+    // from them
+    match exported_qml_modules() {
+        Some(modules_dir) => {
+            write_qmlls_qrc(crate_dir, &modules_dir, &qml_files).unwrap();
+            point_qmltypes_at_bridges(crate_dir, &modules_dir, &bridges).unwrap();
+        }
+        None => println!("cargo::warning=Unable to find the exported QML module for qmlls"),
+    }
+}
+
+/// The directory that cxx-qt exports the QML module to, for tools like qmlls: in
+/// $CXX_QT_EXPORT_DIR/qml_modules, or otherwise in cxxqt/qml_modules in the target directory,
+/// which contains OUT_DIR.
+fn exported_qml_modules() -> Option<PathBuf> {
+    let out_dir = PathBuf::from(var_os("OUT_DIR").unwrap());
+    var_os("CXX_QT_EXPORT_DIR")
+        .map(|dir| PathBuf::from(dir).join("qml_modules"))
+        .into_iter()
+        .chain(
+            out_dir
+                .ancestors()
+                .map(|dir| dir.join("cxxqt").join("qml_modules")),
+        )
+        .find(|dir| dir.join(MODULE).join("qmldir").exists())
 }
 
 /// Compiles the static assets into a binary Qt resource bundle, which is embedded in the

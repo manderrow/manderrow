@@ -10,5 +10,11 @@ path = "src/main.rs"
 
 [dependencies]
 anyhow = "1"
+# the code generation of cxx-qt-build, to generate the QML module's types as the build does
+cxx-gen = "0.7"
+cxx-qt-gen = "0.10"
+proc-macro2 = "1"
+qt-build-utils = "0.10"
+quote = "1"
 # the order of the translations' keys, which the generated Strings.qml keeps
 serde_json = { version = "1", features = ["preserve_order"] }
