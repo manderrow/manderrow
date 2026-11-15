@@ -4,7 +4,7 @@
 //
 // To add an icon, add its Lucide name to NAMES and run `just icons`.
 
-import * as path from "@std/path";
+import * as path from "node:path";
 import svg2ttf from "svg2ttf";
 
 const NAMES = [
@@ -58,16 +58,13 @@ type Contour = Segment[];
 
 const FAMILY = "Manderrow Icons";
 
-const scriptDir = path.dirname(path.fromFileUrl(import.meta.url));
-const packageDir = path.join(scriptDir, "node_modules", "lucide-static");
-const rootDir = path.join(scriptDir, "..", "..");
+const packageDir = path.join(import.meta.dir, "node_modules", "lucide-static");
+const rootDir = path.join(import.meta.dir, "..", "..");
 const qmlPath = path.join(rootDir, "src", "qml", "core", "Icons.qml");
 const fontPath = path.join(rootDir, "assets", "fonts", "ManderrowIcons.ttf");
 
-const font = await Deno.readTextFile(
-  path.join(packageDir, "font", "lucide.svg"),
-);
-const license = await Deno.readTextFile(path.join(packageDir, "LICENSE"));
+const font = await Bun.file(path.join(packageDir, "font", "lucide.svg")).text();
+const license = await Bun.file(path.join(packageDir, "LICENSE")).text();
 const em = Number(font.match(/units-per-em="([\d.]+)"/)![1]);
 const ascent = Number(font.match(/ascent="([\d.]+)"/)![1]);
 
@@ -246,7 +243,7 @@ ${fontGlyphs.join("\n")}
     version: "1.0",
   },
 );
-await Deno.writeFile(fontPath, ttf.buffer);
+await Bun.write(fontPath, ttf.buffer);
 
 const licenseComment = license
   .trim()
@@ -254,7 +251,7 @@ const licenseComment = license
   .map((line) => ("// " + line).trimEnd())
   .join("\n");
 
-await Deno.writeTextFile(
+await Bun.write(
   qmlPath,
   `pragma Singleton
 import QtQuick

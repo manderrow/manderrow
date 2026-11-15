@@ -51,7 +51,7 @@ just test   # run the tests
 
 The backend is in `src`, the bridge to the UI in `src/qt`, and the UI in `src/qml`.
 
-The UI's icons are [Lucide](https://lucide.dev/) icons, generated into a font, `assets/fonts/ManderrowIcons.ttf`, and its index, `src/qml/core/Icons.qml`, by `just icons` with [Deno](https://deno.com/). To add one, add its name to `scripts/icons/main.ts` and run it again.
+The UI's icons are [Lucide](https://lucide.dev/) icons, generated into a font, `assets/fonts/ManderrowIcons.ttf`, and its index, `src/qml/core/Icons.qml`, by `just icons` with [Bun](https://bun.com/). To add one, add its name to `scripts/icons/main.ts` and run it again.
 
 Debug builds accept some options for developing and testing the UI, as `MANDERROW_DEV_<NAME>` environment variables:
 

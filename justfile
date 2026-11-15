@@ -51,4 +51,4 @@ scrape:
 
 [working-directory: 'scripts/icons']
 icons:
-	deno run generate
+	bun run generate
