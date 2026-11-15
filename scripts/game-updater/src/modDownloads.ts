@@ -21,7 +21,7 @@ export default async function scrapeDownloads() {
   }
   await Promise.all(
     Array.from(thunderstoreIds).map(async (thunderstoreId) => {
-      const resp = await fetch(THUNDERSTORE_COMMUNITIES_API + thunderstoreId);
+      const resp = await fetch(THUNDERSTORE_COMMUNITIES_API + thunderstoreId + "/");
       if (resp.status !== 200) {
         throw new Error(`${thunderstoreId}: ${resp.status} ${resp.statusText}`);
       }
