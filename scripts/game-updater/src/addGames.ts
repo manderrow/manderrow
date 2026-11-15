@@ -1,6 +1,6 @@
 import type { Game, StorePlatformMetadata } from "../../../src/types.d.ts";
 
-import existingGames, { gamesJsonPath } from "./games.ts";
+import existingGames, { gamesJson, gamesJsonPath } from "./games.ts";
 import {
   THUNDERSTORE_COMMUNITIES_API,
   type ThunderstoreCommunityApiResponse,
@@ -44,11 +44,16 @@ export default async function addGames() {
       continue;
     }
 
+    // The keys are in the order the other games have theirs, which filling them in below keeps
     const gameData: Partial<Game> = {
       id: game.identifier,
-      thunderstoreId: game.identifier,
       name: game.name,
+      exeNames: undefined,
+      thunderstoreId: game.identifier,
       thunderstoreUrl: `https://thunderstore.io/c/${game.identifier}/api/v1/package-listing-index/`,
+      storePlatformMetadata: undefined,
+      instanceType: undefined,
+      packageLoader: undefined,
     };
 
     for (const field of fields) {
@@ -105,7 +110,7 @@ export default async function addGames() {
     if ((await getLine()).toLowerCase() === "y") {
       existingGames.push(gameData as Game);
 
-      await Bun.write(gamesJsonPath, JSON.stringify(existingGames, null, 2));
+      await Bun.write(gamesJsonPath, gamesJson(existingGames));
     } else {
       console.log("Restarting...");
     }
