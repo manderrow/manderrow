@@ -13,8 +13,6 @@ const steamStoreIdentifiers = games.map(
   },
 );
 
-const textEncoder = new TextEncoder();
-
 const adultAge = `birthtime=${Math.floor(new Date(2006, 1, 1).getTime() / 1000)}`;
 
 export async function scrapeSteam() {
@@ -40,10 +38,7 @@ export async function scrapeSteam() {
 
         return { reviewCount };
       } catch (err) {
-        if (
-          err instanceof TypeError &&
-          err.message === "Fetch failed: Encountered redirect while redirect mode is set to 'error'"
-        ) {
+        if (err instanceof Error && "code" in err && err.code === "UnexpectedRedirect") {
           console.error(`${url} redirected`);
         } else {
           console.error(`${url} failed to resolve: `, err);
@@ -65,5 +60,5 @@ export async function scrapeSteam() {
 
   const gameJSON = JSON.stringify(gameFinal, null, 2);
 
-  await Deno.writeFile(projectRootDir + "/src-tauri/src/games/gameReviews.json", textEncoder.encode(gameJSON));
+  await Bun.write(projectRootDir + "/src-tauri/src/games/gameReviews.json", gameJSON);
 }

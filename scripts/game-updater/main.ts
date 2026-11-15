@@ -1,5 +1,5 @@
-import { parseArgs } from "@std/cli";
 import { exit } from "node:process";
+import { parseArgs } from "node:util";
 
 import addGames from "./src/addGames.ts";
 import scrapeModDownloads from "./src/modDownloads.ts";
@@ -11,29 +11,26 @@ enum UpdateMode {
   MOD_DOWNLOADS = "mod-downloads",
 }
 
-const args: {
-  _: [string];
-  mode: string;
-} = parseArgs(Deno.args, {
-  string: ["mode"],
-  default: { mode: UpdateMode.ALL },
+const {
+  values: { mode },
+  positionals: [command],
+} = parseArgs({
+  args: Bun.argv.slice(2),
+  options: { mode: { type: "string", default: UpdateMode.ALL } },
+  allowPositionals: true,
 });
 
-switch (args._[0]) {
-  case null:
+switch (command) {
+  case undefined:
     throw new Error("Usage: game-updater [OPTIONS] COMMAND [OPTIONS]");
   case "scrape":
-    if (
-      args.mode !== UpdateMode.ALL &&
-      args.mode !== UpdateMode.MOD_DOWNLOADS &&
-      args.mode !== UpdateMode.REVIEW_COUNTS
-    ) {
-      throw new Error(`Invalid scraping mode: ${args.mode}`);
+    if (mode !== UpdateMode.ALL && mode !== UpdateMode.MOD_DOWNLOADS && mode !== UpdateMode.REVIEW_COUNTS) {
+      throw new Error(`Invalid scraping mode: ${mode}`);
     }
 
     await Promise.allSettled([
-      args.mode === UpdateMode.ALL || args.mode === UpdateMode.MOD_DOWNLOADS ? scrapeModDownloads() : undefined,
-      args.mode === UpdateMode.ALL || args.mode === UpdateMode.REVIEW_COUNTS ? scrapeReviewCounts() : undefined,
+      mode === UpdateMode.ALL || mode === UpdateMode.MOD_DOWNLOADS ? scrapeModDownloads() : undefined,
+      mode === UpdateMode.ALL || mode === UpdateMode.REVIEW_COUNTS ? scrapeReviewCounts() : undefined,
     ]);
     break;
   case "add-games":
@@ -42,5 +39,5 @@ switch (args._[0]) {
     exit(0);
     break;
   default:
-    throw new Error(`Unrecognized command: ${args._[0]}`);
+    throw new Error(`Unrecognized command: ${command}`);
 }

@@ -1,0 +1,15 @@
+{
+  "name": "game-updater",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "add-games": "bun main.ts add-games",
+    "scrape": "bun main.ts scrape"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.4"
+  }
+}

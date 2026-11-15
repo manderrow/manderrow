@@ -1,6 +1,4 @@
-import * as path from "@std/path";
+import * as path from "node:path";
 
-const mainModuleUrl = Deno.mainModule;
-export const mainModuleDir = path.dirname(path.fromFileUrl(mainModuleUrl));
-export const projectRootDir = path.dirname(path.dirname(mainModuleDir));
+export const projectRootDir = path.join(import.meta.dir, "..", "..", "..");
 console.error(`projectRootDir: ${projectRootDir}`);

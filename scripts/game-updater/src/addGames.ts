@@ -1,5 +1,3 @@
-import { TextLineStream } from "@std/streams";
-
 import type { Game, StorePlatformMetadata } from "../../../src/types.d.ts";
 
 import existingGames, { gamesJsonPath } from "./games.ts";
@@ -21,14 +19,13 @@ export default async function addGames() {
     if (!existingGamesMap.has(game.identifier)) diff.push(game);
   }
 
-  const textEncoder = new TextEncoder();
-
   const fields: (keyof Game)[] = ["packageLoader", "exeNames", "instanceType", "storePlatformMetadata"];
 
-  const reader = Deno.stdin.readable.pipeThrough(new TextDecoderStream()).pipeThrough(new TextLineStream()).getReader();
+  const lines = console[Symbol.asyncIterator]();
 
   async function getLine(): Promise<string> {
-    return (await reader.read()).value!;
+    // Bun splits stdin's lines on \n alone, which leaves the \r of a line entered in a Windows console
+    return (await lines.next()).value!.replace(/\r$/, "");
   }
 
   function shouldBreak(text: string) {
@@ -108,7 +105,7 @@ export default async function addGames() {
     if ((await getLine()).toLowerCase() === "y") {
       existingGames.push(gameData as Game);
 
-      Deno.writeFile(gamesJsonPath, textEncoder.encode(JSON.stringify(existingGames, null, 2)));
+      await Bun.write(gamesJsonPath, JSON.stringify(existingGames, null, 2));
     } else {
       console.log("Restarting...");
     }

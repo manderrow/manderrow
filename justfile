@@ -38,9 +38,9 @@ run-script BIN *ARGS:
 
 [working-directory: 'scripts/game-updater']
 add-games:
-	deno run add-games
+	bun run add-games
 
 [working-directory: 'scripts/game-updater']
 scrape:
-	deno run scrape
+	bun run scrape
 

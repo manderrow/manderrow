@@ -41,10 +41,7 @@ const gamePlatforms = await Promise.all(
 
       return data;
     } catch (err) {
-      if (
-        err instanceof TypeError &&
-        err.message === "Fetch failed: Encountered redirect while redirect mode is set to 'error'"
-      ) {
+      if (err instanceof Error && "code" in err && err.code === "UnexpectedRedirect") {
         console.error(`${url} redirected`);
       } else {
         console.error(`${url} failed to resolve: `, err);

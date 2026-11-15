@@ -6,8 +6,6 @@ import {
   type ThunderstoreCommunityGame,
 } from "./thunderstore.ts";
 
-const textEncoder = new TextEncoder();
-
 export default async function scrapeDownloads() {
   const sorted: [string, number][] = [];
   const thunderstoreIds = new Set(games.map((game) => game.thunderstoreId));
@@ -32,8 +30,8 @@ export default async function scrapeDownloads() {
     }),
   );
   sorted.sort(([a, _], [b, __]) => a.localeCompare(b));
-  Deno.writeFile(
+  await Bun.write(
     projectRootDir + "/src-tauri/src/games/gameModDownloads.json",
-    textEncoder.encode(JSON.stringify(Object.fromEntries(sorted), null, 2)),
+    JSON.stringify(Object.fromEntries(sorted), null, 2),
   );
 }
